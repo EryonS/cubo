@@ -58,7 +58,9 @@ Si plus rien ne rentre mais qu'il reste une Bombe, une Déviation ou un Volant u
   Annoncées en jeu quand l'objectif est atteint, payées en fin de partie.
 - **Boutique** (bouton pièces en haut à gauche) : skins purement cosmétiques.
   - Blocs : Classique, Néon (200), Bonbon (400), Pixel (600)
-  - Plateaux : Route de nuit, Coucher de soleil (300), Désert (500), Col de montagne (800)
+  - Thèmes (tout l'habillage : fond, plateau, panneau de score, menus, typo) : Autoroute, Coucher de soleil (300),
+    Route 66 (500), Col de montagne (800), Tableau de bord (1200, score en compteur kilométrique).
+    Les thèmes gardent l'id `boards` dans la sauvegarde. Voir `DESIGN.md`.
 
 ## Architecture (pour le portage React Native)
 

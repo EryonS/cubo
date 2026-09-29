@@ -12,8 +12,6 @@
   const LEGACY_KEY = 'gridlock.v1';
   const PROFILE_KEY = 'gridlock.profile.v1';
 
-  const TEXT = '#f4f1ea';
-  const ACCENT = '#ffd93d';
   // One color per shape family (index = family + 1, see FAMILIES in logic.js).
   const PALETTE = [
     null,
@@ -191,27 +189,61 @@
     g.restore();
   }
 
-  // ---------- board themes ----------
+  // ---------- themes ----------
+  // A theme is a whole visual world: background, board, score sign, fonts and the menu colors (css).
   // paint() draws the static background once per resize; animate() runs every frame.
+  // plate: the score sign. tag: the small sign hung under it (combo). frame: the board slab.
+  const UI_FONT = 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif';
   const THEMES = {
     night: {
-      base: '#101218', board: '#1a1d27', empty: '#242836',
-      paint(g, w, h) { g.fillStyle = this.base; g.fillRect(0, 0, w, h); },
+      base: '#16181c', board: '#1f2227', empty: '#2a2d33', cellR: 0.1,
+      font: '"DIN Condensed", "DIN Alternate", "Roboto Condensed", "Arial Narrow", sans-serif', weight: 700,
+      ink: '#ffffff', accent: '#ffc400', danger: '#ff6b5e',
+      frame: { r: 10, line: 'rgba(255,255,255,0.62)', lw: 2, inset: 4 },
+      plate: { fill: '#1f4fa3', line: '#ffffff', lw: 2.5, inset: 5, r: 12, ink: '#ffffff', sub: 'rgba(255,255,255,0.78)' },
+      tag: { fill: '#ffc400', line: '#16181c', ink: '#16181c' },
+      css: {
+        '--bg': '#16181c', '--panel': '#1f4fa3', '--panel-2': '#173e83', '--slot': '#23262c',
+        '--text': '#ffffff', '--muted': 'rgba(255,255,255,0.74)', '--accent': '#ffc400', '--on-accent': '#16181c',
+        '--good': '#5ee08a', '--edge': '#ffffff', '--radius': '14px',
+        '--card-edge': 'inset 0 0 0 7px var(--panel), inset 0 0 0 10px var(--edge)',
+        '--plate-edge': 'inset 0 0 0 3px var(--panel), inset 0 0 0 5px var(--edge)',
+      },
+      paint(g, w, h) {
+        g.fillStyle = this.base; g.fillRect(0, 0, w, h);
+        // Asphalt grain.
+        const rnd = seeded(3);
+        for (let i = 0; i < (w * h) / 50; i++) {
+          g.fillStyle = rnd() < 0.5 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.18)';
+          g.fillRect(rnd() * w, rnd() * h, 1 + rnd(), 1 + rnd());
+        }
+        // Continuous shoulder line on the left, like the edge of a motorway lane.
+        g.fillStyle = 'rgba(255,255,255,0.14)';
+        g.fillRect(4, 0, 3, h);
+      },
       animate(g, w, h, t) {
-        // Road edge markings scrolling past.
-        g.strokeStyle = 'rgba(255,255,255,0.06)';
-        g.lineWidth = 3;
-        g.setLineDash([22, 26]);
-        g.lineDashOffset = -(t * 0.06) % 48;
-        g.beginPath();
-        g.moveTo(7, 0); g.lineTo(7, h);
-        g.moveTo(w - 7, 0); g.lineTo(w - 7, h);
-        g.stroke();
+        g.strokeStyle = 'rgba(255,255,255,0.16)';
+        g.lineWidth = 4;
+        g.setLineDash([30, 38]);
+        g.lineDashOffset = -(t * 0.09) % 68;
+        g.beginPath(); g.moveTo(w - 7, 0); g.lineTo(w - 7, h); g.stroke();
         g.setLineDash([]);
       },
     },
     sunset: {
-      base: '#2a0f45', board: 'rgba(28,10,48,0.86)', empty: 'rgba(255,255,255,0.07)',
+      base: '#2a0f45', board: 'rgba(28,10,48,0.88)', empty: 'rgba(255,255,255,0.07)', cellR: 0.16,
+      font: '"Futura", "Century Gothic", "Trebuchet MS", sans-serif', weight: 800, italic: true,
+      ink: '#fff4fb', accent: '#ffe26a', danger: '#ff8a9b',
+      frame: { r: 16, line: '#ff4f8b', lw: 2, inset: 3, glow: '#ff4f8b' },
+      plate: { fill: 'rgba(26,8,48,0.82)', line: '#ff4f8b', lw: 2, inset: 0, r: 14, ink: '#ffe26a', sub: '#ff9ec4', glow: '#ff4f8b' },
+      tag: { fill: '#ff4f8b', line: null, ink: '#1a0b36' },
+      css: {
+        '--bg': '#2a0f45', '--panel': '#221040', '--panel-2': '#341a5a', '--slot': 'rgba(34,16,64,0.86)',
+        '--text': '#fff4fb', '--muted': '#d4b3e0', '--accent': '#ffe26a', '--on-accent': '#2a0f45',
+        '--good': '#6ff0c0', '--edge': '#ff4f8b', '--radius': '16px',
+        '--card-edge': 'inset 0 0 0 2px var(--edge), 0 0 36px rgba(255,79,139,0.35)',
+        '--plate-edge': 'inset 0 0 0 1.5px var(--edge)',
+      },
       paint(g, w, h) {
         const sky = g.createLinearGradient(0, 0, 0, h);
         sky.addColorStop(0, '#1a0b36');
@@ -243,13 +275,25 @@
       },
     },
     desert: {
-      base: '#2a1a10', board: 'rgba(38,23,13,0.86)', empty: 'rgba(255,220,170,0.08)',
+      base: '#2a1a10', board: 'rgba(40,24,14,0.9)', empty: 'rgba(255,220,170,0.08)', cellR: 0.08,
+      font: '"Rockwell", "Roboto Slab", "American Typewriter", Georgia, serif', weight: 800,
+      ink: '#fff3dc', accent: '#f4b63a', danger: '#ff8a6a',
+      frame: { r: 8, line: '#1f9e8f', lw: 3, inset: 3 },
+      plate: { fill: '#1f9e8f', line: '#fff3dc', lw: 2.5, inset: 5, r: 8, ink: '#fff3dc', sub: '#d6fff6', bulbs: '#ffd46b' },
+      tag: { fill: '#d9562b', line: '#fff3dc', ink: '#fff3dc' },
+      css: {
+        '--bg': '#2a1a10', '--panel': '#1c7f74', '--panel-2': '#15665d', '--slot': 'rgba(40,24,14,0.9)',
+        '--text': '#fff3dc', '--muted': '#cdeee7', '--accent': '#f4b63a', '--on-accent': '#2a1a10',
+        '--good': '#b6f27a', '--edge': '#fff3dc', '--radius': '8px',
+        '--card-edge': 'inset 0 0 0 6px var(--panel), inset 0 0 0 8px var(--edge)',
+        '--plate-edge': 'inset 0 0 0 3px var(--panel), inset 0 0 0 5px var(--edge)',
+      },
       paint(g, w, h) {
         const sky = g.createLinearGradient(0, 0, 0, h);
         sky.addColorStop(0, '#1b1020'); sky.addColorStop(0.5, '#6b3a2a'); sky.addColorStop(1, '#c9824a');
         g.fillStyle = sky; g.fillRect(0, 0, w, h);
         g.fillStyle = 'rgba(255,236,200,0.35)';
-        g.beginPath(); g.arc(w * 0.72, h * 0.1, Math.min(w, h) * 0.06, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.arc(w * 0.84, h * 0.72, Math.min(w, h) * 0.07, 0, Math.PI * 2); g.fill();
         const dune = (y0, amp, color, phase) => {
           g.fillStyle = color;
           g.beginPath(); g.moveTo(0, h);
@@ -271,7 +315,19 @@
       },
     },
     mountain: {
-      base: '#0b1326', board: 'rgba(9,15,30,0.86)', empty: 'rgba(160,190,255,0.08)',
+      base: '#0b1326', board: 'rgba(9,15,30,0.88)', empty: 'rgba(160,190,255,0.08)', cellR: 0.14,
+      font: '"Avenir Next Condensed", "Avenir Next", "Roboto Condensed", "Arial Narrow", sans-serif', weight: 700,
+      ink: '#ffffff', accent: '#9fd3ff', danger: '#ff8a9b',
+      frame: { r: 12, line: 'rgba(235,242,255,0.55)', lw: 1.5, inset: 4 },
+      plate: { fill: '#6b3d22', line: '#ffffff', lw: 2.5, inset: 5, r: 12, ink: '#ffffff', sub: '#f1d9c6' },
+      tag: { fill: '#eef4ff', line: null, ink: '#0b1326' },
+      css: {
+        '--bg': '#0b1326', '--panel': '#6b3d22', '--panel-2': '#55301a', '--slot': 'rgba(15,28,51,0.9)',
+        '--text': '#ffffff', '--muted': '#f1d9c6', '--accent': '#9fd3ff', '--on-accent': '#0b1326',
+        '--good': '#8ef0b0', '--edge': '#ffffff', '--radius': '14px',
+        '--card-edge': 'inset 0 0 0 7px var(--panel), inset 0 0 0 10px var(--edge)',
+        '--plate-edge': 'inset 0 0 0 3px var(--panel), inset 0 0 0 5px var(--edge)',
+      },
       paint(g, w, h) {
         const sky = g.createLinearGradient(0, 0, 0, h);
         sky.addColorStop(0, '#050a18'); sky.addColorStop(0.6, '#13233f'); sky.addColorStop(1, '#2b4a78');
@@ -317,7 +373,122 @@
         range(h * 0.95, 6, '#0f1d33', false, 11);
       },
     },
+    dash: {
+      base: '#0e0e10', board: '#141417', empty: '#1d1d22', cellR: 0.14,
+      font: '"DIN Alternate", "DIN Condensed", "Roboto Condensed", "Arial Narrow", sans-serif', weight: 700,
+      ink: '#f3eee4', accent: '#ffb000', danger: '#ff5a3c',
+      frame: { r: 18, line: 'chrome', lw: 3, inset: 1.5 },
+      plate: { fill: '#060606', line: 'chrome', lw: 3, inset: 1.5, r: 14, ink: '#f3eee4', sub: '#ffb000', odometer: true },
+      tag: { fill: '#ffb000', line: null, ink: '#140d00', glow: '#ffb000' },
+      css: {
+        '--bg': '#0e0e10', '--panel': '#17171b', '--panel-2': '#222228', '--slot': '#17171b',
+        '--text': '#f3eee4', '--muted': '#a8a195', '--accent': '#ffb000', '--on-accent': '#140d00',
+        '--good': '#7be08c', '--edge': '#5a5a63', '--radius': '16px',
+        '--card-edge': 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 2px #2c2c33, 0 18px 40px rgba(0,0,0,0.5)',
+        '--plate-edge': 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 1.5px #34343c',
+      },
+      paint(g, w, h) {
+        const bg = g.createRadialGradient(w / 2, h * 0.35, 0, w / 2, h * 0.35, Math.max(w, h) * 0.8);
+        bg.addColorStop(0, '#1b1b20'); bg.addColorStop(1, '#070708');
+        g.fillStyle = bg; g.fillRect(0, 0, w, h);
+        // Two big instrument dials behind the game, speedometer and rev counter.
+        const dial = (cx, cy, r, max, step, red) => {
+          g.lineCap = 'butt';
+          const a0 = Math.PI * 0.75;
+          const span = Math.PI * 1.5;
+          g.strokeStyle = 'rgba(255,255,255,0.05)'; g.lineWidth = 2;
+          g.beginPath(); g.arc(cx, cy, r, a0, a0 + span); g.stroke();
+          for (let v = 0; v <= max; v += step / 2) {
+            const a = a0 + (v / max) * span;
+            const major = v % step === 0;
+            g.strokeStyle = v >= red ? 'rgba(255,90,60,0.22)' : `rgba(255,255,255,${major ? 0.12 : 0.06})`;
+            g.lineWidth = major ? 3 : 1.5;
+            const r1 = r - (major ? 16 : 9);
+            g.beginPath(); g.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+            g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); g.stroke();
+            if (major) {
+              g.fillStyle = 'rgba(255,255,255,0.09)';
+              g.font = `700 ${Math.round(r * 0.1)}px "DIN Alternate", sans-serif`;
+              g.textAlign = 'center'; g.textBaseline = 'middle';
+              g.fillText(String(v), cx + Math.cos(a) * (r - 32), cy + Math.sin(a) * (r - 32));
+            }
+          }
+          g.textBaseline = 'alphabetic';
+        };
+        const r = Math.max(w, h) * 0.34;
+        dial(w * 0.06, h * 0.42, r, 220, 20, 999);
+        dial(w * 0.96, h * 0.97, r * 0.55, 8, 1, 6.5);
+      },
+    },
   };
+  const themeFont = (th, size, weight = th.weight) => `${th.italic ? 'italic ' : ''}${weight} ${size}px ${th.font}`;
+
+  // Stroke style for a theme line; 'chrome' is a brushed metal bezel.
+  function lineStyle(g, line, y, h) {
+    if (line !== 'chrome') return line;
+    const grad = g.createLinearGradient(0, y, 0, y + h);
+    grad.addColorStop(0, '#8d8d96'); grad.addColorStop(0.18, '#3a3a41'); grad.addColorStop(0.55, '#26262b');
+    grad.addColorStop(0.85, '#55555d'); grad.addColorStop(1, '#1b1b1f');
+    return grad;
+  }
+
+  // A sign plate: fill, drop shadow, inner border, optional glow or marquee bulbs.
+  function drawPlate(g, p, x, y, w, h, t = 0) {
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,0.4)'; g.shadowBlur = 14; g.shadowOffsetY = 5;
+    g.fillStyle = p.fill;
+    g.beginPath(); g.roundRect(x, y, w, h, p.r); g.fill();
+    g.restore();
+    if (p.line) {
+      g.save();
+      if (p.glow) { g.shadowColor = p.glow; g.shadowBlur = 14; }
+      g.strokeStyle = lineStyle(g, p.line, y, h);
+      g.lineWidth = p.lw;
+      const i = p.inset + p.lw / 2;
+      g.beginPath(); g.roundRect(x + i, y + i, w - i * 2, h - i * 2, Math.max(2, p.r - i)); g.stroke();
+      g.restore();
+    }
+    if (p.bulbs) {
+      // Motel marquee: bulbs chase around the edge.
+      const n = Math.max(8, Math.round((w + h) / 11));
+      const per = (w + h) * 2;
+      for (let k = 0; k < n * 2; k++) {
+        let d = (k / (n * 2)) * per;
+        let bx, by;
+        const m = 2.5;
+        if (d < w) { bx = x + d; by = y + m; } else if ((d -= w) < h) { bx = x + w - m; by = y + d; }
+        else if ((d -= h) < w) { bx = x + w - d; by = y + h - m; } else { d -= w; bx = x + m; by = y + h - d; }
+        const on = (k + Math.floor(t / 180)) % 3 !== 0;
+        g.fillStyle = on ? p.bulbs : 'rgba(255,212,107,0.25)';
+        g.beginPath(); g.arc(bx, by, 1.6, 0, Math.PI * 2); g.fill();
+      }
+    }
+  }
+
+  // The board slab under the cells.
+  function drawFrame(g, th, x, y, w, h) {
+    const f = th.frame;
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 20; g.shadowOffsetY = 8;
+    g.fillStyle = th.board;
+    g.beginPath(); g.roundRect(x, y, w, h, f.r); g.fill();
+    g.restore();
+    if (!f.line) return;
+    g.save();
+    if (f.glow) { g.shadowColor = f.glow; g.shadowBlur = 16; }
+    g.strokeStyle = lineStyle(g, f.line, y, h);
+    g.lineWidth = f.lw;
+    const i = f.inset;
+    g.beginPath(); g.roundRect(x + i, y + i, w - i * 2, h - i * 2, Math.max(2, f.r - i)); g.stroke();
+    g.restore();
+  }
+
+  function drawEmpty(g, th, x, y, cell) {
+    g.fillStyle = th.empty;
+    g.beginPath();
+    g.roundRect(x - cell * 0.44, y - cell * 0.44, cell * 0.88, cell * 0.88, cell * th.cellR);
+    g.fill();
+  }
 
   // ---------- block skins ----------
   // Each draws one block in the square (x, y, s) on the current ctx.
@@ -436,9 +607,24 @@
     const g = bgCanvas.getContext('2d');
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     theme().paint(g, W, H);
-    document.body.style.background = theme().base;
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', theme().base);
+    applyThemeCss();
   }
+
+  // Menus, HUD buttons and inventory are DOM: they follow the theme through CSS variables.
+  function applyThemeCss() {
+    const th = theme();
+    const root = document.documentElement.style;
+    for (const [k, v] of Object.entries(th.css)) root.setProperty(k, v);
+    root.setProperty('--font-display', th.font);
+    root.setProperty('--display-style', th.italic ? 'italic' : 'normal');
+    document.body.dataset.theme = profile.equipped.boards;
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', th.base);
+  }
+
+  // env(safe-area-inset-top) is only readable through CSS.
+  const safeProbe = document.createElement('div');
+  safeProbe.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none';
+  document.body.appendChild(safeProbe);
 
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -449,7 +635,11 @@
     canvas.style.width = W + 'px';
     canvas.style.height = H + 'px';
 
-    const topH = 128;
+    const safeTop = safeProbe.offsetHeight;
+    // Tall screens: HUD buttons, then the score sign + combo tag right above the board.
+    // Short screens: the sign moves up between the HUD buttons to give the board its room.
+    const compact = H < 760;
+    const topH = compact ? safeTop + 118 : safeTop + 62 + 116;
     const invH = 64;
     const maxBoard = Math.min(W - 32, 440);
     // board + gap (0.7 cell) + tray (3.4 cells) + inventory must fit below the HUD
@@ -459,7 +649,8 @@
     const used = board + cell * 4.1 + invH;
     const by = Math.round(topH + Math.max(0, (H - topH - used) * 0.5));
     const ty = by + board + cell * 0.7;
-    lay = { cell, board, bx, by, ty, trayH: cell * 3.4, slotW: board / 3 };
+    lay = { cell, board, bx, by, ty, trayH: cell * 3.4, slotW: board / 3, compact,
+      plateY: compact ? safeTop + 10 : by - 116, plateH: compact ? 64 : 72 };
     invEl.style.top = Math.round(ty + lay.trayH) + 'px';
     paintBackground();
   }
@@ -875,7 +1066,7 @@
     el.classList.remove('ready');
     if (!goal) { el.textContent = 'Toute la boutique est débloquée'; return; }
     const ready = profile.coins >= goal.price;
-    const kind = goal.kind === 'blocks' ? 'les blocs' : 'le plateau';
+    const kind = goal.kind === 'blocks' ? 'les blocs' : 'le thème';
     el.innerHTML = '<span></span><div class="bar"><i></i></div>';
     el.firstChild.textContent = ready
       ? `« ${goal.name} » est disponible en boutique`
@@ -946,6 +1137,7 @@
 
   // ---------- wallet & shop ----------
   const walletEl = document.getElementById('wallet');
+  const restartEl = document.getElementById('restart');
   let runCoinsShown = 0; // coins picked up this run, landed in the wallet animation
 
   function renderWallet() {
@@ -959,7 +1151,7 @@
 
   const shopEl = document.getElementById('shop');
   const shopBody = document.getElementById('shop-body');
-  let shopTab = 'blocks';
+  let shopTab = 'boards';
 
   function openShop() {
     unlockAudio();
@@ -1026,20 +1218,27 @@
     shopBody.appendChild(grid);
   }
 
-  // Mini scene rendered with the real theme and skin code.
+  // Mini scene rendered with the real theme and skin code: score sign over a patch of board.
   function drawPreview(cv, blocksId, boardsId) {
     const g = cv.getContext('2d');
     const w = cv.width;
     const h = cv.height;
     const th = THEMES[boardsId];
     th.paint(g, w, h);
-    const cell = 34;
+    const cell = 30;
     const cols = 5;
     const rows = 3;
     const ox = (w - cols * cell) / 2;
-    const oy = (h - rows * cell) / 2;
-    g.fillStyle = th.board;
-    g.beginPath(); g.roundRect(ox - 6, oy - 6, cols * cell + 12, rows * cell + 12, 12); g.fill();
+    const oy = 64;
+    const pw = 132;
+    drawPlate(g, th.plate, (w - pw) / 2, 12, pw, 40);
+    g.textAlign = 'center';
+    g.fillStyle = th.plate.ink;
+    g.font = themeFont(th, 26);
+    if (th.plate.glow) { g.shadowColor = th.plate.glow; g.shadowBlur = 10; }
+    g.fillText('12 480', w / 2, 42);
+    g.shadowColor = 'transparent';
+    drawFrame(g, th, ox - 7, oy - 7, cols * cell + 14, rows * cell + 14);
     const pattern = [
       [6, 6, 0, 11, 0],
       [6, 6, 11, 11, 3],
@@ -1051,8 +1250,7 @@
       for (let c = 0; c < cols; c++) {
         const x = ox + (c + 0.5) * cell;
         const y = oy + (r + 0.5) * cell;
-        g.fillStyle = th.empty;
-        g.beginPath(); g.roundRect(x - cell * 0.44, y - cell * 0.44, cell * 0.88, cell * 0.88, cell * 0.18); g.fill();
+        drawEmpty(g, th, x, y, cell);
         const v = pattern[r][c];
         if (v) drawBlock(x, y, cell, PALETTE[v], 1, 1, null, BLOCK_SKINS[blocksId]);
       }
@@ -1185,8 +1383,19 @@
 
   // ---------- render ----------
   let last = now();
+  // Timed bonuses drain as a ring around their inventory button.
+  function syncTimers() {
+    for (const [type, btn] of Object.entries(invButtons)) {
+      const ms = state.effects[type] || 0;
+      if (!ms && !btn.style.getPropertyValue('--left')) continue;
+      btn.style.setProperty('--left', ms ? Math.min(1, ms / L.EFFECT_MS).toFixed(3) : '');
+      btn.classList.toggle('ending', ms > 0 && ms < 5000);
+    }
+  }
+
   function frame() {
     const t = now();
+    syncTimers();
     const dt = Math.min(0.05, (t - last) / 1000);
     last = t;
 
@@ -1234,74 +1443,119 @@
   function drawHUD(t) {
     displayScore += (state.score - displayScore) * 0.18;
     if (Math.abs(state.score - displayScore) < 0.5) displayScore = state.score;
+    const th = theme();
+    const p = th.plate;
+    let pw = Math.min(lay.board * 0.62, 244);
+    if (lay.compact) {
+      // Fit between the wallet and the restart button.
+      const room = Math.min(W / 2 - walletEl.getBoundingClientRect().right, restartEl.getBoundingClientRect().left - W / 2);
+      pw = Math.min(pw, room * 2 - 16);
+    }
+    const ph = lay.plateH;
+    const px = W / 2 - pw / 2;
+    const py = lay.plateY;
+    const bump = state.score !== Math.round(displayScore) ? 1.05 : 1;
 
-    const top = lay.by - 118 < 8 ? 8 : lay.by - 118;
-    ctx.textBaseline = 'alphabetic';
-
-    ctx.textAlign = 'left';
-    ctx.fillStyle = ACCENT;
-    ctx.font = `800 13px ${FONT}`;
-    ctx.fillText('RECORD ' + fmt(best), lay.bx, top + 32);
-
+    drawPlate(ctx, p, px, py, pw, ph, t);
     ctx.textAlign = 'center';
-    ctx.fillStyle = TEXT;
-    const bump = state.score !== Math.round(displayScore) ? 1.06 : 1;
-    ctx.font = `900 ${Math.round(52 * bump)}px ${FONT}`;
-    ctx.fillText(fmt(Math.round(displayScore)), W / 2, top + 78);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = p.sub;
+    ctx.font = themeFont(th, 12);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '1.5px';
+    ctx.fillText('RECORD ' + fmt(best), W / 2, py + ph * 0.32);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    if (p.odometer) drawOdometer(th, W / 2, py + ph * 0.4, ph * 0.47, displayScore);
+    else {
+      ctx.save();
+      if (p.glow) { ctx.shadowColor = p.glow; ctx.shadowBlur = 12; }
+      ctx.fillStyle = p.ink;
+      ctx.font = themeFont(th, Math.round(ph * 0.64 * bump));
+      ctx.fillText(fmt(Math.round(displayScore)), W / 2, py + ph - ph * 0.13);
+      ctx.restore();
+    }
 
-    drawEffects(t, top);
-
+    // Combo: small sign hung under the score, like a French "panonceau".
     if (state.combo > 0) {
       const left = L.COMBO_GRACE - state.movesSinceClear;
       const pulse = left === 1 ? 0.55 + 0.45 * Math.abs(Math.sin(t / 180)) : 1;
+      const tag = th.tag;
+      const label = 'COMBO ×' + state.combo;
+      ctx.font = themeFont(th, 17);
+      const tw = ctx.measureText(label).width + 20 + L.COMBO_GRACE * 11 + 8;
+      const tx = W / 2 - tw / 2;
+      const ty = py + ph + 4;
       ctx.globalAlpha = pulse;
-      ctx.fillStyle = ACCENT;
-      ctx.font = `800 14px ${FONT}`;
-      ctx.fillText('COMBO ×' + state.combo, W / 2 - 14, top + 104);
+      ctx.save();
+      if (tag.glow) { ctx.shadowColor = tag.glow; ctx.shadowBlur = 10; }
+      ctx.fillStyle = tag.fill;
+      ctx.beginPath(); ctx.roundRect(tx, ty, tw, 25, 6); ctx.fill();
+      ctx.restore();
+      if (tag.line) {
+        ctx.strokeStyle = tag.line; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.roundRect(tx + 2.5, ty + 2.5, tw - 5, 20, 4); ctx.stroke();
+      }
+      ctx.fillStyle = tag.ink;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, tx + 11, ty + 14);
       for (let i = 0; i < L.COMBO_GRACE; i++) {
-        ctx.fillStyle = i < left ? ACCENT : 'rgba(255,255,255,0.15)';
+        ctx.globalAlpha = pulse * (i < left ? 1 : 0.25);
         ctx.beginPath();
-        ctx.arc(W / 2 + 44 + i * 11, top + 99, 3.5, 0, Math.PI * 2);
+        ctx.arc(tx + tw - 12 - (L.COMBO_GRACE - 1 - i) * 11, ty + 12.5, 3.6, 0, Math.PI * 2);
         ctx.fill();
       }
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
       ctx.globalAlpha = 1;
     }
   }
 
-  // Active timed bonuses: pill with icon, seconds left and a draining bar.
-  function drawEffects(t, top) {
-    const active = Object.keys(state.effects).filter((k) => state.effects[k] > 0);
-    const chipW = 62;
-    const chipH = 26;
-    let x = lay.bx + lay.board - chipW;
-    const y = top + 13;
-    for (const k of active) {
-      const ms = state.effects[k];
-      const frac = Math.min(1, ms / L.EFFECT_MS);
-      const warn = ms < 5000 ? 0.5 + 0.5 * Math.abs(Math.sin(t / 150)) : 1;
-      ctx.globalAlpha = warn;
-      ctx.fillStyle = 'rgba(16,18,24,0.8)';
-      ctx.beginPath(); ctx.roundRect(x, y, chipW, chipH, 13); ctx.fill();
-      ctx.fillStyle = 'rgba(255,217,61,0.22)';
-      ctx.beginPath(); ctx.roundRect(x, y, chipW * frac, chipH, 13); ctx.fill();
-      drawIcon(k, x + 14, y + chipH / 2, 20);
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = TEXT;
-      ctx.font = `800 13px ${FONT}`;
-      ctx.textAlign = 'right';
-      ctx.fillText(Math.ceil(ms / 1000) + 's', x + chipW - 9, y + chipH / 2 + 1);
-      ctx.textBaseline = 'alphabetic';
-      ctx.globalAlpha = 1;
-      x -= chipW + 6;
-    }
+  // Odometer drums: each digit rolls continuously toward the score.
+  function drawOdometer(th, cx, y, h, value) {
+    const digits = Math.max(5, String(Math.round(state.score)).length);
+    const dw = h * 0.68;
+    const gap = 2;
+    const total = digits * dw + (digits - 1) * gap;
+    let x = cx - total / 2;
+    ctx.font = themeFont(th, Math.round(h * 0.78));
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = digits - 1; i >= 0; i--) {
+      const drumH = h;
+      const light = i === 0;
+      const bg = ctx.createLinearGradient(0, y, 0, y + drumH);
+      bg.addColorStop(0, light ? '#2a2004' : '#101012'); bg.addColorStop(0.5, light ? '#4a3808' : '#2a2a30'); bg.addColorStop(1, light ? '#2a2004' : '#101012');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.roundRect(x, y, dw, drumH, 3); ctx.fill();
+      // Drum position: lower digits spin through, higher ones only roll while the one below passes 9.
+      const unit = Math.pow(10, i);
+      const below = value % unit;
+      let pos = Math.floor(value / unit) % 10;
+      if (i > 0 && below > unit - 1) pos += below - (unit - 1);
+      if (i === 0) pos = value % 10;
+      const whole = Math.floor(pos);
+      const frac = pos - whole;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(x, y, dw, drumH); ctx.clip();
+      ctx.fillStyle = light ? th.accent : th.ink;
+      for (const [d, off] of [[whole % 10, -frac], [(whole + 1) % 10, 1 - frac]]) {
+        ctx.fillText(String(d), x + dw / 2, y + drumH / 2 + off * drumH + 1);
+      }
+      // Curvature shading.
+      const sh = ctx.createLinearGradient(0, y, 0, y + drumH);
+      sh.addColorStop(0, 'rgba(0,0,0,0.6)'); sh.addColorStop(0.3, 'rgba(0,0,0,0)');
+      sh.addColorStop(0.7, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.6)');
+      ctx.fillStyle = sh; ctx.fillRect(x, y, dw, drumH);
+      ctx.restore();
+      x += dw + gap;
+    }
+    ctx.textBaseline = 'alphabetic';
   }
 
   function drawBoard(t) {
     const { bx, by, board, cell } = lay;
     const th = theme();
-    ctx.fillStyle = th.board;
-    ctx.beginPath(); ctx.roundRect(bx - 8, by - 8, board + 16, board + 16, 18); ctx.fill();
+    drawFrame(ctx, th, bx - 10, by - 10, board + 20, board + 20);
 
     // Preview: ghost of the dragged piece + lines it would clear.
     let ghost = null;
@@ -1321,10 +1575,7 @@
         const [x, y] = cellCenter(r, c);
         const i = r * SIZE + c;
         const v = state.board[i];
-        ctx.fillStyle = th.empty;
-        ctx.beginPath();
-        ctx.roundRect(x - cell * 0.44, y - cell * 0.44, cell * 0.88, cell * 0.88, cell * 0.18);
-        ctx.fill();
+        drawEmpty(ctx, th, x, y, cell);
         if (!v) continue;
 
         let scale = 1;
@@ -1368,8 +1619,9 @@
     else if (state.stuck) text = 'Bloqué ! Utilise un bonus ou termine la partie';
     if (!text) return;
     ctx.globalAlpha = 0.7 + 0.3 * Math.sin(t / 200);
-    ctx.fillStyle = aiming ? '#ff8a9b' : ACCENT;
-    ctx.font = `800 13px ${FONT}`;
+    const th = theme();
+    ctx.fillStyle = aiming ? th.danger : th.accent;
+    ctx.font = themeFont(th, 15);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, W / 2, lay.by + lay.board + (lay.ty - lay.by - lay.board) / 2 + 4);
@@ -1379,8 +1631,8 @@
 
   function drawAim(t) {
     const { cell } = lay;
-    ctx.fillStyle = 'rgba(16,18,24,0.35)';
-    ctx.beginPath(); ctx.roundRect(lay.bx - 8, lay.by - 8, lay.board + 16, lay.board + 16, 18); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.roundRect(lay.bx - 10, lay.by - 10, lay.board + 20, lay.board + 20, theme().frame.r); ctx.fill();
     if (!aiming.cell) return;
     const [r0, c0] = aiming.cell;
     const pulse = 0.35 + 0.15 * Math.sin(t / 80);
@@ -1437,7 +1689,7 @@
       if (!piece || returning.some((p) => p.idx === i)) continue;
       const [cx, cy] = slotCenter(i);
       if (canTurn) {
-        ctx.fillStyle = 'rgba(255,217,61,' + (0.06 + 0.04 * Math.sin(t / 250 + i)) + ')';
+        ctx.fillStyle = withAlpha(theme().accent, 0.06 + 0.04 * Math.sin(t / 250 + i));
         ctx.beginPath();
         ctx.roundRect(cx - lay.slotW / 2 + 6, lay.ty + 4, lay.slotW - 12, lay.trayH - 8, 16);
         ctx.fill();
@@ -1484,12 +1736,14 @@
   function drawFloaters(t) {
     floaters = floaters.filter((f) => t - f.t0 < 900);
     ctx.textAlign = 'center';
+    const th = theme();
     for (const f of floaters) {
       const k = (t - f.t0) / 900;
       ctx.globalAlpha = 1 - easeOut(Math.max(0, (k - 0.5) * 2));
-      ctx.fillStyle = TEXT;
-      ctx.font = `900 ${f.big ? 30 : 18}px ${FONT}`;
-      ctx.strokeStyle = 'rgba(10,11,15,0.9)';
+      ctx.fillStyle = th.ink;
+      ctx.font = themeFont(th, f.big ? 32 : 20);
+      ctx.strokeStyle = withAlpha(th.base, 0.92);
+      ctx.lineJoin = 'round';
       ctx.lineWidth = 5;
       const y = f.y - easeOut(k) * lay.cell * 1.4;
       ctx.strokeText(f.text, f.x, y);
@@ -1512,29 +1766,30 @@
     ctx.globalAlpha = alpha;
     ctx.textAlign = 'center';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = 'rgba(10,11,15,0.95)';
+    const th = theme();
+    ctx.strokeStyle = withAlpha(th.base, 0.95);
     const fit = (text, weight, size) => {
-      ctx.font = `${weight} ${size}px ${FONT}`;
+      ctx.font = themeFont(th, size, weight);
       const w = ctx.measureText(text).width;
       const maxW = lay.board - 24;
-      if (w > maxW) ctx.font = `${weight} ${Math.floor((size * maxW) / w)}px ${FONT}`;
+      if (w > maxW) ctx.font = themeFont(th, Math.floor((size * maxW) / w), weight);
     };
     const iconSize = lay.cell * 0.9;
-    fit(banner.text, 900, Math.round(lay.cell * 0.95));
+    fit(banner.text, th.weight, Math.round(lay.cell * 1.05));
     const textW = ctx.measureText(banner.text).width;
     const shift = banner.icon ? (iconSize + 10) / 2 : 0;
     ctx.lineWidth = 10;
     ctx.strokeText(banner.text, shift, 0);
-    ctx.fillStyle = banner.gold ? ACCENT : TEXT;
+    ctx.fillStyle = banner.gold ? th.accent : th.ink;
     ctx.fillText(banner.text, shift, 0);
     if (banner.icon) drawIcon(banner.icon, shift - textW / 2 - 10 - iconSize / 2, -lay.cell * 0.32, iconSize);
     if (banner.sub) {
-      fit(banner.sub, 800, Math.round(lay.cell * 0.45));
+      fit(banner.sub, th.weight, Math.round(lay.cell * 0.5));
       const subW = ctx.measureText(banner.sub).width;
       const subShift = banner.subIcon ? -lay.cell * 0.25 : 0;
       ctx.lineWidth = 6;
       ctx.strokeText(banner.sub, subShift, lay.cell * 0.7);
-      ctx.fillStyle = ACCENT;
+      ctx.fillStyle = th.accent;
       ctx.fillText(banner.sub, subShift, lay.cell * 0.7);
       if (banner.subIcon) drawIcon(banner.subIcon, subShift + subW / 2 + lay.cell * 0.3, lay.cell * 0.55, lay.cell * 0.45);
     }

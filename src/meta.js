@@ -12,6 +12,7 @@
   const DAILY_MISSIONS = 3;
 
   // price 0 = owned from the start. Visuals live in the renderer, keyed by id.
+  // 'boards' are whole themes (background, board, score sign, menus); the key stays for old saves.
   const SKINS = {
     blocks: [
       { id: 'classic', name: 'Classique', price: 0 },
@@ -20,10 +21,11 @@
       { id: 'pixel', name: 'Pixel', price: 600 },
     ],
     boards: [
-      { id: 'night', name: 'Route de nuit', price: 0 },
+      { id: 'night', name: 'Autoroute', price: 0 },
       { id: 'sunset', name: 'Coucher de soleil', price: 300 },
-      { id: 'desert', name: 'Désert', price: 500 },
+      { id: 'desert', name: 'Route 66', price: 500 },
       { id: 'mountain', name: 'Col de montagne', price: 800 },
+      { id: 'dash', name: 'Tableau de bord', price: 1200 },
     ],
   };
 
