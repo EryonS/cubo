@@ -12,7 +12,7 @@ About 7% of tray pieces carry a bonus icon on one block. Clearing that block sto
 | Bombe | `bomb` | drag onto the grid: clears 21 cells (5×5 without corners) |
 | Tornade | `reroll` | replaces the 3 tray pieces |
 
-Timed bonuses stack up to 60 s and only tick while playing.
+Timed bonuses stack up to two uses and only tick while playing. Durations, Étoile multiplier, Bombe area and Tornade draws grow with upgrades: see upgrades.md.
 
 ## Files
 - `src/logic.js`: `BONUSES`, spawn rate, `use(state, type, target?)`, `tick`.

@@ -348,6 +348,7 @@
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 18px; line-height: 1; letter-spacing: .03em; text-transform: uppercase;
     }
     .tab.on, .ptab.on { background: var(--accent); color: var(--on-accent); }
+    #shop .tab { flex: 1 1 auto; min-width: 0; padding-inline: 6px; font-size: clamp(13px, 3.9vw, 18px); letter-spacing: 0; }
     .skins { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .skin { padding: 7px 7px 8px; border-radius: calc(var(--radius) - 2px); background: var(--panel-2); text-align: center; }
     .skin canvas { width: 100%; aspect-ratio: 4 / 3; border-radius: calc(var(--radius) - 6px); }
@@ -403,6 +404,32 @@
     .rules b { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 17px; line-height: 1; color: #fff; }
     .rules .plus b { background: var(--good); }
     .rules .minus b { background: #ff5d7a; }
+    /* Mondes screen: world tiles, then the picked world's rules, record, prime and Play. */
+    .fw-intro { margin: -4px 2px 12px; }
+    .world-tile.pick { box-shadow: inset 0 0 0 3px var(--accent); }
+    #freeworlds-pick { margin-top: 14px; }
+    #freeworlds-pick h3 { margin: 0 2px 10px; text-align: left; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 22px; line-height: 1.1; }
+    .fw-facts { display: flex; gap: 8px; margin-bottom: 12px; }
+    .fw-facts div { flex: 1; padding: 8px 10px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); text-align: left; }
+    .fw-facts small { display: block; font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+    .fw-facts b { font-size: 18px; font-weight: 800; }
+    .fw-locked { padding: 12px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); font-weight: 700; font-size: 14px; color: var(--muted); }
+    /* Boutique, Bonus tab: one row per bonus with its level and the next upgrade. */
+    .ups { display: grid; gap: 8px; }
+    .up { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: calc(var(--radius) - 2px); background: var(--panel-2); text-align: left; }
+    .up.just-bought { animation: bump 420ms cubic-bezier(.2,1.6,.4,1); }
+    .up canvas { flex: none; width: 40px; height: 40px; }
+    .up .txt { flex: 1; min-width: 0; }
+    .up .txt b { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; }
+    .up .txt > span { display: block; font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.3; }
+    .up .lv { display: inline-flex; gap: 3px; }
+    .up .lv i { width: 12px; height: 6px; border-radius: 3px; background: var(--hairline); }
+    .up .lv i.on { background: var(--accent); }
+    .up button { flex: none; padding: 8px 12px; border: 0; border-radius: 999px; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
+    .up button:disabled { opacity: .45; cursor: default; }
+    .up button.max { background: transparent; color: var(--good); }
+    .up button .coin { margin: 0 0 2px; }
+    .ups-note { margin: 10px 2px 0; text-align: left; font-size: 12px; font-weight: 700; color: var(--muted); line-height: 1.35; }
     .levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px 8px; }
     .lvl { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0; border: 0; background: none; color: var(--text); cursor: pointer; }
     .lvl .num { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: var(--on-accent);
@@ -635,6 +662,11 @@
         <span class="pips" id="menu-missions-pips"></span>
         <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
       </button>
+      <button class="menu-defis" id="menu-worlds">
+        <svg class="ico" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.6 2.4 3.8 5.2 3.8 8.5s-1.2 6.1-3.8 8.5c-2.6-2.4-3.8-5.2-3.8-8.5s1.2-6.1 3.8-8.5z"/></svg>
+        <span class="txt"><b>Mondes</b><small id="menu-worlds-sub"></small></span>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
       <div class="menu-head"><span class="menu-label">Partie libre</span></div>
       <div class="seg" id="menu-mode">
         <button data-mode="classic">Classique<small>Sans limite</small></button>
@@ -710,7 +742,7 @@
         <button class="close" id="legend-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="legend-list" id="legend-list"></div>
-      <div class="legend-note">Efface un bloc qui porte une icône pour la ramasser. Les bonus vont dans ta barre (2 max par type), les pièces dans ton porte-monnaie. Une pièce ne te plaît pas ? Glisse-la tout en bas pour la jeter : 10 pièces, puis 5 de plus à chaque fois dans la partie. Les chronos cumulent jusqu'à 60 s et s'arrêtent quand un menu est ouvert.</div>
+      <div class="legend-note">Efface un bloc qui porte une icône pour la ramasser. Les bonus vont dans ta barre (2 max par type), les pièces dans ton porte-monnaie. Une pièce ne te plaît pas ? Glisse-la tout en bas pour la jeter : 10 pièces, puis 5 de plus à chaque fois dans la partie. Un chrono se cumule sur deux utilisations et s'arrête quand un menu est ouvert. Améliore tes bonus en Boutique, onglet Bonus.</div>
     </div>
   </div>
 
@@ -722,6 +754,18 @@
         <button class="close" id="adventure-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="worlds" id="worlds"></div>
+    </div>
+  </div>
+
+  <div id="freeworlds" class="overlay ui">
+    <div class="card">
+      <div class="shop-head">
+        <h2>Mondes</h2>
+        <button class="close" id="freeworlds-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <p class="defis-note fw-intro">Une partie sans fin avec les règles d'un monde. Chaque point rapporte une prime en pièces, plus grosse dans les mondes lointains.</p>
+      <div class="worlds" id="freeworlds-list"></div>
+      <div id="freeworlds-pick"></div>
     </div>
   </div>
 
@@ -792,6 +836,7 @@
       <div class="tabs">
         <button class="tab on" data-tab="boards">Thèmes</button>
         <button class="tab" data-tab="blocks">Blocs</button>
+        <button class="tab" data-tab="bonus">Bonus</button>
         <button class="tab" data-tab="missions">Missions</button>
       </div>
       <div id="shop-body"></div>

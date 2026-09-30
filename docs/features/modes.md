@@ -1,5 +1,5 @@
 # Modes
-Status: shipped (Classique, Chrono, Chill, Aventure). Aventure has its own file: aventure.md.
+Status: shipped (Classique, Chrono, Chill, Aventure, Mondes). Aventure and Mondes have their own files: aventure.md, worlds-mode.md.
 
 ## What it does
 - **Classique**: play until no piece fits.

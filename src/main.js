@@ -33,14 +33,26 @@
     '#94a3b8', // 2x3
     '#d6a86b', // diagonal
   ];
-  // hint: shown when fired. desc: legend + hover tooltip.
+  // hint(lv): shown when fired. desc(lv): legend + hover tooltip. lv: upgrade level 1..3 (Boutique).
+  // levels: what each upgrade level gives, shown in the Boutique.
+  const secs = (type, lv) => L.EFFECT_BY_LEVEL[type][lv - 1] / 1000;
+  const times = (n) => '×' + String(n).replace('.', ',');
   const BONUS_UI = {
-    rotate: { name: 'Toupie', hint: 'Touche une pièce pour la tourner', desc: '30 s : touche une pièce du bac pour la faire pivoter.' },
-    nitro: { name: 'Étoile', hint: 'Points ×2', desc: '30 s : tous les points comptent double.' },
-    shield: { name: 'Bulle', hint: 'Le combo ne casse plus', desc: '30 s : ton combo ne peut pas retomber.' },
-    bomb: { name: 'Bombe', hint: 'Glisse-la sur la grille', desc: 'Glisse-la sur la grille : elle fait sauter une zone de 21 cases.' },
-    reroll: { name: 'Tornade', hint: 'Nouvelles pièces', desc: 'Remplace les 3 pièces du bac.' },
+    rotate: { name: 'Toupie', hint: () => 'Touche une pièce pour la tourner',
+      desc: (lv) => `${secs('rotate', lv)} s : touche une pièce du bac pour la faire pivoter.`, levels: ['30 s', '45 s', '60 s'] },
+    nitro: { name: 'Étoile', hint: (lv) => 'Points ' + times(L.NITRO_BY_LEVEL[lv - 1]),
+      desc: (lv) => `30 s : tous les points comptent ${lv === 1 ? 'double' : times(L.NITRO_BY_LEVEL[lv - 1])}.`, levels: ['Points ×2', 'Points ×2,5', 'Points ×3'] },
+    shield: { name: 'Bulle', hint: () => 'Le combo ne casse plus',
+      desc: (lv) => `${secs('shield', lv)} s : ton combo ne peut pas retomber.`, levels: ['30 s', '45 s', '60 s'] },
+    bomb: { name: 'Bombe', hint: () => 'Glisse-la sur la grille',
+      desc: (lv) => 'Glisse-la sur la grille : ' + ['elle fait sauter une zone de 21 cases.', 'elle fait sauter un carré de 25 cases.', 'carré de 25 cases, plus toute la ligne et la colonne.'][lv - 1],
+      levels: ['21 cases', 'Carré de 25', 'Carré + grande croix'] },
+    reroll: { name: 'Tornade', hint: () => 'Nouvelles pièces',
+      desc: (lv) => ['Remplace les 3 pièces du bac.', 'Remplace les 3 pièces du bac par des pièces qui rentrent.', 'Remplace les 3 pièces du bac par des petites pièces qui rentrent.'][lv - 1],
+      levels: ['Au hasard', 'Qui rentrent', 'Petites, qui rentrent'] },
   };
+  // Upgrade level of a bonus in the current run (bought levels apply to the run in progress too).
+  const bonusLv = (type) => L.upLevel(state, type);
   const COIN_UI = {
     coin: { name: 'Pièce', desc: '+1 pièce quand le bloc est effacé.' },
     bag: { name: 'Sac de pièces', desc: '+5 pièces quand le bloc est effacé.' },
@@ -700,11 +712,12 @@
   function loadJSON(key) {
     try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; }
   }
-  // Free-play records live in `bests`; Aventure has none.
+  // Free-play records live in `bests` (Mondes: one per world, 'worlds-<id>'); Aventure has none.
   const keepsBest = () => state.mode !== 'adventure';
+  const recordKey = (st = state) => (st.mode === 'worlds' ? 'worlds-' + st.world : st.mode);
   function save() {
     if (tut) return; // the scripted tutorial board is never saved
-    if (keepsBest()) bests[state.mode] = best;
+    if (keepsBest()) bests[recordKey()] = best;
     try { localStorage.setItem(STORE_KEY, JSON.stringify({ state, bests, settings, prefs })); } catch { /* private mode */ }
   }
   function saveProfile() {
@@ -719,7 +732,7 @@
   if (state.event) { state = { ...state }; delete state.event; }
   // Records are kept per mode; old saves only had the classic one.
   const bests = saved.bests || { classic: saved.best || loadJSON(LEGACY_KEY).best || 0 };
-  let best = bests[state.mode] || 0;
+  let best = bests[recordKey()] || 0;
   // patterns: a symbol per block color. darkMenus: dark menu screens, following the system at first.
   const settings = { sfx: !saved.muted, music: true, vibrate: true, patterns: false,
     darkMenus: matchMedia('(prefers-color-scheme: dark)').matches, ...saved.settings };
@@ -772,8 +785,8 @@
   const FALL_AFTER = 240; // falls start once the wave's cells have faded
   const fallMs = (rows) => 110 + 55 * rows;
 
-  // An Aventure level wears its world's theme; otherwise the equipped one.
-  const worldOf = () => (state && state.stage ? state.stage.world : null);
+  // An Aventure level or a Mondes run wears its world's theme; otherwise the equipped one.
+  const worldOf = () => (state ? (state.stage ? state.stage.world : state.world) || null : null);
   const themeId = () => worldOf() || profile.equipped.boards;
   const theme = () => THEMES[themeId()] || THEMES.toy;
   // Rétro levels squash every shape family into three LCD greens (the world's drawback).
@@ -1503,7 +1516,7 @@
       const [fx, fy] = cellCenter(pr, pc);
       const margin = lay.cell * 1.6;
       const tier = comboTier(ev.combo, ev.lines);
-      floaters.push({ text: '+' + ev.points + (ev.nitro ? ' ×2' : ''), x: Math.max(margin, Math.min(W - margin, fx)), y: fy, t0: t, big: true,
+      floaters.push({ text: '+' + ev.points + (ev.nitro ? ' ' + times(ev.nitro) : ''), x: Math.max(margin, Math.min(W - margin, fx)), y: fy, t0: t, big: true,
         scale: 1 + tier * 0.18, tier });
       if (!calm()) {
         for (const r of ev.rows) sweeps.push({ row: r, t0: t });
@@ -1536,7 +1549,8 @@
       floaters.push({ text: '+' + Math.round(ev.timeGain / 1000) + ' s', x: bx + lay.board - 30, y: by - 10, t0: t });
       sfx.time();
     }
-    if (state.stage) { stageEffects(ev, t); bossEffects(ev, t); }
+    if (state.stage || state.world) stageEffects(ev, t);
+    if (state.stage) bossEffects(ev, t);
     if (tut) { tutorialMoved(idx, t); return; }
     refilled(ev.refilled, t);
     afterChange(t, ev.over);
@@ -1797,7 +1811,7 @@
     } else {
       const ui = BONUS_UI[type];
       banners.length = 0;
-      banners.push({ icon: type, text: ui.name, sub: ui.hint, gold: true });
+      banners.push({ icon: type, text: ui.name, sub: ui.hint(bonusLv(type)), gold: true });
       refilled(ev.refilled, t);
       sfx.bonus();
       buzz(15);
@@ -1954,12 +1968,14 @@
   function newGame(opts = {}) {
     profile = M.ensureDay(profile, today());
     saveProfile();
-    if (keepsBest()) bests[state.mode] = best;
+    if (keepsBest()) bests[recordKey()] = best;
     const mode = opts.mode || (state.mode === 'adventure' ? prefs.mode : state.mode);
-    state = L.createGame(opts.seed ?? Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage });
+    const world = opts.world || (mode === 'worlds' ? state.world : null);
+    state = L.createGame(opts.seed ?? Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage,
+      world, upgrades: profile.upgrades });
     levelSettled = false;
     paintBackground();
-    best = bests[state.mode] || 0;
+    best = bests[recordKey()] || 0;
     bestAtStart = best;
     recordAnnounced = false;
     runSettled = false;
@@ -1977,6 +1993,7 @@
     overEl.classList.remove('show');
     resetAnnounced();
     renderInventory();
+    refreshBonusTexts();
     save();
     modeTips();
   }
@@ -1995,17 +2012,23 @@
   const menuEl = document.getElementById('menu');
   const MODE_NAMES = { classic: 'Classique', chrono: 'Chrono', chill: 'Chill' };
   const LEVEL_NAMES = { easy: 'Facile', normal: 'Normal', hard: 'Difficile' };
+  // "Classique · Normal", or "Mondes · Glace".
+  const modeLabel = () => (state.mode === 'worlds' ? 'Mondes · ' + WD.WORLDS[state.world].name : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]}`);
 
   function renderMenu() {
     const cont = document.getElementById('menu-continue');
     cont.style.display = inProgress() ? '' : 'none';
     document.getElementById('menu-continue-sub').textContent = state.stage
       ? `${state.stage.daily ? 'Niveau du jour #' + LV.dayNumber(state.stage.daily) : 'Aventure · ' + WD.WORLDS[state.stage.world].name + ' ' + state.stage.n} · ${LV.goalText(state.stage.goal)}`
-      : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]} · ${fmt(state.score)} pts`;
+      : `${modeLabel()} · ${fmt(state.score)} pts`;
     document.getElementById('menu-adventure-sub').innerHTML = starSvg(true, 14) + `${M.totalStars(profile)} / ${M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3}`;
     document.getElementById('menu-adventure').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
     renderDailyButton();
     renderMissionBadges();
+    const nOpen = freeOpenCount();
+    document.getElementById('menu-worlds-sub').textContent = nOpen
+      ? `${nOpen} / ${M.WORLD_ORDER.length} ouverts · partie sans fin`
+      : "Réussis l'épreuve d'un monde en Aventure";
     document.getElementById('menu-play').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
     for (const b of document.querySelectorAll('#menu-mode button')) b.classList.toggle('on', b.dataset.mode === prefs.mode);
     for (const b of document.querySelectorAll('#menu-level button')) b.classList.toggle('on', b.dataset.level === prefs.level);
@@ -2044,6 +2067,77 @@
     restartRun({ mode: prefs.mode, level: prefs.level });
   });
   document.getElementById('menu-shop').addEventListener('click', openShop);
+
+  // ---------- Mondes (endless runs under a world's rules) ----------
+  const freeEl = document.getElementById('freeworlds');
+  let freePick = null;
+  const freeOpenCount = () => M.WORLD_ORDER.filter((w) => M.worldFreeOpen(profile, w)).length;
+
+  function openFreeWorlds() {
+    unlockAudio();
+    menuEl.classList.remove('show');
+    overEl.classList.remove('show');
+    const opened = M.WORLD_ORDER.filter((w) => M.worldFreeOpen(profile, w));
+    if (!freePick) freePick = state.mode === 'worlds' ? state.world : opened[opened.length - 1] || M.WORLD_ORDER[0];
+    renderFreeWorlds();
+    freeEl.classList.add('show');
+  }
+
+  function renderFreeWorlds() {
+    const list = document.getElementById('freeworlds-list');
+    list.innerHTML = '';
+    for (const w of M.WORLD_ORDER) {
+      const open = M.worldFreeOpen(profile, w);
+      const tile = document.createElement('button');
+      tile.className = 'world-tile' + (open ? '' : ' locked') + (w === freePick ? ' pick' : '');
+      tile.setAttribute('aria-pressed', w === freePick ? 'true' : 'false');
+      const cv = document.createElement('canvas');
+      cv.width = 240; cv.height = 180;
+      tile.appendChild(cv);
+      drawPreview(cv, profile.equipped.blocks, w);
+      tile.insertAdjacentHTML('beforeend', `<div class="name">${worldName(w)}</div>`);
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const record = bests['worlds-' + w] || 0;
+      meta.textContent = open ? (record ? 'Record ' + fmt(record) : 'Pas encore joué') : 'Épreuve à réussir';
+      if (!open) tile.insertAdjacentHTML('beforeend', `<span class="lock">${LOCK_SVG}</span>`);
+      tile.appendChild(meta);
+      tile.addEventListener('click', () => {
+        sfx.turn();
+        freePick = w;
+        renderFreeWorlds();
+        document.getElementById('freeworlds-pick').scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'end' });
+      });
+      list.appendChild(tile);
+    }
+    const pick = document.getElementById('freeworlds-pick');
+    const w = freePick;
+    const rules = WD.WORLDS[w];
+    const open = M.worldFreeOpen(profile, w);
+    pick.innerHTML = `<h3>${worldName(w)}</h3>
+      <div class="rules"><div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div></div>`;
+    if (!open) {
+      pick.insertAdjacentHTML('beforeend', `<div class="fw-locked">Réussis l'épreuve de ce monde en Aventure (niveau ${M.TRIAL_LEVEL}) pour y jouer sans fin.</div>`);
+      return;
+    }
+    const rate = M.worldPrimeRate(w);
+    pick.insertAdjacentHTML('beforeend', `<div class="fw-facts">
+      <div><small>Record</small><b>${fmt(bests['worlds-' + w] || 0)}</b></div>
+      <div><small>Prime</small><b>${fmt(Math.round(rate * 5))}</b>${COIN}<small>par 1 000 pts</small></div></div>`);
+    const play = document.createElement('button');
+    play.className = 'btn primary wide';
+    play.textContent = 'Jouer';
+    play.addEventListener('click', () => {
+      unlockAudio();
+      if (inProgress() && !state.stage && !confirm('Abandonner la partie en cours ? Les pièces gagnées sont gardées.')) return;
+      freeEl.classList.remove('show');
+      restartRun({ mode: 'worlds', world: w });
+    });
+    pick.appendChild(play);
+  }
+  document.getElementById('menu-worlds').addEventListener('click', () => { sfx.turn(); openFreeWorlds(); });
+  document.getElementById('freeworlds-close').addEventListener('click', () => { freeEl.classList.remove('show'); openMenu(); });
+  freeEl.addEventListener('click', (e) => { if (e.target === freeEl) { freeEl.classList.remove('show'); openMenu(); } });
 
   // ---------- aventure ----------
   const adventureEl = document.getElementById('adventure');
@@ -2628,7 +2722,7 @@
   }
 
   // ----- stats: one mode at a time (tiles + last scores), then lifetime counters -----
-  const STAT_MODES = [['classic', 'Classique'], ['chrono', 'Chrono'], ['chill', 'Chill']];
+  const STAT_MODES = [['classic', 'Classique'], ['chrono', 'Chrono'], ['chill', 'Chill'], ['worlds', 'Mondes']];
   const CHART_RUNS = 20;
   let statsMode = 'classic';
 
@@ -2735,8 +2829,7 @@
       const where = st.daily ? `Niveau du jour #${LV.dayNumber(st.daily)}` : `${worldName(st.world)} · ${levelName(st.n)}`;
       return `${where} · ${LV.goalText(st.goal)}`;
     }
-    const what = `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]}`;
-    return `${what} · ${fmt(state.score)} pts`;
+    return `${modeLabel()} · ${fmt(state.score)} pts`;
   }
   function openPause() {
     if (state.over) { openMenu(); return; }
@@ -2832,6 +2925,7 @@
       renderMissionList(list, [], state.over ? {} : L.runStats(state));
       return;
     }
+    if (shopTab === 'bonus') { renderUpgrades(justBought); return; }
     const kind = shopTab;
     const grid = document.createElement('div');
     grid.className = 'skins';
@@ -2872,6 +2966,54 @@
       drawPreview(cv, kind === 'blocks' ? skin.id : profile.equipped.blocks, kind === 'boards' ? skin.id : profile.equipped.boards);
     }
     shopBody.appendChild(grid);
+  }
+
+  // Bonus tab: each bonus goes up to level 3. Bought levels apply to the run in progress too.
+  function renderUpgrades(justBought) {
+    const list = document.createElement('div');
+    list.className = 'ups';
+    for (const [type, ui] of Object.entries(BONUS_UI)) {
+      const lv = M.upgradeLevel(profile, type);
+      const price = M.upgradePrice(profile, type);
+      const row = document.createElement('div');
+      row.className = 'up' + (justBought === type ? ' just-bought' : '');
+      const cv = document.createElement('canvas');
+      const px = Math.round(40 * Math.min(window.devicePixelRatio || 1, 3));
+      cv.width = px; cv.height = px;
+      drawIcon(type, px / 2, px / 2, px * 0.94, cv.getContext('2d'));
+      const txt = document.createElement('div');
+      txt.className = 'txt';
+      txt.innerHTML = '<b><span></span><span class="lv"></span></b><span></span>';
+      txt.querySelector('b > span').textContent = ui.name;
+      txt.querySelector('.lv').innerHTML = [1, 2, 3].map((k) => `<i class="${k <= lv ? 'on' : ''}"></i>`).join('');
+      txt.querySelector('.lv').setAttribute('aria-label', `Niveau ${lv} sur ${L.UPGRADE_MAX}`);
+      txt.lastChild.textContent = price == null ? ui.levels[lv - 1] + ' · niveau max' : `${ui.levels[lv - 1]} → ${ui.levels[lv]}`;
+      const btn = document.createElement('button');
+      if (price == null) { btn.className = 'max'; btn.textContent = 'Max'; btn.disabled = true; }
+      else {
+        btn.innerHTML = COIN + ' ' + fmt(price);
+        btn.disabled = profile.coins < price;
+        btn.setAttribute('aria-label', `Améliorer ${ui.name} pour ${price} pièces`);
+      }
+      btn.addEventListener('click', () => {
+        const next = M.buyUpgrade(profile, type);
+        if (!next) { sfx.nope(); return; }
+        profile = next;
+        state = { ...state, upgrades: { ...profile.upgrades } };
+        saveProfile();
+        save();
+        refreshBonusTexts();
+        sfx.buy(); buzz([20, 40, 20]);
+        renderShop(type);
+      });
+      row.append(cv, txt, btn);
+      list.appendChild(row);
+    }
+    shopBody.appendChild(list);
+    const note = document.createElement('p');
+    note.className = 'ups-note';
+    note.textContent = 'Les améliorations comptent dans tous les modes, même dans la partie en cours.';
+    shopBody.appendChild(note);
   }
 
   // Mini scene rendered with the real theme and skin code: score sign over a patch of board.
@@ -2920,7 +3062,6 @@
     const btn = document.createElement('button');
     btn.className = 'inv-btn';
     btn.setAttribute('aria-label', BONUS_UI[type].name);
-    btn.dataset.tip = BONUS_UI[type].name + ' — ' + BONUS_UI[type].desc;
     btn.innerHTML = '<canvas class="icon"></canvas><span class="count"></span>';
     const cv = btn.querySelector('canvas');
     const px = Math.round(32 * Math.min(window.devicePixelRatio || 1, 3));
@@ -2985,6 +3126,7 @@
   legendBtn.setAttribute('aria-label', 'Légende des bonus');
   invEl.appendChild(legendBtn);
   const legendList = document.getElementById('legend-list');
+  const legendTexts = {};
   for (const [type, ui] of [...Object.entries(BONUS_UI), ...Object.entries(COIN_UI)]) {
     const row = document.createElement('div');
     row.className = 'legend-row';
@@ -2995,11 +3137,21 @@
     const text = document.createElement('div');
     text.innerHTML = '<b></b><span></span>';
     text.firstChild.textContent = ui.name;
-    text.lastChild.textContent = ui.desc;
+    text.lastChild.textContent = typeof ui.desc === 'function' ? '' : ui.desc;
+    if (BONUS_UI[type]) legendTexts[type] = text.lastChild;
     row.append(cv, text);
     legendList.appendChild(row);
   }
-  legendBtn.addEventListener('click', () => { setAiming(false); legendEl.classList.add('show'); });
+  // Bonus texts follow the upgrade levels: tooltips and legend lines.
+  function refreshBonusTexts() {
+    for (const [type, ui] of Object.entries(BONUS_UI)) {
+      const d = ui.desc(bonusLv(type));
+      invButtons[type].dataset.tip = ui.name + ' — ' + d;
+      legendTexts[type].textContent = d;
+    }
+  }
+  refreshBonusTexts();
+  legendBtn.addEventListener('click', () => { setAiming(false); refreshBonusTexts(); legendEl.classList.add('show'); });
   document.getElementById('legend-close').addEventListener('click', () => legendEl.classList.remove('show'));
   legendEl.addEventListener('click', (e) => { if (e.target === legendEl) legendEl.classList.remove('show'); });
 
@@ -3260,6 +3412,8 @@
       });
     } else if (state.mode === 'chill') {
       tip('chill', 'Chill', 'Touche une pièce pour la tourner. Pas de bonus, pas de pression.', () => rectOf(lay.bx, lay.ty, lay.nextX - lay.bx, lay.trayH));
+    } else if (state.mode === 'worlds') {
+      tip('worlds', 'Mondes', 'Partie sans fin avec les règles du monde. Plus tu marques, plus la prime en pièces grossit.', plate);
     } else if (state.stage && state.stage.daily) {
       tip('daily', 'Niveau du jour', 'Le même niveau pour tout le monde aujourd’hui. Atteins l’objectif affiché en haut.', plate);
     } else if (state.stage) {
@@ -3274,7 +3428,7 @@
     for (const [type, btn] of Object.entries(invButtons)) {
       const ms = state.effects[type] || 0;
       if (!ms && !btn.style.getPropertyValue('--left')) continue;
-      btn.style.setProperty('--left', ms ? Math.min(1, ms / L.EFFECT_MS).toFixed(3) : '');
+      btn.style.setProperty('--left', ms ? Math.min(1, ms / L.effectMs(state, type)).toFixed(3) : '');
       btn.classList.toggle('ending', ms > 0 && ms < 5000);
     }
   }
@@ -3600,7 +3754,7 @@
     if (!aiming.cell) return;
     const [r0, c0] = aiming.cell;
     const pulse = 0.35 + 0.15 * Math.sin(t / 80);
-    for (const [r, c] of L.bombArea(r0, c0)) {
+    for (const [r, c] of L.bombArea(r0, c0, bonusLv('bomb'))) {
       const [x, y] = cellCenter(r, c);
       ctx.fillStyle = `rgba(255,93,115,${pulse})`;
       ctx.beginPath();

@@ -31,9 +31,10 @@
 
   // Modes: 'classic' ends when nothing fits; 'chrono' also ends when the clock runs out;
   // 'chill' turns pieces freely and drops no bonuses (coins still show up);
-  // 'adventure' plays one level: a goal, a move budget and the rules of its world (see worlds.js).
+  // 'adventure' plays one level: a goal, a move budget and the rules of its world (see worlds.js);
+  // 'worlds' is an endless Classique run under one world's rules (opts.world, see WORLD_FREE).
   // Levels scale how fast big pieces show up and, in chrono, the clock.
-  const MODES = ['classic', 'chrono', 'chill', 'adventure'];
+  const MODES = ['classic', 'chrono', 'chill', 'adventure', 'worlds'];
   const LEVELS = {
     easy: { ramp: 0.6, clock: 90000, perLine: 10000, clockMax: 120000 },
     normal: { ramp: 1, clock: 60000, perLine: 7000, clockMax: 90000 },
@@ -60,7 +61,7 @@
   ];
 
   // Clearing a bonus cell stores it; the player fires it with use().
-  // Timed bonuses last EFFECT_MS; instant ones fire once.
+  // Timed bonuses last EFFECT_MS (more once upgraded, see effectMs); instant ones fire once.
   const BONUSES = {
     rotate: { weight: 3, timed: true },
     nitro: { weight: 2, timed: true },
@@ -69,6 +70,18 @@
     reroll: { weight: 2, timed: false },
   };
   const TIMED = Object.keys(BONUSES).filter((k) => BONUSES[k].timed);
+
+  // Bonus upgrades (bought in the Boutique, meta.js). state.upgrades = { [bonus]: 1..3 }, 1 = base.
+  // Toupie / Bulle last longer, Étoile multiplies more, Bombe hits a bigger area,
+  // Tornade deals pieces that fit (level 2), then small ones (level 3).
+  const UPGRADE_MAX = 3;
+  const EFFECT_BY_LEVEL = { rotate: [30000, 45000, 60000], nitro: [30000, 30000, 30000], shield: [30000, 45000, 60000] };
+  const NITRO_BY_LEVEL = [2, 2.5, 3];
+  const upLevel = (state, type) => Math.max(1, Math.min(UPGRADE_MAX, (state.upgrades && state.upgrades[type]) || 1));
+  const effectMs = (state, type) => EFFECT_BY_LEVEL[type][upLevel(state, type) - 1];
+  // A timed bonus stacks up to two uses.
+  const effectMaxMs = (state, type) => 2 * effectMs(state, type);
+  const nitroMul = (state) => (state.effects.nitro > 0 ? NITRO_BY_LEVEL[upLevel(state, 'nitro') - 1] : 1);
 
   // Special cells (Aventure). They sit on the board with value SPECIAL so they block pieces and
   // count toward full lines; state.special[i] holds { kind, hp, age }. A line clear takes one hp;
@@ -93,8 +106,9 @@
   const WORLDS = {};
   const NO_RULES = {};
   function defineWorlds(map) { Object.assign(WORLDS, map); }
-  // Aventure levels carry their world in the stage.
-  const rulesOf = (state) => (state.stage && WORLDS[state.stage.world]) || NO_RULES;
+  // Aventure levels carry their world in the stage; the free 'worlds' mode in state.world.
+  const worldId = (state) => (state.stage ? state.stage.world : state.world) || null;
+  const rulesOf = (state) => WORLDS[worldId(state)] || NO_RULES;
 
   function parse(pattern) {
     const cells = [];
@@ -214,6 +228,14 @@
     return false;
   }
 
+  // Clock of a timed run: { clockMax, perLine } or null. Chrono follows the level; Aventure and
+  // the worlds mode follow the stage / world (lines add 3 s).
+  function clockOf(state) {
+    if (state.mode === 'chrono') return LEVELS[state.level] || LEVELS.normal;
+    const max = state.stage ? state.stage.clock : state.mode === 'worlds' && rulesOf(state).free && rulesOf(state).free.clock;
+    return max ? { clockMax: max, perLine: 3000 } : null;
+  }
+
   // Pieces turn in chill mode or while the rotate bonus runs.
   const canTurn = (state) => state.mode === 'chill' || state.effects.rotate > 0;
 
@@ -309,22 +331,31 @@
   });
 
   // Run stats for missions / coins (see meta.js).
-  const runStats = (state) => ({ ...(state.stats || emptyStats()), score: state.score, mode: state.mode });
+  const runStats = (state) => ({ ...(state.stats || emptyStats()), score: state.score, mode: state.mode, ...(state.world ? { world: state.world } : {}) });
 
-  // opts: { mode, level, budget, stage } — budget mirrors the wallet so the logic knows whether a
+  // opts: { mode, level, budget, stage, world, upgrades } — budget mirrors the wallet so the logic knows whether a
   // discard can still rescue the player (see withBudget). stage (adventure only) comes from
   // levels.js: { world, n, goal: { type: 'lines' | 'score' | 'clear', target, kind? }, maxMoves,
-  // clock?, setup?, ramp? }.
+  // clock?, setup?, ramp? }. world: the world id of the 'worlds' mode. upgrades: { [bonus]: level }.
   function createGame(seed, opts = {}) {
     const stage = opts.mode === 'adventure' && opts.stage ? opts.stage : null;
-    const mode = stage ? 'adventure' : MODES.includes(opts.mode) && opts.mode !== 'adventure' ? opts.mode : 'classic';
-    const level = LEVELS[opts.level] ? opts.level : 'normal';
+    const world = opts.mode === 'worlds' && WORLDS[opts.world] ? opts.world : null;
+    const mode = stage ? 'adventure' : world ? 'worlds'
+      : MODES.includes(opts.mode) && opts.mode !== 'adventure' && opts.mode !== 'worlds' ? opts.mode : 'classic';
+    const level = LEVELS[opts.level] && mode !== 'worlds' ? opts.level : 'normal';
+    const upgrades = {};
+    for (const k of Object.keys(BONUSES)) {
+      const n = opts.upgrades && opts.upgrades[k];
+      if (n > 1) upgrades[k] = Math.min(UPGRADE_MAX, n);
+    }
     const state = {
       mode,
       level,
+      world,
+      upgrades,
       stage: stage && { ...stage, movesLeft: stage.maxMoves, progress: 0, won: false, stars: 0, extra: 0 },
       special: new Array(SIZE * SIZE).fill(null),
-      clock: mode === 'chrono' ? LEVELS[level].clock : (stage && stage.clock) || 0,
+      clock: 0,
       budget: opts.budget || 0,
       next: null,
       undo: null, // state before the last placement (without its own undo)
@@ -343,10 +374,13 @@
       stuck: false,
       stats: emptyStats(),
     };
+    const clock = clockOf(state);
+    state.clock = mode === 'chrono' ? LEVELS[level].clock : clock ? clock.clockMax : 0;
     const rules = rulesOf(state);
     if (stage && stage.goal.type === 'boss') placeBoss(state);
     if (stage && stage.fill) prefill(state, stage.fill);
-    if (rules.setup) rules.setup(state, WORLD_API);
+    if (stage && rules.setup) rules.setup(state, WORLD_API);
+    if (world && rules.free && rules.free.setup) scatterKind(state, rules.free.setup.kind, rules.free.setup.count);
     refillAll(state);
     return state;
   }
@@ -374,7 +408,7 @@
     if (piece.bonus) state.bonus[(row + piece.bonus.r) * SIZE + (col + piece.bonus.c)] = piece.bonus.type;
 
     const rules = rulesOf(state);
-    const nitro = prev.effects.nitro > 0 ? 2 : 1;
+    const nitro = nitroMul(prev);
     const { rows, cols } = findClears(state.board);
     const lines = rows.length + cols.length;
     const hit = clearCells(state, clearedIndices(rows, cols));
@@ -428,15 +462,16 @@
     if (perfect) st.perfects += 1;
 
     let timeGain = 0;
-    if (allLines && (state.mode === 'chrono' || (state.stage && state.stage.clock))) {
-      const lv = state.stage ? { clockMax: state.stage.clock, perLine: 3000 } : LEVELS[state.level] || LEVELS.normal;
+    const lv = clockOf(state);
+    if (allLines && lv) {
       timeGain = Math.max(0, Math.min(lv.clockMax - state.clock, lv.perLine * allLines));
       state.clock += timeGain;
     }
 
     state.tray[trayIndex] = null;
     refillSlot(state, trayIndex);
-    const spawned = state.stage ? stageMove(state, rules, hit, allLines, true) : [];
+    const spawned = state.stage ? stageMove(state, rules, hit, allLines, true)
+      : state.mode === 'worlds' ? worldMove(state, rules).concat(freeSpawn(state, rules)) : [];
     if (!state.over) settle(state);
 
     return {
@@ -456,7 +491,7 @@
         cleared,
         collected,
         points,
-        nitro: nitro > 1,
+        nitro: nitro > 1 ? nitro : 0,
         combo: lines ? state.combo : 0,
         perfect,
         refilled: [trayIndex],
@@ -580,6 +615,22 @@
     return (rules.afterMove && rules.afterMove(state, WORLD_API)) || [];
   }
 
+  // Worlds mode: worlds whose special cells only come from level setups drop them over time
+  // (rules.free = { setup: { kind, count }, every?, kind?, clock? }).
+  function freeSpawn(state, rules) {
+    const free = rules.free;
+    if (!free || !free.every || state.moves % free.every) return [];
+    const i = WORLD_API.pick(state, WORLD_API.emptyCells(state));
+    return i >= 0 ? [WORLD_API.addSpecial(state, i, free.kind)] : [];
+  }
+
+  function scatterKind(state, kind, count) {
+    for (let k = 0; k < count; k++) {
+      const i = WORLD_API.pick(state, WORLD_API.emptyCells(state));
+      if (i >= 0) WORLD_API.addSpecial(state, i, kind);
+    }
+  }
+
   // Stars: 1 for the win, +1 with 15% of the move budget left, +1 with 30%. Bought moves cap it at 1.
   function finishStage(state, won) {
     const stage = state.stage;
@@ -666,19 +717,35 @@
     return collected;
   }
 
-  // 5x5 blast without its corners (21 cells).
-  const bombArea = (row, col) => {
+  // Level 1: 5x5 without its corners (21 cells). Level 2: the full 5x5 (25).
+  // Level 3: the full 5x5 plus the whole row and column through the center.
+  const bombArea = (row, col, level = 1) => {
     const cells = [];
-    for (let dr = -2; dr <= 2; dr++) {
-      for (let dc = -2; dc <= 2; dc++) {
-        const r = row + dr;
-        const c = col + dc;
-        if (Math.abs(dr) === 2 && Math.abs(dc) === 2) continue;
-        if (r >= 0 && c >= 0 && r < SIZE && c < SIZE) cells.push([r, c]);
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const dr = Math.abs(r - row);
+        const dc = Math.abs(c - col);
+        const square = dr <= 2 && dc <= 2 && (level > 1 || dr + dc < 4);
+        const cross = level > 2 && (r === row || c === col);
+        if (square || cross) cells.push([r, c]);
       }
     }
     return cells;
   };
+
+  // Tornade: level 1 deals 3 random pieces; level 2 only pieces that fit the board; level 3 pieces
+  // of at most 3 blocks that fit. A few draws per slot, then the last draw stays.
+  const REROLL_TRIES = 30;
+  function reroll(state) {
+    const lv = upLevel(state, 'reroll');
+    if (lv === 1) { refillAll(state); return; }
+    state.tray = new Array(TRAY_SIZE).fill(null);
+    for (let i = 0; i < TRAY_SIZE; i++) {
+      let p = pickPiece(state);
+      for (let k = 0; k < REROLL_TRIES && !(pieceFits(state, p) && (lv < 3 || p.cells.length <= 3)); k++) p = pickPiece(state);
+      state.tray[i] = p;
+    }
+  }
 
   // Fire a stored bonus. `target` = { r, c } for the bomb. Returns { state, events } or null.
   function use(prev, type, target) {
@@ -698,13 +765,13 @@
     let hit = null;
 
     if (BONUSES[type].timed) {
-      state.effects[type] = Math.min(EFFECT_MAX_MS, state.effects[type] + EFFECT_MS);
+      state.effects[type] = Math.min(effectMaxMs(state, type), state.effects[type] + effectMs(state, type));
     } else if (type === 'reroll') {
-      refillAll(state);
+      reroll(state);
       events.refilled = [0, 1, 2];
     } else if (type === 'bomb') {
       if (!target) return null;
-      const area = bombArea(target.r, target.c).map(([r, c]) => r * SIZE + c);
+      const area = bombArea(target.r, target.c, upLevel(state, 'bomb')).map(([r, c]) => r * SIZE + c);
       if (!area.some((i) => state.board[i])) return null;
       hit = clearCells(state, area);
       events.cleared = hit.cleared;
@@ -713,8 +780,7 @@
       events.bossHits = hit.boss;
       events.collected = collect(state, events.cleared);
       events.perfect = state.board.every((v) => v === 0);
-      const nitro = state.effects.nitro > 0 ? 2 : 1;
-      events.points = (events.cleared.length * BOMB_CELL_POINTS + (events.perfect ? PERFECT_BONUS : 0)) * nitro
+      events.points = Math.round((events.cleared.length * BOMB_CELL_POINTS + (events.perfect ? PERFECT_BONUS : 0)) * nitroMul(state))
         + events.collected.filter((b) => b.overflow).length * OVERFLOW_POINTS;
       state.score += events.points;
       state.stats.bombCells += events.cleared.length;
@@ -801,7 +867,7 @@
   // Advance bonus timers and the chrono clock. Returns the same object when nothing runs.
   // A run lost to the clock gets `timeUp: true`.
   function tick(prev, dtMs) {
-    const chrono = (prev.mode === 'chrono' || !!(prev.stage && prev.stage.clock)) && prev.clock > 0;
+    const chrono = !!clockOf(prev) && prev.clock > 0;
     if (prev.over || (!chrono && !TIMED.some((k) => prev.effects[k] > 0))) return prev;
     const effects = { ...prev.effects };
     for (const k of TIMED) effects[k] = Math.max(0, effects[k] - dtMs);
@@ -833,6 +899,13 @@
     SPECIAL,
     KINDS,
     BOSS_AT,
+    UPGRADE_MAX,
+    EFFECT_BY_LEVEL,
+    NITRO_BY_LEVEL,
+    upLevel,
+    effectMs,
+    nitroMul,
+    clockOf,
     defineWorlds,
     createGame,
     addMoves,

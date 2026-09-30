@@ -28,6 +28,8 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Guided first game, one-time tips | [features/tutorial.md](features/tutorial.md) | `src/tutorial.js`, `tipSeen` / `markTip` in `src/meta.js`, sections `tutorial` and `tips` in `src/main.js` |
 | Sticker album, trophies, profile and stats | [features/album.md](features/album.md) | `STICKERS` / `checkStickers` / `monthTrophy` / `modeStats` in `src/meta.js`, `#profile` screen |
 | Pause, block marks, dark menus | [features/comfort.md](features/comfort.md) | section `pause` and `MARKS` in `src/main.js`, `.dark-menus` in `index.html` |
+| Bonus upgrades (Boutique tab Bonus) | [features/upgrades.md](features/upgrades.md) | `EFFECT_BY_LEVEL` / `bombArea` / `reroll` in `src/logic.js`, `UPGRADE_PRICES` in `src/meta.js`, `renderUpgrades` in `src/main.js` |
+| Mondes mode (endless world runs, prime) | [features/worlds-mode.md](features/worlds-mode.md) | `free` in `src/worlds.js`, mode `worlds` in `src/logic.js`, `worldPrime` in `src/meta.js`, section `Mondes` in `src/main.js` |
 
 ## Adding a new feature
 1. Create `docs/features/<feature>.md` (template below) and add a row to the table above.
@@ -52,4 +54,6 @@ Status: shipped | planned
 5. Combo feel (**done**): tiered clear effects.
 6. Comfort and retention (**done**, v1): pause, color-blind block marks, dark menus, per-mode stats, secret stickers. A weekend event shipped then was removed on 2026-09-30 (overlapped the daily level, nothing to chase once its tiers were paid).
 7. Aventure v2 (**done**): 20 levels a world, boss fights, coins / combo / crate goals, star chests.
-8. Later: polish, React Native port.
+8. Bonus upgrades + Mondes mode (**done**).
+9. Next: hand-made puzzles (pieces already placed, fixed piece quota, rotate to fill), mascot in the HUD.
+10. Later: polish, React Native port.

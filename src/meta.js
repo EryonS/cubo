@@ -152,6 +152,8 @@
   function runCoins(run) {
     const lines = [];
     if (run.coins) lines.push({ label: 'Pièces ramassées', coins: run.coins });
+    const prime = worldPrime(run.world, run.score);
+    if (prime) lines.push({ label: 'Prime ' + WORLD_NAMES[run.world], coins: prime });
     if (run.perfects) lines.push({ label: `Grille vide ×${run.perfects}`, coins: run.perfects * 10 });
     if (run.bestCombo >= 5) lines.push({ label: `Combo ×${run.bestCombo}`, coins: 5 });
     if (run.bestBomb >= 15) lines.push({ label: 'Méga explosion', coins: 5 });
@@ -210,6 +212,7 @@
   // for free (it is also sold in the Boutique). adventure.chests: { "<world>-<i>": true } opened star
   // chests; adventure.bombs: free starting Bombes won in chests.
   const WORLD_ORDER = ['plain', 'sea', 'space', 'ice', 'forest', 'retro', 'arcade', 'volcano'];
+  const WORLD_NAMES = { plain: 'Plaine', sea: 'Sous-marin', space: 'Espace', ice: 'Glace', forest: 'Forêt', retro: 'Rétro', arcade: 'Arcade', volcano: 'Volcan' };
   const LEVELS_PER_WORLD = 20;
   const TRIAL_LEVEL = 10;
   const STARS_PER_GATE = 36; // world k needs 36 x k stars (60% of a world's 60)
@@ -299,6 +302,32 @@
     };
   }
   const freeBombs = (profile) => adventureOf(profile).bombs || 0;
+  // ---------- Mondes (endless runs under one world's rules) ----------
+  // A world opens in the Mondes mode once its trial (Aventure level 10) is cleared. Runs pay a prime
+  // on the score, bigger in later worlds: 1 coin per 200 points in Plaine, up to x2.75 in Volcan.
+  const worldFreeOpen = (profile, world) => WORLD_ORDER.includes(world) && levelCleared(profile, world, TRIAL_LEVEL);
+  const worldPrimeRate = (world) => 1 + 0.25 * WORLD_ORDER.indexOf(world);
+  const worldPrime = (world, score) => (WORLD_ORDER.includes(world) ? Math.floor(((score || 0) / 200) * worldPrimeRate(world)) : 0);
+
+  // ---------- bonus upgrades ----------
+  // profile.upgrades: { [bonus]: 2 | 3 } (absent = level 1). UPGRADE_PRICES[bonus][k] buys level k + 2.
+  const UPGRADE_PRICES = {
+    rotate: [200, 500],
+    nitro: [250, 600],
+    shield: [200, 500],
+    bomb: [300, 700],
+    reroll: [200, 500],
+  };
+  const upgradeLevel = (profile, type) => (profile.upgrades && profile.upgrades[type]) || 1;
+  // Price of the next level, or null at the top.
+  const upgradePrice = (profile, type) => (UPGRADE_PRICES[type] ? UPGRADE_PRICES[type][upgradeLevel(profile, type) - 1] ?? null : null);
+  function buyUpgrade(prev, type) {
+    const price = upgradePrice(prev, type);
+    if (price == null) return null;
+    const paid = spend(prev, price);
+    return paid && { ...paid, upgrades: { ...(prev.upgrades || {}), [type]: upgradeLevel(prev, type) + 1 } };
+  }
+
   // Uses a free starting Bombe won in a chest. Returns the profile or null.
   function useFreeBomb(prev) {
     const n = freeBombs(prev);
@@ -433,7 +462,7 @@
     { id: 'score5k', page: 'combo', name: '5 000 points', hint: 'Fais 5 000 points en une partie', test: (p) => lt(p, 'score') >= 5000 },
     ...WORLD_ORDER.map((w, i) => ({
       id: 'world-' + w, page: 'explorer', world: w, reward: 30,
-      name: ['Plaine', 'Sous-marin', 'Espace', 'Glace', 'Forêt', 'Rétro', 'Arcade', 'Volcan'][i],
+      name: WORLD_NAMES[w],
       hint: 'Bats le boss de ce monde', test: (p) => levelCleared(p, w, LEVELS_PER_WORLD) && levelStars(p, w, LEVELS_PER_WORLD) > 0,
     })),
     { id: 'streak7', page: 'faithful', name: '7 jours', hint: 'Tiens une série de 7 jours', test: (p) => streakOf(p).best >= 7 },
@@ -512,6 +541,7 @@
     addDays, dayDiff, monthDays,
     DAILY_ATTEMPTS, FREEZE_COST, FREEZE_MAX, STREAK_SKIN, dailyOf, streakOf, dailyAttemptsLeft, startDaily, streakNow,
     applyDaily, buyFreeze, monthTrophy, STICKER_PAGES, STICKERS, STICKER_REWARD, checkStickers,
+    WORLD_NAMES, worldFreeOpen, worldPrimeRate, worldPrime, UPGRADE_PRICES, upgradeLevel, upgradePrice, buyUpgrade,
     WORLD_ORDER, LEVELS_PER_WORLD, TRIAL_LEVEL, CHESTS, chestState, openChest, freeBombs, useFreeBomb, bossBeaten, EXTRA_MOVES, START_BONUS_COST, SKIP_COST, extraMovesCost,
     levelStars, levelCleared, totalStars, worldStars, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,
     SKINS, MISSIONS, createProfile, migrate, ensureDay, missionStatus, missionText, runCoins, applyRun, doubleRun, spend, buy, equip, nextGoal };
