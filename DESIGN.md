@@ -1,89 +1,100 @@
 ---
 name: Gridlock
-description: Road-trip block puzzle; every theme is a piece of road signage or car interior.
+description: Bright, toy-like block puzzle; the default look is a soft plastic toy, every other theme is a world from the Aventure map.
 colors:
-  asphalt: "#16181c"
-  asphalt-slab: "#1f2227"
-  asphalt-cell: "#2a2d33"
-  autoroute-blue: "#1f4fa3"
-  autoroute-blue-deep: "#173e83"
-  sign-white: "#ffffff"
-  works-yellow: "#ffc400"
-  good: "#5ee08a"
-  danger: "#ff6b5e"
+  toy-pink: "#ffeef4"
+  toy-dot: "#ffd6e5"
+  toy-white: "#ffffff"
+  toy-cell: "#f6e9f2"
+  toy-ink: "#4a3a66"
+  toy-muted: "#8a7aa3"
+  toy-violet: "#7c5cff"
+  toy-mint: "#b7f0d8"
+  toy-mint-ink: "#1e7a55"
+  good: "#1f9e68"
+  danger: "#ff5d7a"
 typography:
   display:
-    fontFamily: "\"DIN Condensed\", \"DIN Alternate\", \"Roboto Condensed\", \"Arial Narrow\", sans-serif"
-    fontWeight: 700
-    letterSpacing: "0.03em"
-  ui:
-    fontFamily: "ui-rounded, \"SF Pro Rounded\", system-ui, sans-serif"
-    fontSize: "14px"
+    fontFamily: "\"Baloo 2\", ui-rounded, \"SF Pro Rounded\", system-ui, sans-serif"
     fontWeight: 800
+  pixel:
+    fontFamily: "\"Press Start 2P\", ui-monospace, monospace"
+    fontWeight: 400
+  ui:
+    fontFamily: "\"Baloo 2\", ui-rounded, \"SF Pro Rounded\", system-ui, sans-serif"
+    fontSize: "14px"
+    fontWeight: 700
 rounded:
-  plate: "14px"
+  pill: "999px"
   card: "22px"
-  tag: "6px"
+  board: "26px"
+  cell: "24%"
 components:
-  score-sign:
-    backgroundColor: "{colors.autoroute-blue}"
-    textColor: "{colors.sign-white}"
-    rounded: "{rounded.plate}"
+  score-plate:
+    backgroundColor: "{colors.toy-white}"
+    textColor: "{colors.toy-violet}"
+    rounded: "{rounded.pill}"
     height: "72px"
   combo-tag:
-    backgroundColor: "{colors.works-yellow}"
-    textColor: "{colors.asphalt}"
-    rounded: "{rounded.tag}"
+    backgroundColor: "{colors.toy-mint}"
+    textColor: "{colors.toy-mint-ink}"
+    rounded: "{rounded.pill}"
     height: "25px"
   button-primary:
-    backgroundColor: "{colors.works-yellow}"
-    textColor: "{colors.asphalt}"
+    backgroundColor: "{colors.toy-violet}"
+    textColor: "{colors.toy-white}"
     typography: "{typography.display}"
   card:
-    backgroundColor: "{colors.autoroute-blue}"
-    textColor: "{colors.sign-white}"
+    backgroundColor: "{colors.toy-white}"
+    textColor: "{colors.toy-ink}"
     rounded: "{rounded.card}"
 ---
 
 ## Overview
-Every screen is road furniture. The default theme, **Autoroute**, reads as a French motorway: asphalt ground with grain, a scrolling lane dash on the right edge, a blue motorway sign for the score, and a yellow roadworks "panonceau" hung under it for the combo. Menus are big blue signs with the white inset border. The blocks stay the bright, candy-colored stars; the world around them is signage.
+Playful and flashy in the spirit of console party and platform games, without borrowing any character, logo, sound or name from them. The default theme, **Jouet**, looks like a plastic toy: pink polka-dot background, a soft white board, glossy candy blocks, pill-shaped score and combo. Every other theme is one of the eight worlds of the Aventure map (see `docs/features/themes.md`).
 
-Themes are whole worlds sold in the Boutique (`SKINS.boards` in `src/meta.js`, visuals in `THEMES` in `src/main.js`). Each theme defines: background paint/animation, board frame, empty cell, score plate, combo tag, canvas display font, and the CSS variables that skin every DOM menu. A new theme must define all of them.
+Themes are whole worlds (`SKINS.boards` in `src/meta.js`, visuals in `THEMES` in `src/main.js`). Each defines: background `paint` (+ optional `animate`), board slab, empty cell, score plate, combo tag, display font, CSS tokens for every DOM menu, and optionally its own block `palette`, a font `scale` and a drop `shadow` color. A new theme must define all required fields.
 
-| id | Name | Material | Display face | Signature |
-|---|---|---|---|---|
-| night | Autoroute | asphalt, blue sign, yellow works sign | DIN Condensed | lane dash scrolling |
-| sunset | Coucher de soleil | synthwave sky, neon pink tube | Futura italic | glowing plate |
-| desert | Route 66 | motel sign, turquoise + rust | Rockwell | chasing marquee bulbs |
-| mountain | Col de montagne | French brown tourist sign, alpine night | Avenir Next Condensed | snow peaks |
-| dash | Tableau de bord | instrument cluster, chrome bezel, amber | DIN Alternate | odometer drums roll the score |
+| id | Name | Price | Material | Font | Signature |
+|---|---|---|---|---|---|
+| toy | Jouet | free | plastic toy, polka dots | Baloo 2 | candy palette, white pills |
+| plain | Plaine | 150 | sky, hills, wooden board | Baloo 2 | drifting clouds |
+| sea | Sous-marin | 300 | deep blue, light rays, seaweed | Baloo 2 | rising bubbles |
+| space | Espace | 450 | starfield, ringed planet | Baloo 2 | twinkling stars, violet glow |
+| ice | Glace | 600 | pale ice, floes | Baloo 2 | falling snow |
+| forest | Forêt | 800 | dusk pines, mushrooms | Baloo 2 | fireflies, mushroom-cap score plate |
+| retro | Rétro | 1000 | 4-green LCD handheld | Press Start 2P | pixel matrix, square cells |
+| arcade | Arcade | 1200 | neon night, perspective floor | Press Start 2P | marquee bulbs on the score |
+| volcano | Volcan | 1500 | basalt, lava | Baloo 2 | rising embers, orange glow |
 
 ## Colors
-Tokens above are the Autoroute theme. Per-theme values live in each theme's `css` map (`--bg`, `--panel`, `--panel-2`, `--slot`, `--text`, `--muted`, `--accent`, `--on-accent`, `--good`, `--edge`, `--radius`, `--card-edge`, `--plate-edge`). The accent is always the theme's "attention sign" color (works yellow, sun yellow, mustard, ice, amber) and is reserved for primary action, combo, counts and timers. Block colors (`PALETTE`) are shared by all themes and never change with the theme.
+Tokens above are the Jouet theme. Per-theme values live in each theme's `css` map: `--bg`, `--panel`, `--panel-2`, `--slot`, `--text`, `--muted`, `--accent`, `--on-accent`, `--good`, `--edge`, `--radius`, `--card-edge`, `--plate-edge`, and the translucent helpers `--hairline` (thin outlines), `--sunken` (tracks, disabled fills) and `--scrim` (overlay backdrop). Dark worlds get defaults from `css()`, light worlds from `lightCss()`. The accent is reserved for primary action, counts and timers. Block colors come from `PALETTE` unless the theme ships its own `palette` (Jouet does); every palette keeps 14 distinct colors, one per shape family.
 
 ## Typography
-Two faces: the theme's display face (system fonts only, so it works offline) for numbers, titles, buttons and tabs, always uppercase in buttons/tabs; a rounded system UI face for running text (mission descriptions, legend, labels). Score on the sign: 0.64 x plate height. Game-over score: 76px.
+Baloo 2 everywhere (UI and display), Press Start 2P for the two pixel worlds with `scale: 0.62` so numbers fit. Both are bundled in `fonts/` for offline play. Score on the plate: 0.64 x plate height. Game-over score: 76px.
 
 ## Layout
-Tall screens: HUD buttons row, then score sign + combo tag sitting right above the board. Screens under 760px tall: the sign moves up between the wallet and the restart button to give the board its room. Bonus timers are not in the header: they drain as a ring around their inventory button.
+Tall screens: HUD buttons row, then score plate + combo tag sitting right above the board. Screens under 760px tall: the plate moves up between the wallet and the undo button. Bonus timers drain as a ring around their inventory button.
 
 ## Elevation & Depth
-Plates and the board slab cast an offset shadow (y 5-8px, blur 14-20px). Neon themes may glow; others never use zero-offset halos.
+Plates and the board slab cast an offset shadow (y 5-8px, blur 14-20px), tinted on light worlds (`shadow`). Neon worlds (Espace, Arcade, Volcan) may glow.
 
 ## Shapes
-Signs use an inner border inset from the edge (white on Autoroute/Col, cream on Route 66, chrome on Tableau de bord). Radii come from `--radius` per theme: squarer for signage, rounder for synthwave and dashboard.
+Round and soft: pills for score and combo, 22px cards, board radius 18-26px, cells with 16-24% radius. Only Rétro goes square.
 
 ## Components
-- **Score sign**: plate with "RECORD n" subline and the score; odometer variant for the dashboard.
-- **Combo tag**: small sign under the score with the grace dots.
-- **HUD buttons**: small plates (`--panel` + `--plate-edge`).
+- **Score plate**: "RECORD n" subline and the score. Variants: marquee bulbs (Arcade), mushroom-cap dots (Forêt).
+- **Combo tag**: pill under the score with the grace dots.
+- **HUD buttons**: `--panel` + `--plate-edge`.
 - **Inventory buttons**: `--slot` tiles, accent count badge, conic timer ring when active.
-- **Cards** (game over, boutique, legend): `--panel` with `--card-edge`; Route 66 adds a dotted bulb outline.
-- **Boutique theme preview**: mini sign + board patch drawn with the real theme code.
+- **Bonus icons** (drawn in `GLYPHS`): Toupie, Étoile, Bulle, Bombe, Tornade on a white badge ringed with their color.
+- **Cards** (menu, game over, boutique, legend): `--panel` with `--card-edge`.
+- **Boutique theme preview**: mini plate + board patch drawn with the real theme code.
 
 ## Do's and Don'ts
 - Do draw every icon (canvas/SVG). Don't use emoji.
 - Do keep blocks readable on every theme; backgrounds stay behind a mostly opaque board slab.
 - Do add a theme as a complete world (all fields), priced in the Boutique.
-- Don't let a theme change gameplay or layout geometry.
-- Don't load web fonts; the game must work offline.
+- Don't let a theme change gameplay or layout geometry outside the Aventure mode.
+- Don't use road or car imagery anymore; the road-trip identity was retired on 2026-09-30.
+- Don't imitate any real game's characters, logos or sounds.

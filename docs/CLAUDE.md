@@ -1,0 +1,48 @@
+# Gridlock: guide for Claude Code
+
+Read this before adding or changing a feature. It routes you to the right feature file and module.
+
+## Hard rules
+- `src/logic.js`, `src/meta.js`, `src/worlds.js`, `src/levels.js` stay **pure**: no DOM, no `window`, JSON-serializable state, seeded RNG only. They are reused as-is in the React Native port.
+- `src/main.js` only draws, animates, plays sounds, handles input and persists.
+- UI copy is **French**. No emoji anywhere (UI, docs shown to players): draw icons on canvas or in SVG.
+- Any change to a saved shape (`gridlock.v2` run state, `gridlock.profile.v1` profile) needs a migration in `M.migrate` + a test in `tests/`.
+- New static file (font, image, script) → add it to `ASSETS` in `sw.js` and bump `CACHE`.
+- Visual work follows `DESIGN.md`; product scope follows `PRODUCT.md`.
+- Run `node --test` from the repo root before calling work done; check the UI in a browser for visual changes.
+- Changing Aventure rules or piece odds: rerun `node tools/balance.js 10` and retune `src/levels.js`.
+
+## Where to look
+
+| You want to... | Read | Touch |
+|---|---|---|
+| Add or change a visual theme / world look | [features/themes.md](features/themes.md) | `THEMES` in `src/main.js`, `SKINS.boards` in `src/meta.js`, `DESIGN.md` |
+| Add or change a bonus | [features/bonus.md](features/bonus.md) | `BONUSES` in `src/logic.js`, `BONUS_UI` + `GLYPHS` in `src/main.js` |
+| Change modes (Classique, Chrono, Chill) or difficulty | [features/modes.md](features/modes.md) | `MODES` / `LEVELS` in `src/logic.js`, home menu in `index.html` + `src/main.js` |
+| Coins, missions, Boutique, rewarded ad | [features/economy.md](features/economy.md) | `src/meta.js`, `src/ads.js`, shop in `src/main.js` |
+| Saves and migrations | [features/persistence.md](features/persistence.md) | `M.migrate`, `save()` / `saveProfile()` in `src/main.js` |
+| Aventure mode (map, levels, stars, rewards) | [features/aventure.md](features/aventure.md) | `src/levels.js`, `src/meta.js`, section `aventure` in `src/main.js` |
+| World rules, special cells | [features/worlds.md](features/worlds.md) | `src/worlds.js`, `KINDS` in `src/logic.js`, `drawSpecial` in `src/main.js` |
+| Daily level, streak (planned) | [features/daily.md](features/daily.md) | `src/meta.js` |
+| Sticker album, trophies, profile and stats (planned) | [features/album.md](features/album.md) | `src/meta.js`, new profile screen |
+
+## Adding a new feature
+1. Create `docs/features/<feature>.md` (template below) and add a row to the table above.
+2. Put rules in a pure module, rendering in `src/main.js`.
+3. Add tests for the pure part in `tests/<module>.test.js`.
+4. Update the feature file when behavior or saved state changes.
+
+```markdown
+# <Feature>
+Status: shipped | planned
+## What it does
+## Files
+## Saved state
+## Gotchas
+```
+
+## Roadmap (decided in the 2026-09-30 brainstorm)
+1. New art direction (**done**): Jouet default theme, 8 world themes, bonus renames.
+2. Aventure (**done**, v1): world map, 10 levels per world, world rules, stars, coin helpers, theme unlock on boss.
+3. Retention: daily level + share text, day streak with freezes, sticker album with monthly trophies, profile and stats.
+4. Later: two players on one phone, tutorial, pause button, polish.

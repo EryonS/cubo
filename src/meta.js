@@ -12,22 +12,33 @@
   const DAILY_MISSIONS = 3;
 
   // price 0 = owned from the start. Visuals live in the renderer, keyed by id.
-  // 'boards' are whole themes (background, board, score sign, menus); the key stays for old saves.
+  // 'boards' are whole themes (background, board, score plate, menus); the key stays for old saves.
+  // Theme order follows the Aventure world order (Plaine first, Volcan last).
   const SKINS = {
     blocks: [
       { id: 'classic', name: 'Classique', price: 0 },
       { id: 'neon', name: 'Néon', price: 200 },
-      { id: 'candy', name: 'Bonbon', price: 400 },
       { id: 'pixel', name: 'Pixel', price: 600 },
     ],
     boards: [
-      { id: 'night', name: 'Autoroute', price: 0 },
-      { id: 'sunset', name: 'Coucher de soleil', price: 300 },
-      { id: 'desert', name: 'Route 66', price: 500 },
-      { id: 'mountain', name: 'Col de montagne', price: 800 },
-      { id: 'dash', name: 'Tableau de bord', price: 1200 },
+      { id: 'toy', name: 'Jouet', price: 0 },
+      { id: 'plain', name: 'Plaine', price: 150 },
+      { id: 'sea', name: 'Sous-marin', price: 300 },
+      { id: 'space', name: 'Espace', price: 450 },
+      { id: 'ice', name: 'Glace', price: 600 },
+      { id: 'forest', name: 'Forêt', price: 800 },
+      { id: 'retro', name: 'Rétro', price: 1000 },
+      { id: 'arcade', name: 'Arcade', price: 1200 },
+      { id: 'volcano', name: 'Volcan', price: 1500 },
     ],
   };
+
+  // Skins removed from the catalog, refunded at their old price (road themes, 'candy' blocks).
+  const RETIRED = {
+    blocks: { candy: 400 },
+    boards: { night: 0, sunset: 300, desert: 500, mountain: 800, dash: 1200 },
+  };
+  const PROFILE_VERSION = 2;
 
   // stat: key in the run stats. mode 'best' = within one game, 'total' = accumulates across games.
   // tiers: [target, reward], harder tiers unlock as more missions get completed.
@@ -78,14 +89,34 @@
 
   function createProfile(day) {
     return ensureDay({
+      version: PROFILE_VERSION,
       coins: 0,
-      owned: { blocks: ['classic'], boards: ['night'] },
-      equipped: { blocks: 'classic', boards: 'night' },
+      owned: { blocks: ['classic'], boards: ['toy'] },
+      equipped: { blocks: 'classic', boards: 'toy' },
       day: null,
       missions: [],
       missionsDone: 0,
       games: 0,
     }, day);
+  }
+
+  // Brings an old save up to date: retired skins leave the inventory and are refunded, anything
+  // equipped that no longer exists falls back to the free skin. Returns { profile, refund }.
+  function migrate(prev) {
+    if ((prev.version || 1) >= PROFILE_VERSION) return { profile: prev, refund: 0 };
+    let refund = 0;
+    const owned = {};
+    const equipped = { ...prev.equipped };
+    for (const kind of Object.keys(SKINS)) {
+      const list = (prev.owned && prev.owned[kind]) || [];
+      for (const id of list) refund += (RETIRED[kind] && RETIRED[kind][id]) || 0;
+      owned[kind] = SKINS[kind].filter((s) => s.price === 0 || list.includes(s.id)).map((s) => s.id);
+      if (!findSkin(kind, equipped[kind])) equipped[kind] = SKINS[kind][0].id;
+    }
+    return {
+      profile: { ...prev, version: PROFILE_VERSION, coins: (prev.coins || 0) + refund, owned, equipped },
+      refund,
+    };
   }
 
   const missionText = (m) => TEMPLATE[m.key].text(m.target);
@@ -134,8 +165,75 @@
     return { profile: p, report: { earned, total, completed, coinsBefore: prev.coins } };
   }
 
+  // ---------- Aventure ----------
+  // profile.adventure.stars: { "<world>-<n>": 0..3 }. A key present = level cleared (0 = skipped).
+  // A world opens when the previous boss is cleared and enough stars are collected overall.
+  // Beating a world's boss gives its theme for free (it is also sold in the Boutique).
+  const WORLD_ORDER = ['plain', 'sea', 'space', 'ice', 'forest', 'retro', 'arcade', 'volcano'];
+  const LEVELS_PER_WORLD = 10;
+  const STARS_PER_GATE = 18; // world k needs 18 x k stars
+  const FIRST_CLEAR = 10;
+  const BOSS_CLEAR = 50;
+  const PER_NEW_STAR = 5;
+  const EXTRA_MOVES = 5;
+  const START_BONUS_COST = 30;
+  const SKIP_COST = 250;
+  const extraMovesCost = (times) => 20 * 2 ** times; // 20, 40, 80... within one attempt
+
+  const levelKey = (world, n) => `${world}-${n}`;
+  const starsOf = (profile) => (profile.adventure && profile.adventure.stars) || {};
+  const levelStars = (profile, world, n) => starsOf(profile)[levelKey(world, n)];
+  const levelCleared = (profile, world, n) => levelStars(profile, world, n) !== undefined;
+  const totalStars = (profile) => Object.values(starsOf(profile)).reduce((a, b) => a + b, 0);
+  const worldStars = (profile, world) => {
+    let n = 0;
+    for (let i = 1; i <= LEVELS_PER_WORLD; i++) n += levelStars(profile, world, i) || 0;
+    return n;
+  };
+  const worldGate = (world) => WORLD_ORDER.indexOf(world) * STARS_PER_GATE;
+
+  function worldOpen(profile, world) {
+    const w = WORLD_ORDER.indexOf(world);
+    if (w <= 0) return w === 0;
+    return levelCleared(profile, WORLD_ORDER[w - 1], LEVELS_PER_WORLD) && totalStars(profile) >= worldGate(world);
+  }
+  const levelOpen = (profile, world, n) => worldOpen(profile, world) && (n === 1 || levelCleared(profile, world, n - 1));
+
+  // Records a finished level. Returns { profile, report: { earned, total, themeUnlocked } }.
+  function applyLevel(prev, world, n, stars) {
+    const key = levelKey(world, n);
+    const before = starsOf(prev)[key];
+    const earned = [];
+    if (before === undefined) earned.push({ label: n === LEVELS_PER_WORLD ? 'Boss vaincu' : 'Niveau réussi', coins: n === LEVELS_PER_WORLD ? BOSS_CLEAR : FIRST_CLEAR });
+    const fresh = stars - (before || 0);
+    if (fresh > 0) earned.push({ label: fresh > 1 ? `${fresh} nouvelles étoiles` : 'Nouvelle étoile', coins: fresh * PER_NEW_STAR });
+    const total = earned.reduce((a, l) => a + l.coins, 0);
+    const p = {
+      ...prev,
+      coins: prev.coins + total,
+      adventure: { ...(prev.adventure || {}), stars: { ...starsOf(prev), [key]: Math.max(stars, before || 0) } },
+    };
+    let themeUnlocked = null;
+    if (n === LEVELS_PER_WORLD && findSkin('boards', world) && !prev.owned.boards.includes(world)) {
+      p.owned = { ...prev.owned, boards: [...prev.owned.boards, world] };
+      themeUnlocked = world;
+    }
+    return { profile: p, report: { earned, total, themeUnlocked } };
+  }
+
+  // Pays to mark a (non-boss) level as passed with no star.
+  function skipLevel(prev, world, n) {
+    if (n === LEVELS_PER_WORLD || levelCleared(prev, world, n) || !levelOpen(prev, world, n)) return null;
+    const paid = spend(prev, SKIP_COST);
+    if (!paid) return null;
+    return { ...paid, adventure: { ...(paid.adventure || {}), stars: { ...starsOf(paid), [levelKey(world, n)]: 0 } } };
+  }
+
   // Rewarded ad: pays the run's coins a second time.
   const doubleRun = (prev, report) => ({ ...prev, coins: prev.coins + report.total });
+
+  // Coins spent in a run (discarding a piece). Returns null when the wallet is short.
+  const spend = (prev, amount) => (prev.coins >= amount ? { ...prev, coins: prev.coins - amount } : null);
 
   const findSkin = (kind, id) => (SKINS[kind] || []).find((s) => s.id === id);
 
@@ -163,5 +261,8 @@
     return all[0] || null;
   }
 
-  return { SKINS, MISSIONS, createProfile, ensureDay, missionStatus, missionText, runCoins, applyRun, doubleRun, buy, equip, nextGoal };
+  return {
+    WORLD_ORDER, LEVELS_PER_WORLD, EXTRA_MOVES, START_BONUS_COST, SKIP_COST, extraMovesCost,
+    levelStars, levelCleared, totalStars, worldStars, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,
+    SKINS, MISSIONS, createProfile, migrate, ensureDay, missionStatus, missionText, runCoins, applyRun, doubleRun, spend, buy, equip, nextGoal };
 });

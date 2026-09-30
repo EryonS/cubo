@@ -3,33 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#16181c" />
+  <meta name="theme-color" content="#ffeef4" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Gridlock" />
   <title>Gridlock</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <style>
-    /* Defaults = "Autoroute" theme; main.js overwrites these variables with the equipped theme. */
+    /* Fonts ship with the game so it looks right offline (SIL Open Font License, see fonts/README.md). */
+    @font-face { font-family: "Baloo 2"; font-weight: 600 800; font-display: swap; src: url(fonts/baloo2.woff2) format("woff2"); }
+    @font-face { font-family: "Press Start 2P"; font-weight: 400; font-display: swap; src: url(fonts/pressstart2p.woff2) format("woff2"); }
+    /* Defaults = "Jouet" theme; main.js overwrites these variables with the equipped theme. */
     :root {
-      --bg: #16181c;
-      --panel: #1f4fa3;
-      --panel-2: #173e83;
-      --slot: #23262c;
-      --text: #ffffff;
-      --muted: rgba(255,255,255,0.74);
-      --accent: #ffc400;
-      --on-accent: #16181c;
-      --good: #5ee08a;
-      --edge: #ffffff;
-      --radius: 14px;
-      --card-edge: inset 0 0 0 7px var(--panel), inset 0 0 0 10px var(--edge);
-      --plate-edge: inset 0 0 0 3px var(--panel), inset 0 0 0 5px var(--edge);
-      --font-display: "DIN Condensed", "DIN Alternate", "Roboto Condensed", "Arial Narrow", sans-serif;
+      --bg: #ffeef4;
+      --panel: #ffffff;
+      --panel-2: #fbf1f6;
+      --slot: #ffffff;
+      --text: #4a3a66;
+      --muted: #8a7aa3;
+      --accent: #7c5cff;
+      --on-accent: #ffffff;
+      --good: #1f9e68;
+      --edge: #f3dce8;
+      --radius: 22px;
+      --hairline: rgba(74,58,102,0.14);
+      --sunken: rgba(74,58,102,0.1);
+      --scrim: rgba(74,58,102,0.45);
+      --card-edge: inset 0 -6px 0 var(--edge);
+      --plate-edge: inset 0 -3px 0 var(--edge);
+      --font-display: "Baloo 2", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
       --display-style: normal;
-      --font-ui: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-ui: "Baloo 2", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
@@ -43,7 +49,7 @@
     button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
     .display { font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; }
 
-    /* ---------- HUD: small sign plates ---------- */
+    /* ---------- HUD buttons ---------- */
     .hud-btn {
       position: fixed; top: calc(env(safe-area-inset-top) + 12px);
       height: 42px; min-width: 42px; border-radius: calc(var(--radius) - 4px); border: 0; padding: 0 14px;
@@ -53,8 +59,18 @@
       transition: transform 120ms cubic-bezier(.2,.8,.2,1);
     }
     .hud-btn:active { transform: scale(0.94); }
-    #mute { right: 16px; padding: 0; }
-    #restart { right: 66px; padding: 0; }
+    #menu-open { right: 16px; padding: 0; }
+    #undo { right: 66px; padding: 0; overflow: visible; }
+    #undo:disabled { opacity: .35; cursor: default; }
+    #undo .badge {
+      position: absolute; top: -6px; right: -8px; display: inline-flex; align-items: center; gap: 2px;
+      padding: 0 5px; height: 19px; border-radius: 6px; background: var(--accent); color: var(--on-accent);
+      font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 13px; line-height: 1;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+    #undo .badge:empty, #undo:disabled .badge { display: none; }
+    #undo .badge .coin { margin: 0; font-size: 11px; }
+    body.chill #inventory > .inv-btn:not(.legend-btn) { display: none; }
     #wallet {
       left: 16px; display: flex; gap: 7px; align-items: center;
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 21px;
@@ -79,12 +95,12 @@
     .inv-btn {
       position: relative; width: 52px; height: 52px; border-radius: var(--radius); border: 0; padding: 0;
       background: var(--slot); font-size: 24px; cursor: pointer; touch-action: none;
-      box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.09), 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: inset 0 0 0 1.5px var(--hairline), 0 4px 12px rgba(0,0,0,0.18);
       display: grid; place-items: center; transition: transform 120ms, opacity 200ms, box-shadow 200ms;
     }
     .inv-btn canvas.icon { width: 32px; height: 32px; pointer-events: none; }
     .inv-btn:active { transform: scale(0.92); }
-    .inv-btn.empty { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.08); cursor: default; }
+    .inv-btn.empty { background: transparent; box-shadow: inset 0 0 0 1.5px var(--hairline); cursor: default; }
     .inv-btn.empty > * { opacity: 0.28; filter: grayscale(1); }
     .inv-btn .count {
       position: absolute; top: -6px; right: -6px; min-width: 21px; height: 21px; padding: 0 5px;
@@ -93,11 +109,11 @@
       font-size: 15px; line-height: 23px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.35);
     }
     .inv-btn.empty .count { display: none; }
-    .inv-btn.active { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.09), 0 4px 12px rgba(0,0,0,0.3); }
+    .inv-btn.active { box-shadow: inset 0 0 0 1.5px var(--hairline), 0 4px 12px rgba(0,0,0,0.18); }
     /* Bonus timer: an accent ring that drains clockwise around the button. */
     .inv-btn::before {
       content: ''; position: absolute; inset: -4px; padding: 3px; border-radius: calc(var(--radius) + 4px);
-      background: conic-gradient(var(--accent) calc(var(--left, 0) * 1turn), rgba(255,255,255,0.12) 0);
+      background: conic-gradient(var(--accent) calc(var(--left, 0) * 1turn), var(--hairline) 0);
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor; mask-composite: exclude;
       opacity: 0; transition: opacity 200ms; pointer-events: none;
@@ -131,23 +147,72 @@
       box-shadow: var(--plate-edge), 0 8px 24px rgba(0,0,0,.45);
     }
     #give-up.show { display: block; animation: fade 250ms; }
+
+    /* ---------- trash: shows up under the tray while a piece is dragged ---------- */
+    #trash {
+      position: fixed; left: 50%; transform: translateX(-50%); height: 56px; display: none; pointer-events: none;
+      align-items: center; justify-content: center; gap: 10px; border-radius: var(--radius);
+      background: var(--sunken); color: var(--text); box-shadow: inset 0 0 0 2px var(--hairline);
+      font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 19px; letter-spacing: .03em;
+      transition: background 150ms, box-shadow 150ms, transform 150ms;
+    }
+    #trash.show { display: flex; animation: fade 150ms; }
+    #trash.hot { background: rgba(255,93,115,0.3); box-shadow: inset 0 0 0 2.5px #ff5d73; transform: translateX(-50%) scale(1.04); }
+    #trash.broke { opacity: .55; }
+    #trash.broke.hot { background: var(--sunken); box-shadow: inset 0 0 0 2px var(--hairline); transform: translateX(-50%); }
+    #trash .cost { display: inline-flex; align-items: center; color: var(--accent); }
+    body.dragging #inventory { visibility: hidden; }
+
+    /* ---------- home menu + settings ---------- */
+    .brand {
+      font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
+      font-size: 44px; line-height: 1; letter-spacing: .04em; text-transform: uppercase; margin: 0 0 18px;
+    }
+    .btn.wide { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .btn small { font-family: system-ui, sans-serif; font-style: normal; font-size: 13px; font-weight: 700; letter-spacing: 0; text-transform: none; opacity: .75; }
+    #menu-continue { margin-bottom: 18px; }
+    .menu-note { margin: -6px 0 16px; padding: 10px 12px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2);
+      box-shadow: inset 0 0 0 2px var(--good); font-size: 14px; font-weight: 700; line-height: 1.35; }
+    .menu-note b { display: inline-flex; align-items: center; color: var(--good); }
+    .menu-label { text-align: left; margin: 14px 2px 8px; font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .seg { display: flex; gap: 8px; }
+    .seg button {
+      flex: 1; padding: 11px 8px 10px; border: 0; border-radius: calc(var(--radius) - 4px); cursor: pointer;
+      background: var(--panel-2); color: var(--text); text-align: center;
+      font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 18px; line-height: 1.1;
+      box-shadow: inset 0 0 0 2px transparent; transition: box-shadow 150ms, background 150ms;
+    }
+    .seg button small { display: block; margin-top: 4px; font-family: system-ui, sans-serif; font-style: normal; font-size: 12px; font-weight: 600; color: var(--muted); }
+    .seg button.on { box-shadow: inset 0 0 0 2.5px var(--accent); }
+    #menu-play { margin-top: 18px; }
+    .setting { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 8px;
+      border-radius: calc(var(--radius) - 4px); background: var(--panel-2); font-weight: 800; font-size: 16px; text-align: left; }
+    .setting small { display: block; font-weight: 600; font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .toggle { flex: none; position: relative; width: 50px; height: 30px; border: 0; border-radius: 15px; padding: 0; cursor: pointer;
+      background: var(--sunken); box-shadow: inset 0 0 0 1.5px var(--hairline); transition: background 180ms; }
+    .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%;
+      background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.3); transition: transform 180ms cubic-bezier(.2,.8,.2,1); }
+    .toggle[aria-checked="true"] { background: var(--accent); }
+    .toggle[aria-checked="true"]::after { transform: translateX(20px); }
     #give-up:active { transform: translate(-50%, -50%) scale(0.96); }
 
-    /* ---------- overlays: cards are big signs ---------- */
+    /* ---------- overlays ---------- */
     .overlay {
       position: fixed; inset: 0; display: none; place-items: center; padding: 16px;
-      background: rgba(6, 7, 10, 0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      background: var(--scrim); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
       touch-action: pan-y;
     }
     .overlay.show { display: grid; animation: fade 300ms ease-out; }
+    /* Fit phones: dynamic viewport (Safari toolbars), notch and home bar. */
+    .overlay { padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); }
+    .card { max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
     .card {
-      width: min(360px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; overscroll-behavior: contain;
+      width: min(360px, 100%); overflow-y: auto; overscroll-behavior: contain;
       padding: 28px 24px 24px; border-radius: calc(var(--radius) + 8px);
       background: var(--panel); text-align: center;
-      box-shadow: var(--card-edge), 0 24px 60px rgba(0,0,0,0.5);
+      box-shadow: var(--card-edge), 0 24px 60px rgba(0,0,0,0.3);
       animation: rise 420ms cubic-bezier(.2,1.3,.4,1);
     }
-    body[data-theme="desert"] .card { outline: 3px dotted #ffd46b; outline-offset: -15px; }
     .card h2 {
       margin: 0 0 2px; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
       font-size: 30px; line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--text);
@@ -158,7 +223,7 @@
     }
     .best { color: var(--muted); font-size: 15px; margin-top: 4px; }
     .record {
-      display: none; margin: 12px auto 0; padding: 7px 12px 5px; width: fit-content; border-radius: 6px;
+      display: none; margin: 12px auto 0; padding: 7px 14px 5px; width: fit-content; border-radius: 999px;
       background: var(--accent); color: var(--on-accent);
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 17px; letter-spacing: .06em;
     }
@@ -174,7 +239,7 @@
     .coins-total .v { font-family: var(--font-display); font-style: var(--display-style); font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
 
     .goal { margin-top: 14px; text-align: left; font-size: 13px; color: var(--muted); }
-    .bar { height: 8px; margin-top: 6px; border-radius: 4px; background: rgba(0,0,0,0.28); overflow: hidden; }
+    .bar { height: 8px; margin-top: 6px; border-radius: 4px; background: var(--sunken); overflow: hidden; }
     .bar > i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--accent); transition: width 700ms cubic-bezier(.2,.8,.2,1); }
     .goal.ready { color: var(--good); font-weight: 800; }
     .goal.ready .bar > i { background: var(--good); }
@@ -187,7 +252,7 @@
       transition: transform 120ms cubic-bezier(.2,.8,.2,1);
     }
     .btn:active { transform: scale(0.97); }
-    .btn.primary { background: var(--accent); color: var(--on-accent); flex: 1.4; box-shadow: 0 4px 0 rgba(0,0,0,0.3); }
+    .btn.primary { background: var(--accent); color: var(--on-accent); flex: 1.4; box-shadow: 0 4px 0 rgba(0,0,0,0.22); }
     .btn.ghost { background: var(--panel-2); color: var(--text); }
 
     /* ---------- missions ---------- */
@@ -230,13 +295,13 @@
     }
     .skin button .coin { margin: 0 0 2px; }
     .skin .buy { background: var(--accent); color: var(--on-accent); }
-    .skin .buy:disabled { background: rgba(0,0,0,0.25); color: var(--muted); cursor: default; }
-    .skin .equip { background: var(--panel); color: var(--text); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.25); }
+    .skin .buy:disabled { background: var(--sunken); color: var(--muted); cursor: default; }
+    .skin .equip { background: var(--panel); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--hairline); }
     .skin .equipped { background: transparent; color: var(--good); box-shadow: inset 0 0 0 2px var(--good); cursor: default; }
     .skin.just-bought { animation: bump 420ms cubic-bezier(.2,1.6,.4,1); }
 
     .legend-list { text-align: left; }
-    .legend-row { display: flex; gap: 12px; align-items: center; padding: 10px 4px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+    .legend-row { display: flex; gap: 12px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--hairline); }
     .legend-row:last-child { border-bottom: 0; }
     .legend-row canvas { width: 40px; height: 40px; flex: none; }
     .legend-row b { display: block; font-size: 15px; }
@@ -254,24 +319,120 @@
     .ad-text { font-size: 20px; font-weight: 800; }
     .ad-close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 10px; background: rgba(0,0,0,.3); color: #fff; cursor: pointer; }
 
+
+    /* ---------- aventure ---------- */
+    .star path { fill: var(--sunken); }
+    .star.on path { fill: #ffc83d; stroke: #d99a00; stroke-width: 1.2; stroke-linejoin: round; }
+    .star-pill { display: inline-flex; align-items: center; gap: 4px; padding: 7px 10px 5px; border-radius: 999px; background: var(--panel-2);
+      font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 18px; line-height: 1; font-variant-numeric: tabular-nums; }
+    .worlds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .world-tile { position: relative; padding: 6px 6px 8px; border: 0; border-radius: calc(var(--radius) - 2px); background: var(--panel-2); color: var(--text); cursor: pointer; text-align: center; }
+    .world-tile canvas { width: 100%; aspect-ratio: 4 / 3; border-radius: calc(var(--radius) - 6px); display: block; }
+    .world-tile .name { margin-top: 6px; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 17px; line-height: 1.1; }
+    .world-tile .meta { display: inline-flex; align-items: center; gap: 3px; margin-top: 3px; font-size: 13px; font-weight: 700; color: var(--muted); }
+    .world-tile.locked { cursor: default; }
+    .world-tile.locked canvas { filter: grayscale(1) brightness(0.9); opacity: .5; }
+    .world-tile .lock { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); display: grid; place-items: center;
+      width: 40px; height: 40px; border-radius: 50%; background: var(--panel); color: var(--text); box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+    .rules { display: grid; gap: 6px; margin-bottom: 14px; text-align: left; font-size: 14px; font-weight: 700; line-height: 1.3; }
+    .rules div { display: flex; gap: 8px; align-items: flex-start; padding: 9px 11px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); }
+    .rules b { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 17px; line-height: 1; color: #fff; }
+    .rules .plus b { background: var(--good); }
+    .rules .minus b { background: #ff5d7a; }
+    .levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px 8px; }
+    .lvl { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0; border: 0; background: none; color: var(--text); cursor: pointer; }
+    .lvl .num { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: var(--on-accent);
+      font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 20px; box-shadow: 0 4px 0 rgba(0,0,0,.18); }
+    .lvl.done .num { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 2px var(--good), 0 4px 0 rgba(0,0,0,.12); }
+    .lvl.boss .num { border-radius: 16px; }
+    .lvl.locked { cursor: default; }
+    .lvl.locked .num { background: var(--sunken); color: var(--muted); box-shadow: none; }
+    .lvl .stars { display: flex; gap: 1px; }
+    .lvl small { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: -2px; }
+    .stage-goal { margin: 6px 0 4px; font-size: 18px; font-weight: 800; }
+    .stage-sub { color: var(--muted); font-size: 14px; font-weight: 700; }
+    .stage-stars { display: flex; justify-content: center; gap: 6px; margin: 14px 0 6px; }
+    .stage-stars .star { animation: star-in 420ms cubic-bezier(.2,1.6,.4,1) both; }
+    .stage-stars .star:nth-child(2) { animation-delay: 180ms; }
+    .stage-stars .star:nth-child(3) { animation-delay: 360ms; }
+    @keyframes star-in { from { transform: scale(0) rotate(-40deg); opacity: 0; } }
+    .opt { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; margin-top: 10px; padding: 11px 14px; border: 0;
+      border-radius: calc(var(--radius) - 6px); background: var(--panel-2); color: var(--text); font-weight: 800; font-size: 15px; text-align: left; cursor: pointer; }
+    .opt .price { display: inline-flex; align-items: center; gap: 2px; font-family: var(--font-display); font-style: var(--display-style); font-size: 17px; }
+    .opt.on { box-shadow: inset 0 0 0 2.5px var(--accent); }
+    .opt:disabled { opacity: .45; cursor: default; }
+    .actions > .btn { min-width: 0; }
+    .actions:has(> .btn:nth-child(3)) { gap: 8px; }
+    .actions:has(> .btn:nth-child(3)) > .btn { flex: 1; font-size: 17px; padding-inline: 4px; }
+    .unlock { margin-top: 12px; padding: 10px 12px; border-radius: calc(var(--radius) - 6px); box-shadow: inset 0 0 0 2px var(--good); font-weight: 800; color: var(--good); }
+
     @keyframes fade { from { opacity: 0; } }
     @keyframes rise { from { transform: translateY(24px) scale(.96); opacity: 0; } }
     @media (prefers-reduced-motion: reduce) {
-      .card, .mission.new, .btn.ad.show, .overlay.show { animation: none; }
+      .card, .mission.new, .btn.ad.show, .overlay.show, .stage-stars .star { animation: none; }
+    }
+    @media (max-width: 380px), (max-height: 720px) {
+      .card { padding: 20px 16px 16px; }
+      .card h2 { font-size: 26px; }
+      .score { font-size: 56px; margin-top: 6px; }
+      .brand { font-size: 36px; margin-bottom: 14px; }
+      .btn { font-size: 19px; padding: 13px 10px 11px; }
+      .actions { margin-top: 14px; }
+      .seg button { font-size: 16px; padding: 10px 6px 9px; }
+      .missions, .earn { margin-top: 12px; }
+      .skins { gap: 8px; }
     }
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
   <button id="wallet" class="hud-btn" aria-label="Boutique"><i class="coin"></i><span id="wallet-coins">0</span><span id="wallet-pending"></span></button>
-  <button id="restart" class="hud-btn" aria-label="Recommencer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></button>
-  <button id="mute" class="hud-btn" aria-label="Son"></button>
+  <button id="undo" class="hud-btn" aria-label="Annuler le dernier coup"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span class="badge"></span></button>
+  <button id="menu-open" class="hud-btn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
   <div id="inventory"></div>
+  <div id="trash"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg><span class="label">Jeter</span><span class="cost"></span></div>
   <button id="give-up">Terminer la partie</button>
+
+  <div id="menu" class="overlay">
+    <div class="card">
+      <div class="brand">Gridlock</div>
+      <button class="btn primary wide" id="menu-continue">Continuer<small id="menu-continue-sub"></small></button>
+      <button class="btn primary wide" id="menu-adventure">Aventure<small id="menu-adventure-sub"></small></button>
+      <div class="menu-label">Nouvelle partie</div>
+      <div class="seg" id="menu-mode">
+        <button data-mode="classic">Classique<small>Jusqu'à la dernière pièce</small></button>
+        <button data-mode="chrono">Chrono<small>Les lignes rajoutent du temps</small></button>
+        <button data-mode="chill">Chill<small>Rotation libre, sans bonus</small></button>
+      </div>
+      <div class="menu-label">Difficulté</div>
+      <div class="seg" id="menu-level">
+        <button data-level="easy">Facile</button>
+        <button data-level="normal">Normal</button>
+        <button data-level="hard">Difficile</button>
+      </div>
+      <button class="btn primary wide" id="menu-play">Jouer</button>
+      <div class="actions">
+        <button class="btn ghost" id="menu-shop">Boutique</button>
+        <button class="btn ghost" id="menu-settings">Réglages</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings" class="overlay">
+    <div class="card">
+      <div class="shop-head">
+        <h2>Réglages</h2>
+        <button class="close" id="settings-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="setting"><div>Sons<small>Effets du jeu</small></div><button class="toggle" role="switch" data-setting="sfx" aria-label="Sons"></button></div>
+      <div class="setting"><div>Musique<small>Petite mélodie de fond</small></div><button class="toggle" role="switch" data-setting="music" aria-label="Musique"></button></div>
+      <div class="setting" id="setting-vibrate"><div>Vibrations<small>Retour haptique sur mobile</small></div><button class="toggle" role="switch" data-setting="vibrate" aria-label="Vibrations"></button></div>
+    </div>
+  </div>
 
   <div id="over" class="overlay">
     <div class="card" id="over-card">
-      <h2>Bouchon !</h2>
+      <h2 id="over-title">Plus de place !</h2>
       <div class="score" id="over-score">0</div>
       <div class="best" id="over-best">Record : 0</div>
       <div class="record">NOUVEAU RECORD</div>
@@ -281,7 +442,7 @@
       <div class="goal" id="over-goal"></div>
       <div class="missions" id="over-missions"></div>
       <div class="actions">
-        <button class="btn ghost" id="over-shop">Boutique</button>
+        <button class="btn ghost" id="over-menu">Menu</button>
         <button class="btn primary" id="again">Rejouer</button>
       </div>
     </div>
@@ -294,8 +455,39 @@
         <button class="close" id="legend-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="legend-list" id="legend-list"></div>
-      <div class="legend-note">Efface un bloc qui porte une icône pour la ramasser. Les bonus vont dans ta barre (3 max par type), les pièces dans ton porte-monnaie. Les chronos cumulent jusqu'à 60 s et s'arrêtent quand un menu est ouvert.</div>
+      <div class="legend-note">Efface un bloc qui porte une icône pour la ramasser. Les bonus vont dans ta barre (2 max par type), les pièces dans ton porte-monnaie. Une pièce ne te plaît pas ? Glisse-la tout en bas pour la jeter : 10 pièces, puis 5 de plus à chaque fois dans la partie. Les chronos cumulent jusqu'à 60 s et s'arrêtent quand un menu est ouvert.</div>
     </div>
+  </div>
+
+  <div id="adventure" class="overlay">
+    <div class="card">
+      <div class="shop-head">
+        <h2>Aventure</h2>
+        <span class="star-pill" id="adventure-stars"></span>
+        <button class="close" id="adventure-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="worlds" id="worlds"></div>
+    </div>
+  </div>
+
+  <div id="world" class="overlay">
+    <div class="card">
+      <div class="shop-head">
+        <button class="close" id="world-back" aria-label="Retour à la carte"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h2 id="world-name"></h2>
+        <span class="star-pill" id="world-stars"></span>
+      </div>
+      <div class="rules" id="world-rules"></div>
+      <div class="levels" id="levels"></div>
+    </div>
+  </div>
+
+  <div id="stage" class="overlay">
+    <div class="card" id="stage-card"></div>
+  </div>
+
+  <div id="level-end" class="overlay">
+    <div class="card" id="level-end-card"></div>
   </div>
 
   <div id="shop" class="overlay">
@@ -315,6 +507,8 @@
   </div>
 
   <script src="src/logic.js"></script>
+  <script src="src/worlds.js"></script>
+  <script src="src/levels.js"></script>
   <script src="src/meta.js"></script>
   <script src="src/ads.js"></script>
   <script src="src/main.js"></script>
