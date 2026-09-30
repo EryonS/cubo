@@ -20,9 +20,9 @@
 })(typeof self !== 'undefined' ? self : this, function (L) {
   'use strict';
 
-  // Scatters setup.count cells of setup.kind on empty cells (setup from the stage or the weekend event).
+  // Scatters setup.count cells of setup.kind on empty cells (setup from the stage).
   function scatter(state, api) {
-    const setup = (state.stage || state.event || {}).setup;
+    const setup = (state.stage || {}).setup;
     if (!setup) return;
     for (let k = 0; k < setup.count; k++) {
       const i = api.pick(state, api.emptyCells(state));
@@ -56,7 +56,8 @@
         const rows = [];
         for (let r = 0; r < api.SIZE; r++) {
           const row = state.board.slice(r * api.SIZE, (r + 1) * api.SIZE);
-          if (row.some((v) => v) && row.some((v) => !v)) rows.push(r);
+          const boss = row.some((_, c) => api.isBoss(state, r * api.SIZE + c)); // the boss never drifts
+          if (!boss && row.some((v) => v) && row.some((v) => !v)) rows.push(r);
         }
         const r = api.pick(state, rows);
         if (r < 0) return [];

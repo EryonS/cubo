@@ -82,14 +82,19 @@
     mushroom: { hp: 1 },
     ember: { hp: 1, fuse: 8, hardens: 'rock', blast: true },
     bubble: { hp: 1, gift: true },
+    // Aventure v2 boss: 4 cells (2x2) that line clears never remove. Every boss cell inside a
+    // cleared line takes one hp off stage.goal (type 'boss'); see clearCells and stageMove.
+    boss: { hp: 1, boss: true },
+    crate: { hp: 2 }, // wooden crates stacked at the start of some levels (stage.fill), 2 hits each
   };
+  const BOSS_AT = [3, 3]; // top-left cell of the 2x2 boss: the center of the board
 
   // World rules, registered by worlds.js (logic never names a world). See defineWorlds().
   const WORLDS = {};
   const NO_RULES = {};
   function defineWorlds(map) { Object.assign(WORLDS, map); }
-  // Aventure levels carry their world in the stage; a weekend event run carries it in state.event.
-  const rulesOf = (state) => (state.stage ? WORLDS[state.stage.world] : state.event && WORLDS[state.event.world]) || NO_RULES;
+  // Aventure levels carry their world in the stage.
+  const rulesOf = (state) => (state.stage && WORLDS[state.stage.world]) || NO_RULES;
 
   function parse(pattern) {
     const cells = [];
@@ -303,24 +308,21 @@
     discards: 0, undos: 0, used: {},
   });
 
-  // Run stats for missions / coins (see meta.js). mode: 'event' for a weekend event run.
-  const runStats = (state) => ({ ...(state.stats || emptyStats()), score: state.score, mode: state.event ? 'event' : state.mode });
+  // Run stats for missions / coins (see meta.js).
+  const runStats = (state) => ({ ...(state.stats || emptyStats()), score: state.score, mode: state.mode });
 
   // opts: { mode, level, budget, stage } — budget mirrors the wallet so the logic knows whether a
   // discard can still rescue the player (see withBudget). stage (adventure only) comes from
   // levels.js: { world, n, goal: { type: 'lines' | 'score' | 'clear', target, kind? }, maxMoves,
-  // clock?, setup?, ramp? }. event (classic only) comes from levels.weekend(): { id, world, setup? },
-  // an endless run under one world's rules.
+  // clock?, setup?, ramp? }.
   function createGame(seed, opts = {}) {
     const stage = opts.mode === 'adventure' && opts.stage ? opts.stage : null;
     const mode = stage ? 'adventure' : MODES.includes(opts.mode) && opts.mode !== 'adventure' ? opts.mode : 'classic';
-    const event = mode === 'classic' && opts.event && WORLDS[opts.event.world] ? opts.event : null;
     const level = LEVELS[opts.level] ? opts.level : 'normal';
     const state = {
       mode,
       level,
       stage: stage && { ...stage, movesLeft: stage.maxMoves, progress: 0, won: false, stars: 0, extra: 0 },
-      event,
       special: new Array(SIZE * SIZE).fill(null),
       clock: mode === 'chrono' ? LEVELS[level].clock : (stage && stage.clock) || 0,
       budget: opts.budget || 0,
@@ -342,6 +344,8 @@
       stats: emptyStats(),
     };
     const rules = rulesOf(state);
+    if (stage && stage.goal.type === 'boss') placeBoss(state);
+    if (stage && stage.fill) prefill(state, stage.fill);
     if (rules.setup) rules.setup(state, WORLD_API);
     refillAll(state);
     return state;
@@ -432,7 +436,7 @@
 
     state.tray[trayIndex] = null;
     refillSlot(state, trayIndex);
-    const spawned = state.stage ? stageMove(state, rules, hit, allLines, true) : state.event ? worldMove(state, rules) : [];
+    const spawned = state.stage ? stageMove(state, rules, hit, allLines, true) : [];
     if (!state.over) settle(state);
 
     return {
@@ -447,6 +451,7 @@
         waves,
         damaged: hit.damaged,
         blasts: hit.blasts,
+        bossHits: hit.boss,
         spawned,
         cleared,
         collected,
@@ -467,7 +472,7 @@
   // Returns { cleared: [{ r, c, color, bonus, kind? }], damaged: [{ r, c, kind, hp }],
   //           destroyed: { [kind]: n }, blasts: [{ r, c }] }.
   function clearCells(state, indices) {
-    const hit = { cleared: [], damaged: [], destroyed: {}, blasts: [] };
+    const hit = { cleared: [], damaged: [], destroyed: {}, blasts: [], boss: [] };
     const queue = [...indices];
     const done = new Set();
     while (queue.length) {
@@ -477,6 +482,7 @@
       const r = Math.floor(i / SIZE);
       const c = i % SIZE;
       const sp = state.special[i];
+      if (sp && sp.kind === 'boss') { hit.boss.push({ r, c }); continue; }
       if (sp) {
         const kind = KINDS[sp.kind] || {};
         if (sp.hp > 1) {
@@ -505,6 +511,7 @@
     into.cleared.push(...more.cleared);
     into.damaged.push(...more.damaged);
     into.blasts.push(...more.blasts);
+    into.boss.push(...more.boss);
     for (const [k, n] of Object.entries(more.destroyed)) into.destroyed[k] = (into.destroyed[k] || 0) + n;
   }
 
@@ -513,6 +520,7 @@
 
   // Every column drops its cells to the bottom, keeping their order (bonus and special ride along).
   // Returns the moves as [from, to] board indices.
+  // A boss never moves: blocks above it land on it.
   function fall(state) {
     const moves = [];
     for (let c = 0; c < SIZE; c++) {
@@ -520,6 +528,7 @@
       for (let r = SIZE - 1; r >= 0; r--) {
         const i = r * SIZE + c;
         if (!state.board[i]) continue;
+        if (isBoss(state, i)) { write = r - 1; continue; }
         const j = write * SIZE + c;
         if (j !== i) {
           state.board[j] = state.board[i]; state.bonus[j] = state.bonus[i]; state.special[j] = state.special[i];
@@ -540,10 +549,14 @@
     if (goal.type === 'lines') stage.progress += lines;
     else if (goal.type === 'score') stage.progress = state.score;
     else if (goal.type === 'clear') stage.progress += hit.destroyed[goal.kind] || 0;
+    else if (goal.type === 'coins') stage.progress = state.stats.coins;
+    else if (goal.type === 'combo') stage.progress = Math.max(stage.progress, state.combo);
+    else if (goal.type === 'boss') stage.progress += (hit.boss || []).length;
     let spawned = [];
     if (spend) {
       stage.movesLeft -= 1;
       spawned = worldMove(state, rules);
+      if (stage.progress < goal.target) spawned = spawned.concat(bossAttack(state));
     }
     if (stage.progress >= goal.target) {
       stage.progress = Math.min(stage.progress, goal.target);
@@ -559,7 +572,7 @@
   function worldMove(state, rules) {
     for (let i = 0; i < SIZE * SIZE; i++) {
       const sp = state.special[i];
-      if (!sp) continue;
+      if (!sp || sp.kind === 'boss') continue;
       const kind = KINDS[sp.kind];
       const age = (sp.age || 0) + 1;
       state.special[i] = kind.fuse && age >= kind.fuse ? { kind: kind.hardens, hp: KINDS[kind.hardens].hp, age: 0 } : { ...sp, age };
@@ -578,12 +591,47 @@
     state.stuck = false;
   }
 
+  const isBoss = (state, i) => !!(state.special && state.special[i] && state.special[i].kind === 'boss');
+
+  // Level start: the 2x2 boss in the center.
+  function placeBoss(state) {
+    const [r0, c0] = BOSS_AT;
+    for (let k = 0; k < 4; k++) {
+      const i = (r0 + (k >> 1)) * SIZE + c0 + (k & 1);
+      state.board[i] = SPECIAL;
+      state.special[i] = { kind: 'boss', hp: 1, part: k };
+    }
+  }
+
+  // Every stage.boss.every moves, the boss drops stage.boss.count cells of its kind on empty spots.
+  function bossAttack(state) {
+    const boss = state.stage.boss;
+    if (!boss || state.moves % boss.every) return [];
+    const out = [];
+    for (let k = 0; k < boss.count; k++) {
+      const i = WORLD_API.pick(state, WORLD_API.emptyCells(state));
+      if (i >= 0) out.push({ ...WORLD_API.addSpecial(state, i, boss.kind), attack: true });
+    }
+    return out;
+  }
+
+  // Crate levels start with stage.fill bottom rows of crates, each with one gap of 2-4 cells.
+  function prefill(state, rows) {
+    for (let k = 0; k < rows; k++) {
+      const r = SIZE - 1 - k;
+      const gap = 2 + Math.floor(nextRandom(state) * 3);
+      const at = Math.floor(nextRandom(state) * (SIZE - gap + 1));
+      for (let c = 0; c < SIZE; c++) if (c < at || c >= at + gap) WORLD_API.addSpecial(state, r * SIZE + c, 'crate');
+    }
+  }
+
   // Board helpers handed to world rules.
   const WORLD_API = {
     SIZE,
     rnd: nextRandom,
     emptyCells: (state) => state.board.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0),
     plainCells: (state) => state.board.map((v, i) => (v && v !== SPECIAL ? i : -1)).filter((i) => i >= 0),
+    isBoss,
     pick: (state, list) => (list.length ? list[Math.floor(nextRandom(state) * list.length)] : -1),
     addSpecial(state, i, kind) {
       state.board[i] = SPECIAL;
@@ -662,6 +710,7 @@
       events.cleared = hit.cleared;
       events.damaged = hit.damaged;
       events.blasts = hit.blasts;
+      events.bossHits = hit.boss;
       events.collected = collect(state, events.cleared);
       events.perfect = state.board.every((v) => v === 0);
       const nitro = state.effects.nitro > 0 ? 2 : 1;
@@ -783,6 +832,7 @@
     BONUSES,
     SPECIAL,
     KINDS,
+    BOSS_AT,
     defineWorlds,
     createGame,
     addMoves,

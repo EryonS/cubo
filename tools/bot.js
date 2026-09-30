@@ -30,8 +30,11 @@ function bestMove(state) {
         // Goal-aware like a player: progress on the level's goal counts most, hits on its cells help.
         const progress = st ? st.progress - state.stage.progress : 0;
         const goalHits = st && st.goal.kind ? res.events.damaged.filter((d) => d.kind === st.goal.kind).length : 0;
-        const v = res.events.points * (st && st.goal.type !== 'score' ? 1 : 3) + res.events.lines * 40
-          - holes(res.state.board) * 6 + progress * 150 + goalHits * 80 + (st && st.won ? 1e6 : 0);
+        const goal = st && st.goal.type;
+        // Combo: keep the chain alive.
+        const chain = goal === 'combo' ? res.state.combo * 60 : 0;
+        const v = res.events.points * (st && goal !== 'score' ? 1 : 3) + res.events.lines * 40
+          - holes(res.state.board) * 6 + progress * 150 + goalHits * 80 + chain + (st && st.won ? 1e6 : 0);
         if (!best || v > best.v) best = { v, res };
       }
     }

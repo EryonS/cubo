@@ -4,9 +4,9 @@ Status: shipped
 ## What it does
 Two `localStorage` keys:
 - `gridlock.v2`: current run + records + settings + menu prefs (`save()` in `src/main.js`, on `visibilitychange` and after moves).
-- `gridlock.profile.v1`: meta progression (`saveProfile()`), including `adventure.stars`, `daily`, `streak`, `stickers`, `lifetime`, `tips`, `modes`, `history`, `events` (all optional, read with defaults, so no migration was needed). `settings` in `gridlock.v2` gained `patterns` and `darkMenus` (defaults merged at load); a saved run may carry `event`.
+- `gridlock.profile.v1`: meta progression (`saveProfile()`), including `adventure.stars`, `daily`, `streak`, `stickers`, `lifetime`, `tips`, `modes`, `history` (all optional, read with defaults, so no migration was needed). `settings` in `gridlock.v2` gained `patterns` and `darkMenus` (defaults merged at load). Leftovers of the removed weekend event (`profile.events`, a saved run's `event`) are ignored; `event` is stripped from the run at load.
 
-`M.migrate(profile)` runs at launch and returns `{ profile, refund }`. Version 2 (2026-09-30) removed the road themes and the Bonbon blocks and refunds them at their old price; the menu shows the refund once.
+`M.migrate(profile)` runs at launch and returns `{ profile, refund }`. Version 2 (2026-09-30) removed the road themes and the Bonbon blocks and refunds them at their old price; the menu shows the refund once. Version 3 (2026-10-01, Aventure v2) records worlds opened under the v1 rules in `adventure.opened`.
 
 ## Files
 - `src/meta.js`: `PROFILE_VERSION`, `RETIRED`, `migrate`.

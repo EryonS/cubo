@@ -40,7 +40,7 @@
     blocks: { candy: 400 },
     boards: { night: 0, sunset: 300, desert: 500, mountain: 800, dash: 1200 },
   };
-  const PROFILE_VERSION = 2;
+  const PROFILE_VERSION = 3;
 
   // stat: key in the run stats. mode 'best' = within one game, 'total' = accumulates across games.
   // tiers: [target, reward], harder tiers unlock as more missions get completed.
@@ -102,10 +102,26 @@
     }, day);
   }
 
-  // Brings an old save up to date: retired skins leave the inventory and are refunded, anything
-  // equipped that no longer exists falls back to the free skin. Returns { profile, refund }.
+  // Brings an old save up to date. Returns { profile, refund }.
+  // v2: retired skins leave the inventory and are refunded, anything equipped that no longer exists
+  // falls back to the free skin. v3 (Aventure v2, 20 levels a world): worlds open under the v1 rule
+  // (boss at level 10, 18 stars a world) are recorded in adventure.opened so none closes again.
   function migrate(prev) {
-    if ((prev.version || 1) >= PROFILE_VERSION) return { profile: prev, refund: 0 };
+    const version = prev.version || 1;
+    if (version >= PROFILE_VERSION) return { profile: prev, refund: 0 };
+    const skins = version < 2 ? migrateSkins(prev) : { profile: prev, refund: 0 };
+    return { profile: { ...migrateAdventure(skins.profile), version: PROFILE_VERSION }, refund: skins.refund };
+  }
+
+  function migrateAdventure(prev) {
+    const stars = starsOf(prev);
+    const total = totalStars(prev);
+    const opened = WORLD_ORDER.filter((w, i) => i > 0 && stars[levelKey(WORLD_ORDER[i - 1], 10)] !== undefined && total >= 18 * i);
+    if (!opened.length) return prev;
+    return { ...prev, adventure: { ...(prev.adventure || {}), opened } };
+  }
+
+  function migrateSkins(prev) {
     let refund = 0;
     const owned = {};
     const equipped = { ...prev.equipped };
@@ -115,10 +131,7 @@
       owned[kind] = SKINS[kind].filter((s) => s.price === 0 || list.includes(s.id)).map((s) => s.id);
       if (!findSkin(kind, equipped[kind])) equipped[kind] = SKINS[kind][0].id;
     }
-    return {
-      profile: { ...prev, version: PROFILE_VERSION, coins: (prev.coins || 0) + refund, owned, equipped },
-      refund,
-    };
+    return { profile: { ...prev, coins: (prev.coins || 0) + refund, owned, equipped }, refund };
   }
 
   const missionText = (m) => TEMPLATE[m.key].text(m.target);
@@ -175,7 +188,7 @@
   // ---------- per-mode stats ----------
   // profile.modes: { [mode]: { games, total, best, bestCombo, lines } } since 2026-10-01.
   // profile.history: the last HISTORY runs, oldest first, as { m: mode, s: score }.
-  // mode is classic, chrono, chill, adventure (levels and dailies) or event (weekend).
+  // mode is classic, chrono, chill or adventure (levels and dailies). Old profiles may hold 'event' runs.
   const HISTORY = 60;
   function addModeRun(prev, run) {
     const m = { games: 0, total: 0, best: 0, bestCombo: 0, lines: 0, ...((prev || {})[run.mode] || {}) };
@@ -192,21 +205,32 @@
 
   // ---------- Aventure ----------
   // profile.adventure.stars: { "<world>-<n>": 0..3 }. A key present = level cleared (0 = skipped).
-  // A world opens when the previous boss is cleared and enough stars are collected overall.
-  // Beating a world's boss gives its theme for free (it is also sold in the Boutique).
+  // A world opens when the previous boss is cleared and enough stars are collected overall
+  // (adventure.opened: worlds opened before v2, see migrate). Beating a world's boss gives its theme
+  // for free (it is also sold in the Boutique). adventure.chests: { "<world>-<i>": true } opened star
+  // chests; adventure.bombs: free starting Bombes won in chests.
   const WORLD_ORDER = ['plain', 'sea', 'space', 'ice', 'forest', 'retro', 'arcade', 'volcano'];
-  const LEVELS_PER_WORLD = 10;
-  const STARS_PER_GATE = 18; // world k needs 18 x k stars
+  const LEVELS_PER_WORLD = 20;
+  const TRIAL_LEVEL = 10;
+  const STARS_PER_GATE = 36; // world k needs 36 x k stars (60% of a world's 60)
   const FIRST_CLEAR = 10;
-  const BOSS_CLEAR = 50;
+  const TRIAL_CLEAR = 25;
+  const BOSS_CLEAR = 60;
   const PER_NEW_STAR = 5;
   const EXTRA_MOVES = 5;
   const START_BONUS_COST = 30;
   const SKIP_COST = 250;
   const extraMovesCost = (times) => 20 * 2 ** times; // 20, 40, 80... within one attempt
+  // Star chests on each world screen, opened once.
+  const CHESTS = [
+    { stars: 15, coins: 40 },
+    { stars: 35, bombs: 2 },
+    { stars: 55, coins: 150 },
+  ];
 
   const levelKey = (world, n) => `${world}-${n}`;
-  const starsOf = (profile) => (profile.adventure && profile.adventure.stars) || {};
+  const adventureOf = (profile) => profile.adventure || {};
+  const starsOf = (profile) => adventureOf(profile).stars || {};
   const levelStars = (profile, world, n) => starsOf(profile)[levelKey(world, n)];
   const levelCleared = (profile, world, n) => levelStars(profile, world, n) !== undefined;
   const totalStars = (profile) => Object.values(starsOf(profile)).reduce((a, b) => a + b, 0);
@@ -216,11 +240,13 @@
     return n;
   };
   const worldGate = (world) => WORLD_ORDER.indexOf(world) * STARS_PER_GATE;
+  const bossBeaten = (profile, world) => levelCleared(profile, world, LEVELS_PER_WORLD);
 
   function worldOpen(profile, world) {
     const w = WORLD_ORDER.indexOf(world);
     if (w <= 0) return w === 0;
-    return levelCleared(profile, WORLD_ORDER[w - 1], LEVELS_PER_WORLD) && totalStars(profile) >= worldGate(world);
+    if ((adventureOf(profile).opened || []).includes(world)) return true;
+    return bossBeaten(profile, WORLD_ORDER[w - 1]) && totalStars(profile) >= worldGate(world);
   }
   const levelOpen = (profile, world, n) => worldOpen(profile, world) && (n === 1 || levelCleared(profile, world, n - 1));
 
@@ -229,13 +255,17 @@
     const key = levelKey(world, n);
     const before = starsOf(prev)[key];
     const earned = [];
-    if (before === undefined) earned.push({ label: n === LEVELS_PER_WORLD ? 'Boss vaincu' : 'Niveau réussi', coins: n === LEVELS_PER_WORLD ? BOSS_CLEAR : FIRST_CLEAR });
+    if (before === undefined) {
+      if (n === LEVELS_PER_WORLD) earned.push({ label: 'Boss vaincu', coins: BOSS_CLEAR });
+      else if (n === TRIAL_LEVEL) earned.push({ label: 'Épreuve réussie', coins: TRIAL_CLEAR });
+      else earned.push({ label: 'Niveau réussi', coins: FIRST_CLEAR });
+    }
     const fresh = stars - (before || 0);
     if (fresh > 0) earned.push({ label: fresh > 1 ? `${fresh} nouvelles étoiles` : 'Nouvelle étoile', coins: fresh * PER_NEW_STAR });
     const total = earned.reduce((a, l) => a + l.coins, 0);
     const p = {
       ...earn(prev, total),
-      adventure: { ...(prev.adventure || {}), stars: { ...starsOf(prev), [key]: Math.max(stars, before || 0) } },
+      adventure: { ...adventureOf(prev), stars: { ...starsOf(prev), [key]: Math.max(stars, before || 0) } },
     };
     let themeUnlocked = null;
     if (n === LEVELS_PER_WORLD && findSkin('boards', world) && !prev.owned.boards.includes(world)) {
@@ -250,7 +280,29 @@
     if (n === LEVELS_PER_WORLD || levelCleared(prev, world, n) || !levelOpen(prev, world, n)) return null;
     const paid = spend(prev, SKIP_COST);
     if (!paid) return null;
-    return { ...paid, adventure: { ...(paid.adventure || {}), stars: { ...starsOf(paid), [levelKey(world, n)]: 0 } } };
+    return { ...paid, adventure: { ...adventureOf(paid), stars: { ...starsOf(paid), [levelKey(world, n)]: 0 } } };
+  }
+
+  // Star chests: 'open' (taken), 'ready' (enough stars) or 'locked'.
+  const chestOpened = (profile, world, i) => !!(adventureOf(profile).chests || {})[levelKey(world, i)];
+  const chestState = (profile, world, i) =>
+    chestOpened(profile, world, i) ? 'open' : worldStars(profile, world) >= CHESTS[i].stars ? 'ready' : 'locked';
+  // Returns { profile, reward } or null if the chest can't be opened.
+  function openChest(prev, world, i) {
+    if (!CHESTS[i] || chestState(prev, world, i) !== 'ready') return null;
+    const reward = CHESTS[i];
+    const adv = adventureOf(prev);
+    const p = earn(prev, reward.coins || 0);
+    return {
+      profile: { ...p, adventure: { ...adv, chests: { ...(adv.chests || {}), [levelKey(world, i)]: true }, bombs: (adv.bombs || 0) + (reward.bombs || 0) } },
+      reward,
+    };
+  }
+  const freeBombs = (profile) => adventureOf(profile).bombs || 0;
+  // Uses a free starting Bombe won in a chest. Returns the profile or null.
+  function useFreeBomb(prev) {
+    const n = freeBombs(prev);
+    return n > 0 ? { ...prev, adventure: { ...adventureOf(prev), bombs: n - 1 } } : null;
   }
 
 
@@ -401,8 +453,7 @@
     { id: 'clean3k', page: 'secret', secret: true, reward: 40, name: 'Sans filet', hint: '3 000 points sans annuler ni jeter', test: (p) => lt(p, 'cleanScore') >= 3000 },
     { id: 'perfect2', page: 'secret', secret: true, reward: 40, name: 'Place nette', hint: 'Vide la grille 2 fois dans la même partie', test: (p) => lt(p, 'bestPerfects') >= 2 },
     { id: 'hoard', page: 'secret', secret: true, reward: 40, name: 'Coffre plein', hint: 'Garde 2 000 pièces en poche', test: (p) => p.coins >= 2000 },
-    { id: 'allmodes', page: 'secret', secret: true, reward: 40, name: 'Curieux', hint: 'Joue en Classique, Chrono, Chill et au week-end', test: (p) => ['classic', 'chrono', 'chill', 'event'].every((m) => ((p.modes || {})[m] || {}).games > 0) },
-    { id: 'weekend4', page: 'secret', secret: true, reward: 40, name: 'Habitué', hint: 'Joue 4 week-ends différents', test: (p) => Object.keys(p.events || {}).length >= 4 },
+    { id: 'allmodes', page: 'secret', secret: true, reward: 40, name: 'Curieux', hint: 'Joue en Classique, Chrono et Chill', test: (p) => ['classic', 'chrono', 'chill'].every((m) => ((p.modes || {})[m] || {}).games > 0) },
   ];
   const STICKER_REWARD = 20;
 
@@ -415,28 +466,6 @@
     for (const s of fresh) stickers[s.id] = today;
     const coins = fresh.reduce((a, s) => a + (s.reward || STICKER_REWARD), 0);
     return { profile: earn({ ...prev, stickers }, coins), fresh };
-  }
-
-  // ---------- weekend event ----------
-  // profile.events: { [saturday]: { best, games, paid } }. paid = score tiers already rewarded
-  // for that weekend, so each tier pays once per event.
-  const EVENT_TIERS = [[1000, 20], [2500, 40], [5000, 80]];
-  const eventOf = (profile, id) => ({ best: 0, games: 0, paid: 0, ...((profile.events || {})[id] || {}) });
-
-  // Records a finished event run. Returns { profile, report: { earned, total, record } }.
-  function applyEvent(prev, id, score) {
-    const before = eventOf(prev, id);
-    const earned = [];
-    let paid = before.paid;
-    while (paid < EVENT_TIERS.length && score >= EVENT_TIERS[paid][0]) {
-      const [target, coins] = EVENT_TIERS[paid];
-      earned.push({ label: `Week-end : ${target.toLocaleString('fr-FR')} points`, coins });
-      paid += 1;
-    }
-    const total = earned.reduce((a, l) => a + l.coins, 0);
-    const ev = { best: Math.max(before.best, score), games: before.games + 1, paid };
-    const p = earn({ ...prev, events: { ...(prev.events || {}), [id]: ev } }, total);
-    return { profile: p, report: { earned, total, record: score > before.best && before.best > 0 } };
   }
 
   // Rewarded ad: pays the run's coins a second time.
@@ -479,11 +508,11 @@
 
   return {
     tipSeen, markTip, needsTutorial,
-    HISTORY, modeStats, recentScores, EVENT_TIERS, eventOf, applyEvent,
+    HISTORY, modeStats, recentScores,
     addDays, dayDiff, monthDays,
     DAILY_ATTEMPTS, FREEZE_COST, FREEZE_MAX, STREAK_SKIN, dailyOf, streakOf, dailyAttemptsLeft, startDaily, streakNow,
     applyDaily, buyFreeze, monthTrophy, STICKER_PAGES, STICKERS, STICKER_REWARD, checkStickers,
-    WORLD_ORDER, LEVELS_PER_WORLD, EXTRA_MOVES, START_BONUS_COST, SKIP_COST, extraMovesCost,
+    WORLD_ORDER, LEVELS_PER_WORLD, TRIAL_LEVEL, CHESTS, chestState, openChest, freeBombs, useFreeBomb, bossBeaten, EXTRA_MOVES, START_BONUS_COST, SKIP_COST, extraMovesCost,
     levelStars, levelCleared, totalStars, worldStars, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,
     SKINS, MISSIONS, createProfile, migrate, ensureDay, missionStatus, missionText, runCoins, applyRun, doubleRun, spend, buy, equip, nextGoal };
 });

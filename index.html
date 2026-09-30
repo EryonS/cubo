@@ -398,7 +398,27 @@
     .lvl .num { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: var(--on-accent);
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 20px; box-shadow: 0 4px 0 rgba(0,0,0,.18); }
     .lvl.done .num { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 2px var(--good), 0 4px 0 rgba(0,0,0,.12); }
-    .lvl.boss .num { border-radius: 16px; }
+    .lvl.boss .num { border-radius: 16px; width: 54px; }
+    .lvl.trial .num { border-radius: 14px; box-shadow: inset 0 0 0 3px #ffd166, 0 4px 0 rgba(0,0,0,.12); }
+    .lvl.trial.done .num { box-shadow: inset 0 0 0 3px #ffd166, 0 4px 0 rgba(0,0,0,.12); }
+    .stage-note { margin: 8px auto 2px; max-width: 280px; font-size: 13px; font-weight: 700; line-height: 1.35; color: var(--muted); }
+    /* Star chests: a bar of the world's stars with 3 chests sitting on it. */
+    .chests { position: relative; height: 62px; margin: 4px 22px 14px; }
+    .chest-bar { position: absolute; left: 0; right: 0; top: 14px; height: 8px; border-radius: 4px; background: var(--sunken); overflow: hidden; }
+    .chest-bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #ffd166, #ff9f43); }
+    .chest { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px;
+      border: 0; padding: 0; background: none; cursor: pointer; color: var(--muted); }
+    .chest svg { filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+    .chest small { font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+    .chest small .star, .chest small .coin { margin: 0; }
+    .chest.locked svg { filter: grayscale(1) opacity(.55); }
+    .chest.ready small { color: var(--accent); }
+    .chest.ready svg { animation: chest-wiggle 1.4s ease-in-out infinite; }
+    .chest.open svg { opacity: .45; }
+    .chest.burst svg { animation: bump 380ms cubic-bezier(.2,1.6,.4,1); opacity: 1; }
+    .chest.burst small { color: var(--good); }
+    @keyframes chest-wiggle { 0%, 70%, 100% { transform: rotate(0); } 78% { transform: rotate(-9deg); } 86% { transform: rotate(8deg); } 94% { transform: rotate(-4deg); } }
+    @media (prefers-reduced-motion: reduce) { .chest.ready svg, .chest.burst svg { animation: none; } }
     .lvl.locked { cursor: default; }
     .lvl.locked .num { background: var(--sunken); color: var(--muted); box-shadow: none; }
     .lvl .stars { display: flex; gap: 1px; }
@@ -441,6 +461,7 @@
       box-shadow: 0 0 0 3px #fff, 0 4px 10px rgba(0,0,0,.2); }
     .sticker b { font-size: 13px; line-height: 1.15; }
     .sticker span { font-size: 11px; line-height: 1.25; color: var(--muted); font-weight: 700; }
+    .sticker .when { font-size: 10px; font-weight: 600; opacity: .8; }
     .sticker.off .badge { background: var(--sunken); color: var(--muted); box-shadow: none; }
     .sticker.fresh .badge { animation: peel 700ms cubic-bezier(.2,1.4,.4,1) both; }
     @keyframes peel { 0% { transform: rotate(-25deg) scale(.4); opacity: 0; } 60% { transform: rotate(6deg) scale(1.12); } }
@@ -510,12 +531,6 @@
     .pause-sub { margin-top: 6px; }
     .pause-actions { display: grid; gap: 10px; margin-top: 20px; }
     .pause-actions .actions { margin-top: 0; }
-
-    /* ---------- weekend event ---------- */
-    .event-rules { margin: 14px 0 0; }
-    .opt.tier { cursor: default; }
-    .opt.tier.done { box-shadow: inset 0 0 0 2px var(--good); color: var(--good); }
-    .event-best { margin-top: 12px; }
 
     /* ---------- stats: mode pills, tiles, last scores ---------- */
     .stat-modes { margin: 0 0 12px; }
@@ -608,11 +623,6 @@
         <svg class="ico" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>
         <span class="txt"><b>Missions</b><small id="menu-missions-sub"></small></span>
         <span class="pips" id="menu-missions-pips"></span>
-        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
-      </button>
-      <button class="menu-defis" id="menu-event">
-        <svg class="ico" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.4 5 5.4.7-4 3.8 1 5.4L12 15.8l-4.8 2.6 1-5.4-4-3.8 5.4-.7z"/></svg>
-        <span class="txt"><b>Week-end</b><small id="menu-event-sub"></small></span>
         <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
       </button>
       <div class="menu-head"><span class="menu-label">Partie libre</span></div>
@@ -713,6 +723,7 @@
         <span class="star-pill" id="world-stars"></span>
       </div>
       <div class="rules" id="world-rules"></div>
+      <div class="chests" id="world-chests"></div>
       <div class="levels" id="levels"></div>
     </div>
   </div>

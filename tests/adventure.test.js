@@ -122,7 +122,7 @@ test('every level of the map builds a playable stage', () => {
     for (let n = 1; n <= LV.PER_WORLD; n++) {
       const s = LV.level(world, n);
       assert.ok(s.maxMoves >= 10 && s.goal.target > 0, `${world}-${n}`);
-      if (s.goal.type === 'clear') assert.ok(s.setup && s.setup.kind === s.goal.kind, `${world}-${n}`);
+      if (s.goal.type === 'clear') assert.ok((s.setup && s.setup.kind === s.goal.kind) || (s.fill && s.goal.kind === 'crate'), `${world}-${n}`);
       L.createGame(n, { mode: 'adventure', stage: s });
     }
   }

@@ -700,8 +700,8 @@
   function loadJSON(key) {
     try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; }
   }
-  // Free-play records live in `bests`; Aventure has none, a weekend event keeps its own in the profile.
-  const keepsBest = () => state.mode !== 'adventure' && !state.event;
+  // Free-play records live in `bests`; Aventure has none.
+  const keepsBest = () => state.mode !== 'adventure';
   function save() {
     if (tut) return; // the scripted tutorial board is never saved
     if (keepsBest()) bests[state.mode] = best;
@@ -715,6 +715,8 @@
   let state = saved.state && saved.state.effects && !saved.state.over ? saved.state : L.createGame(Date.now());
   if (!state.inventory) state = { ...state, inventory: L.createGame(0).inventory, stuck: false };
   if (!state.mode) state = { ...state, mode: 'classic', level: 'normal', clock: 0 };
+  // The weekend event was removed (2026-09-30): a saved event run goes on as plain Classique.
+  if (state.event) { state = { ...state }; delete state.event; }
   // Records are kept per mode; old saves only had the classic one.
   const bests = saved.bests || { classic: saved.best || loadJSON(LEGACY_KEY).best || 0 };
   let best = bests[state.mode] || 0;
@@ -732,7 +734,6 @@
   const migrated = M.migrate(storedProfile.owned ? storedProfile : M.createProfile(today()));
   let profile = M.ensureDay(migrated.profile, today());
   saveProfile();
-  if (state.event) best = M.eventOf(profile, state.event.id).best;
   let bestAtStart = best;
   let recordAnnounced = false;
   let runSettled = false;
@@ -771,8 +772,8 @@
   const FALL_AFTER = 240; // falls start once the wave's cells have faded
   const fallMs = (rows) => 110 + 55 * rows;
 
-  // An Aventure level or a weekend event run wears its world's theme; otherwise the equipped one.
-  const worldOf = () => (state && (state.stage || state.event) ? (state.stage || state.event).world : null);
+  // An Aventure level wears its world's theme; otherwise the equipped one.
+  const worldOf = () => (state && state.stage ? state.stage.world : null);
   const themeId = () => worldOf() || profile.equipped.boards;
   const theme = () => THEMES[themeId()] || THEMES.toy;
   // Rétro levels squash every shape family into three LCD greens (the world's drawback).
@@ -1109,7 +1110,7 @@
   }
 
   // ---------- special cells (Aventure) ----------
-  const SPECIAL_COLORS = { ice: '#9fdcf7', asteroid: '#8a8fa3', rock: '#6b5a52', mushroom: '#e84a4a', ember: '#ff6a1a', bubble: '#7fd8ff' };
+  const SPECIAL_COLORS = { ice: '#9fdcf7', asteroid: '#8a8fa3', rock: '#6b5a52', mushroom: '#e84a4a', ember: '#ff6a1a', bubble: '#7fd8ff', crate: '#c98b4a', boss: '#ffffff' };
 
   function crack(x, y, s) {
     ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = Math.max(1.2, s * 0.05); ctx.lineCap = 'round';
@@ -1181,6 +1182,15 @@
         const a = -Math.PI / 2 + (k / fuse) * Math.PI * 2;
         ctx.beginPath(); ctx.arc(cx + Math.cos(a) * s * 0.3, cy + Math.sin(a) * s * 0.3, s * 0.045, 0, Math.PI * 2); ctx.fill();
       }
+    } else if (kind === 'crate') {
+      ctx.fillStyle = '#c98b4a';
+      ctx.beginPath(); ctx.roundRect(x, y, s, s, s * 0.12); ctx.fill();
+      ctx.strokeStyle = '#8a5526'; ctx.lineWidth = s * 0.08; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.roundRect(x + s * 0.08, y + s * 0.08, s * 0.84, s * 0.84, s * 0.08); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + s * 0.14, y + s * 0.86); ctx.lineTo(x + s * 0.86, y + s * 0.14); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      ctx.fillRect(x + s * 0.14, y + s * 0.12, s * 0.72, s * 0.08);
+      if (cracked) crack(cx, cy, s);
     } else if (kind === 'bubble') {
       ctx.fillStyle = 'rgba(127,216,255,0.28)';
       ctx.beginPath(); ctx.arc(cx, cy, s * 0.46, 0, Math.PI * 2); ctx.fill();
@@ -1192,6 +1202,135 @@
       ctx.beginPath(); ctx.arc(cx + s * 0.16, cy - s * 0.18, s * 0.05, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
+  }
+
+  // ---------- boss (Aventure level 20) ----------
+  // One 2x2 creature in the center: body in the world's tint, a face whose eyes follow the dragged
+  // piece, a white flash when hit, a squash when it strikes back, sweat under 30% hp.
+  const BOSS_LOOK = {
+    plain: '#6cc94f', sea: '#9b6bff', space: '#62d6b4', ice: '#dff2ff',
+    forest: '#a2703c', retro: '#306230', arcade: '#ff4fb8', volcano: '#ff5a2a',
+  };
+  let bossHitAt = 0;
+  let bossAttackAt = 0;
+  const bossCenter = () => [lay.bx + (L.BOSS_AT[1] + 1) * lay.cell, lay.by + (L.BOSS_AT[0] + 1) * lay.cell];
+  const bossLeft = () => (state.stage ? Math.max(0, state.stage.goal.target - state.stage.progress) : 0);
+
+  function drawBoss(t, alpha, ghost) {
+    const stage = state.stage;
+    const [cx, cy] = bossCenter();
+    const size = lay.cell * 2 - lay.cell * 0.12;
+    const hit = calm() ? 0 : Math.max(0, 1 - (t - bossHitAt) / 260);
+    const atk = calm() ? 0 : Math.max(0, 1 - (t - bossAttackAt) / 420);
+    const beaten = stage.won;
+    const breathe = calm() || beaten ? 0 : Math.sin(t / 420) * 0.025;
+    const sx = 1 + breathe + atk * 0.14 * Math.sin(atk * Math.PI);
+    const sy = 1 - breathe - atk * 0.12 * Math.sin(atk * Math.PI);
+    const wob = hit ? Math.sin(t / 22) * hit * lay.cell * 0.08 : 0;
+    const base = BOSS_LOOK[stage.world] || '#9b6bff';
+    ctx.save();
+    ctx.globalAlpha = alpha * (beaten ? Math.max(0, 1 - (t - overAt) / 500) : 1);
+    ctx.translate(cx + wob, cy + size / 2);
+    ctx.scale(sx, sy);
+    ctx.translate(0, -size / 2);
+    const h = size / 2;
+    // Body
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath(); ctx.roundRect(-h, -h + size * 0.06, size, size, size * 0.26); ctx.fill();
+    const g = ctx.createLinearGradient(0, -h, 0, h);
+    g.addColorStop(0, withAlpha('#ffffff', 0.35)); g.addColorStop(0.35, withAlpha('#ffffff', 0)); g.addColorStop(1, withAlpha('#000000', 0.18));
+    ctx.fillStyle = base;
+    ctx.beginPath(); ctx.roundRect(-h, -h, size, size, size * 0.26); ctx.fill();
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.roundRect(-h, -h, size, size, size * 0.26); ctx.fill();
+    // Eyes follow the dragged piece (or look down at the tray).
+    const target = ghost ? cellCenter(ghost.row, ghost.col) : [cx, lay.ty];
+    const ang = Math.atan2(target[1] - cy, target[0] - cx);
+    const blink = calm() ? 1 : (t % 3200) < 120 ? 0.15 : 1;
+    for (const side of [-1, 1]) {
+      const ex = side * size * 0.2;
+      const ey = -size * 0.08;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.ellipse(ex, ey, size * 0.13, size * 0.15 * blink, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2b2140';
+      ctx.beginPath(); ctx.arc(ex + Math.cos(ang) * size * 0.05, ey + Math.sin(ang) * size * 0.05 * blink, size * 0.065 * Math.max(0.3, blink), 0, Math.PI * 2); ctx.fill();
+      // Angry brows
+      ctx.strokeStyle = '#2b2140'; ctx.lineWidth = size * 0.05; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(ex - side * size * 0.13, ey - size * 0.22); ctx.lineTo(ex + side * size * 0.06, ey - size * 0.16); ctx.stroke();
+    }
+    // Mouth: grin, wide open when striking back, wobbly when hurt.
+    ctx.fillStyle = '#2b2140';
+    ctx.beginPath();
+    if (atk > 0.2) ctx.ellipse(0, size * 0.2, size * 0.14, size * 0.11 * atk + size * 0.03, 0, 0, Math.PI * 2);
+    else if (hit > 0) ctx.ellipse(0, size * 0.22, size * 0.08, size * 0.05, 0, 0, Math.PI * 2);
+    else { ctx.moveTo(-size * 0.16, size * 0.16); ctx.quadraticCurveTo(0, size * 0.3, size * 0.16, size * 0.16); ctx.closePath(); }
+    ctx.fill();
+    // Low hp: a sweat drop.
+    if (bossLeft() / stage.goal.target < 0.3 && !beaten) {
+      ctx.fillStyle = '#7fd8ff';
+      const dy = calm() ? 0 : ((t / 900) % 1) * size * 0.1;
+      ctx.beginPath(); ctx.ellipse(size * 0.36, -size * 0.2 + dy, size * 0.05, size * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    if (hit) {
+      ctx.globalAlpha *= hit * 0.8;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.roundRect(-h, -h, size, size, size * 0.26); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Boss hp bar in the score plate, red and shaking right after a hit.
+  function drawBossBar(th, px, py, pw, ph, t) {
+    const stage = state.stage;
+    const max = stage.goal.target;
+    const left = bossLeft();
+    const hit = calm() ? 0 : Math.max(0, 1 - (t - bossHitAt) / 300);
+    const bw = pw - 36;
+    const bh = Math.round(ph * 0.26);
+    const x = px + 18 + (hit ? Math.sin(t / 25) * 3 * hit : 0);
+    const y = py + ph * 0.5;
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath(); ctx.roundRect(x, y, bw, bh, bh / 2); ctx.fill();
+    if (left > 0) {
+      const g = ctx.createLinearGradient(x, 0, x + bw, 0);
+      g.addColorStop(0, '#ff4d6d'); g.addColorStop(1, '#ff9f43');
+      ctx.fillStyle = hit > 0.5 ? '#ffffff' : g;
+      ctx.beginPath(); ctx.roundRect(x, y, Math.max(bh, bw * (left / max)), bh, bh / 2); ctx.fill();
+    }
+    ctx.font = themeFont(th, Math.round(bh * 0.8));
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3; ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.strokeText(`${left} / ${max} PV`, x + bw / 2, y + bh / 2 + 1);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(`${left} / ${max} PV`, x + bw / 2, y + bh / 2 + 1);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // Hits and strikes: flash, "-N", sounds; the last hit blows the boss up.
+  function bossEffects(ev, t) {
+    const stage = state.stage;
+    if (!stage || stage.goal.type !== 'boss') return;
+    const hits = (ev.bossHits || []).length;
+    const [cx, cy] = bossCenter();
+    if (hits) {
+      bossHitAt = t;
+      floaters.push({ text: '-' + hits, x: cx, y: cy - lay.cell, t0: t, big: true, scale: 1.2, tier: 2 });
+      for (const b of ev.bossHits) burst({ r: b.r, c: b.c, kind: 'boss' }, t, 5, 90, BOSS_LOOK[stage.world]);
+      sfx.thunk();
+      buzz(25);
+      if (stage.won) {
+        banners.length = 0;
+        banners.push({ text: 'Boss vaincu !', sub: stage.goal.name, tier: 3 });
+        if (!calm()) { confetti(t, 60); shake = 20; }
+      }
+    }
+    if ((ev.spawned || []).some((s) => s.attack)) {
+      bossAttackAt = t;
+      banners.push({ text: 'Riposte !', sub: stage.goal.name + ' contre-attaque' });
+      sfx.fizzle();
+    }
   }
 
   // ---------- drag & snap ----------
@@ -1375,7 +1514,7 @@
       floaters.push({ text: '+' + Math.round(ev.timeGain / 1000) + ' s', x: bx + lay.board - 30, y: by - 10, t0: t });
       sfx.time();
     }
-    if (state.stage) stageEffects(ev, t);
+    if (state.stage) { stageEffects(ev, t); bossEffects(ev, t); }
     if (tut) { tutorialMoved(idx, t); return; }
     refilled(ev.refilled, t);
     afterChange(t, ev.over);
@@ -1626,6 +1765,7 @@
       floaters.push({ text: '+' + ev.points, x: fx, y: fy, t0: t, big: true });
       launchFlyers(ev.collected, t, (b) => Math.hypot(b.r - target.r, b.c - target.c) * 45);
       if (ev.perfect) banners.push({ text: 'Grille vide !', sub: '+300' });
+      bossEffects(ev, t);
       shake = 18;
       sfx.bomb();
       buzz([30, 20, 50]);
@@ -1649,12 +1789,6 @@
     const res = M.applyRun(M.ensureDay(profile, today()), L.runStats(state));
     profile = res.profile;
     const report = res.report;
-    if (state.event) {
-      const ev = M.applyEvent(profile, state.event.id, state.score);
-      profile = ev.profile;
-      report.earned.push(...ev.report.earned);
-      report.total += ev.report.total;
-    }
     for (const line of stickerLines()) { report.earned.push(line); report.total += line.coins; }
     saveProfile();
     renderWallet();
@@ -1682,7 +1816,7 @@
   function showGameOver(report) {
     document.getElementById('over-title').textContent = state.timeUp ? 'Temps écoulé !' : 'Plus de place !';
     document.getElementById('over-score').textContent = fmt(state.score);
-    document.getElementById('over-best').textContent = (state.event ? `Week-end ${worldName(state.event.world)} · record : ` : 'Record : ') + fmt(best);
+    document.getElementById('over-best').textContent = 'Record : ' + fmt(best);
     overCard.classList.toggle('is-record', state.score >= best && state.score > bestAtStart && bestAtStart > 0);
 
     const earnEl = document.getElementById('over-earn');
@@ -1791,16 +1925,16 @@
     }
   }
 
-  // opts: { mode, level, stage, event, seed }; mode and level default to the current game's.
+  // opts: { mode, level, stage, seed }; mode and level default to the current game's.
   function newGame(opts = {}) {
     profile = M.ensureDay(profile, today());
     saveProfile();
     if (keepsBest()) bests[state.mode] = best;
     const mode = opts.mode || (state.mode === 'adventure' ? prefs.mode : state.mode);
-    state = L.createGame(opts.seed ?? Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage, event: opts.event });
+    state = L.createGame(opts.seed ?? Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage });
     levelSettled = false;
     paintBackground();
-    best = state.event ? M.eventOf(profile, state.event.id).best : bests[state.mode] || 0;
+    best = bests[state.mode] || 0;
     bestAtStart = best;
     recordAnnounced = false;
     runSettled = false;
@@ -1822,12 +1956,7 @@
     modeTips();
   }
 
-  // Same kind of run again: a weekend event only while that weekend lasts.
-  const sameRun = () => {
-    const ev = state.event && LV.weekend(today());
-    return state.event ? { mode: 'classic', level: 'normal', event: ev.active && ev.id === state.event.id ? ev : null } : {};
-  };
-  document.getElementById('again').addEventListener('click', () => { unlockAudio(); newGame(sameRun()); });
+  document.getElementById('again').addEventListener('click', () => { unlockAudio(); newGame(); });
 
   // Ends the current run (coins and missions count) and starts a new one.
   function restartRun(opts) {
@@ -1847,12 +1976,10 @@
     cont.style.display = inProgress() ? '' : 'none';
     document.getElementById('menu-continue-sub').textContent = state.stage
       ? `${state.stage.daily ? 'Niveau du jour #' + LV.dayNumber(state.stage.daily) : 'Aventure · ' + WD.WORLDS[state.stage.world].name + ' ' + state.stage.n} · ${LV.goalText(state.stage.goal)}`
-      : state.event ? `Week-end ${worldName(state.event.world)} · ${fmt(state.score)} pts`
       : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]} · ${fmt(state.score)} pts`;
     document.getElementById('menu-adventure-sub').innerHTML = starSvg(true, 14) + `${M.totalStars(profile)} / ${M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3}`;
     document.getElementById('menu-adventure').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
     renderDailyButton();
-    renderEventButton();
     renderMissionBadges();
     document.getElementById('menu-play').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
     for (const b of document.querySelectorAll('#menu-mode button')) b.classList.toggle('on', b.dataset.mode === prefs.mode);
@@ -1903,6 +2030,10 @@
   const starsRow = (n, size) => [0, 1, 2].map((k) => starSvg(k < n, size)).join('');
   const LOCK_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
   const worldName = (w) => WD.WORLDS[w].name;
+  const WORLD_MAX_STARS = M.LEVELS_PER_WORLD * 3;
+  // "Niveau 7", "Épreuve" (level 10) or "Boss" (level 20).
+  const levelName = (n) => (n === M.LEVELS_PER_WORLD ? 'Boss' : n === M.TRIAL_LEVEL ? 'Épreuve' : 'Niveau ' + n);
+  const CHEST_SVG = '<svg width="30" height="26" viewBox="0 0 30 26" aria-hidden="true"><path d="M3 11h24v11a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z" fill="#c98b4a"/><path d="M3 11V8a6 6 0 0 1 6-6h12a6 6 0 0 1 6 6v3z" fill="#e0a45e"/><path d="M3 11h24" stroke="#8a5526" stroke-width="2.4"/><rect x="12" y="8.5" width="6" height="7" rx="1.6" fill="#ffd166" stroke="#8a5526" stroke-width="1.6"/></svg>';
   let stageBomb = false; // "start with a Bombe" option on the level sheet
   let openWorldId = null;
 
@@ -1929,7 +2060,7 @@
       tile.insertAdjacentHTML('beforeend', `<div class="name">${worldName(w)}</div>`);
       const meta = document.createElement('div');
       meta.className = 'meta';
-      if (open) meta.innerHTML = starSvg(true, 13) + `${M.worldStars(profile, w)} / 30`;
+      if (open) meta.innerHTML = starSvg(true, 13) + `${M.worldStars(profile, w)} / ${WORLD_MAX_STARS}`;
       else {
         const prev = M.WORLD_ORDER[M.WORLD_ORDER.indexOf(w) - 1];
         const needStars = M.worldGate(w);
@@ -1949,7 +2080,8 @@
     openWorldId = w;
     hideAdventure();
     document.getElementById('world-name').textContent = worldName(w);
-    document.getElementById('world-stars').innerHTML = starSvg(true, 18) + `${M.worldStars(profile, w)} / 30`;
+    document.getElementById('world-stars').innerHTML = starSvg(true, 18) + `${M.worldStars(profile, w)} / ${WORLD_MAX_STARS}`;
+    renderChests(w);
     const rules = WD.WORLDS[w];
     document.getElementById('world-rules').innerHTML =
       `<div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div>`;
@@ -1959,15 +2091,50 @@
       const open = M.levelOpen(profile, w, n);
       const stars = M.levelStars(profile, w, n);
       const boss = n === M.LEVELS_PER_WORLD;
+      const trial = n === M.TRIAL_LEVEL;
       const b = document.createElement('button');
-      b.className = 'lvl' + (open ? '' : ' locked') + (stars !== undefined ? ' done' : '') + (boss ? ' boss' : '');
+      b.className = 'lvl' + (open ? '' : ' locked') + (stars !== undefined ? ' done' : '') + (boss ? ' boss' : '') + (trial ? ' trial' : '');
       b.innerHTML = `<span class="num">${open ? n : LOCK_SVG}</span>` +
-        (boss ? '<small>Boss</small>' : `<span class="stars">${starsRow(stars || 0, 12)}</span>`);
-      b.setAttribute('aria-label', `Niveau ${n}` + (open ? '' : ', verrouillé'));
+        (boss && stars === undefined ? '<small>Boss</small>' : `<span class="stars">${starsRow(stars || 0, 12)}</span>`);
+      b.setAttribute('aria-label', levelName(n) + (trial || boss ? ` (niveau ${n})` : '') + (open ? '' : ', verrouillé'));
       b.addEventListener('click', () => { if (open) { sfx.turn(); openStage(w, n); } else sfx.nope(); });
       grid.appendChild(b);
     }
     worldEl.classList.add('show');
+  }
+
+  // Star chests of a world: a bar of the world's stars with 3 chests on it; a ready one opens on tap.
+  function renderChests(w) {
+    const el = document.getElementById('world-chests');
+    const stars = M.worldStars(profile, w);
+    const pct = (v) => Math.min(100, (v / WORLD_MAX_STARS) * 100);
+    const label = (c) => [c.coins ? `${c.coins}${COIN}` : '', c.bombs ? `${c.bombs} Bombes offertes` : ''].filter(Boolean).join(' + ');
+    el.innerHTML = `<div class="chest-bar"><i style="width:${pct(stars)}%"></i></div>` + M.CHESTS.map((c, i) => {
+      const st = M.chestState(profile, w, i);
+      return `<button class="chest ${st}" data-i="${i}" style="left:${pct(c.stars)}%" aria-label="Coffre ${c.stars} étoiles : ${label(c).replace(/<[^>]+>/g, ' pièces')}">
+        ${CHEST_SVG}<small>${st === 'open' ? 'Ouvert' : st === 'ready' ? 'Ouvrir !' : starSvg(true, 10) + c.stars}</small></button>`;
+    }).join('');
+    for (const btn of el.querySelectorAll('.chest')) {
+      btn.addEventListener('click', () => {
+        const i = +btn.dataset.i;
+        const res = M.openChest(profile, w, i);
+        if (!res) {
+          sfx.nope();
+          const c = M.CHESTS[i];
+          if (M.chestState(profile, w, i) === 'locked') btn.querySelector('small').innerHTML = label(c);
+          return;
+        }
+        profile = res.profile;
+        saveProfile();
+        renderWallet();
+        sfx.buy();
+        buzz([15, 30, 15]);
+        renderChests(w);
+        const opened = el.querySelector(`.chest[data-i="${i}"]`);
+        opened.classList.add('burst');
+        opened.querySelector('small').innerHTML = '+' + label(res.reward);
+      });
+    }
   }
 
   // Level sheet: goal, budget, best stars, then play / skip / starting bonus.
@@ -1980,17 +2147,19 @@
     card.innerHTML = `
       <div class="shop-head">
         <button class="close" data-act="back" aria-label="Retour au monde"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-        <h2>${n === M.LEVELS_PER_WORLD ? 'Boss' : 'Niveau ' + n}</h2>
+        <h2>${levelName(n)}</h2>
       </div>
-      <div class="stage-sub">${worldName(w)}</div>
+      <div class="stage-sub">${worldName(w)}${n === M.TRIAL_LEVEL || n === M.LEVELS_PER_WORLD ? ' · niveau ' + n : ''}</div>
       <div class="stage-goal">${LV.goalText(stage.goal)}</div>
+      ${stage.boss ? `<div class="stage-note">Il a ${stage.goal.target} PV : chaque ligne qui le traverse lui en retire 2. Tous les ${stage.boss.every} coups, il riposte en posant ${stage.boss.count > 1 ? stage.boss.count + ' ' + LV.KIND_NAMES[stage.boss.kind] : 'un obstacle'}.</div>` : ''}
+      ${n === M.TRIAL_LEVEL ? '<div class="stage-note">Un niveau plus corsé au milieu du monde, mieux payé.</div>' : ''}
       <div class="stage-sub">${budget}</div>
       <div class="stage-stars">${starsRow(best || 0, 34)}</div>
-      <button class="opt${stageBomb ? ' on' : ''}" data-act="bomb"><span>Partir avec une Bombe</span><span class="price">${M.START_BONUS_COST}${COIN}</span></button>
+      <button class="opt${stageBomb ? ' on' : ''}" data-act="bomb"><span>Partir avec une Bombe</span><span class="price">${M.freeBombs(profile) ? `Offerte (×${M.freeBombs(profile)})` : M.START_BONUS_COST + COIN}</span></button>
       ${canSkip ? `<button class="opt" data-act="skip"><span>Passer le niveau (sans étoile)</span><span class="price">${M.SKIP_COST}${COIN}</span></button>` : ''}
       <div class="actions"><button class="btn primary" data-act="play">Jouer</button></div>`;
     const bombBtn = card.querySelector('[data-act="bomb"]');
-    bombBtn.disabled = profile.coins < M.START_BONUS_COST;
+    bombBtn.disabled = !M.freeBombs(profile) && profile.coins < M.START_BONUS_COST;
     if (bombBtn.disabled) stageBomb = false;
     card.querySelector('[data-act="back"]').addEventListener('click', () => openWorld(w));
     bombBtn.addEventListener('click', () => { stageBomb = !stageBomb; bombBtn.classList.toggle('on', stageBomb); sfx.turn(); });
@@ -2016,18 +2185,19 @@
   function startLevel(w, n) {
     unlockAudio();
     if (inProgress() && !state.stage && !confirm('Abandonner la partie en cours ? Les pièces gagnées sont gardées.')) return;
-    const bomb = stageBomb && profile.coins >= M.START_BONUS_COST;
+    const freeBomb = stageBomb && M.freeBombs(profile) > 0;
+    const bomb = freeBomb || (stageBomb && profile.coins >= M.START_BONUS_COST);
     stageBomb = false;
     hideAdventure();
     menuEl.classList.remove('show');
     restartRun({ mode: 'adventure', stage: LV.level(w, n) });
     if (bomb) {
-      payCoins(M.START_BONUS_COST);
+      if (freeBomb) { profile = M.useFreeBomb(profile); saveProfile(); } else payCoins(M.START_BONUS_COST);
       state = { ...state, inventory: { ...state.inventory, bomb: state.inventory.bomb + 1 } };
       renderInventory();
       save();
     }
-    banners.push({ text: n === M.LEVELS_PER_WORLD ? 'Boss !' : 'Niveau ' + n, sub: LV.goalText(state.stage.goal), gold: true });
+    banners.push({ text: n === M.LEVELS_PER_WORLD ? 'Boss !' : levelName(n), sub: LV.goalText(state.stage.goal), gold: true, tier: n === M.LEVELS_PER_WORLD ? 2 : 0 });
   }
 
   // Level over: pay the run (grid coins, missions), record stars, then show the result.
@@ -2063,7 +2233,7 @@
     const card = document.getElementById('level-end-card');
     const outOfMoves = !stage.won && !state.timeUp && stage.movesLeft <= 0;
     const title = stage.won
-      ? (n === M.LEVELS_PER_WORLD ? 'Boss vaincu !' : 'Niveau réussi !')
+      ? (n === M.LEVELS_PER_WORLD ? 'Boss vaincu !' : n === M.TRIAL_LEVEL ? 'Épreuve réussie !' : 'Niveau réussi !')
       : state.timeUp ? 'Temps écoulé !' : outOfMoves ? 'Plus de coups !' : 'Plus de place !';
     const lines = [...(runReport ? runReport.earned : []), ...(levelReport ? levelReport.earned : [])];
     const total = lines.reduce((a, l) => a + l.coins, 0);
@@ -2072,7 +2242,7 @@
     const moreCost = M.extraMovesCost(stage.extra);
     card.innerHTML = `
       <h2>${title}</h2>
-      <div class="stage-sub">${worldName(w)} · ${n === M.LEVELS_PER_WORLD ? 'Boss' : 'Niveau ' + n}</div>
+      <div class="stage-sub">${worldName(w)} · ${levelName(n)}</div>
       <div class="stage-stars">${starsRow(stage.stars, 44)}</div>
       <div class="stage-sub">${LV.goalText(stage.goal)} · ${fmt(Math.min(stage.goal.type === 'score' ? state.score : stage.progress, stage.goal.target))} / ${fmt(stage.goal.target)}</div>
       ${levelReport && levelReport.themeUnlocked ? `<div class="unlock">Thème « ${worldName(levelReport.themeUnlocked)} » débloqué ! Équipe-le dans la Boutique.</div>` : ''}
@@ -2336,12 +2506,17 @@
   const frMonth = (m) => new Date(m + '-15T12:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   const frMonthShort = (m) => new Date(m + '-15T12:00:00').toLocaleDateString('fr-FR', { month: 'short' });
 
+  // Day a sticker was earned ('YYYY-MM-DD'), e.g. "Obtenu le 30 sept. 2026".
+  const gotOn = (day) => typeof day === 'string'
+    ? `Obtenu le ${new Date(day + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    : 'Obtenu';
+
   function albumHtml() {
     const t = today();
     const st = M.streakOf(profile);
     const now = M.streakNow(profile, t);
     const got = profile.stickers || {};
-    const count = Object.keys(got).length;
+    const count = M.STICKERS.filter((s) => got[s.id]).length; // ignores retired stickers
     let html = `
       <div class="streak-card">
         ${FLAME_SVG(38, now > 0)}<span class="big">${now}</span>
@@ -2359,7 +2534,7 @@
         const color = sk.world ? WORLD_COLORS[sk.world] : PAGE_COLORS[page.id];
         html += `<div class="sticker${on ? '' : ' off'}${freshStickers.has(sk.id) ? ' fresh' : ''}" style="--c:${color}">
           <span class="badge"><svg width="28" height="28" viewBox="0 0 24 24">${hidden ? SECRET_GLYPH : STICKER_GLYPHS[page.id]}</svg></span>
-          <b>${hidden ? 'Secret' : sk.name}</b><span>${on ? (sk.secret ? sk.hint : 'Obtenu') : hidden ? 'À découvrir' : sk.hint}</span></div>`;
+          <b>${hidden ? 'Secret' : sk.name}</b><span>${on ? (sk.secret ? sk.hint : gotOn(got[sk.id])) : hidden ? 'À découvrir' : sk.hint}</span>${on && sk.secret ? `<span class="when">${gotOn(got[sk.id])}</span>` : ''}</div>`;
       }
       html += '</div>';
     }
@@ -2391,7 +2566,7 @@
     const streak = M.streakNow(profile, t);
     document.getElementById('defis-flame').innerHTML = FLAME_SVG(18, streak > 0) + streak;
     const body = document.getElementById('defis-body');
-    body.innerHTML = calendarHtml() + dayHtml(defisDay) + eventHtml();
+    body.innerHTML = calendarHtml() + dayHtml(defisDay);
     for (const b of body.querySelectorAll('[data-cal]')) {
       b.addEventListener('click', () => {
         calMonth = M.addDays(calMonth + '-15', +b.dataset.cal * 30).slice(0, 7);
@@ -2401,7 +2576,6 @@
     }
     for (const b of body.querySelectorAll('[data-day]')) b.addEventListener('click', () => { defisDay = b.dataset.day; sfx.turn(); renderDefis(); });
     body.querySelector('[data-act="daily"]').addEventListener('click', () => openDailySheet(defisDay, 'defis'));
-    body.querySelector('[data-act="event"]').addEventListener('click', () => { sfx.turn(); openEventSheet('defis'); });
   }
 
   function calendarHtml() {
@@ -2446,7 +2620,7 @@
   }
 
   // ----- stats: one mode at a time (tiles + last scores), then lifetime counters -----
-  const STAT_MODES = [['classic', 'Classique'], ['chrono', 'Chrono'], ['chill', 'Chill'], ['event', 'Week-end']];
+  const STAT_MODES = [['classic', 'Classique'], ['chrono', 'Chrono'], ['chill', 'Chill']];
   const CHART_RUNS = 20;
   let statsMode = 'classic';
 
@@ -2550,10 +2724,10 @@
   function runLabel() {
     const st = state.stage;
     if (st) {
-      const where = st.daily ? `Niveau du jour #${LV.dayNumber(st.daily)}` : `${worldName(st.world)} · ${st.n === M.LEVELS_PER_WORLD ? 'Boss' : 'Niveau ' + st.n}`;
+      const where = st.daily ? `Niveau du jour #${LV.dayNumber(st.daily)}` : `${worldName(st.world)} · ${levelName(st.n)}`;
       return `${where} · ${LV.goalText(st.goal)}`;
     }
-    const what = state.event ? `Week-end ${worldName(state.event.world)}` : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]}`;
+    const what = `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]}`;
     return `${what} · ${fmt(state.score)} pts`;
   }
   function openPause() {
@@ -2575,78 +2749,13 @@
     if (inProgress() && !confirm('Recommencer depuis le début ? Les pièces gagnées sont gardées.')) return;
     closePause();
     if (state.stage) startLevel(state.stage.world, state.stage.n);
-    else restartRun({ mode: state.mode, level: state.level, ...sameRun() });
+    else restartRun({ mode: state.mode, level: state.level });
   });
   document.getElementById('pause-settings').addEventListener('click', () => { closePause(); openSettings(true); });
   document.getElementById('pause-menu').addEventListener('click', () => { closePause(); openMenu(); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && !tut && !state.over && !pausedByUi() && (state.moves > 0 || state.clock > 0)) openPause();
   });
-
-  // ---------- weekend event ----------
-  // Saturday and Sunday: Classique under the week's world rule, point tiers pay coins once per weekend.
-  let eventBack = 'menu'; // where "Retour" goes from the event sheet: 'menu' or 'defis'
-
-  function renderEventButton() {
-    const ev = LV.weekend(today());
-    const btn = document.getElementById('menu-event');
-    btn.style.display = ev.active ? '' : 'none';
-    if (!ev.active) return;
-    const rec = M.eventOf(profile, ev.id).best;
-    document.getElementById('menu-event-sub').textContent = `${worldName(ev.world)} · ` + (rec ? `record ${fmt(rec)}` : 'jusqu’à dimanche soir');
-  }
-
-  // Défis screen card: this weekend, or the coming one on weekdays.
-  function eventHtml() {
-    const ev = LV.weekend(today());
-    const rec = M.eventOf(profile, ev.id).best;
-    const when = ev.active ? 'En cours jusqu’à dimanche soir' : `Samedi ${frDate(ev.id)}`;
-    return `
-      <div class="day-title">Week-end</div>
-      <button class="defi" data-act="event">
-        <span class="txt"><b>Week-end ${worldName(ev.world)}</b><span>${when}</span></span>
-        <span class="side">${rec ? `Record<br>${fmt(rec)}` : ev.active ? 'Jouer' : 'Bientôt'}</span>
-      </button>`;
-  }
-
-  function openEventSheet(from) {
-    if (from) eventBack = from;
-    const ev = LV.weekend(today());
-    const mine = M.eventOf(profile, ev.id);
-    const rules = WD.WORLDS[ev.world];
-    const card = document.getElementById('stage-card');
-    card.innerHTML = `
-      <div class="shop-head"><h2>Week-end</h2><span class="star-pill">${worldName(ev.world)}</span></div>
-      <div class="stage-sub">Une partie Classique sans fin, avec la règle du monde ${worldName(ev.world)}.</div>
-      <div class="rules event-rules"><div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div></div>
-      <div class="section-title">Paliers du week-end</div>
-      ${M.EVENT_TIERS.map(([target, coins], i) => `<div class="opt tier${i < mine.paid ? ' done' : ''}"><span>${fmt(target)} points${i < mine.paid ? ' · gagné' : ''}</span><span class="price">+${coins}${COIN}</span></div>`).join('')}
-      <div class="stage-sub event-best">${mine.best ? `Ton record ce week-end : ${fmt(mine.best)}` : ev.active ? 'Chaque palier paie une fois par week-end.' : `Ouvre samedi ${frDate(ev.id)}.`}</div>
-      <div class="actions"><button class="btn ghost" data-act="back">Retour</button><button class="btn primary" data-act="play">${ev.active ? 'Jouer' : 'Samedi'}</button></div>`;
-    const play = card.querySelector('[data-act="play"]');
-    play.disabled = !ev.active;
-    play.addEventListener('click', startEvent);
-    card.querySelector('[data-act="back"]').addEventListener('click', () => {
-      hideAdventure();
-      if (eventBack === 'defis') openDefis(); else openMenu();
-    });
-    hideAdventure();
-    defisEl.classList.remove('show');
-    menuEl.classList.remove('show');
-    stageEl.classList.add('show');
-  }
-
-  function startEvent() {
-    unlockAudio();
-    const ev = LV.weekend(today());
-    if (!ev.active) { sfx.nope(); return; }
-    if (inProgress() && !confirm('Abandonner la partie en cours ? Les pièces gagnées sont gardées.')) return;
-    hideAdventure();
-    menuEl.classList.remove('show');
-    restartRun({ mode: 'classic', level: 'normal', event: ev });
-    banners.push({ text: 'Week-end', sub: worldName(ev.world), gold: true });
-  }
-  document.getElementById('menu-event').addEventListener('click', () => { sfx.turn(); openEventSheet('menu'); });
 
   // ---------- undo ----------
   const undoEl = document.getElementById('undo');
@@ -3143,8 +3252,6 @@
       });
     } else if (state.mode === 'chill') {
       tip('chill', 'Chill', 'Touche une pièce pour la tourner. Pas de bonus, pas de pression.', () => rectOf(lay.bx, lay.ty, lay.nextX - lay.bx, lay.trayH));
-    } else if (state.event) {
-      tip('event', 'Week-end', `La règle du monde ${worldName(state.event.world)} s’applique à toute la partie. Chaque palier de points rapporte des pièces.`, plate);
     } else if (state.stage && state.stage.daily) {
       tip('daily', 'Niveau du jour', 'Le même niveau pour tout le monde aujourd’hui. Atteins l’objectif affiché en haut.', plate);
     } else if (state.stage) {
@@ -3264,12 +3371,15 @@
     ctx.fillText(sub, W / 2, py + ph * 0.32);
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
     ctx.globalAlpha = 1;
-    ctx.save();
-    if (p.glow) { ctx.shadowColor = p.glow; ctx.shadowBlur = 12; }
-    ctx.fillStyle = p.ink;
-    ctx.font = themeFont(th, Math.round(ph * (stage ? 0.52 : 0.64) * bump));
-    ctx.fillText(main, W / 2, py + ph - ph * 0.13);
-    ctx.restore();
+    if (stage && stage.goal.type === 'boss') drawBossBar(th, px, py, pw, ph, t);
+    else {
+      ctx.save();
+      if (p.glow) { ctx.shadowColor = p.glow; ctx.shadowBlur = 12; }
+      ctx.fillStyle = p.ink;
+      ctx.font = themeFont(th, Math.round(ph * (stage ? 0.52 : 0.64) * bump));
+      ctx.fillText(main, W / 2, py + ph - ph * 0.13);
+      ctx.restore();
+    }
 
     // Combo: small pill hung under the score. Pops when it grows, drops away when it breaks.
     const tagY = py + ph + 4;
@@ -3409,6 +3519,7 @@
         }
         const alpha = 1 - overK * 0.65;
         if (v === L.SPECIAL && state.special && state.special[i]) {
+          if (state.special[i].kind === 'boss') continue; // drawn whole by drawBoss
           const drop = drops.get(i);
           if (drop) {
             const k = (t - drop.t0) / drop.dur;
@@ -3427,6 +3538,7 @@
       if (dx) ctx.restore();
     }
     pops = pops.filter((p) => t - p.t0 < 240);
+    if (state.stage && state.stage.goal.type === 'boss') drawBoss(t, 1 - overK * 0.65, ghost);
 
     if (ghost) {
       const b = ghost.piece.bonus;

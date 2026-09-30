@@ -9,19 +9,19 @@ A French-speaking player killing time on a phone: at home, on holiday, on a trip
 ## Loop and retention
 Score and record per mode; coins picked up on the grid and paid at game over; three daily missions; a Boutique of cosmetic items (block skins and world themes). Rewarded ad (stub) doubles a run's coins.
 
-Aventure mode: a map of 8 worlds, 10 short levels each (goal + move budget, stars), each world with its own rule; beating a boss gives its theme.
+Aventure mode: a map of 8 worlds, 20 short levels each (goal + move budget, stars), each world with its own rule, a trial at level 10 and a boss fight at 20 (beating it gives its theme), star chests.
 
 Daily level (same for everyone, 3 attempts, share text), day streak with freezes and rewards, sticker album with monthly trophies, Défis screen (today + calendar), missions reachable from the menu and in game, profile with album and stats.
 
-Weekend event (Saturday and Sunday): an endless Classique run under one Aventure world's rule, a new world each week, point tiers paying coins once per weekend. Secret stickers in the album, per-mode stats with the last scores.
+Secret stickers in the album, per-mode stats with the last scores.
 
-Planned (see `docs/CLAUDE.md`): two players on one phone, polish.
+Planned (see `docs/CLAUDE.md`): polish, React Native port.
 
 ## Constraints
 - Web first (vanilla JS canvas, no build, offline PWA); React Native port planned. `src/logic.js` and `src/meta.js` stay pure.
 - French UI copy.
 - No emoji anywhere in the UI: icons are drawn (canvas or SVG).
-- In Classique, Chrono, Chill and the daily level, cosmetics never change gameplay. World rules only apply inside Aventure and the weekend event (which keeps its own record).
+- In Classique, Chrono, Chill and the daily level, cosmetics never change gameplay. World rules only apply inside Aventure.
 
 ## Comfort
 Pause button in the HUD (the game also pauses when the app goes to the background). Settings: a mark per block color for color-blind players, and dark menu screens for the light themes (the game keeps its theme).
