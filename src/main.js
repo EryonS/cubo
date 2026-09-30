@@ -648,6 +648,26 @@
     g.restore();
   }
 
+  // Puzzle frame: follows the drawing instead of the square (one padded rounded tile per cell of the
+  // drawing, filled as a single path so the shadow stays one piece). No frame line: it would cut
+  // through the joins.
+  function drawShapedFrame(g, th, inside) {
+    const { bx, by, cell } = lay;
+    const pad = 10;
+    const path = new Path2D();
+    for (let i = 0; i < SIZE * SIZE; i++) {
+      if (!inside(i)) continue;
+      const x = bx + (i % SIZE) * cell;
+      const y = by + Math.floor(i / SIZE) * cell;
+      path.roundRect(x - pad, y - pad, cell + pad * 2, cell + pad * 2, Math.min(th.frame.r, pad + cell * 0.2));
+    }
+    g.save();
+    g.shadowColor = th.shadow || 'rgba(0,0,0,0.35)'; g.shadowBlur = 20; g.shadowOffsetY = 8;
+    g.fillStyle = th.board;
+    g.fill(path, 'nonzero');
+    g.restore();
+  }
+
   function drawEmpty(g, th, x, y, cell) {
     g.fillStyle = th.empty;
     g.beginPath();
@@ -2254,8 +2274,9 @@
     const w = freePick;
     const rules = WD.WORLDS[w];
     const open = M.worldFreeOpen(profile, w);
+    const note = rules.free && rules.free.note ? `<div class="info"><b>i</b><span>${rules.free.note}</span></div>` : '';
     pick.innerHTML = `<h3>${worldName(w)}</h3>
-      <div class="rules"><div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div></div>`;
+      <div class="rules"><div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div>${note}</div>`;
     if (!open) {
       pick.insertAdjacentHTML('beforeend', `<div class="fw-locked">Réussis l'épreuve de ce monde en Aventure (niveau ${M.TRIAL_LEVEL}) pour y jouer sans fin.</div>`);
       return;
@@ -3586,8 +3607,17 @@
   }
 
   // Where Cubo sits: bottom center on the board frame, and its size.
+  // In a puzzle it stands on the drawing's rightmost column, on its top cell (clear of the score sign).
   function cuboSpot() {
     const s = Math.max(34, Math.min(58, lay.cell * 1.15));
+    if (state.puzzle) {
+      for (let c = SIZE - 1; c >= 0; c--) {
+        for (let r = 0; r < SIZE; r++) {
+          if (isVoid(r * SIZE + c)) continue;
+          return { x: lay.bx + (c + 1) * lay.cell - s * 0.5 + 2, y: lay.by + r * lay.cell - 10, s };
+        }
+      }
+    }
     return { x: lay.bx + lay.board - s * 0.5 + 2, y: lay.by - 10, s };
   }
 
@@ -4032,7 +4062,8 @@
   function drawBoard(t) {
     const { bx, by, board, cell } = lay;
     const th = theme();
-    drawFrame(ctx, th, bx - 10, by - 10, board + 20, board + 20);
+    if (state.puzzle) drawShapedFrame(ctx, th, (i) => !isVoid(i));
+    else drawFrame(ctx, th, bx - 10, by - 10, board + 20, board + 20);
 
     // Preview: ghost of the dragged piece + lines it would clear.
     let ghost = null;

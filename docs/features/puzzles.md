@@ -22,4 +22,5 @@ Menu row "Puzzles" opens 40 puzzles in 4 packs of 10 (Débutant, Malin, Expert, 
 
 ## Gotchas
 - Puzzles are generated from fixed seeds: changing `DRAWINGS`, `quotaOf`, the tiling order or `L.SHAPES` changes every puzzle (stars already earned stay on their number). `tests/puzzles.test.js` checks all 40 are solvable.
+- The board frame follows the drawing (`drawShapedFrame`: one padded tile per cell, one path, no frame line).
 - Void cells are `SPECIAL` on the board: never run line clears in puzzle mode (a row of voids + blocks would count as full).

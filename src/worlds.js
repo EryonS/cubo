@@ -10,8 +10,8 @@
  *   coinMul                 multiplier on the chance a new piece carries a coin
  *   bonusWeights            { [bonus]: factor } on bonus odds
  *   gravity                 blocks fall after a clear; new full lines chain
- *   free                    worlds mode (endless run): { setup: { kind, count }, every, kind, clock }
- *                           start cells, one `kind` cell every `every` moves, a clock (ms)
+ *   free                    worlds mode (endless run): { setup: { kind, count }, every, kind, clock, note }
+ *                           start cells, one `kind` cell every `every` moves, a clock (ms), note for the Mondes screen
  * The world also fixes the level's clock (levels.js) and the renderer's palette (main.js).
  */
 (function (root, factory) {
@@ -53,7 +53,7 @@
       plus: 'Les bulles donnent un bonus quand elles éclatent',
       minus: 'Tous les 10 coups, le courant décale une ligne',
       setup: scatter,
-      free: { setup: { kind: 'bubble', count: 3 }, every: 6, kind: 'bubble' },
+      free: { setup: { kind: 'bubble', count: 3 }, every: 6, kind: 'bubble', note: 'Partie sans fin : 3 bulles au départ, puis une nouvelle tous les 6 coups.' },
       afterMove(state, api) {
         if (state.moves % 10) return [];
         const rows = [];
@@ -74,7 +74,7 @@
       minus: 'Tous les 7 coups, un astéroïde (2 coups pour le casser) tombe sur la grille',
       bonusWeights: { nitro: 2 },
       setup: scatter,
-      free: { setup: { kind: 'asteroid', count: 2 } },
+      free: { setup: { kind: 'asteroid', count: 2 }, note: 'Partie sans fin : 2 astéroïdes au départ, puis un tous les 7 coups.' },
       afterMove: dropEvery(7, 'asteroid'),
     },
     ice: {
@@ -82,7 +82,7 @@
       plus: 'Une ligne qui touche de la glace rapporte double',
       minus: 'La glace se casse en 2 fois',
       setup: scatter,
-      free: { setup: { kind: 'ice', count: 6 }, every: 8, kind: 'ice' },
+      free: { setup: { kind: 'ice', count: 6 }, every: 8, kind: 'ice', note: 'Partie sans fin : 6 blocs de glace au départ, puis un nouveau tous les 8 coups.' },
       lineMul: (hit) => (touches(hit, 'ice') ? 2 : 1),
     },
     forest: {
@@ -90,7 +90,7 @@
       plus: 'Tous les 4 coups, une luciole dépose une pièce sur un bloc',
       minus: 'Tous les 8 coups, un champignon pousse sur une case vide',
       setup: scatter,
-      free: { setup: { kind: 'mushroom', count: 2 } },
+      free: { setup: { kind: 'mushroom', count: 2 }, note: 'Partie sans fin : 2 champignons au départ, puis un tous les 8 coups.' },
       afterMove(state, api) {
         const out = [];
         if (state.moves % 4 === 0) {
@@ -115,14 +115,14 @@
       plus: 'Tous les points ×1,5',
       minus: 'Chrono permanent (les lignes rajoutent 3 s)',
       scoreMul: 1.5,
-      free: { clock: 60000 },
+      free: { clock: 60000, note: 'Partie sans fin : 60 s au départ, chaque ligne rajoute 3 s.' },
     },
     volcano: {
       name: 'Volcan',
       plus: 'Une braise effacée explose en croix (ligne + colonne)',
       minus: 'Tous les 6 coups, une braise tombe ; pas effacée en 8 coups, elle durcit en roche',
       setup: scatter,
-      free: { setup: { kind: 'ember', count: 1 } },
+      free: { setup: { kind: 'ember', count: 1 }, note: 'Partie sans fin : une braise au départ, puis une tous les 6 coups.' },
       afterMove: dropEvery(6, 'ember'),
     },
   };

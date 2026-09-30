@@ -19,4 +19,5 @@ Cubo, a mint jelly with a sprout, sits on the top-right corner of the board fram
 ## Gotchas
 - Mood is recomputed every frame; events only override it until `cubo.until`.
 - Reduced motion: no jumps, sway or spin; moods still change.
+- In puzzles it stands on the top cell of the drawing's rightmost column, so it never floats over void cells or covers the score sign.
 - Its spot is the board's top-right corner (`cuboSpot`): a layout change above the board must keep that corner free.
