@@ -157,9 +157,19 @@
       transition: background 150ms, box-shadow 150ms, transform 150ms;
     }
     #trash.show { display: flex; animation: fade 150ms; }
-    #trash.hot { background: rgba(255,93,115,0.3); box-shadow: inset 0 0 0 2.5px #ff5d73; transform: translateX(-50%) scale(1.04); }
+    #trash { overflow: hidden; }
+    #trash > * { position: relative; }
+    #trash::before {
+      content: ''; position: absolute; inset: 0; transform-origin: left; transform: scaleX(0);
+      background: rgba(255,93,115,0.35);
+    }
+    #trash.hot { box-shadow: inset 0 0 0 2.5px #ff5d73; }
+    #trash.hot::before { transform: scaleX(1); transition: transform 600ms linear; }
+    #trash.armed { background: #ff5d73; color: #fff; transform: translateX(-50%) scale(1.06); }
+    #trash.armed .cost { color: #fff; }
     #trash.broke { opacity: .55; }
     #trash.broke.hot { background: var(--sunken); box-shadow: inset 0 0 0 2px var(--hairline); transform: translateX(-50%); }
+    #trash.broke.hot::before { transform: scaleX(0); transition: none; }
     #trash .cost { display: inline-flex; align-items: center; color: var(--accent); }
     body.dragging #inventory { visibility: hidden; }
 
@@ -798,7 +808,19 @@
   <script>
     // Offline support; service workers need http(s), so skip when opened as a local file.
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      navigator.serviceWorker.register('sw.js');
+      // A new version takes over in the background: reload once so the home-screen app shows it
+      // right away instead of on the next launch. The game state is already saved on every move.
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController || reloading) return;
+        reloading = true;
+        location.reload();
+      });
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .then((reg) => document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update();
+        }));
     }
   </script>
 </body>

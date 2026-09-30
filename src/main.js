@@ -1389,9 +1389,8 @@
     drag.x = e.clientX;
     drag.y = e.clientY;
     const r = trashEl.getBoundingClientRect();
-    // Generous zone: anything below the tray counts.
-    drag.overTrash = !tut && e.clientY > r.top - 12 && e.clientX > r.left - 16 && e.clientX < r.right + 16;
-    trashEl.classList.toggle('hot', drag.overTrash);
+    const over = !tut && e.clientY > r.top && e.clientY < r.bottom + 24 && e.clientX > r.left && e.clientX < r.right;
+    if (over !== drag.overTrash) armTrash(over);
   });
   const endDrag = (e) => {
     if (aiming && aiming.pid === e.pointerId) {
@@ -1408,7 +1407,8 @@
     const g = dragGeometry(drag, t);
     const idx = drag.idx;
     const isTap = t - drag.t0 < 280 && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 12;
-    const toss = drag.overTrash && e.type === 'pointerup';
+    // Only a piece held over the bin until it armed gets thrown: a quick slip below the tray doesn't count.
+    const toss = drag.overTrash && drag.trashArmed && e.type === 'pointerup';
     drag = null;
     showTrash(false);
     if (toss) {
@@ -1436,15 +1436,37 @@
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
 
+  // Hovering the bin fills it for TRASH_ARM_MS; releasing before it is full puts the piece back.
+  const TRASH_ARM_MS = 600;
+  let trashTimer = 0;
+  function armTrash(over) {
+    clearTimeout(trashTimer);
+    drag.overTrash = over;
+    drag.trashArmed = false;
+    trashEl.classList.toggle('hot', over);
+    trashEl.classList.remove('armed');
+    if (!trashEl.classList.contains('broke')) trashEl.querySelector('.label').textContent = 'Maintenir pour jeter';
+    if (!over || trashEl.classList.contains('broke')) return;
+    const d = drag;
+    trashTimer = setTimeout(() => {
+      if (drag !== d || !d.overTrash) return;
+      d.trashArmed = true;
+      trashEl.classList.add('armed');
+      trashEl.querySelector('.label').textContent = 'Lâcher pour jeter';
+      buzz(8);
+    }, TRASH_ARM_MS);
+  }
+
   function showTrash(on) {
+    clearTimeout(trashTimer);
     document.body.classList.toggle('dragging', on);
     trashEl.classList.toggle('show', on);
-    trashEl.classList.remove('hot');
+    trashEl.classList.remove('hot', 'armed');
     if (!on) return;
     const cost = L.discardCost(state);
     const broke = profile.coins < cost;
     trashEl.classList.toggle('broke', broke);
-    trashEl.querySelector('.label').textContent = broke ? 'Pas assez de pièces' : 'Jeter';
+    trashEl.querySelector('.label').textContent = broke ? 'Pas assez de pièces' : 'Maintenir pour jeter';
     trashEl.querySelector('.cost').innerHTML = fmt(cost) + COIN;
   }
 
@@ -2251,11 +2273,12 @@
       ${outOfMoves ? `<button class="opt" data-act="more"><span>+${M.EXTRA_MOVES} coups pour finir (1 étoile max)</span><span class="price">${moreCost}${COIN}</span></button>` : ''}
       <div class="actions">
         <button class="btn ghost" data-act="map">Carte</button>
-        <button class="btn ${next ? 'ghost' : 'primary'}" data-act="again">Rejouer</button>
+        ${stage.won && stage.stars >= 3 ? '' : `<button class="btn ${next ? 'ghost' : 'primary'}" data-act="again">${stage.won ? 'Rejouer' : 'Réessayer'}</button>`}
         ${next ? '<button class="btn primary" data-act="next">Suivant</button>' : ''}
       </div>`;
     card.querySelector('[data-act="map"]').addEventListener('click', () => openWorld(w));
-    card.querySelector('[data-act="again"]').addEventListener('click', () => startLevel(w, n));
+    const again = card.querySelector('[data-act="again"]');
+    if (again) again.addEventListener('click', () => startLevel(w, n));
     if (next) card.querySelector('[data-act="next"]').addEventListener('click', () => (next[1] === 1 && next[0] !== w ? openWorld(next[0]) : openStage(next[0], next[1])));
     bindMoreMoves(card, moreCost);
     levelEndEl.classList.add('show');
@@ -2401,13 +2424,6 @@
 
   const frDate = (day) => new Date(day + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
 
-  // Share text, no emoji: "Gridlock #31 · Forêt · 3 étoiles · 12 coups en rab".
-  function shareText() {
-    const st = state.stage;
-    const rest = st.clock ? `${Math.ceil(state.clock / 1000)} s en rab` : `${st.movesLeft} coup${st.movesLeft > 1 ? 's' : ''} en rab`;
-    return `Gridlock #${LV.dayNumber(st.daily)} · ${worldName(st.world)} · ${st.stars} étoile${st.stars > 1 ? 's' : ''} · ${rest}`;
-  }
-
   function showDailyEnd(title, lines, total, outOfMoves, report) {
     const stage = state.stage;
     const day = stage.daily;
@@ -2427,23 +2443,12 @@
       ${outOfMoves ? `<button class="opt" data-act="more"><span>+${M.EXTRA_MOVES} coups pour finir (1 étoile max)</span><span class="price">${moreCost}${COIN}</span></button>` : ''}
       <div class="actions">
         <button class="btn ghost" data-act="menu">Menu</button>
-        ${stage.won ? '<button class="btn primary" data-act="share">Partager</button>'
-          : left ? `<button class="btn primary" data-act="retry">Réessayer${Number.isFinite(left) ? ` (${left})` : ''}</button>` : ''}
+        ${left && !(stage.won && stage.stars >= 3)
+          ? `<button class="btn primary" data-act="retry">${stage.won ? 'Rejouer' : 'Réessayer'}${Number.isFinite(left) ? ` (${left})` : ''}</button>` : ''}
       </div>`;
     card.querySelector('[data-act="menu"]').addEventListener('click', () => { hideAdventure(); openMenu(); });
     const retry = card.querySelector('[data-act="retry"]');
     if (retry) retry.addEventListener('click', () => startDaily(day));
-    const share = card.querySelector('[data-act="share"]');
-    if (share) {
-      // Phones get the share sheet; elsewhere (or if sharing fails) the text goes to the clipboard.
-      share.addEventListener('click', async () => {
-        const text = shareText();
-        if (navigator.share && matchMedia('(pointer: coarse)').matches) {
-          try { await navigator.share({ text }); return; } catch (e) { if (e.name === 'AbortError') return; }
-        }
-        try { await navigator.clipboard.writeText(text); share.textContent = 'Copié !'; } catch { sfx.nope(); }
-      });
-    }
     bindMoreMoves(card, moreCost);
     levelEndEl.classList.add('show');
     starChimes(stage.stars);
