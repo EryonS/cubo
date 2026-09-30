@@ -165,8 +165,30 @@
     p.coins += total;
     p.games += 1;
     p.lifetime = addLifetime(prev.lifetime, stats, total);
+    if (run.mode) {
+      p.modes = addModeRun(prev.modes, run);
+      p.history = [...(prev.history || []), { m: run.mode, s: run.score || 0 }].slice(-HISTORY);
+    }
     return { profile: p, report: { earned, total, completed, coinsBefore: prev.coins } };
   }
+
+  // ---------- per-mode stats ----------
+  // profile.modes: { [mode]: { games, total, best, bestCombo, lines } } since 2026-10-01.
+  // profile.history: the last HISTORY runs, oldest first, as { m: mode, s: score }.
+  // mode is classic, chrono, chill, adventure (levels and dailies) or event (weekend).
+  const HISTORY = 60;
+  function addModeRun(prev, run) {
+    const m = { games: 0, total: 0, best: 0, bestCombo: 0, lines: 0, ...((prev || {})[run.mode] || {}) };
+    m.games += 1;
+    m.total += run.score || 0;
+    m.best = Math.max(m.best, run.score || 0);
+    m.bestCombo = Math.max(m.bestCombo, run.bestCombo || 0);
+    m.lines += run.lines || 0;
+    return { ...(prev || {}), [run.mode]: m };
+  }
+  const modeStats = (profile, mode) => ({ games: 0, total: 0, best: 0, bestCombo: 0, lines: 0, ...((profile.modes || {})[mode] || {}) });
+  // Scores of the last `n` runs of a mode, oldest first.
+  const recentScores = (profile, mode, n) => (profile.history || []).filter((h) => h.m === mode).slice(-n).map((h) => h.s);
 
   // ---------- Aventure ----------
   // profile.adventure.stars: { "<world>-<n>": 0..3 }. A key present = level cleared (0 = skipped).
@@ -245,13 +267,16 @@
 
   // ---------- lifetime stats ----------
   const LIFETIME_SUM = ['lines', 'pieces', 'perfects', 'bonusUsed', 'bombCells', 'coins'];
-  const LIFETIME_MAX = ['bestCombo', 'bestMulti', 'score'];
+  const LIFETIME_MAX = ['bestCombo', 'bestMulti', 'score', 'bestBomb'];
   function addLifetime(prev, run, coinsPaid) {
     const lt = { games: 0, coinsEarned: 0, used: {}, ...(prev || {}) };
     lt.games += 1;
     lt.coinsEarned += coinsPaid || 0;
     for (const k of LIFETIME_SUM) lt[k] = (lt[k] || 0) + (run[k] || 0);
     for (const k of LIFETIME_MAX) lt[k] = Math.max(lt[k] || 0, run[k] || 0);
+    // For secret stickers: most grids emptied in one run, best score with no undo and no discard.
+    lt.bestPerfects = Math.max(lt.bestPerfects || 0, run.perfects || 0);
+    if (!run.undos && !run.discards) lt.cleanScore = Math.max(lt.cleanScore || 0, run.score || 0);
     lt.used = { ...lt.used };
     for (const [k, n] of Object.entries(run.used || {})) lt.used[k] = (lt.used[k] || 0) + n;
     return lt;
@@ -345,6 +370,7 @@
     { id: 'explorer', name: 'Explorateur' },
     { id: 'faithful', name: 'Fidèle' },
     { id: 'collector', name: 'Collectionneur' },
+    { id: 'secret', name: 'Secrets' },
   ];
   const STICKERS = [
     { id: 'combo5', page: 'combo', name: 'Combo ×5', hint: 'Atteins un combo ×5', test: (p) => lt(p, 'bestCombo') >= 5 },
@@ -370,6 +396,13 @@
     { id: 'lines1000', page: 'collector', name: '1 000 lignes', hint: 'Efface 1 000 lignes au total', test: (p) => lt(p, 'lines') >= 1000 },
     { id: 'games100', page: 'collector', name: '100 parties', hint: 'Joue 100 parties', test: (p) => lt(p, 'games') >= 100 },
     { id: 'stars120', page: 'collector', name: '120 étoiles', hint: "Gagne 120 étoiles en Aventure", test: (p) => totalStars(p) >= 120 },
+    // Secret: name and hint stay hidden in the album until earned.
+    { id: 'bomb21', page: 'secret', secret: true, reward: 40, name: 'Boum parfait', hint: 'Une Bombe fait sauter 21 blocs', test: (p) => lt(p, 'bestBomb') >= 21 },
+    { id: 'clean3k', page: 'secret', secret: true, reward: 40, name: 'Sans filet', hint: '3 000 points sans annuler ni jeter', test: (p) => lt(p, 'cleanScore') >= 3000 },
+    { id: 'perfect2', page: 'secret', secret: true, reward: 40, name: 'Place nette', hint: 'Vide la grille 2 fois dans la même partie', test: (p) => lt(p, 'bestPerfects') >= 2 },
+    { id: 'hoard', page: 'secret', secret: true, reward: 40, name: 'Coffre plein', hint: 'Garde 2 000 pièces en poche', test: (p) => p.coins >= 2000 },
+    { id: 'allmodes', page: 'secret', secret: true, reward: 40, name: 'Curieux', hint: 'Joue en Classique, Chrono, Chill et au week-end', test: (p) => ['classic', 'chrono', 'chill', 'event'].every((m) => ((p.modes || {})[m] || {}).games > 0) },
+    { id: 'weekend4', page: 'secret', secret: true, reward: 40, name: 'Habitué', hint: 'Joue 4 week-ends différents', test: (p) => Object.keys(p.events || {}).length >= 4 },
   ];
   const STICKER_REWARD = 20;
 
@@ -382,6 +415,28 @@
     for (const s of fresh) stickers[s.id] = today;
     const coins = fresh.reduce((a, s) => a + (s.reward || STICKER_REWARD), 0);
     return { profile: earn({ ...prev, stickers }, coins), fresh };
+  }
+
+  // ---------- weekend event ----------
+  // profile.events: { [saturday]: { best, games, paid } }. paid = score tiers already rewarded
+  // for that weekend, so each tier pays once per event.
+  const EVENT_TIERS = [[1000, 20], [2500, 40], [5000, 80]];
+  const eventOf = (profile, id) => ({ best: 0, games: 0, paid: 0, ...((profile.events || {})[id] || {}) });
+
+  // Records a finished event run. Returns { profile, report: { earned, total, record } }.
+  function applyEvent(prev, id, score) {
+    const before = eventOf(prev, id);
+    const earned = [];
+    let paid = before.paid;
+    while (paid < EVENT_TIERS.length && score >= EVENT_TIERS[paid][0]) {
+      const [target, coins] = EVENT_TIERS[paid];
+      earned.push({ label: `Week-end : ${target.toLocaleString('fr-FR')} points`, coins });
+      paid += 1;
+    }
+    const total = earned.reduce((a, l) => a + l.coins, 0);
+    const ev = { best: Math.max(before.best, score), games: before.games + 1, paid };
+    const p = earn({ ...prev, events: { ...(prev.events || {}), [id]: ev } }, total);
+    return { profile: p, report: { earned, total, record: score > before.best && before.best > 0 } };
   }
 
   // Rewarded ad: pays the run's coins a second time.
@@ -424,6 +479,7 @@
 
   return {
     tipSeen, markTip, needsTutorial,
+    HISTORY, modeStats, recentScores, EVENT_TIERS, eventOf, applyEvent,
     addDays, dayDiff, monthDays,
     DAILY_ATTEMPTS, FREEZE_COST, FREEZE_MAX, STREAK_SKIN, dailyOf, streakOf, dailyAttemptsLeft, startDaily, streakNow,
     applyDaily, buyFreeze, monthTrophy, STICKER_PAGES, STICKERS, STICKER_REWARD, checkStickers,

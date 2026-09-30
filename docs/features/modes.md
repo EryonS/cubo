@@ -16,5 +16,5 @@ Each has Facile / Normal / Difficile, and its own record.
 `gridlock.v2`: `{ state, bests: { [mode]: n }, settings, prefs: { mode, level } }`. An unfinished run is saved on `visibilitychange` and resumed at launch.
 
 ## Gotchas
-- Records must stay comparable: world rules never apply in these modes.
+- Records must stay comparable: world rules never apply in these modes. The weekend event is a Classique run with `state.event` set; it never touches `bests` (see weekend.md).
 - Adding a mode: add it to `MODES`, the menu, `MODE_NAMES` and `bests`.

@@ -26,7 +26,9 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Défis screen, daily level, streak, share | [features/daily.md](features/daily.md) | `daily` in `src/levels.js`, daily/streak in `src/meta.js`, sections `daily level, streak, profile` and `Défis screen` in `src/main.js` |
 | Combo / line clear effects (juice) | [features/combo-feel.md](features/combo-feel.md) | `commit`, `drawBanner`, `drawComboTag` in `src/main.js` |
 | Guided first game, one-time tips | [features/tutorial.md](features/tutorial.md) | `src/tutorial.js`, `tipSeen` / `markTip` in `src/meta.js`, sections `tutorial` and `tips` in `src/main.js` |
-| Sticker album, trophies, profile and stats | [features/album.md](features/album.md) | `STICKERS` / `checkStickers` / `monthTrophy` in `src/meta.js`, `#profile` screen |
+| Sticker album, trophies, profile and stats | [features/album.md](features/album.md) | `STICKERS` / `checkStickers` / `monthTrophy` / `modeStats` in `src/meta.js`, `#profile` screen |
+| Weekend event | [features/weekend.md](features/weekend.md) | `weekend` in `src/levels.js`, `applyEvent` in `src/meta.js`, `state.event` in `src/logic.js`, section `weekend event` in `src/main.js` |
+| Pause, block marks, dark menus | [features/comfort.md](features/comfort.md) | section `pause` and `MARKS` in `src/main.js`, `.dark-menus` in `index.html` |
 
 ## Adding a new feature
 1. Create `docs/features/<feature>.md` (template below) and add a row to the table above.
@@ -49,4 +51,5 @@ Status: shipped | planned
 3. Retention (**done**, v1): daily level + share text, day streak with freezes, sticker album with monthly trophies, profile and stats.
 4. Onboarding (**done**): guided first game + one-time tips.
 5. Combo feel (**done**): tiered clear effects.
-6. Later: two players on one phone, pause button, polish.
+6. Comfort and retention (**done**, v1): pause, color-blind block marks, dark menus, weekend event, per-mode stats, secret stickers.
+7. Later: two players on one phone, polish.

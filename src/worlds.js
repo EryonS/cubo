@@ -20,9 +20,9 @@
 })(typeof self !== 'undefined' ? self : this, function (L) {
   'use strict';
 
-  // Scatters stage.setup.count cells of stage.setup.kind on empty cells.
+  // Scatters setup.count cells of setup.kind on empty cells (setup from the stage or the weekend event).
   function scatter(state, api) {
-    const setup = state.stage.setup;
+    const setup = (state.stage || state.event || {}).setup;
     if (!setup) return;
     for (let k = 0; k < setup.count; k++) {
       const i = api.pick(state, api.emptyCells(state));

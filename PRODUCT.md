@@ -13,13 +13,18 @@ Aventure mode: a map of 8 worlds, 10 short levels each (goal + move budget, star
 
 Daily level (same for everyone, 3 attempts, share text), day streak with freezes and rewards, sticker album with monthly trophies, Défis screen (today + calendar), missions reachable from the menu and in game, profile with album and stats.
 
-Planned (see `docs/CLAUDE.md`): two players on one phone, pause button, polish.
+Weekend event (Saturday and Sunday): an endless Classique run under one Aventure world's rule, a new world each week, point tiers paying coins once per weekend. Secret stickers in the album, per-mode stats with the last scores.
+
+Planned (see `docs/CLAUDE.md`): two players on one phone, polish.
 
 ## Constraints
 - Web first (vanilla JS canvas, no build, offline PWA); React Native port planned. `src/logic.js` and `src/meta.js` stay pure.
 - French UI copy.
 - No emoji anywhere in the UI: icons are drawn (canvas or SVG).
-- In Classique, Chrono, Chill and the daily level, cosmetics never change gameplay. World rules only apply inside Aventure.
+- In Classique, Chrono, Chill and the daily level, cosmetics never change gameplay. World rules only apply inside Aventure and the weekend event (which keeps its own record).
+
+## Comfort
+Pause button in the HUD (the game also pauses when the app goes to the background). Settings: a mark per block color for color-blind players, and dark menu screens for the light themes (the game keeps its theme).
 
 ## Brand commitments
 - Playful, colorful, rounded, toy-like; inspired by console party games without copying any of them.

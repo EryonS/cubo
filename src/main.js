@@ -732,6 +732,7 @@
   const migrated = M.migrate(storedProfile.owned ? storedProfile : M.createProfile(today()));
   let profile = M.ensureDay(migrated.profile, today());
   saveProfile();
+  if (state.event) best = M.eventOf(profile, state.event.id).best;
   let bestAtStart = best;
   let recordAnnounced = false;
   let runSettled = false;
@@ -1043,13 +1044,45 @@
   const buzz = (p) => { if (settings.vibrate && navigator.vibrate) navigator.vibrate(p); };
 
   // ---------- drawing helpers ----------
-  function drawBlock(cx, cy, size, color, alpha = 1, scale = 1, bonus = null, skin = blockSkin()) {
+  // fam: the shape family (palette index); with the "Motifs" setting on, it adds that family's mark.
+  function drawBlock(cx, cy, size, color, alpha = 1, scale = 1, bonus = null, skin = blockSkin(), fam = 0) {
     const s = size * scale * 0.9;
     if (s <= 0.5) return;
     ctx.globalAlpha = alpha;
     skin(cx - s / 2, cy - s / 2, s, color);
     if (bonus) drawIcon(bonus, cx, cy, s * (ICON_COLORS[bonus] ? 0.7 : 0.66));
+    else if (fam && settings.patterns) drawMark(fam, cx, cy, s, skin === BLOCK_SKINS.neon ? color : 'rgba(0,0,0,0.42)');
     ctx.globalAlpha = 1;
+  }
+
+  // Color-blind aid: one simple mark per shape family, so blocks never rely on color alone.
+  // Drawn in a unit box (-1..1) scaled to a third of the block.
+  const MARKS = [
+    null,
+    (g) => { g.beginPath(); g.arc(0, 0, 0.45, 0, Math.PI * 2); g.fill(); },                  // dot
+    (g) => { g.fillRect(-0.9, -0.28, 1.8, 0.56); },                                            // dash
+    (g) => { g.fillRect(-0.28, -0.9, 0.56, 1.8); },                                            // bar
+    (g) => { g.fillRect(-0.9, -0.24, 1.8, 0.48); g.fillRect(-0.24, -0.9, 0.48, 1.8); },         // plus
+    (g) => { g.rotate(Math.PI / 4); g.fillRect(-1, -0.22, 2, 0.44); g.fillRect(-0.22, -1, 0.44, 2); }, // cross
+    (g) => { g.lineWidth = 0.36; g.beginPath(); g.arc(0, 0, 0.7, 0, Math.PI * 2); g.stroke(); }, // ring
+    (g) => { g.fillRect(-0.7, -0.7, 1.4, 1.4); },                                              // square
+    (g) => { g.beginPath(); g.moveTo(0, -0.9); g.lineTo(0.9, 0.75); g.lineTo(-0.9, 0.75); g.fill(); }, // triangle
+    (g) => { g.beginPath(); g.moveTo(0, 0.9); g.lineTo(0.9, -0.75); g.lineTo(-0.9, -0.75); g.fill(); }, // down triangle
+    (g) => { g.beginPath(); g.moveTo(0, -1); g.lineTo(0.8, 0); g.lineTo(0, 1); g.lineTo(-0.8, 0); g.fill(); }, // diamond
+    (g) => { for (const x of [-0.55, 0.55]) { g.beginPath(); g.arc(x, 0, 0.36, 0, Math.PI * 2); g.fill(); } }, // two dots
+    (g) => { for (const k of [-1, 0, 1]) { g.beginPath(); g.arc(k * 0.62, k * 0.62, 0.3, 0, Math.PI * 2); g.fill(); } }, // three dots
+    (g) => { g.lineWidth = 0.4; g.lineCap = 'round'; g.beginPath(); g.moveTo(-0.8, 0.8); g.lineTo(0.8, -0.8); g.stroke(); }, // slash
+    (g) => { g.lineWidth = 0.38; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(-0.85, -0.4); g.lineTo(0, 0.45); g.lineTo(0.85, -0.4); g.stroke(); }, // chevron
+  ];
+  function drawMark(fam, cx, cy, s, color) {
+    const mark = MARKS[fam];
+    if (!mark) return;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(s * 0.2, s * 0.2);
+    ctx.fillStyle = color; ctx.strokeStyle = color;
+    mark(ctx);
+    ctx.restore();
   }
 
   const cellCenter = (r, c) => [lay.bx + (c + 0.5) * lay.cell, lay.by + (r + 0.5) * lay.cell];
@@ -1071,7 +1104,7 @@
     const b = piece.bonus;
     for (const [r, c] of piece.cells) {
       const bonus = b && b.r === r && b.c === c ? b.type : null;
-      drawBlock(ox + (c + 0.5) * cellSize, oy + (r + 0.5) * cellSize, cellSize, pal()[piece.color], alpha, 1, bonus);
+      drawBlock(ox + (c + 0.5) * cellSize, oy + (r + 0.5) * cellSize, cellSize, pal()[piece.color], alpha, 1, bonus, undefined, piece.color);
     }
   }
 
@@ -1616,6 +1649,12 @@
     const res = M.applyRun(M.ensureDay(profile, today()), L.runStats(state));
     profile = res.profile;
     const report = res.report;
+    if (state.event) {
+      const ev = M.applyEvent(profile, state.event.id, state.score);
+      profile = ev.profile;
+      report.earned.push(...ev.report.earned);
+      report.total += ev.report.total;
+    }
     for (const line of stickerLines()) { report.earned.push(line); report.total += line.coins; }
     saveProfile();
     renderWallet();
@@ -1643,7 +1682,7 @@
   function showGameOver(report) {
     document.getElementById('over-title').textContent = state.timeUp ? 'Temps écoulé !' : 'Plus de place !';
     document.getElementById('over-score').textContent = fmt(state.score);
-    document.getElementById('over-best').textContent = 'Record : ' + fmt(best);
+    document.getElementById('over-best').textContent = (state.event ? `Week-end ${worldName(state.event.world)} · record : ` : 'Record : ') + fmt(best);
     overCard.classList.toggle('is-record', state.score >= best && state.score > bestAtStart && bestAtStart > 0);
 
     const earnEl = document.getElementById('over-earn');
@@ -1752,16 +1791,16 @@
     }
   }
 
-  // opts: { mode, level }; defaults to the current game's.
+  // opts: { mode, level, stage, event, seed }; mode and level default to the current game's.
   function newGame(opts = {}) {
     profile = M.ensureDay(profile, today());
     saveProfile();
-    if (state.mode !== 'adventure') bests[state.mode] = best;
+    if (keepsBest()) bests[state.mode] = best;
     const mode = opts.mode || (state.mode === 'adventure' ? prefs.mode : state.mode);
-    state = L.createGame(opts.seed ?? Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage });
+    state = L.createGame(opts.seed ?? Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage, event: opts.event });
     levelSettled = false;
     paintBackground();
-    best = bests[state.mode] || 0;
+    best = state.event ? M.eventOf(profile, state.event.id).best : bests[state.mode] || 0;
     bestAtStart = best;
     recordAnnounced = false;
     runSettled = false;
@@ -1783,7 +1822,12 @@
     modeTips();
   }
 
-  document.getElementById('again').addEventListener('click', () => { unlockAudio(); newGame(); });
+  // Same kind of run again: a weekend event only while that weekend lasts.
+  const sameRun = () => {
+    const ev = state.event && LV.weekend(today());
+    return state.event ? { mode: 'classic', level: 'normal', event: ev.active && ev.id === state.event.id ? ev : null } : {};
+  };
+  document.getElementById('again').addEventListener('click', () => { unlockAudio(); newGame(sameRun()); });
 
   // Ends the current run (coins and missions count) and starts a new one.
   function restartRun(opts) {
@@ -1803,10 +1847,12 @@
     cont.style.display = inProgress() ? '' : 'none';
     document.getElementById('menu-continue-sub').textContent = state.stage
       ? `${state.stage.daily ? 'Niveau du jour #' + LV.dayNumber(state.stage.daily) : 'Aventure · ' + WD.WORLDS[state.stage.world].name + ' ' + state.stage.n} · ${LV.goalText(state.stage.goal)}`
+      : state.event ? `Week-end ${worldName(state.event.world)} · ${fmt(state.score)} pts`
       : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]} · ${fmt(state.score)} pts`;
     document.getElementById('menu-adventure-sub').innerHTML = starSvg(true, 14) + `${M.totalStars(profile)} / ${M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3}`;
     document.getElementById('menu-adventure').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
     renderDailyButton();
+    renderEventButton();
     renderMissionBadges();
     document.getElementById('menu-play').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
     for (const b of document.querySelectorAll('#menu-mode button')) b.classList.toggle('on', b.dataset.mode === prefs.mode);
@@ -1825,7 +1871,7 @@
   }
   const closeMenu = () => menuEl.classList.remove('show');
 
-  document.getElementById('menu-open').addEventListener('click', openMenu);
+  document.getElementById('menu-open').addEventListener('click', () => { unlockAudio(); sfx.turn(); openPause(); });
   document.getElementById('over-menu').addEventListener('click', openMenu);
   document.getElementById('menu-continue').addEventListener('click', () => { unlockAudio(); closeMenu(); });
   menuEl.addEventListener('click', (e) => { if (e.target === menuEl && inProgress()) closeMenu(); });
@@ -2091,8 +2137,11 @@
     explorer: '<path d="M6 21V4M6 4h11l-2.5 4L17 12H6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>',
     faithful: '<path d="M12 2.5c1 3.6 5.5 5.6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.4 1.1-4 2.4-5.3.2 1.7 1 2.8 2.1 3.3-.4-3.3.3-6.3 1-9z" fill="currentColor"/>',
     collector: '<path d="M7 4h10l4 5-9 11L3 9z M3 9h18 M9.5 4 8 9l4 11 4-11-1.5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+    secret: '<path d="M12 2.5l2.2 6.3 6.3 2.2-6.3 2.2L12 19.5l-2.2-6.3L3.5 11l6.3-2.2z" fill="currentColor"/><circle cx="19" cy="19" r="1.8" fill="currentColor"/><circle cx="5" cy="4.5" r="1.3" fill="currentColor"/>',
   };
-  const PAGE_COLORS = { combo: '#ff8fab', explorer: '#6fd6a0', faithful: '#ff9f43', collector: '#8b7cf6' };
+  // Unearned secret stickers show a question mark instead of their glyph, name and hint.
+  const SECRET_GLYPH = '<path d="M9 9.2a3 3 0 1 1 4.2 2.8c-.8.4-1.2 1-1.2 1.8v.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="18.3" r="1.5" fill="currentColor"/>';
+  const PAGE_COLORS = { combo: '#ff8fab', explorer: '#6fd6a0', faithful: '#ff9f43', collector: '#8b7cf6', secret: '#3fc1b0' };
   const WORLD_COLORS = { plain: '#5cc64a', sea: '#1a6aa8', space: '#6a3fd0', ice: '#5ccfe6', forest: '#2f7a4a', retro: '#306230', arcade: '#ff3fd0', volcano: '#e8501a' };
   let freshStickers = new Set();
 
@@ -2254,6 +2303,21 @@
     if (profileTab === 'album') body.innerHTML = albumHtml();
     else body.innerHTML = statsHtml();
     freshStickers.clear();
+    for (const b of body.querySelectorAll('[data-smode]')) {
+      b.addEventListener('click', () => { statsMode = b.dataset.smode; sfx.turn(); renderProfile(); });
+    }
+    const cap = body.querySelector('#chart-cap');
+    for (const bar of body.querySelectorAll('.chart .bar')) {
+      const show = () => {
+        for (const o of body.querySelectorAll('.chart .bar.on')) o.classList.remove('on');
+        bar.classList.add('on');
+        const n = +bar.dataset.n;
+        const count = body.querySelectorAll('.chart .bar').length;
+        cap.textContent = `${n === count ? 'Dernière partie' : `Partie ${n} sur ${count}`} : ${fmt(+bar.dataset.v)} points`;
+      };
+      bar.addEventListener('pointerenter', show);
+      bar.addEventListener('click', show);
+    }
     const freeze = body.querySelector('[data-act="freeze"]');
     if (freeze) freeze.addEventListener('click', () => {
       const next = M.buyFreeze(profile);
@@ -2291,10 +2355,11 @@
       html += `<div class="section-title">${page.name}</div><div class="stickers">`;
       for (const sk of M.STICKERS.filter((x) => x.page === page.id)) {
         const on = !!got[sk.id];
+        const hidden = sk.secret && !on;
         const color = sk.world ? WORLD_COLORS[sk.world] : PAGE_COLORS[page.id];
         html += `<div class="sticker${on ? '' : ' off'}${freshStickers.has(sk.id) ? ' fresh' : ''}" style="--c:${color}">
-          <span class="badge"><svg width="28" height="28" viewBox="0 0 24 24">${STICKER_GLYPHS[page.id]}</svg></span>
-          <b>${sk.name}</b><span>${on ? 'Obtenu' : sk.hint}</span></div>`;
+          <span class="badge"><svg width="28" height="28" viewBox="0 0 24 24">${hidden ? SECRET_GLYPH : STICKER_GLYPHS[page.id]}</svg></span>
+          <b>${hidden ? 'Secret' : sk.name}</b><span>${on ? (sk.secret ? sk.hint : 'Obtenu') : hidden ? 'À découvrir' : sk.hint}</span></div>`;
       }
       html += '</div>';
     }
@@ -2326,7 +2391,7 @@
     const streak = M.streakNow(profile, t);
     document.getElementById('defis-flame').innerHTML = FLAME_SVG(18, streak > 0) + streak;
     const body = document.getElementById('defis-body');
-    body.innerHTML = calendarHtml() + dayHtml(defisDay);
+    body.innerHTML = calendarHtml() + dayHtml(defisDay) + eventHtml();
     for (const b of body.querySelectorAll('[data-cal]')) {
       b.addEventListener('click', () => {
         calMonth = M.addDays(calMonth + '-15', +b.dataset.cal * 30).slice(0, 7);
@@ -2336,6 +2401,7 @@
     }
     for (const b of body.querySelectorAll('[data-day]')) b.addEventListener('click', () => { defisDay = b.dataset.day; sfx.turn(); renderDefis(); });
     body.querySelector('[data-act="daily"]').addEventListener('click', () => openDailySheet(defisDay, 'defis'));
+    body.querySelector('[data-act="event"]').addEventListener('click', () => { sfx.turn(); openEventSheet('defis'); });
   }
 
   function calendarHtml() {
@@ -2379,14 +2445,59 @@
       <div class="defis-note">${trophy ? `Trophée ${trophy === 'gold' ? "d'or" : "d'argent"} gagné ce mois-ci.` : 'Trophée du mois : réussis chaque niveau du jour (or avec 3 étoiles partout).'}</div>`;
   }
 
+  // ----- stats: one mode at a time (tiles + last scores), then lifetime counters -----
+  const STAT_MODES = [['classic', 'Classique'], ['chrono', 'Chrono'], ['chill', 'Chill'], ['event', 'Week-end']];
+  const CHART_RUNS = 20;
+  let statsMode = 'classic';
+
+  function modeStatsHtml() {
+    const ms = M.modeStats(profile, statsMode);
+    const record = Math.max(ms.best, bests[statsMode] || 0);
+    const tiles = [
+      ['Parties', fmt(ms.games)],
+      ['Record', fmt(record)],
+      ['Moyenne', ms.games ? fmt(Math.round(ms.total / ms.games)) : '–'],
+      ['Meilleur combo', ms.bestCombo ? '×' + ms.bestCombo : '–'],
+    ];
+    return `
+      <div class="seg pills stat-modes">${STAT_MODES.map(([id, name]) => `<button data-smode="${id}" class="${id === statsMode ? 'on' : ''}">${name}</button>`).join('')}</div>
+      <div class="stat-tiles">${tiles.map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
+      ${scoreChart(M.recentScores(profile, statsMode, CHART_RUNS))}`;
+  }
+
+  // Last scores as bars, oldest left. One series: accent bars, the best one labeled; tap a bar for its value.
+  function scoreChart(scores) {
+    if (!scores.length) return '<div class="chart-empty">Tes prochaines parties dans ce mode s’afficheront ici.</div>';
+    const W0 = 300;
+    const H0 = 96;
+    const top = 16;
+    const max = Math.max(...scores, 1);
+    const slot = W0 / CHART_RUNS;
+    const bw = slot - 2; // 2px surface gap between bars
+    const peak = scores.indexOf(Math.max(...scores));
+    const bars = scores.map((v, i) => {
+      const h = Math.max(3, ((H0 - top) * v) / max);
+      const x = i * slot + 1;
+      const y = H0 - h;
+      const r = Math.min(4, h, bw / 2);
+      // Rounded data end, square on the baseline.
+      const d = `M${x},${H0}V${y + r}Q${x},${y} ${x + r},${y}H${x + bw - r}Q${x + bw},${y} ${x + bw},${y + r}V${H0}Z`;
+      return `<g class="bar" data-v="${v}" data-n="${i + 1}"><rect x="${i * slot}" y="0" width="${slot}" height="${H0}" fill="transparent"/><path d="${d}"/><title>${fmt(v)} points</title></g>`;
+    }).join('');
+    const px = peak * slot + 1 + bw / 2;
+    const label = `<text x="${Math.min(W0 - 4, Math.max(4, px))}" y="${H0 - Math.max(3, ((H0 - top) * scores[peak]) / max) - 4}" text-anchor="${px < 30 ? 'start' : px > W0 - 30 ? 'end' : 'middle'}">${fmt(scores[peak])}</text>`;
+    return `
+      <div class="chart">
+        <svg viewBox="0 0 ${W0} ${H0 + 1}" role="img" aria-label="Scores des ${scores.length} dernières parties">${bars}<line x1="0" x2="${W0}" y1="${H0 + 0.5}" y2="${H0 + 0.5}"/>${label}</svg>
+        <div class="chart-cap" id="chart-cap">${scores.length} dernière${scores.length > 1 ? 's' : ''} partie${scores.length > 1 ? 's' : ''} · meilleure : ${fmt(scores[peak])}</div>
+      </div>`;
+  }
+
   function statsHtml() {
     const lt = profile.lifetime || {};
     const dailies = Object.values(profile.daily || {}).filter((d) => d.stars !== undefined).length;
     const rows = [
       ['Parties jouées', fmt(lt.games || 0)],
-      ['Record Classique', fmt(bests.classic || 0)],
-      ['Record Chrono', fmt(bests.chrono || 0)],
-      ['Record Chill', fmt(bests.chill || 0)],
       ['Meilleur score (tous modes)', fmt(lt.score || 0)],
       ['Meilleur combo', '×' + (lt.bestCombo || 0)],
       ['Lignes effacées', fmt(lt.lines || 0)],
@@ -2398,7 +2509,7 @@
       ['Niveaux du jour réussis', fmt(dailies)],
       ['Plus longue série', M.streakOf(profile).best + ' jours'],
     ];
-    return `<div class="stats">${rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>`;
+    return modeStatsHtml() + `<div class="section-title">Depuis le début</div><div class="stats">${rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>`;
   }
 
   // ---------- settings ----------
@@ -2415,12 +2526,127 @@
       renderSettings();
       if (key === 'sfx' && settings.sfx) sfx.turn();
       if (key === 'vibrate') buzz(20);
+      if (key === 'darkMenus') applyThemeCss();
       save();
     });
   }
-  document.getElementById('menu-settings').addEventListener('click', () => { renderSettings(); settingsEl.classList.add('show'); });
-  document.getElementById('settings-close').addEventListener('click', () => settingsEl.classList.remove('show'));
-  settingsEl.addEventListener('click', (e) => { if (e.target === settingsEl) settingsEl.classList.remove('show'); });
+  let settingsFromPause = false;
+  function openSettings(fromPause) {
+    settingsFromPause = fromPause;
+    renderSettings();
+    settingsEl.classList.add('show');
+  }
+  function closeSettings() {
+    settingsEl.classList.remove('show');
+    if (settingsFromPause) openPause();
+  }
+  document.getElementById('menu-settings').addEventListener('click', () => openSettings(false));
+  document.getElementById('settings-close').addEventListener('click', closeSettings);
+  settingsEl.addEventListener('click', (e) => { if (e.target === settingsEl) closeSettings(); });
+
+  // ---------- pause ----------
+  // The HUD button pauses; so does leaving the app mid-run. Timers stop under any open overlay.
+  const pauseEl = document.getElementById('pause');
+  function runLabel() {
+    const st = state.stage;
+    if (st) {
+      const where = st.daily ? `Niveau du jour #${LV.dayNumber(st.daily)}` : `${worldName(st.world)} · ${st.n === M.LEVELS_PER_WORLD ? 'Boss' : 'Niveau ' + st.n}`;
+      return `${where} · ${LV.goalText(st.goal)}`;
+    }
+    const what = state.event ? `Week-end ${worldName(state.event.world)}` : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]}`;
+    return `${what} · ${fmt(state.score)} pts`;
+  }
+  function openPause() {
+    if (state.over) { openMenu(); return; }
+    hideTips();
+    drag = null;
+    showTrash(false);
+    setAiming(false);
+    document.getElementById('pause-sub').textContent = runLabel();
+    // A daily attempt is counted when it starts: no free restart from here.
+    document.getElementById('pause-restart').style.display = state.stage && state.stage.daily ? 'none' : '';
+    pauseEl.classList.add('show');
+  }
+  const closePause = () => pauseEl.classList.remove('show');
+  document.getElementById('pause-resume').addEventListener('click', () => { unlockAudio(); closePause(); });
+  pauseEl.addEventListener('click', (e) => { if (e.target === pauseEl) closePause(); });
+  document.getElementById('pause-restart').addEventListener('click', () => {
+    unlockAudio();
+    if (inProgress() && !confirm('Recommencer depuis le début ? Les pièces gagnées sont gardées.')) return;
+    closePause();
+    if (state.stage) startLevel(state.stage.world, state.stage.n);
+    else restartRun({ mode: state.mode, level: state.level, ...sameRun() });
+  });
+  document.getElementById('pause-settings').addEventListener('click', () => { closePause(); openSettings(true); });
+  document.getElementById('pause-menu').addEventListener('click', () => { closePause(); openMenu(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && !tut && !state.over && !pausedByUi() && (state.moves > 0 || state.clock > 0)) openPause();
+  });
+
+  // ---------- weekend event ----------
+  // Saturday and Sunday: Classique under the week's world rule, point tiers pay coins once per weekend.
+  let eventBack = 'menu'; // where "Retour" goes from the event sheet: 'menu' or 'defis'
+
+  function renderEventButton() {
+    const ev = LV.weekend(today());
+    const btn = document.getElementById('menu-event');
+    btn.style.display = ev.active ? '' : 'none';
+    if (!ev.active) return;
+    const rec = M.eventOf(profile, ev.id).best;
+    document.getElementById('menu-event-sub').textContent = `${worldName(ev.world)} · ` + (rec ? `record ${fmt(rec)}` : 'jusqu’à dimanche soir');
+  }
+
+  // Défis screen card: this weekend, or the coming one on weekdays.
+  function eventHtml() {
+    const ev = LV.weekend(today());
+    const rec = M.eventOf(profile, ev.id).best;
+    const when = ev.active ? 'En cours jusqu’à dimanche soir' : `Samedi ${frDate(ev.id)}`;
+    return `
+      <div class="day-title">Week-end</div>
+      <button class="defi" data-act="event">
+        <span class="txt"><b>Week-end ${worldName(ev.world)}</b><span>${when}</span></span>
+        <span class="side">${rec ? `Record<br>${fmt(rec)}` : ev.active ? 'Jouer' : 'Bientôt'}</span>
+      </button>`;
+  }
+
+  function openEventSheet(from) {
+    if (from) eventBack = from;
+    const ev = LV.weekend(today());
+    const mine = M.eventOf(profile, ev.id);
+    const rules = WD.WORLDS[ev.world];
+    const card = document.getElementById('stage-card');
+    card.innerHTML = `
+      <div class="shop-head"><h2>Week-end</h2><span class="star-pill">${worldName(ev.world)}</span></div>
+      <div class="stage-sub">Une partie Classique sans fin, avec la règle du monde ${worldName(ev.world)}.</div>
+      <div class="rules event-rules"><div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div></div>
+      <div class="section-title">Paliers du week-end</div>
+      ${M.EVENT_TIERS.map(([target, coins], i) => `<div class="opt tier${i < mine.paid ? ' done' : ''}"><span>${fmt(target)} points${i < mine.paid ? ' · gagné' : ''}</span><span class="price">+${coins}${COIN}</span></div>`).join('')}
+      <div class="stage-sub event-best">${mine.best ? `Ton record ce week-end : ${fmt(mine.best)}` : ev.active ? 'Chaque palier paie une fois par week-end.' : `Ouvre samedi ${frDate(ev.id)}.`}</div>
+      <div class="actions"><button class="btn ghost" data-act="back">Retour</button><button class="btn primary" data-act="play">${ev.active ? 'Jouer' : 'Samedi'}</button></div>`;
+    const play = card.querySelector('[data-act="play"]');
+    play.disabled = !ev.active;
+    play.addEventListener('click', startEvent);
+    card.querySelector('[data-act="back"]').addEventListener('click', () => {
+      hideAdventure();
+      if (eventBack === 'defis') openDefis(); else openMenu();
+    });
+    hideAdventure();
+    defisEl.classList.remove('show');
+    menuEl.classList.remove('show');
+    stageEl.classList.add('show');
+  }
+
+  function startEvent() {
+    unlockAudio();
+    const ev = LV.weekend(today());
+    if (!ev.active) { sfx.nope(); return; }
+    if (inProgress() && !confirm('Abandonner la partie en cours ? Les pièces gagnées sont gardées.')) return;
+    hideAdventure();
+    menuEl.classList.remove('show');
+    restartRun({ mode: 'classic', level: 'normal', event: ev });
+    banners.push({ text: 'Week-end', sub: worldName(ev.world), gold: true });
+  }
+  document.getElementById('menu-event').addEventListener('click', () => { sfx.turn(); openEventSheet('menu'); });
 
   // ---------- undo ----------
   const undoEl = document.getElementById('undo');
@@ -2565,7 +2791,7 @@
         const y = oy + (r + 0.5) * cell;
         drawEmpty(g, th, x, y, cell);
         const v = pattern[r][c];
-        if (v) drawBlock(x, y, cell, paletteOf(th)[v], 1, 1, null, BLOCK_SKINS[blocksId]);
+        if (v) drawBlock(x, y, cell, paletteOf(th)[v], 1, 1, null, BLOCK_SKINS[blocksId], v);
       }
     }
     ctx = prev;
@@ -2917,6 +3143,8 @@
       });
     } else if (state.mode === 'chill') {
       tip('chill', 'Chill', 'Touche une pièce pour la tourner. Pas de bonus, pas de pression.', () => rectOf(lay.bx, lay.ty, lay.nextX - lay.bx, lay.trayH));
+    } else if (state.event) {
+      tip('event', 'Week-end', `La règle du monde ${worldName(state.event.world)} s’applique à toute la partie. Chaque palier de points rapporte des pièces.`, plate);
     } else if (state.stage && state.stage.daily) {
       tip('daily', 'Niveau du jour', 'Le même niveau pour tout le monde aujourd’hui. Atteins l’objectif affiché en haut.', plate);
     } else if (state.stage) {
@@ -3193,8 +3421,8 @@
           drawSpecial(state.special[i], x, y, cell, t, alpha, scale);
           continue;
         }
-        const color = preview && preview.has(i) ? pal()[ghost.piece.color] : pal()[v];
-        drawBlock(x, y, cell, color, alpha, scale, state.bonus[i]);
+        const fam = preview && preview.has(i) ? ghost.piece.color : v;
+        drawBlock(x, y, cell, pal()[fam], alpha, scale, state.bonus[i], undefined, fam);
       }
       if (dx) ctx.restore();
     }
@@ -3204,7 +3432,7 @@
       const b = ghost.piece.bonus;
       for (const [r, c] of ghost.piece.cells) {
         const [x, y] = cellCenter(ghost.row + r, ghost.col + c);
-        drawBlock(x, y, cell, pal()[ghost.piece.color], 0.35, 1, b && b.r === r && b.c === c ? b.type : null);
+        drawBlock(x, y, cell, pal()[ghost.piece.color], 0.35, 1, b && b.r === r && b.c === c ? b.type : null, undefined, ghost.piece.color);
       }
       if (preview && preview.size) {
         ctx.globalAlpha = 0.12 + 0.06 * Math.sin(t / 90);
@@ -3293,7 +3521,7 @@
       let [x, y] = cellCenter(f.r, f.c);
       if (f.segs && k < 0) y = cellCenter(segRow(f.segs, t, f.r), f.c)[1];
       if (f.kind) { drawSpecial({ kind: f.kind, hp: 1 }, x, y, lay.cell, t, k < 0 ? 1 : 1 - k, k < 0 ? 1 : 1.1 - easeOut(k)); continue; }
-      if (k < 0) { drawBlock(x, y, lay.cell, pal()[f.color]); continue; }
+      if (k < 0) { drawBlock(x, y, lay.cell, pal()[f.color], 1, 1, null, undefined, f.color); continue; }
       const flash = k < 0.25 ? '#ffffff' : pal()[f.color];
       drawBlock(x, y, lay.cell, flash, 1 - k, 1.1 - easeOut(k));
     }

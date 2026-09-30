@@ -88,7 +88,8 @@
   const WORLDS = {};
   const NO_RULES = {};
   function defineWorlds(map) { Object.assign(WORLDS, map); }
-  const rulesOf = (state) => (state.stage && WORLDS[state.stage.world]) || NO_RULES;
+  // Aventure levels carry their world in the stage; a weekend event run carries it in state.event.
+  const rulesOf = (state) => (state.stage ? WORLDS[state.stage.world] : state.event && WORLDS[state.event.world]) || NO_RULES;
 
   function parse(pattern) {
     const cells = [];
@@ -302,21 +303,24 @@
     discards: 0, undos: 0, used: {},
   });
 
-  // Run stats for missions / coins (see meta.js).
-  const runStats = (state) => ({ ...(state.stats || emptyStats()), score: state.score });
+  // Run stats for missions / coins (see meta.js). mode: 'event' for a weekend event run.
+  const runStats = (state) => ({ ...(state.stats || emptyStats()), score: state.score, mode: state.event ? 'event' : state.mode });
 
   // opts: { mode, level, budget, stage } — budget mirrors the wallet so the logic knows whether a
   // discard can still rescue the player (see withBudget). stage (adventure only) comes from
   // levels.js: { world, n, goal: { type: 'lines' | 'score' | 'clear', target, kind? }, maxMoves,
-  // clock?, setup?, ramp? }.
+  // clock?, setup?, ramp? }. event (classic only) comes from levels.weekend(): { id, world, setup? },
+  // an endless run under one world's rules.
   function createGame(seed, opts = {}) {
     const stage = opts.mode === 'adventure' && opts.stage ? opts.stage : null;
     const mode = stage ? 'adventure' : MODES.includes(opts.mode) && opts.mode !== 'adventure' ? opts.mode : 'classic';
+    const event = mode === 'classic' && opts.event && WORLDS[opts.event.world] ? opts.event : null;
     const level = LEVELS[opts.level] ? opts.level : 'normal';
     const state = {
       mode,
       level,
       stage: stage && { ...stage, movesLeft: stage.maxMoves, progress: 0, won: false, stars: 0, extra: 0 },
+      event,
       special: new Array(SIZE * SIZE).fill(null),
       clock: mode === 'chrono' ? LEVELS[level].clock : (stage && stage.clock) || 0,
       budget: opts.budget || 0,
@@ -428,7 +432,7 @@
 
     state.tray[trayIndex] = null;
     refillSlot(state, trayIndex);
-    const spawned = state.stage ? stageMove(state, rules, hit, allLines, true) : [];
+    const spawned = state.stage ? stageMove(state, rules, hit, allLines, true) : state.event ? worldMove(state, rules) : [];
     if (!state.over) settle(state);
 
     return {
@@ -539,14 +543,7 @@
     let spawned = [];
     if (spend) {
       stage.movesLeft -= 1;
-      for (let i = 0; i < SIZE * SIZE; i++) {
-        const sp = state.special[i];
-        if (!sp) continue;
-        const kind = KINDS[sp.kind];
-        const age = (sp.age || 0) + 1;
-        state.special[i] = kind.fuse && age >= kind.fuse ? { kind: kind.hardens, hp: KINDS[kind.hardens].hp, age: 0 } : { ...sp, age };
-      }
-      if (rules.afterMove) spawned = rules.afterMove(state, WORLD_API) || [];
+      spawned = worldMove(state, rules);
     }
     if (stage.progress >= goal.target) {
       stage.progress = Math.min(stage.progress, goal.target);
@@ -555,6 +552,19 @@
       finishStage(state, false);
     }
     return spawned;
+  }
+
+  // A placement under world rules: special cells age (embers harden), then the world acts.
+  // Returns the cells it spawned.
+  function worldMove(state, rules) {
+    for (let i = 0; i < SIZE * SIZE; i++) {
+      const sp = state.special[i];
+      if (!sp) continue;
+      const kind = KINDS[sp.kind];
+      const age = (sp.age || 0) + 1;
+      state.special[i] = kind.fuse && age >= kind.fuse ? { kind: kind.hardens, hp: KINDS[kind.hardens].hp, age: 0 } : { ...sp, age };
+    }
+    return (rules.afterMove && rules.afterMove(state, WORLD_API)) || [];
   }
 
   // Stars: 1 for the win, +1 with 15% of the move budget left, +1 with 30%. Bought moves cap it at 1.

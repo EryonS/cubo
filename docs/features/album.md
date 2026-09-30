@@ -5,7 +5,7 @@ Status: shipped (v1, 2026-09-30)
 Menu > Profil, three tabs:
 - **Album**: streak card (flame, current, record, freezes + buy a freeze), month trophy shelf (from `DAILY_START` to now), then 26 stickers on 4 pages. Unearned stickers are grey with their hint; newly earned ones play a peel animation the first time the album opens.
 - The calendar moved to the Défis screen (see [daily.md](daily.md)); the profile has only Album and Stats.
-- **Stats**: lifetime counters, records per mode, Aventure stars, dailies cleared, longest streak.
+- **Stats**: pills for Classique / Chrono / Chill / Week-end, each with 4 tiles (games, record, average, best combo) and a bar chart of the last 20 scores (tap or hover a bar for its value); then lifetime counters, Aventure stars, dailies cleared, longest streak.
 
 ## Stickers
 | Page | Stickers |
@@ -14,6 +14,9 @@ Menu > Profil, three tabs:
 | Explorateur | beat each world's boss (8, 30 coins each) |
 | Fidèle | streak 7 / 30 / 100 (record); 10 and 50 dailies cleared; one full month |
 | Collectionneur | use all 5 bonuses; 1 000 coins earned; 3 themes besides Jouet; 1 000 lines; 100 games; 120 Aventure stars |
+| Secrets (`secret: true`, 40 coins) | a 21-block bomb; 3 000 points with no undo / discard; empty the grid twice in a run; hold 2 000 coins; play Classique, Chrono, Chill and a weekend; play 4 weekends |
+
+Secret stickers show a question mark, "Secret" and "À découvrir" until earned; then their name and what earned them.
 Default reward 20 coins. Checked after every run, level, daily and Boutique purchase (`stickerLines()` in main.js adds them to the end-of-run report).
 
 ## Month trophies
@@ -26,7 +29,8 @@ Default reward 20 coins. Checked after every run, level, daily and Boutique purc
 - `index.html`: `#profile` overlay, `.ptab` tabs (not `.tab`: the shop binds every `.tab`).
 
 ## Saved state
-`profile.stickers: { [id]: dayEarned }`, `profile.lifetime: { games, lines, pieces, perfects, bonusUsed, bombCells, coins, coinsEarned, bestCombo, bestMulti, score, used: { [bonus]: n } }`.
+`profile.stickers: { [id]: dayEarned }`, `profile.lifetime: { games, lines, pieces, perfects, bonusUsed, bombCells, coins, coinsEarned, bestCombo, bestMulti, score, bestBomb, bestPerfects, cleanScore, used: { [bonus]: n } }`.
+`profile.modes: { [mode]: { games, total, best, bestCombo, lines } }` and `profile.history: [{ m, s }]` (last `M.HISTORY` runs), filled by `applyRun` from `run.mode` (`L.runStats` sets it: classic, chrono, chill, adventure, event). Both started on 2026-10-01; the tab's record also reads the older `bests`.
 
 ## Gotchas
 - Adding a sticker: append to `STICKERS` with a pure `test(profile)`; players who already qualify get it at their next check.

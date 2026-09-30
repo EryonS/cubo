@@ -103,6 +103,24 @@
     return { ...level(world, n), daily: day, seed: hash('seed:' + day) | 0 };
   }
 
+  // ---------- weekend event ----------
+  // Saturday and Sunday: an endless Classique run under one world's rules, a new world each week.
+  // Arcade sits out (its drawback is a clock, which an endless run doesn't have).
+  const EVENT_WORLDS = ['plain', 'sea', 'space', 'ice', 'forest', 'retro', 'volcano'];
+  const EVENT_START = '2026-10-03'; // a Saturday: week 0
+  const EVENT_SPECIALS = 3; // special cells on the board at the start, in worlds that have some
+  const utcDay = (day) => Date.parse(day + 'T00:00:00Z');
+  const shiftDay = (day, n) => new Date(utcDay(day) + n * 86400000).toISOString().slice(0, 10);
+  // id: the event's Saturday. For a weekday, the coming weekend (active: false).
+  function weekend(day) {
+    const dow = new Date(utcDay(day)).getUTCDay();
+    const id = shiftDay(day, dow === 0 ? -1 : 6 - dow);
+    const week = Math.floor(Math.round((utcDay(id) - utcDay(EVENT_START)) / 86400000) / 7);
+    const world = EVENT_WORLDS[((week % EVENT_WORLDS.length) + EVENT_WORLDS.length) % EVENT_WORLDS.length];
+    const kind = WORLD_GOALS[world].kind;
+    return { id, world, active: dow === 6 || dow === 0, setup: kind ? { kind, count: EVENT_SPECIALS } : null };
+  }
+
   const key = (world, n) => `${world}-${n}`;
 
   // French goal text for the HUD and level cards.
@@ -119,5 +137,5 @@
     return KIND_NAMES[goal.kind].toUpperCase();
   }
 
-  return { ORDER, PER_WORLD, DAILY_START, level, daily, dayNumber, key, goalText, goalLabel, KIND_NAMES };
+  return { ORDER, PER_WORLD, DAILY_START, level, daily, dayNumber, weekend, key, goalText, goalLabel, KIND_NAMES };
 });
