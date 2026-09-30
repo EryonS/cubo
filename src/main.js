@@ -1710,7 +1710,10 @@
       }
     }
     checkMissions();
-    if (state.stuck && !over) tip('stuck', 'Coincé ?', 'Utilise un bonus, annule ton dernier coup, ou glisse une pièce tout en bas pour la jeter.', undoEl);
+    if (state.stuck && !over) {
+      if (state.mode === 'chill') tip('stuck-chill', 'Coincé ?', 'Annule ton dernier coup, ou glisse une pièce tout en bas pour la jeter.', undoEl);
+      else tip('stuck', 'Coincé ?', 'Utilise un bonus, annule ton dernier coup, ou glisse une pièce tout en bas pour la jeter.', undoEl);
+    }
     if (over) endGame(t);
     renderInventory();
     save();
