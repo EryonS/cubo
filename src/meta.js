@@ -416,7 +416,14 @@
     return all[0] || null;
   }
 
+  // Onboarding: the guided first game and one-time tips. profile.tips is optional ({ id: true }).
+  const tipSeen = (profile, id) => !!(profile.tips && profile.tips[id]);
+  const markTip = (prev, id) => (tipSeen(prev, id) ? prev : { ...prev, tips: { ...(prev.tips || {}), [id]: true } });
+  // Players who already played (before the tutorial existed) skip it.
+  const needsTutorial = (profile) => !tipSeen(profile, 'tutorial') && !profile.games && !totalStars(profile);
+
   return {
+    tipSeen, markTip, needsTutorial,
     addDays, dayDiff, monthDays,
     DAILY_ATTEMPTS, FREEZE_COST, FREEZE_MAX, STREAK_SKIN, dailyOf, streakOf, dailyAttemptsLeft, startDaily, streakNow,
     applyDaily, buyFreeze, monthTrophy, STICKER_PAGES, STICKERS, STICKER_REWARD, checkStickers,

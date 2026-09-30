@@ -13,7 +13,7 @@ Aventure mode: a map of 8 worlds, 10 short levels each (goal + move budget, star
 
 Daily level (same for everyone, 3 attempts, share text), day streak with freezes and rewards, sticker album with monthly trophies, Défis screen (today + calendar), missions reachable from the menu and in game, profile with album and stats.
 
-Planned (see `docs/CLAUDE.md`): two players on one phone, tutorial, pause button, polish.
+Planned (see `docs/CLAUDE.md`): two players on one phone, pause button, polish.
 
 ## Constraints
 - Web first (vanilla JS canvas, no build, offline PWA); React Native port planned. `src/logic.js` and `src/meta.js` stay pure.

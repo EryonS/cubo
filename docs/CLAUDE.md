@@ -3,7 +3,7 @@
 Read this before adding or changing a feature. It routes you to the right feature file and module.
 
 ## Hard rules
-- `src/logic.js`, `src/meta.js`, `src/worlds.js`, `src/levels.js` stay **pure**: no DOM, no `window`, JSON-serializable state, seeded RNG only. They are reused as-is in the React Native port.
+- `src/logic.js`, `src/meta.js`, `src/worlds.js`, `src/levels.js`, `src/tutorial.js` stay **pure**: no DOM, no `window`, JSON-serializable state, seeded RNG only. They are reused as-is in the React Native port.
 - `src/main.js` only draws, animates, plays sounds, handles input and persists.
 - UI copy is **French**. No emoji anywhere (UI, docs shown to players): draw icons on canvas or in SVG.
 - Any change to a saved shape (`gridlock.v2` run state, `gridlock.profile.v1` profile) needs a migration in `M.migrate` + a test in `tests/`.
@@ -24,6 +24,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Aventure mode (map, levels, stars, rewards) | [features/aventure.md](features/aventure.md) | `src/levels.js`, `src/meta.js`, section `aventure` in `src/main.js` |
 | World rules, special cells | [features/worlds.md](features/worlds.md) | `src/worlds.js`, `KINDS` in `src/logic.js`, `drawSpecial` in `src/main.js` |
 | Défis screen, daily level, streak, share | [features/daily.md](features/daily.md) | `daily` in `src/levels.js`, daily/streak in `src/meta.js`, sections `daily level, streak, profile` and `Défis screen` in `src/main.js` |
+| Guided first game, one-time tips | [features/tutorial.md](features/tutorial.md) | `src/tutorial.js`, `tipSeen` / `markTip` in `src/meta.js`, sections `tutorial` and `tips` in `src/main.js` |
 | Sticker album, trophies, profile and stats | [features/album.md](features/album.md) | `STICKERS` / `checkStickers` / `monthTrophy` in `src/meta.js`, `#profile` screen |
 
 ## Adding a new feature
@@ -45,4 +46,5 @@ Status: shipped | planned
 1. New art direction (**done**): Jouet default theme, 8 world themes, bonus renames.
 2. Aventure (**done**, v1): world map, 10 levels per world, world rules, stars, coin helpers, theme unlock on boss.
 3. Retention (**done**, v1): daily level + share text, day streak with freezes, sticker album with monthly trophies, profile and stats.
-4. Later: two players on one phone, tutorial, pause button, polish.
+4. Onboarding (**done**): guided first game + one-time tips.
+5. Later: two players on one phone, pause button, polish.
