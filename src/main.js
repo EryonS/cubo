@@ -735,7 +735,7 @@
   const bests = saved.bests || { classic: saved.best || loadJSON(LEGACY_KEY).best || 0 };
   let best = bests[recordKey()] || 0;
   // patterns: a symbol per block color. darkMenus: dark menu screens, following the system at first.
-  const settings = { sfx: !saved.muted, music: true, vibrate: true, patterns: false,
+  const settings = { sfx: !saved.muted, music: true, vibrate: true, patterns: false, mascot: true,
     darkMenus: matchMedia('(prefers-color-scheme: dark)').matches, ...saved.settings };
   const prefs = { mode: 'classic', level: 'normal', ...saved.prefs }; // last menu choice
   const storedProfile = loadJSON(PROFILE_KEY);
@@ -1385,6 +1385,7 @@
       aiming.pid = e.pointerId;
       return;
     }
+    if (cuboHit(e.clientX, e.clientY) && !drag) { cuboTap(); return; }
     if (state.over || drag) return;
     const idx = slotAt(e.clientX, e.clientY);
     if (idx < 0 || !state.tray[idx] || returning.some((p) => p.idx === idx)) return;
@@ -1499,6 +1500,7 @@
     const t = now();
     if (!ev.lines && prevCombo >= 2 && !state.combo) {
       comboBreak = { t0: t, n: prevCombo };
+      cuboReact('oops', 900);
       sfx.fizzle();
     }
 
@@ -1527,6 +1529,8 @@
         if (tier >= 2 || ev.lines >= 2) confetti(t, 10 + tier * 14 + ev.lines * 6);
       }
       if (ev.combo >= 2) comboAt = t;
+      if (ev.perfect || tier >= 2) cuboReact('star', 1300, 1);
+      else cuboReact('happy', 900, 0.45 + 0.2 * Math.min(3, ev.lines));
       if (ev.combo >= 2 && comboTier(ev.combo) > comboTier(ev.combo - 1)) sfx.sparkle(comboTier(ev.combo));
 
       let text = LINE_WORDS[Math.min(ev.lines, LINE_WORDS.length - 1)];
@@ -1723,6 +1727,7 @@
       if (!recordAnnounced && bestAtStart > 0) {
         recordAnnounced = true;
         banners.push({ text: 'Nouveau record !', sub: '', gold: true });
+        cuboReact('star', 1500, 1);
       }
     }
     checkMissions();
@@ -1796,6 +1801,7 @@
     const ev = res.events;
     state = res.state;
     const t = now();
+    cuboReact('wow', 900, 0.5);
 
     if (type === 'bomb') {
       for (const cell of ev.cleared) {
@@ -3562,6 +3568,252 @@
     }
   }
 
+  // ---------- mascot ----------
+  // Cubo, a mint jelly with a sprout, perched on the top-right corner of the board. Its base mood
+  // follows the game (watching the dragged piece, worried on a crowded board, asleep behind a menu,
+  // sad or partying at the end); events (clears, combos, bonuses, a broken combo) play short moods
+  // over it. Tap it: it bounces and throws hearts; tap it a lot and it gets dizzy.
+  const CUBO = { base: '#5ad9a8', dark: '#2f9f78', light: '#b7f5dc', ink: '#23313a', cheek: '#ff8fa8', leaf: '#7bcf52', leafDark: '#4f9e33' };
+  const cubo = { mood: null, until: 0, jumpAt: -1e9, jumpH: 0, taps: [], hearts: [], blinkAt: 0, dizzyUntil: 0 };
+
+  function cuboReact(mood, ms, jump = 0) {
+    if (!settings.mascot) return;
+    const t = now();
+    if (t < cubo.dizzyUntil) return;
+    cubo.mood = mood;
+    cubo.until = t + ms;
+    if (jump && !calm()) { cubo.jumpAt = t; cubo.jumpH = jump; }
+  }
+
+  // Where Cubo sits: bottom center on the board frame, and its size.
+  function cuboSpot() {
+    const s = Math.max(34, Math.min(58, lay.cell * 1.15));
+    return { x: lay.bx + lay.board - s * 0.5 + 2, y: lay.by - 10, s };
+  }
+
+  function cuboHit(x, y) {
+    if (!settings.mascot || tut) return false;
+    const m = cuboSpot();
+    return Math.abs(x - m.x) < m.s * 0.7 && y > m.y - m.s * 1.2 && y < m.y + 6;
+  }
+
+  function cuboTap() {
+    const t = now();
+    cubo.taps = cubo.taps.filter((x) => t - x < 1600).concat(t);
+    const m = cuboSpot();
+    if (cubo.taps.length >= 5) {
+      cubo.taps = [];
+      cuboReact('dizzy', 2200, 0.5);
+      cubo.dizzyUntil = now() + 2200;
+      sfx.fizzle();
+    } else {
+      cuboReact(['happy', 'wow', 'happy', 'star'][cubo.taps.length - 1] || 'happy', 900, 0.6);
+      sfx.pop();
+    }
+    for (let k = 0; k < 3; k++) cubo.hearts.push({ x: m.x + (k - 1) * m.s * 0.3, y: m.y - m.s, t0: t + k * 90, dx: (k - 1) * 18 });
+    buzz(8);
+  }
+
+  // Base mood when no event mood is playing.
+  function cuboBaseMood() {
+    if (pausedByUi() && !state.over) return 'sleep';
+    if (state.over) {
+      const won = (state.puzzle && state.puzzle.won) || (state.stage && state.stage.won);
+      return won ? 'party' : 'sad';
+    }
+    if (state.stuck) return 'worried';
+    let cells = 0;
+    let full = 0;
+    for (let i = 0; i < state.board.length; i++) {
+      if (state.special && state.special[i] && state.special[i].kind === 'void') continue;
+      cells += 1;
+      if (state.board[i]) full += 1;
+    }
+    if (state.mode !== 'puzzle' && full / cells >= 0.7) return 'worried';
+    return drag ? 'watch' : 'idle';
+  }
+
+  function drawCubo(t) {
+    if (!settings.mascot) return;
+    const { x, y, s } = cuboSpot();
+    const mood = t < cubo.until ? cubo.mood : cuboBaseMood();
+    const still = calm();
+    // Jumps: event jumps, plus little hops while partying.
+    let lift = 0;
+    let squash = 0;
+    const jk = (t - cubo.jumpAt) / 520;
+    if (jk >= 0 && jk < 1) lift = Math.sin(jk * Math.PI) * s * 0.7 * cubo.jumpH;
+    else if (jk >= 1 && jk < 1.35) squash = Math.sin(((jk - 1) / 0.35) * Math.PI) * 0.18;
+    if (mood === 'party' && !still) {
+      const pk = (t % 700) / 700;
+      lift = Math.max(lift, Math.sin(pk * Math.PI) * s * 0.35);
+    }
+    const breathe = still ? 0 : Math.sin(t / 650) * 0.03;
+    const sw = s * (1 + squash + breathe * 0.5);
+    const sh = s * 0.84 * (1 - squash + breathe * -0.5 + (lift > 1 ? 0.06 : 0));
+    const cx = x + (mood === 'dizzy' && !still ? Math.sin(t / 90) * s * 0.06 : 0);
+    const bottom = y - lift;
+    const top = bottom - sh;
+    ctx.save();
+
+    // Shadow on the frame, smaller while in the air.
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    ctx.beginPath(); ctx.ellipse(x, y + 1, s * 0.42 * (1 - Math.min(0.5, lift / s)), s * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Feet.
+    ctx.fillStyle = CUBO.dark;
+    for (const side of [-1, 1]) {
+      ctx.beginPath(); ctx.ellipse(cx + side * sw * 0.22, bottom - s * 0.02, s * 0.13, s * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // Sprout: two leaves swaying on top.
+    const sway = still ? 0 : Math.sin(t / 420) * 0.25 + (lift > 1 ? -0.2 : 0);
+    ctx.save();
+    ctx.translate(cx, top + s * 0.04);
+    ctx.rotate(sway);
+    ctx.strokeStyle = CUBO.leafDark; ctx.lineWidth = s * 0.05; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -s * 0.16); ctx.stroke();
+    for (const side of [-1, 1]) {
+      ctx.fillStyle = side < 0 ? CUBO.leaf : CUBO.leafDark;
+      ctx.beginPath(); ctx.ellipse(side * s * 0.1, -s * 0.2, s * 0.12, s * 0.06, side * -0.5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+
+    // Body: a soft rounded block with a darker base and a glossy top.
+    const bx = cx - sw / 2;
+    const r = Math.min(sw, sh) * 0.42;
+    ctx.fillStyle = CUBO.dark;
+    ctx.beginPath(); ctx.roundRect(bx, top + sh * 0.1, sw, sh * 0.9, r); ctx.fill();
+    ctx.fillStyle = CUBO.base;
+    ctx.beginPath(); ctx.roundRect(bx, top, sw, sh * 0.9, r); ctx.fill();
+    ctx.fillStyle = withAlpha(CUBO.light, 0.7);
+    ctx.beginPath(); ctx.ellipse(bx + sw * 0.3, top + sh * 0.2, sw * 0.14, sh * 0.08, -0.5, 0, Math.PI * 2); ctx.fill();
+
+    // Face.
+    const fy = top + sh * 0.45;
+    const ex = sw * 0.2;
+    const er = s * 0.075;
+    ctx.fillStyle = withAlpha(CUBO.cheek, 0.55);
+    for (const side of [-1, 1]) { ctx.beginPath(); ctx.ellipse(cx + side * sw * 0.32, fy + s * 0.1, s * 0.08, s * 0.05, 0, 0, Math.PI * 2); ctx.fill(); }
+    ctx.strokeStyle = CUBO.ink; ctx.fillStyle = CUBO.ink; ctx.lineWidth = s * 0.05; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+    if (!cubo.blinkAt || t > cubo.blinkAt + 140) cubo.blinkAt = t + 2200 + Math.random() * 2600;
+    const blinking = !still && t > cubo.blinkAt && t < cubo.blinkAt + 140;
+    // Pupils look at the dragged piece, else down at the tray.
+    let look = [0, 0.4];
+    if (drag) {
+      const dx = drag.x - cx;
+      const dy = drag.y - fy;
+      const d = Math.hypot(dx, dy) || 1;
+      look = [dx / d, dy / d];
+    }
+    for (const side of [-1, 1]) {
+      const exx = cx + side * ex;
+      if (mood === 'happy' || mood === 'party') {
+        ctx.beginPath(); ctx.arc(exx, fy + er * 0.6, er, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+      } else if (mood === 'sleep' || mood === 'sad') {
+        ctx.beginPath(); ctx.arc(exx, fy - er * 0.4, er, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+      } else if (mood === 'oops') {
+        ctx.beginPath(); ctx.moveTo(exx - side * er, fy - er); ctx.lineTo(exx + side * er * 0.4, fy); ctx.lineTo(exx - side * er, fy + er); ctx.stroke();
+      } else if (mood === 'star') {
+        ctx.save(); ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = CUBO.ink; ctx.lineWidth = s * 0.025;
+        ctx.beginPath();
+        for (let k = 0; k < 10; k++) {
+          const a = -Math.PI / 2 + (k * Math.PI) / 5 + (still ? 0 : t / 500);
+          const rr = k % 2 ? er * 0.55 : er * 1.35;
+          ctx.lineTo(exx + Math.cos(a) * rr, fy + Math.sin(a) * rr);
+        }
+        ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+      } else if (mood === 'dizzy') {
+        ctx.save(); ctx.lineWidth = s * 0.03; ctx.beginPath();
+        for (let a = 0; a < Math.PI * 4; a += 0.3) {
+          const rr = (a / (Math.PI * 4)) * er * 1.2;
+          const aa = a + (still ? 0 : t / 120) * side;
+          ctx.lineTo(exx + Math.cos(aa) * rr, fy + Math.sin(aa) * rr);
+        }
+        ctx.stroke(); ctx.restore();
+      } else if (blinking) {
+        ctx.beginPath(); ctx.moveTo(exx - er, fy); ctx.lineTo(exx + er, fy); ctx.stroke();
+      } else {
+        const big = mood === 'wow' || mood === 'worried' ? 1.3 : 1;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.ellipse(exx, fy, er * 1.15 * big, er * 1.35 * big, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = CUBO.ink;
+        const pr = er * (mood === 'worried' ? 0.55 : 0.8);
+        ctx.beginPath(); ctx.arc(exx + look[0] * er * 0.35, fy + look[1] * er * 0.45, pr, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(exx + look[0] * er * 0.35 - pr * 0.35, fy + look[1] * er * 0.45 - pr * 0.4, pr * 0.35, 0, Math.PI * 2); ctx.fill();
+      }
+      if (mood === 'worried') {
+        // Worried brows: raised toward the middle.
+        ctx.beginPath(); ctx.moveTo(exx - side * er * 1.1, fy - er * 2.6); ctx.lineTo(exx + side * er * 0.8, fy - er * 2); ctx.stroke();
+      }
+    }
+
+    // Mouth.
+    const my = fy + s * 0.14;
+    ctx.fillStyle = CUBO.ink;
+    ctx.beginPath();
+    if (mood === 'happy' || mood === 'party' || mood === 'star') {
+      ctx.moveTo(cx - s * 0.12, my - s * 0.02); ctx.quadraticCurveTo(cx, my + s * 0.2, cx + s * 0.12, my - s * 0.02); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = CUBO.cheek;
+      ctx.beginPath(); ctx.ellipse(cx, my + s * 0.06, s * 0.05, s * 0.03, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (mood === 'wow' || mood === 'dizzy') {
+      ctx.ellipse(cx, my + s * 0.02, s * 0.05, s * 0.065, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (mood === 'sleep') {
+      ctx.ellipse(cx, my, s * 0.03, s * 0.025, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (mood === 'sad' || mood === 'oops') {
+      ctx.arc(cx, my + s * 0.07, s * 0.08, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+    } else if (mood === 'worried') {
+      ctx.moveTo(cx - s * 0.1, my + s * 0.02);
+      for (let k = 1; k <= 4; k++) ctx.lineTo(cx - s * 0.1 + k * s * 0.05, my + (k % 2 ? -0.02 : 0.02) * s);
+      ctx.stroke();
+    } else {
+      ctx.arc(cx, my - s * 0.02, s * 0.07, Math.PI * 0.2, Math.PI * 0.8); ctx.stroke();
+    }
+
+    // Extras: sweat drop, tear, sleeping z's.
+    if (mood === 'worried') {
+      const dy = still ? 0 : ((t / 900) % 1) * s * 0.12;
+      ctx.fillStyle = '#7fd8ff';
+      ctx.beginPath(); ctx.ellipse(bx + sw * 0.9, top + sh * 0.25 + dy, s * 0.05, s * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    if (mood === 'sad') {
+      ctx.fillStyle = '#7fd8ff';
+      ctx.beginPath(); ctx.ellipse(cx - ex, fy + s * 0.1, s * 0.035, s * 0.055, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    if (mood === 'sleep') {
+      ctx.fillStyle = withAlpha(theme().ink, 0.7);
+      for (let k = 0; k < 3; k++) {
+        const ph = still ? k / 3 : ((t / 1400) + k / 3) % 1;
+        ctx.globalAlpha = Math.sin(ph * Math.PI);
+        ctx.font = themeFont(theme(), Math.round(s * (0.22 + ph * 0.18)));
+        ctx.fillText('z', cx + sw * 0.35 + ph * s * 0.4, top - ph * s * 0.6);
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+
+    // Hearts from taps.
+    cubo.hearts = cubo.hearts.filter((h) => t - h.t0 < 900);
+    for (const h of cubo.hearts) {
+      const k = (t - h.t0) / 900;
+      if (k < 0) continue;
+      drawHeart(h.x + h.dx * k, h.y - k * s * 1.1, s * 0.22 * (1 - k * 0.3), 1 - k);
+    }
+  }
+
+  function drawHeart(x, y, size, alpha) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, alpha);
+    ctx.fillStyle = '#ff5d8f';
+    ctx.beginPath();
+    ctx.moveTo(x, y + size * 0.35);
+    ctx.bezierCurveTo(x - size, y - size * 0.3, x - size * 0.4, y - size, x, y - size * 0.4);
+    ctx.bezierCurveTo(x + size * 0.4, y - size, x + size, y - size * 0.3, x, y + size * 0.35);
+    ctx.fill();
+    ctx.restore();
+  }
+
   // ---------- render ----------
   let last = now();
   // Timed bonuses drain as a ring around their inventory button.
@@ -3619,6 +3871,7 @@
     drawSweeps(t);
     if (aiming) drawAim(t);
     ctx.restore();
+    drawCubo(t);
     drawTray(t);
     drawChrono(t);
     drawHint(t);
