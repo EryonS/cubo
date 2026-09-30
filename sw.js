@@ -2,7 +2,7 @@
  * Gridlock — offline support. Caches every file on install and serves from cache first,
  * so the game runs in airplane mode. Bump CACHE on each release to ship an update.
  */
-const CACHE = 'gridlock-v20';
+const CACHE = 'gridlock-v21';
 const ASSETS = [
   './',
   './index.html',
@@ -24,7 +24,10 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the browser's HTTP cache (GitHub Pages keeps files 10 min), otherwise a
+  // new version could store the old files and stay stuck on them.
+  const fresh = ASSETS.map((url) => new Request(url, { cache: 'reload' }));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(fresh)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
