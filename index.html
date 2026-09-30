@@ -279,11 +279,11 @@
     .shop-head .coins .coin { margin: 0 0 2px; }
     .close { width: 38px; height: 38px; border: 0; border-radius: 10px; background: var(--panel-2); color: var(--text); cursor: pointer; display: grid; place-items: center; }
     .tabs { display: flex; gap: 4px; padding: 4px; border-radius: calc(var(--radius) - 2px); background: var(--panel-2); margin-bottom: 14px; }
-    .tab {
+    .tab, .ptab {
       flex: 1; padding: 10px 4px 8px; border: 0; border-radius: calc(var(--radius) - 5px); background: transparent; color: var(--muted); cursor: pointer;
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 18px; line-height: 1; letter-spacing: .03em; text-transform: uppercase;
     }
-    .tab.on { background: var(--accent); color: var(--on-accent); }
+    .tab.on, .ptab.on { background: var(--accent); color: var(--on-accent); }
     .skins { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .skin { padding: 7px 7px 8px; border-radius: calc(var(--radius) - 2px); background: var(--panel-2); text-align: center; }
     .skin canvas { width: 100%; aspect-ratio: 4 / 3; border-radius: calc(var(--radius) - 6px); }
@@ -366,10 +366,49 @@
     .actions:has(> .btn:nth-child(3)) > .btn { flex: 1; font-size: 17px; padding-inline: 4px; }
     .unlock { margin-top: 12px; padding: 10px 12px; border-radius: calc(var(--radius) - 6px); box-shadow: inset 0 0 0 2px var(--good); font-weight: 800; color: var(--good); }
 
+
+    /* ---------- daily, streak, profile ---------- */
+    .daily-btn { position: relative; }
+    .flame { display: inline-flex; align-items: center; gap: 3px; }
+    .flame svg { flex: none; }
+    .daily-btn .flame { position: absolute; top: 8px; right: 12px; font-size: 18px; }
+    .streak-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); text-align: left; margin-bottom: 12px; }
+    .streak-card .big { font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 34px; line-height: 1; }
+    .streak-card .txt { flex: 1; font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.35; }
+    .streak-card .txt b { color: var(--text); font-size: 15px; }
+    .section-title { margin: 16px 2px 8px; text-align: left; font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .shelf { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; }
+    .trophy { flex: none; width: 70px; text-align: center; font-size: 12px; font-weight: 800; color: var(--muted); }
+    .trophy svg { display: block; margin: 0 auto 4px; }
+    .stickers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .sticker { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px 8px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); text-align: center; }
+    .sticker .badge { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; background: var(--c, var(--accent)); color: #fff;
+      box-shadow: 0 0 0 3px #fff, 0 4px 10px rgba(0,0,0,.2); }
+    .sticker b { font-size: 13px; line-height: 1.15; }
+    .sticker span { font-size: 11px; line-height: 1.25; color: var(--muted); font-weight: 700; }
+    .sticker.off .badge { background: var(--sunken); color: var(--muted); box-shadow: none; }
+    .sticker.fresh .badge { animation: peel 700ms cubic-bezier(.2,1.4,.4,1) both; }
+    @keyframes peel { 0% { transform: rotate(-25deg) scale(.4); opacity: 0; } 60% { transform: rotate(6deg) scale(1.12); } }
+    .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .cal-head b { font-family: var(--font-display); font-style: var(--display-style); font-size: 20px; text-transform: capitalize; }
+    .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+    .cal .dow { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; }
+    .cal button { aspect-ratio: 1; border: 0; border-radius: 10px; padding: 2px 0 0; background: var(--panel-2); color: var(--text); cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-weight: 800; font-size: 14px; }
+    .cal button .stars { display: flex; }
+    .cal button.done { box-shadow: inset 0 0 0 2px var(--good); }
+    .cal button.today { background: var(--accent); color: var(--on-accent); }
+    .cal button:disabled { background: transparent; color: var(--muted); opacity: .45; cursor: default; }
+    .stats { text-align: left; }
+    .stats div { display: flex; justify-content: space-between; padding: 9px 4px; border-bottom: 1px solid var(--hairline); font-size: 14px; font-weight: 700; }
+    .stats div b { font-family: var(--font-display); font-style: var(--display-style); font-size: 17px; font-variant-numeric: tabular-nums; }
+    .stats div:last-child { border-bottom: 0; }
+    .skin .exclusive { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--hairline); font-size: 13px; cursor: default; }
+
     @keyframes fade { from { opacity: 0; } }
     @keyframes rise { from { transform: translateY(24px) scale(.96); opacity: 0; } }
     @media (prefers-reduced-motion: reduce) {
-      .card, .mission.new, .btn.ad.show, .overlay.show, .stage-stars .star { animation: none; }
+      .card, .mission.new, .btn.ad.show, .overlay.show, .stage-stars .star, .sticker.fresh .badge { animation: none; }
     }
     @media (max-width: 380px), (max-height: 720px) {
       .card { padding: 20px 16px 16px; }
@@ -398,6 +437,7 @@
       <div class="brand">Gridlock</div>
       <button class="btn primary wide" id="menu-continue">Continuer<small id="menu-continue-sub"></small></button>
       <button class="btn primary wide" id="menu-adventure">Aventure<small id="menu-adventure-sub"></small></button>
+      <button class="btn ghost wide daily-btn" id="menu-daily">Niveau du jour<small id="menu-daily-sub"></small><span class="flame" id="menu-flame"></span></button>
       <div class="menu-label">Nouvelle partie</div>
       <div class="seg" id="menu-mode">
         <button data-mode="classic">Classique<small>Jusqu'à la dernière pièce</small></button>
@@ -413,6 +453,7 @@
       <button class="btn primary wide" id="menu-play">Jouer</button>
       <div class="actions">
         <button class="btn ghost" id="menu-shop">Boutique</button>
+        <button class="btn ghost" id="menu-profile">Profil</button>
         <button class="btn ghost" id="menu-settings">Réglages</button>
       </div>
     </div>
@@ -488,6 +529,21 @@
 
   <div id="level-end" class="overlay">
     <div class="card" id="level-end-card"></div>
+  </div>
+
+  <div id="profile" class="overlay">
+    <div class="card">
+      <div class="shop-head">
+        <h2>Profil</h2>
+        <button class="close" id="profile-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="tabs">
+        <button class="ptab on" data-ptab="album">Album</button>
+        <button class="ptab" data-ptab="calendar">Calendrier</button>
+        <button class="ptab" data-ptab="stats">Stats</button>
+      </div>
+      <div id="profile-body"></div>
+    </div>
   </div>
 
   <div id="shop" class="overlay">

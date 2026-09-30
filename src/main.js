@@ -665,6 +665,18 @@
       ctx.fillStyle = 'rgba(255,255,255,0.75)';
       ctx.beginPath(); ctx.roundRect(x + s * 0.28, y + s * 0.26, s * 0.44, s * 0.08, s * 0.04); ctx.fill();
     },
+    // "Or": the 30-day streak reward. Keeps the family color under a gold rim and sheen.
+    gold(x, y, s, color) {
+      const r = s * 0.22;
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.roundRect(x, y, s, s, r); ctx.fill();
+      const rim = ctx.createLinearGradient(x, y, x + s, y + s);
+      rim.addColorStop(0, '#fff3b0'); rim.addColorStop(0.45, '#f5c542'); rim.addColorStop(1, '#b07a12');
+      ctx.strokeStyle = rim; ctx.lineWidth = Math.max(1.5, s * 0.12);
+      ctx.beginPath(); ctx.roundRect(x + s * 0.06, y + s * 0.06, s * 0.88, s * 0.88, r * 0.8); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath(); ctx.moveTo(x + s * 0.18, y + s * 0.62); ctx.lineTo(x + s * 0.6, y + s * 0.2); ctx.lineTo(x + s * 0.74, y + s * 0.2); ctx.lineTo(x + s * 0.32, y + s * 0.62); ctx.fill();
+    },
     pixel(x, y, s, color) {
       const b = Math.max(2, Math.round(s * 0.14));
       x = Math.round(x); y = Math.round(y); s = Math.round(s);
@@ -1381,9 +1393,11 @@
     runSettled = true;
     const res = M.applyRun(M.ensureDay(profile, today()), L.runStats(state));
     profile = res.profile;
+    const report = res.report;
+    for (const line of stickerLines()) { report.earned.push(line); report.total += line.coins; }
     saveProfile();
     renderWallet();
-    return res.report;
+    return report;
   }
 
   function endGame(t) {
@@ -1521,7 +1535,7 @@
     saveProfile();
     if (state.mode !== 'adventure') bests[state.mode] = best;
     const mode = opts.mode || (state.mode === 'adventure' ? prefs.mode : state.mode);
-    state = L.createGame(Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage });
+    state = L.createGame(opts.seed ?? Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage });
     levelSettled = false;
     paintBackground();
     best = bests[state.mode] || 0;
@@ -1562,10 +1576,11 @@
     const cont = document.getElementById('menu-continue');
     cont.style.display = inProgress() ? '' : 'none';
     document.getElementById('menu-continue-sub').textContent = state.stage
-      ? `Aventure · ${WD.WORLDS[state.stage.world].name} ${state.stage.n} · ${LV.goalText(state.stage.goal)}`
+      ? `${state.stage.daily ? 'Niveau du jour #' + LV.dayNumber(state.stage.daily) : 'Aventure · ' + WD.WORLDS[state.stage.world].name + ' ' + state.stage.n} · ${LV.goalText(state.stage.goal)}`
       : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]} · ${fmt(state.score)} pts`;
     document.getElementById('menu-adventure-sub').textContent = `${M.totalStars(profile)} / ${M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3} étoiles`;
     document.getElementById('menu-adventure').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
+    renderDailyButton();
     document.getElementById('menu-play').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
     for (const b of document.querySelectorAll('#menu-mode button')) b.classList.toggle('on', b.dataset.mode === prefs.mode);
     for (const b of document.querySelectorAll('#menu-level button')) b.classList.toggle('on', b.dataset.level === prefs.level);
@@ -1748,11 +1763,14 @@
     const stage = state.stage;
     if (stage.won && !levelSettled) {
       levelSettled = true;
-      const res = M.applyLevel(profile, stage.world, stage.n, stage.stars);
+      const res = stage.daily
+        ? M.applyDaily(profile, stage.daily, today(), stage.stars)
+        : M.applyLevel(profile, stage.world, stage.n, stage.stars);
       profile = res.profile;
+      levelReport = res.report;
+      levelReport.earned.push(...stickerLines());
       saveProfile();
       renderWallet();
-      levelReport = res.report;
     }
     setTimeout(() => { if (stage.won) { sfx.mission(); buzz([20, 40, 20]); } else { sfx.over(); buzz([40, 60, 80]); } }, 350);
     setTimeout(() => showLevelEnd(runReport, levelReport), stage.won ? 900 : 1300);
@@ -1775,6 +1793,7 @@
       : state.timeUp ? 'Temps écoulé !' : outOfMoves ? 'Plus de coups !' : 'Plus de place !';
     const lines = [...(runReport ? runReport.earned : []), ...(levelReport ? levelReport.earned : [])];
     const total = lines.reduce((a, l) => a + l.coins, 0);
+    if (stage.daily) { showDailyEnd(title, lines, total, outOfMoves, levelReport); return; }
     const next = stage.won ? nextLevelOf(w, n) : null;
     const moreCost = M.extraMovesCost(stage.extra);
     card.innerHTML = `
@@ -1794,23 +1813,26 @@
     card.querySelector('[data-act="map"]').addEventListener('click', () => openWorld(w));
     card.querySelector('[data-act="again"]').addEventListener('click', () => startLevel(w, n));
     if (next) card.querySelector('[data-act="next"]').addEventListener('click', () => (next[1] === 1 && next[0] !== w ? openWorld(next[0]) : openStage(next[0], next[1])));
-    const more = card.querySelector('[data-act="more"]');
-    if (more) {
-      more.disabled = profile.coins < moreCost;
-      more.addEventListener('click', () => {
-        const revived = L.addMoves(state, M.EXTRA_MOVES);
-        if (!revived || profile.coins < moreCost) { sfx.nope(); return; }
-        payCoins(moreCost);
-        state = revived;
-        overAt = 0;
-        levelEndEl.classList.remove('show');
-        banners.push({ text: `+${M.EXTRA_MOVES} coups`, sub: 'Dernière chance !', gold: true });
-        sfx.buy();
-        renderInventory();
-        save();
-      });
-    }
+    bindMoreMoves(card, moreCost);
     levelEndEl.classList.add('show');
+  }
+
+  function bindMoreMoves(card, cost) {
+    const more = card.querySelector('[data-act="more"]');
+    if (!more) return;
+    more.disabled = profile.coins < cost;
+    more.addEventListener('click', () => {
+      const revived = L.addMoves(state, M.EXTRA_MOVES);
+      if (!revived || profile.coins < cost) { sfx.nope(); return; }
+      payCoins(cost);
+      state = revived;
+      overAt = 0;
+      levelEndEl.classList.remove('show');
+      banners.push({ text: `+${M.EXTRA_MOVES} coups`, sub: 'Dernière chance !', gold: true });
+      sfx.buy();
+      renderInventory();
+      save();
+    });
   }
 
   document.getElementById('menu-adventure').addEventListener('click', openAdventure);
@@ -1818,6 +1840,276 @@
   document.getElementById('world-back').addEventListener('click', openAdventure);
   for (const el of [adventureEl, worldEl, stageEl]) {
     el.addEventListener('click', (e) => { if (e.target === el) { hideAdventure(); openMenu(); } });
+  }
+
+
+  // ---------- daily level, streak, profile ----------
+  const profileEl = document.getElementById('profile');
+  const FLAME_SVG = (size = 18, on = true) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c1 3.6 5.5 5.6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.4 1.1-4 2.4-5.3.2 1.7 1 2.8 2.1 3.3-.4-3.3.3-6.3 1-9z" fill="${on ? '#ff7a1a' : 'currentColor'}" opacity="${on ? 1 : 0.35}"/><path d="M12 13.5c.9 1.4 2.6 2.2 2.6 4.2a2.6 2.6 0 0 1-5.2 0c0-1.5.9-2.6 2.6-4.2z" fill="${on ? '#ffd23f' : 'transparent'}"/></svg>`;
+  const TROPHY_SVG = (kind, size = 44) => {
+    const fill = kind === 'gold' ? '#f5c542' : kind === 'silver' ? '#c9d2de' : 'none';
+    const stroke = kind ? (kind === 'gold' ? '#b07a12' : '#8a96a8') : 'currentColor';
+    return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" fill="${fill}" stroke="${stroke}" stroke-width="1.4" stroke-linejoin="round" opacity="${kind ? 1 : 0.35}"><path d="M7 3h10v5a5 5 0 0 1-10 0z"/><path d="M7 5H4v1.5A3.5 3.5 0 0 0 7.5 10M17 5h3v1.5A3.5 3.5 0 0 1 16.5 10" fill="none"/><path d="M10 13h4v3h-4zM8 19.5h8V21H8zM9.5 16h5l1 3.5h-7z"/></svg>`;
+  };
+  // One glyph per album page, white on the sticker's colored badge.
+  const STICKER_GLYPHS = {
+    combo: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" fill="currentColor"/>',
+    explorer: '<path d="M6 21V4M6 4h11l-2.5 4L17 12H6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>',
+    faithful: '<path d="M12 2.5c1 3.6 5.5 5.6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.4 1.1-4 2.4-5.3.2 1.7 1 2.8 2.1 3.3-.4-3.3.3-6.3 1-9z" fill="currentColor"/>',
+    collector: '<path d="M7 4h10l4 5-9 11L3 9z M3 9h18 M9.5 4 8 9l4 11 4-11-1.5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+  };
+  const PAGE_COLORS = { combo: '#ff8fab', explorer: '#6fd6a0', faithful: '#ff9f43', collector: '#8b7cf6' };
+  const WORLD_COLORS = { plain: '#5cc64a', sea: '#1a6aa8', space: '#6a3fd0', ice: '#5ccfe6', forest: '#2f7a4a', retro: '#306230', arcade: '#ff3fd0', volcano: '#e8501a' };
+  let freshStickers = new Set();
+
+  // Pays newly earned stickers; returns them as report lines and queues their peel animation.
+  function stickerLines() {
+    const res = M.checkStickers(profile, today());
+    profile = res.profile;
+    for (const st of res.fresh) freshStickers.add(st.id);
+    return res.fresh.map((st) => ({ label: 'Autocollant : ' + st.name, coins: st.reward || M.STICKER_REWARD }));
+  }
+
+  const dailyWord = (day) => (day === today() ? 'Niveau du jour' : 'Jour rattrapé');
+
+  function renderDailyButton() {
+    const day = today();
+    const stage = LV.daily(day);
+    const d = M.dailyOf(profile, day);
+    const left = M.dailyAttemptsLeft(profile, day, day);
+    const streak = M.streakNow(profile, day);
+    const status = d.stars !== undefined ? 'réussi' : left ? `${left} essai${left > 1 ? 's' : ''}` : 'plus d’essai';
+    document.getElementById('menu-daily-sub').textContent = `#${LV.dayNumber(day)} · ${worldName(stage.world)} · ${status}`;
+    document.getElementById('menu-flame').innerHTML = FLAME_SVG(20, streak > 0) + (streak || '');
+  }
+
+  function openDailySheet(day) {
+    const t = today();
+    const stage = LV.daily(day);
+    const d = M.dailyOf(profile, day);
+    const left = M.dailyAttemptsLeft(profile, day, t);
+    const st = M.streakOf(profile);
+    const card = document.getElementById('stage-card');
+    const budget = stage.clock ? `${Math.round(stage.clock / 1000)} secondes` : `${stage.maxMoves} coups`;
+    const tries = day === t ? `${left} essai${left > 1 ? 's' : ''} sur ${M.DAILY_ATTEMPTS} aujourd'hui` : 'Essais illimités, ne compte pas pour la série';
+    card.innerHTML = `
+      <div class="shop-head"><h2>${dailyWord(day)}</h2><span class="star-pill">#${LV.dayNumber(day)}</span></div>
+      <div class="stage-sub">${worldName(stage.world)} · ${frDate(day)}</div>
+      <div class="stage-goal">${LV.goalText(stage.goal)}</div>
+      <div class="stage-sub">${budget} · ${tries}</div>
+      <div class="stage-stars">${starsRow(d.stars || 0, 34)}</div>
+      ${day === t ? `<button class="opt" data-act="freeze"><span>Gel de série (${st.freezes}/${M.FREEZE_MAX}) : protège un jour manqué</span><span class="price">${M.FREEZE_COST}${COIN}</span></button>` : ''}
+      <div class="actions"><button class="btn ghost" data-act="back">Retour</button><button class="btn primary" data-act="play">Jouer</button></div>`;
+    const play = card.querySelector('[data-act="play"]');
+    play.disabled = !left;
+    if (!left) play.textContent = 'Reviens demain';
+    card.querySelector('[data-act="back"]').addEventListener('click', () => { hideAdventure(); openMenu(); });
+    play.addEventListener('click', () => startDaily(day));
+    const freeze = card.querySelector('[data-act="freeze"]');
+    if (freeze) {
+      freeze.disabled = st.freezes >= M.FREEZE_MAX || profile.coins < M.FREEZE_COST;
+      freeze.addEventListener('click', () => {
+        const next = M.buyFreeze(profile);
+        if (!next) { sfx.nope(); return; }
+        profile = next; saveProfile(); renderWallet(); sfx.buy(); openDailySheet(day);
+      });
+    }
+    hideAdventure();
+    profileEl.classList.remove('show');
+    menuEl.classList.remove('show');
+    stageEl.classList.add('show');
+  }
+
+  function startDaily(day) {
+    unlockAudio();
+    if (inProgress() && !state.stage && !confirm('Abandonner la partie en cours ? Les pièces gagnées sont gardées.')) return;
+    const next = M.startDaily(profile, day, today());
+    if (!next) { sfx.nope(); return; }
+    profile = next;
+    saveProfile();
+    hideAdventure();
+    menuEl.classList.remove('show');
+    const stage = LV.daily(day);
+    restartRun({ mode: 'adventure', stage, seed: stage.seed });
+    banners.push({ text: dailyWord(day), sub: LV.goalText(stage.goal), gold: true });
+  }
+
+  const frDate = (day) => new Date(day + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+
+  // Share text, no emoji: "Gridlock #31 · Forêt · 3 étoiles · 12 coups en rab".
+  function shareText() {
+    const st = state.stage;
+    const rest = st.clock ? `${Math.ceil(state.clock / 1000)} s en rab` : `${st.movesLeft} coup${st.movesLeft > 1 ? 's' : ''} en rab`;
+    return `Gridlock #${LV.dayNumber(st.daily)} · ${worldName(st.world)} · ${st.stars} étoile${st.stars > 1 ? 's' : ''} · ${rest}`;
+  }
+
+  function showDailyEnd(title, lines, total, outOfMoves, report) {
+    const stage = state.stage;
+    const day = stage.daily;
+    const card = document.getElementById('level-end-card');
+    const left = M.dailyAttemptsLeft(profile, day, today());
+    const moreCost = M.extraMovesCost(stage.extra);
+    const streak = report && report.streak;
+    card.innerHTML = `
+      <h2>${title}</h2>
+      <div class="stage-sub">${dailyWord(day)} #${LV.dayNumber(day)} · ${worldName(stage.world)}</div>
+      <div class="stage-stars">${starsRow(stage.stars, 44)}</div>
+      <div class="stage-sub">${LV.goalText(stage.goal)} · ${fmt(Math.min(stage.goal.type === 'score' ? state.score : stage.progress, stage.goal.target))} / ${fmt(stage.goal.target)}</div>
+      ${streak ? `<div class="unlock flame">${FLAME_SVG(20)} Série : ${streak.count} jour${streak.count > 1 ? 's' : ''}</div>` : ''}
+      ${report && report.unlocked ? `<div class="unlock">Skin de blocs « Or » débloqué ! Équipe-le dans la Boutique.</div>` : ''}
+      <div class="earn">${lines.map((l) => `<div class="earn-line in"><span>${l.label}</span><b>+${l.coins}${COIN}</b></div>`).join('')}</div>
+      ${total ? `<div class="coins-total"><span>Pièces</span><span class="v">+${fmt(total)} ${COIN}</span></div>` : ''}
+      ${outOfMoves ? `<button class="opt" data-act="more"><span>+${M.EXTRA_MOVES} coups pour finir (1 étoile max)</span><span class="price">${moreCost}${COIN}</span></button>` : ''}
+      <div class="actions">
+        <button class="btn ghost" data-act="menu">Menu</button>
+        ${stage.won ? '<button class="btn primary" data-act="share">Partager</button>'
+          : left ? `<button class="btn primary" data-act="retry">Réessayer${Number.isFinite(left) ? ` (${left})` : ''}</button>` : ''}
+      </div>`;
+    card.querySelector('[data-act="menu"]').addEventListener('click', () => { hideAdventure(); openMenu(); });
+    const retry = card.querySelector('[data-act="retry"]');
+    if (retry) retry.addEventListener('click', () => startDaily(day));
+    const share = card.querySelector('[data-act="share"]');
+    if (share) {
+      // Phones get the share sheet; elsewhere (or if sharing fails) the text goes to the clipboard.
+      share.addEventListener('click', async () => {
+        const text = shareText();
+        if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+          try { await navigator.share({ text }); return; } catch (e) { if (e.name === 'AbortError') return; }
+        }
+        try { await navigator.clipboard.writeText(text); share.textContent = 'Copié !'; } catch { sfx.nope(); }
+      });
+    }
+    bindMoreMoves(card, moreCost);
+    levelEndEl.classList.add('show');
+  }
+
+  // ----- profile screen -----
+  let profileTab = 'album';
+  let calMonth = null; // 'YYYY-MM' shown in the calendar
+
+  function openProfile(tab) {
+    unlockAudio();
+    if (tab) profileTab = tab;
+    calMonth = calMonth || today().slice(0, 7);
+    menuEl.classList.remove('show');
+    renderProfile();
+    profileEl.classList.add('show');
+  }
+  for (const b of document.querySelectorAll('.ptab')) {
+    b.addEventListener('click', () => { profileTab = b.dataset.ptab; sfx.turn(); renderProfile(); });
+  }
+  document.getElementById('menu-profile').addEventListener('click', () => openProfile());
+  document.getElementById('profile-close').addEventListener('click', () => { profileEl.classList.remove('show'); openMenu(); });
+  profileEl.addEventListener('click', (e) => { if (e.target === profileEl) { profileEl.classList.remove('show'); openMenu(); } });
+  document.getElementById('menu-daily').addEventListener('click', () => openDailySheet(today()));
+
+  function renderProfile() {
+    for (const b of document.querySelectorAll('.ptab')) b.classList.toggle('on', b.dataset.ptab === profileTab);
+    const body = document.getElementById('profile-body');
+    if (profileTab === 'album') body.innerHTML = albumHtml();
+    else if (profileTab === 'calendar') { body.innerHTML = calendarHtml(); bindCalendar(body); }
+    else body.innerHTML = statsHtml();
+    freshStickers.clear();
+    const freeze = body.querySelector('[data-act="freeze"]');
+    if (freeze) freeze.addEventListener('click', () => {
+      const next = M.buyFreeze(profile);
+      if (!next) { sfx.nope(); return; }
+      profile = next; saveProfile(); renderWallet(); sfx.buy(); renderProfile();
+    });
+  }
+
+  function monthsSinceStart() {
+    const out = [];
+    let m = LV.DAILY_START.slice(0, 7);
+    const end = today().slice(0, 7);
+    while (m <= end) { out.push(m); m = M.addDays(m + '-28', 5).slice(0, 7); }
+    return out;
+  }
+  const frMonth = (m) => new Date(m + '-15T12:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const frMonthShort = (m) => new Date(m + '-15T12:00:00').toLocaleDateString('fr-FR', { month: 'short' });
+
+  function albumHtml() {
+    const t = today();
+    const st = M.streakOf(profile);
+    const now = M.streakNow(profile, t);
+    const got = profile.stickers || {};
+    const count = Object.keys(got).length;
+    let html = `
+      <div class="streak-card">
+        ${FLAME_SVG(38, now > 0)}<span class="big">${now}</span>
+        <div class="txt"><b>Série de jours</b><br>Record : ${st.best} · Gels : ${st.freezes}/${M.FREEZE_MAX}</div>
+      </div>
+      <button class="opt" data-act="freeze" ${st.freezes >= M.FREEZE_MAX || profile.coins < M.FREEZE_COST ? 'disabled' : ''}><span>Acheter un gel de série</span><span class="price">${M.FREEZE_COST}${COIN}</span></button>
+      <div class="section-title">Trophées du mois</div>
+      <div class="shelf">${monthsSinceStart().map((m) => `<div class="trophy">${TROPHY_SVG(M.monthTrophy(profile, m))}${frMonthShort(m)}</div>`).join('')}</div>`;
+    html += `<div class="section-title">Autocollants · ${count} / ${M.STICKERS.length}</div>`;
+    for (const page of M.STICKER_PAGES) {
+      html += `<div class="section-title">${page.name}</div><div class="stickers">`;
+      for (const sk of M.STICKERS.filter((x) => x.page === page.id)) {
+        const on = !!got[sk.id];
+        const color = sk.world ? WORLD_COLORS[sk.world] : PAGE_COLORS[page.id];
+        html += `<div class="sticker${on ? '' : ' off'}${freshStickers.has(sk.id) ? ' fresh' : ''}" style="--c:${color}">
+          <span class="badge"><svg width="28" height="28" viewBox="0 0 24 24">${STICKER_GLYPHS[page.id]}</svg></span>
+          <b>${sk.name}</b><span>${on ? 'Obtenu' : sk.hint}</span></div>`;
+      }
+      html += '</div>';
+    }
+    return html;
+  }
+
+  function calendarHtml() {
+    const t = today();
+    const days = M.monthDays(calMonth);
+    const offset = (new Date(days[0] + 'T12:00:00').getDay() + 6) % 7; // Monday first
+    const trophy = M.monthTrophy(profile, calMonth);
+    let html = `<div class="cal-head">
+        <button class="close" data-cal="-1" aria-label="Mois précédent" ${calMonth <= LV.DAILY_START.slice(0, 7) ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <b>${frMonth(calMonth)}</b>
+        <button class="close" data-cal="1" aria-label="Mois suivant" ${calMonth >= t.slice(0, 7) ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div><div class="cal">`;
+    for (const d of ['L', 'M', 'M', 'J', 'V', 'S', 'D']) html += `<span class="dow">${d}</span>`;
+    for (let i = 0; i < offset; i++) html += '<span></span>';
+    for (const day of days) {
+      const d = M.dailyOf(profile, day);
+      const off = day > t || day < LV.DAILY_START;
+      const cls = (d.stars !== undefined ? ' done' : '') + (day === t ? ' today' : '');
+      html += `<button data-day="${day}" class="${cls.trim()}" ${off ? 'disabled' : ''}>${Number(day.slice(8))}${d.stars !== undefined ? `<span class="stars">${starsRow(d.stars, 8)}</span>` : ''}</button>`;
+    }
+    html += `</div><div class="section-title">${trophy ? `Trophée ${trophy === 'gold' ? "d'or" : "d'argent"} gagné ce mois-ci` : 'Réussis tous les jours du mois pour son trophée (or avec 3 étoiles partout)'}</div>`;
+    return html;
+  }
+
+  function bindCalendar(body) {
+    for (const b of body.querySelectorAll('[data-cal]')) {
+      b.addEventListener('click', () => {
+        calMonth = M.addDays(calMonth + '-15', +b.dataset.cal * 30).slice(0, 7);
+        sfx.turn();
+        renderProfile();
+      });
+    }
+    for (const b of body.querySelectorAll('[data-day]')) b.addEventListener('click', () => openDailySheet(b.dataset.day));
+  }
+
+  function statsHtml() {
+    const lt = profile.lifetime || {};
+    const dailies = Object.values(profile.daily || {}).filter((d) => d.stars !== undefined).length;
+    const rows = [
+      ['Parties jouées', fmt(lt.games || 0)],
+      ['Record Classique', fmt(bests.classic || 0)],
+      ['Record Chrono', fmt(bests.chrono || 0)],
+      ['Record Chill', fmt(bests.chill || 0)],
+      ['Meilleur score (tous modes)', fmt(lt.score || 0)],
+      ['Meilleur combo', '×' + (lt.bestCombo || 0)],
+      ['Lignes effacées', fmt(lt.lines || 0)],
+      ['Pièces posées', fmt(lt.pieces || 0)],
+      ['Grilles vidées', fmt(lt.perfects || 0)],
+      ['Bonus utilisés', fmt(lt.bonusUsed || 0)],
+      ['Pièces gagnées', fmt(lt.coinsEarned || 0)],
+      ['Étoiles en Aventure', `${M.totalStars(profile)} / ${M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3}`],
+      ['Niveaux du jour réussis', fmt(dailies)],
+      ['Plus longue série', M.streakOf(profile).best + ' jours'],
+    ];
+    return `<div class="stats">${rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>`;
   }
 
   // ---------- settings ----------
@@ -1924,6 +2216,7 @@
       const btn = document.createElement('button');
       if (equipped) { btn.className = 'equipped'; btn.textContent = 'Équipé'; }
       else if (owned) { btn.className = 'equip'; btn.textContent = 'Équiper'; }
+      else if (skin.price == null) { btn.className = 'exclusive'; btn.textContent = skin.exclusive; btn.disabled = true; }
       else {
         btn.className = 'buy';
         btn.innerHTML = COIN + ' ' + fmt(skin.price);
@@ -1934,6 +2227,9 @@
         const next = owned ? M.equip(profile, kind, skin.id) : M.buy(profile, kind, skin.id);
         if (!next) { sfx.nope(); return; }
         profile = next;
+        if (!owned) {
+          for (const line of stickerLines()) banners.push({ text: 'Autocollant !', sub: line.label.replace('Autocollant : ', '') + ' · +' + line.coins, subIcon: 'coin', gold: true });
+        }
         saveProfile();
         if (kind === 'boards') paintBackground();
         if (owned) sfx.turn(); else { sfx.buy(); buzz([20, 40, 20]); }

@@ -87,6 +87,22 @@
     return stage;
   }
 
+  // ---------- daily level ----------
+  // Same level for everyone on a given local date: world, goal and piece sequence come from the date.
+  const DAILY_START = '2026-09-01'; // daily #1
+  function hash(str) {
+    let h = 2166136261;
+    for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+    return h >>> 0;
+  }
+  const dayNumber = (day) => Math.round((Date.parse(day + 'T00:00:00Z') - Date.parse(DAILY_START + 'T00:00:00Z')) / 86400000) + 1;
+  function daily(day) {
+    const h = hash('daily:' + day);
+    const world = ORDER[h % ORDER.length];
+    const n = 3 + ((h >>> 8) % 5); // a mid-world level: 3..7
+    return { ...level(world, n), daily: day, seed: hash('seed:' + day) | 0 };
+  }
+
   const key = (world, n) => `${world}-${n}`;
 
   // French goal text for the HUD and level cards.
@@ -103,5 +119,5 @@
     return KIND_NAMES[goal.kind].toUpperCase();
   }
 
-  return { ORDER, PER_WORLD, level, key, goalText, goalLabel, KIND_NAMES };
+  return { ORDER, PER_WORLD, DAILY_START, level, daily, dayNumber, key, goalText, goalLabel, KIND_NAMES };
 });

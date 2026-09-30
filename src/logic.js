@@ -299,7 +299,7 @@
 
   const emptyStats = () => ({
     lines: 0, bestMulti: 0, bestCombo: 0, perfects: 0, bonusUsed: 0, bombCells: 0, bestBomb: 0, pieces: 0, coins: 0,
-    discards: 0, undos: 0,
+    discards: 0, undos: 0, used: {},
   });
 
   // Run stats for missions / coins (see meta.js).
@@ -654,6 +654,7 @@
 
     state.inventory[type] -= 1;
     state.stats.bonusUsed += 1;
+    state.stats.used = { ...(state.stats.used || {}), [type]: ((state.stats.used || {})[type] || 0) + 1 };
     if (state.stage) stageMove(state, rulesOf(state), hit || { destroyed: {} }, 0, false);
     if (!state.over) settle(state);
     events.over = state.over;

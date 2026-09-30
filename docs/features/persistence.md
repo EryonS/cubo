@@ -4,7 +4,7 @@ Status: shipped
 ## What it does
 Two `localStorage` keys:
 - `gridlock.v2`: current run + records + settings + menu prefs (`save()` in `src/main.js`, on `visibilitychange` and after moves).
-- `gridlock.profile.v1`: meta progression (`saveProfile()`), including `adventure.stars`.
+- `gridlock.profile.v1`: meta progression (`saveProfile()`), including `adventure.stars`, `daily`, `streak`, `stickers`, `lifetime` (all optional, read with defaults, so no migration was needed).
 
 `M.migrate(profile)` runs at launch and returns `{ profile, refund }`. Version 2 (2026-09-30) removed the road themes and the Bonbon blocks and refunds them at their old price; the menu shows the refund once.
 

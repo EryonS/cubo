@@ -56,6 +56,13 @@ Battre le boss (niveau 10) offre le thème du monde et, avec assez d'étoiles, o
 Pièces : +5 coups quand on n'en a plus (20, 40, 80…), partir avec une Bombe (30), passer un niveau (250).
 Équilibrage : `node tools/balance.js 10` fait jouer un bot sur les 80 niveaux.
 
+## Niveau du jour, série et Profil
+
+- **Niveau du jour** (menu) : le même niveau pour tout le monde ce jour-là, 3 essais, texte à partager après une victoire.
+- **Série** : réussir le niveau du jour le jour même fait avancer la série (pièces chaque jour, coffre tous les 7 jours,
+  blocs « Or » au 30e). Un gel de série (100 pièces, 2 max) protège un jour manqué.
+- **Profil** : album de 26 autocollants et trophées du mois, calendrier pour rattraper les jours passés, statistiques.
+
 ## Progression
 
 - **Pièces sur la grille** : ~12 % des pièces du bac portent une pièce (+1) ou un sac (+5) ; effacer le bloc la ramasse.

@@ -1,22 +1,29 @@
 # Daily level and streak
-Status: planned (retention lot)
+Status: shipped (v1, 2026-09-30)
 
 ## Daily level
-- One Aventure-style level per day: world, goal and piece sequence drawn from the date seed, the same for every player.
-- 3 attempts max on the day itself.
-- Share text copied to the clipboard, no emoji: `Gridlock #142 · Glace · 3 étoiles · 4 coups en rab`.
-- Calendar in the profile: every past day can be replayed (unlimited attempts), future days stay locked.
+- `LV.daily(day)`: world and level (3-7 of that world) drawn from a hash of the local date, plus a fixed `seed`, so every player gets the same board and piece sequence. Numbered from `DAILY_START` (2026-09-01 = #1).
+- Menu button "Niveau du jour" shows `#N · world · attempts left`, and the streak flame.
+- Today: 3 attempts (counted when a run starts, `M.startDaily`). Past days (calendar): unlimited, never feed the streak. Future days: locked.
+- Rewards: first clear 20 coins on the day, 10 for a past day; +5 moves can be bought like in Aventure (stars capped at 1).
+- Share (after a win): `Gridlock #31 · Forêt · 3 étoiles · 12 coups en rab`. Phones get the share sheet, otherwise it is copied.
 - Uses the phone's date; changing it to cheat is accepted (offline game, no server).
 
 ## Streak
-- A day counts when that day's daily level is cleared (1 star is enough). Past days replayed later never count.
-- Rewards: rising coins (10, 15, 20...), a bonus on day 7, an exclusive block skin on day 30 (not sold).
-- Streak freeze: bought with coins, max 2 held, protects one missed day.
-- Shown as a drawn flame with the day count next to the daily level.
+- A day counts when that day's level is cleared on the day (1 star is enough).
+- Coins per day: 5 + 5 × streak, capped at 40. Every 7th day: weekly chest (+50). Day 30: exclusive block skin "Or" (`STREAK_SKIN`, never sold).
+- Freeze: 100 coins, max 2 held; each covers one missed day (used automatically on the next cleared day).
+- `M.streakNow(profile, today)` is what to display (0 once the gap exceeds the freezes).
 
-## Files (planned)
-- `src/meta.js`: `dailyLevel(day)`, `applyDaily(profile, day, result)`, streak + freezes.
-- Reuses `dayRandom(day)` already in `meta.js` and the level generator from `src/levels.js`.
+## Files
+- `src/levels.js`: `DAILY_START`, `daily`, `dayNumber`.
+- `src/meta.js`: `addDays`, `dayDiff`, `monthDays`, `dailyOf`, `dailyAttemptsLeft`, `startDaily`, `applyDaily`, `streakOf`, `streakNow`, `buyFreeze`.
+- `src/main.js`: section `daily level, streak, profile` (`openDailySheet`, `startDaily`, `showDailyEnd`, `shareText`, `renderDailyButton`); `endLevel` branches on `stage.daily`.
+- Tests: `tests/meta-daily.test.js`.
 
-## Saved state (planned)
-`profile.daily: { "<YYYY-MM-DD>": { stars, attempts, onDay } }`, `profile.streak: { count, best, lastDay, freezes }`.
+## Saved state
+`profile.daily: { "<YYYY-MM-DD>": { attempts, stars? } }`, `profile.streak: { count, best, lastDay, freezes }`. Run: `state.stage.daily = day`.
+
+## Gotchas
+- Days are local dates but all arithmetic goes through UTC (`addDays`, `dayDiff`) so DST never shifts them.
+- Abandoning a daily run still spends the attempt.

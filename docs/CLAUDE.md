@@ -23,8 +23,8 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Saves and migrations | [features/persistence.md](features/persistence.md) | `M.migrate`, `save()` / `saveProfile()` in `src/main.js` |
 | Aventure mode (map, levels, stars, rewards) | [features/aventure.md](features/aventure.md) | `src/levels.js`, `src/meta.js`, section `aventure` in `src/main.js` |
 | World rules, special cells | [features/worlds.md](features/worlds.md) | `src/worlds.js`, `KINDS` in `src/logic.js`, `drawSpecial` in `src/main.js` |
-| Daily level, streak (planned) | [features/daily.md](features/daily.md) | `src/meta.js` |
-| Sticker album, trophies, profile and stats (planned) | [features/album.md](features/album.md) | `src/meta.js`, new profile screen |
+| Daily level, streak, share | [features/daily.md](features/daily.md) | `daily` in `src/levels.js`, daily/streak in `src/meta.js`, section `daily level, streak, profile` in `src/main.js` |
+| Sticker album, trophies, profile and stats | [features/album.md](features/album.md) | `STICKERS` / `checkStickers` / `monthTrophy` in `src/meta.js`, `#profile` screen |
 
 ## Adding a new feature
 1. Create `docs/features/<feature>.md` (template below) and add a row to the table above.
@@ -44,5 +44,5 @@ Status: shipped | planned
 ## Roadmap (decided in the 2026-09-30 brainstorm)
 1. New art direction (**done**): Jouet default theme, 8 world themes, bonus renames.
 2. Aventure (**done**, v1): world map, 10 levels per world, world rules, stars, coin helpers, theme unlock on boss.
-3. Retention: daily level + share text, day streak with freezes, sticker album with monthly trophies, profile and stats.
+3. Retention (**done**, v1): daily level + share text, day streak with freezes, sticker album with monthly trophies, profile and stats.
 4. Later: two players on one phone, tutorial, pause button, polish.
