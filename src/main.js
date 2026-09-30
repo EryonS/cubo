@@ -10,6 +10,7 @@
   const LV = window.GridlockLevels;
   const WD = window.GridlockWorlds;
   const T = window.GridlockTutorial;
+  const PZ = window.GridlockPuzzles;
   const SIZE = L.SIZE;
   const STORE_KEY = 'gridlock.v2';
   const LEGACY_KEY = 'gridlock.v1';
@@ -713,7 +714,7 @@
     try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; }
   }
   // Free-play records live in `bests` (Mondes: one per world, 'worlds-<id>'); Aventure has none.
-  const keepsBest = () => state.mode !== 'adventure';
+  const keepsBest = () => state.mode !== 'adventure' && state.mode !== 'puzzle';
   const recordKey = (st = state) => (st.mode === 'worlds' ? 'worlds-' + st.world : st.mode);
   function save() {
     if (tut) return; // the scripted tutorial board is never saved
@@ -1471,6 +1472,7 @@
   }
 
   function showTrash(on) {
+    if (state.mode === 'puzzle') on = false;
     clearTimeout(trashTimer);
     document.body.classList.toggle('dragging', on);
     trashEl.classList.toggle('show', on);
@@ -1716,7 +1718,7 @@
 
   // Shared bookkeeping after any move: record, missions, game over, persistence.
   function afterChange(t, over) {
-    if (state.mode !== 'adventure' && state.score > best) {
+    if (keepsBest() && state.score > best) {
       best = state.score;
       if (!recordAnnounced && bestAtStart > 0) {
         recordAnnounced = true;
@@ -1725,7 +1727,8 @@
     }
     checkMissions();
     if (state.stuck && !over) {
-      if (state.mode === 'chill') tip('stuck-chill', 'Coincé ?', 'Annule ton dernier coup, ou glisse une pièce tout en bas pour la jeter.', undoEl);
+      if (state.mode === 'puzzle') tip('stuck-puzzle', 'Ça ne rentre plus', 'Annule tes derniers coups (gratuit), ou prends un indice.', undoEl);
+      else if (state.mode === 'chill') tip('stuck-chill', 'Coincé ?', 'Annule ton dernier coup, ou glisse une pièce tout en bas pour la jeter.', undoEl);
       else tip('stuck', 'Coincé ?', 'Utilise un bonus, annule ton dernier coup, ou glisse une pièce tout en bas pour la jeter.', undoEl);
     }
     if (over) endGame(t);
@@ -1839,6 +1842,7 @@
     drag = null;
     showTrash(false);
     aiming = null;
+    if (state.puzzle) { endPuzzle(t); return; }
     overAt = t;
     if (state.stage) { endLevel(); return; }
     best = Math.max(best, state.score);
@@ -1972,7 +1976,7 @@
     const mode = opts.mode || (state.mode === 'adventure' ? prefs.mode : state.mode);
     const world = opts.world || (mode === 'worlds' ? state.world : null);
     state = L.createGame(opts.seed ?? Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage,
-      world, upgrades: profile.upgrades });
+      world, upgrades: profile.upgrades, puzzle: opts.puzzle });
     levelSettled = false;
     paintBackground();
     best = bests[recordKey()] || 0;
@@ -2013,18 +2017,19 @@
   const MODE_NAMES = { classic: 'Classique', chrono: 'Chrono', chill: 'Chill' };
   const LEVEL_NAMES = { easy: 'Facile', normal: 'Normal', hard: 'Difficile' };
   // "Classique · Normal", or "Mondes · Glace".
-  const modeLabel = () => (state.mode === 'worlds' ? 'Mondes · ' + WD.WORLDS[state.world].name : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]}`);
+  const modeLabel = () => (state.puzzle ? `Puzzle ${state.puzzle.n} · ${state.puzzle.name}` : state.mode === 'worlds' ? 'Mondes · ' + WD.WORLDS[state.world].name : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]}`);
 
   function renderMenu() {
     const cont = document.getElementById('menu-continue');
     cont.style.display = inProgress() ? '' : 'none';
     document.getElementById('menu-continue-sub').textContent = state.stage
       ? `${state.stage.daily ? 'Niveau du jour #' + LV.dayNumber(state.stage.daily) : 'Aventure · ' + WD.WORLDS[state.stage.world].name + ' ' + state.stage.n} · ${LV.goalText(state.stage.goal)}`
-      : `${modeLabel()} · ${fmt(state.score)} pts`;
+      : state.puzzle ? modeLabel() : `${modeLabel()} · ${fmt(state.score)} pts`;
     document.getElementById('menu-adventure-sub').innerHTML = starSvg(true, 14) + `${M.totalStars(profile)} / ${M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3}`;
     document.getElementById('menu-adventure').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
     renderDailyButton();
     renderMissionBadges();
+    document.getElementById('menu-puzzles-sub').textContent = `${M.puzzlesSolved(profile)} / ${PZ.COUNT} résolus`;
     const nOpen = freeOpenCount();
     document.getElementById('menu-worlds-sub').textContent = nOpen
       ? `${nOpen} / ${M.WORLD_ORDER.length} ouverts · partie sans fin`
@@ -2067,6 +2072,135 @@
     restartRun({ mode: prefs.mode, level: prefs.level });
   });
   document.getElementById('menu-shop').addEventListener('click', openShop);
+
+  // ---------- Puzzles ----------
+  const puzzlesEl = document.getElementById('puzzles');
+
+  function openPuzzles() {
+    unlockAudio();
+    menuEl.classList.remove('show');
+    overEl.classList.remove('show');
+    levelEndEl.classList.remove('show');
+    const all = Object.values(profile.puzzles || {}).reduce((a, b) => a + b, 0);
+    document.getElementById('puzzles-stars').innerHTML = starSvg(true, 18) + `${fmt(all)} / ${PZ.COUNT * 3}`;
+    const list = document.getElementById('puzzles-list');
+    list.innerHTML = '';
+    PZ.PACKS.forEach((pack, k) => {
+      const first = k * PZ.PER_PACK + 1;
+      let solved = 0;
+      for (let n = first; n < first + PZ.PER_PACK; n++) if (M.puzzleStarsOf(profile, n) !== undefined) solved += 1;
+      list.insertAdjacentHTML('beforeend', `<div class="pz-pack"><h3>${pack.name}</h3><span>${solved} / ${PZ.PER_PACK} · ${PZ.quotaOf(first)} à ${PZ.quotaOf(first + PZ.PER_PACK - 1)} pièces</span></div>`);
+      const grid = document.createElement('div');
+      grid.className = 'levels';
+      for (let n = first; n < first + PZ.PER_PACK; n++) {
+        const open = M.puzzleOpen(profile, n);
+        const stars = M.puzzleStarsOf(profile, n);
+        const b = document.createElement('button');
+        b.className = 'lvl' + (open ? '' : ' locked') + (stars !== undefined ? ' done' : '');
+        b.innerHTML = `<span class="num">${open ? n : LOCK_SVG}</span><span class="stars">${starsRow(stars || 0, 12)}</span>`;
+        b.setAttribute('aria-label', `Puzzle ${n}` + (open ? '' : ', verrouillé'));
+        b.addEventListener('click', () => { if (open) { sfx.turn(); startPuzzle(n); } else sfx.nope(); });
+        grid.appendChild(b);
+      }
+      list.appendChild(grid);
+    });
+    puzzlesEl.classList.add('show');
+  }
+  document.getElementById('menu-puzzles').addEventListener('click', () => { sfx.turn(); openPuzzles(); });
+  document.getElementById('puzzles-close').addEventListener('click', () => { puzzlesEl.classList.remove('show'); openMenu(); });
+  puzzlesEl.addEventListener('click', (e) => { if (e.target === puzzlesEl) { puzzlesEl.classList.remove('show'); openMenu(); } });
+
+  function startPuzzle(n) {
+    unlockAudio();
+    if (inProgress() && !state.stage && !state.puzzle && !confirm('Abandonner la partie en cours ? Les pièces gagnées sont gardées.')) return;
+    puzzlesEl.classList.remove('show');
+    levelEndEl.classList.remove('show');
+    menuEl.classList.remove('show');
+    restartRun({ mode: 'puzzle', puzzle: PZ.puzzle(n) });
+    banners.push({ text: 'Puzzle ' + n, sub: state.puzzle.name + ' · ' + state.puzzle.total + ' pièces', gold: true });
+  }
+
+  // Hint button (puzzle only): places one piece on a right spot for a few coins.
+  const hintBtn = document.createElement('button');
+  hintBtn.className = 'hint-btn';
+  hintBtn.innerHTML = `Indice <span class="price">${M.PUZZLE_HINT}${COIN}</span>`;
+  hintBtn.setAttribute('aria-label', `Indice pour ${M.PUZZLE_HINT} pièces`);
+  invEl.appendChild(hintBtn);
+  function renderHint() {
+    hintBtn.disabled = state.mode !== 'puzzle' || state.over || profile.coins < M.PUZZLE_HINT;
+  }
+  hintBtn.addEventListener('click', () => {
+    unlockAudio();
+    if (state.mode !== 'puzzle' || state.over) return;
+    if (profile.coins < M.PUZZLE_HINT) { sfx.nope(); banners.push({ text: 'Pas assez de pièces', sub: `Un indice coûte ${M.PUZZLE_HINT}` }); return; }
+    const res = L.puzzleHint(state);
+    if (!res) {
+      sfx.nope();
+      banners.push({ text: 'Pas de place juste', sub: 'Annule quelques coups, puis réessaie' });
+      return;
+    }
+    payCoins(M.PUZZLE_HINT);
+    const t = now();
+    state = res.state;
+    for (const [r, c] of res.events.placed) {
+      pops.push({ r, c, t0: t });
+      burst({ r, c }, t, 4, 70, '#fff6a0');
+    }
+    refilled(res.events.refilled, t);
+    sfx.bonus();
+    buzz(12);
+    renderUndo();
+    renderHint();
+    afterChange(t, res.events.over);
+  });
+
+  // Puzzle solved: pay, record stars, celebrate, then the result card.
+  function endPuzzle(t) {
+    const pz = state.puzzle;
+    const runReport = settleRun();
+    let report = null;
+    if (!levelSettled) {
+      levelSettled = true;
+      const res = M.applyPuzzle(profile, pz.n, pz.stars);
+      profile = res.profile;
+      report = res.report;
+      report.earned.push(...stickerLines());
+      saveProfile();
+      renderWallet();
+    }
+    banners.length = 0;
+    banners.push({ text: 'Bravo !', sub: pz.name + ' complété', tier: 3 });
+    if (!calm()) { confetti(t, 70); shake = 10; }
+    setTimeout(() => { sfx.mission(); buzz([20, 40, 20]); }, 350);
+    setTimeout(() => showPuzzleEnd(runReport, report), 1300);
+    save();
+  }
+
+  function showPuzzleEnd(runReport, report) {
+    const pz = state.puzzle;
+    const card = document.getElementById('level-end-card');
+    const lines = [...(runReport ? runReport.earned : []), ...(report ? report.earned : [])];
+    const total = lines.reduce((a, l) => a + l.coins, 0);
+    const next = pz.n < PZ.COUNT ? pz.n + 1 : null;
+    card.innerHTML = `
+      <h2>Puzzle réussi !</h2>
+      <div class="stage-sub">Puzzle ${pz.n} · ${pz.name}</div>
+      <div class="stage-stars">${starsRow(pz.stars, 44)}</div>
+      <div class="stage-sub">${pz.hints ? `${pz.hints} indice${pz.hints > 1 ? 's' : ''} utilisé${pz.hints > 1 ? 's' : ''}` : 'Sans indice'}</div>
+      <div class="earn">${lines.map((l) => `<div class="earn-line in"><span>${l.label}</span><b>+${l.coins}${COIN}</b></div>`).join('')}</div>
+      ${total ? `<div class="coins-total"><span>Pièces</span><span class="v">+${fmt(total)} ${COIN}</span></div>` : ''}
+      <div class="actions">
+        <button class="btn ghost" data-act="list">Puzzles</button>
+        ${pz.stars >= 3 ? '' : `<button class="btn ${next ? 'ghost' : 'primary'}" data-act="again">Rejouer</button>`}
+        ${next ? '<button class="btn primary" data-act="next">Suivant</button>' : ''}
+      </div>`;
+    card.querySelector('[data-act="list"]').addEventListener('click', openPuzzles);
+    const again = card.querySelector('[data-act="again"]');
+    if (again) again.addEventListener('click', () => startPuzzle(pz.n));
+    if (next) card.querySelector('[data-act="next"]').addEventListener('click', () => startPuzzle(next));
+    levelEndEl.classList.add('show');
+    starChimes(pz.stars);
+  }
 
   // ---------- Mondes (endless runs under a world's rules) ----------
   const freeEl = document.getElementById('freeworlds');
@@ -2829,6 +2963,7 @@
       const where = st.daily ? `Niveau du jour #${LV.dayNumber(st.daily)}` : `${worldName(st.world)} · ${levelName(st.n)}`;
       return `${where} · ${LV.goalText(st.goal)}`;
     }
+    if (state.puzzle) return `${modeLabel()} · ${state.puzzle.placed} / ${state.puzzle.total} pièces`;
     return `${modeLabel()} · ${fmt(state.score)} pts`;
   }
   function openPause() {
@@ -2850,6 +2985,7 @@
     if (inProgress() && !confirm('Recommencer depuis le début ? Les pièces gagnées sont gardées.')) return;
     closePause();
     if (state.stage) startLevel(state.stage.world, state.stage.n);
+    else if (state.puzzle) startPuzzle(state.puzzle.n);
     else restartRun({ mode: state.mode, level: state.level });
   });
   document.getElementById('pause-settings').addEventListener('click', () => { closePause(); openSettings(true); });
@@ -2870,6 +3006,8 @@
   // Mode-specific chrome.
   function syncMode() {
     document.body.classList.toggle('chill', state.mode === 'chill');
+    document.body.classList.toggle('puzzle', state.mode === 'puzzle');
+    renderHint();
     renderUndo();
   }
   document.addEventListener('visibilitychange', save);
@@ -2891,6 +3029,7 @@
     const pending = document.getElementById('wallet-pending');
     pending.textContent = runCoinsShown && !runSettled ? '+' + runCoinsShown : '';
     document.getElementById('shop-coins').textContent = fmt(profile.coins);
+    renderHint();
   }
   walletEl.addEventListener('animationend', () => walletEl.classList.remove('bump'));
   renderWallet();
@@ -3412,6 +3551,8 @@
       });
     } else if (state.mode === 'chill') {
       tip('chill', 'Chill', 'Touche une pièce pour la tourner. Pas de bonus, pas de pression.', () => rectOf(lay.bx, lay.ty, lay.nextX - lay.bx, lay.trayH));
+    } else if (state.mode === 'puzzle') {
+      tip('puzzle', 'Puzzle', 'Remplis tout le dessin avec les pièces données. Touche une pièce pour la tourner.', () => rectOf(lay.bx, lay.ty, lay.nextX - lay.bx, lay.trayH));
     } else if (state.mode === 'worlds') {
       tip('worlds', 'Mondes', 'Partie sans fin avec les règles du monde. Plus tu marques, plus la prime en pièces grossit.', plate);
     } else if (state.stage && state.stage.daily) {
@@ -3520,7 +3661,10 @@
     let sub = 'RECORD ' + fmt(best);
     let main = fmt(Math.round(displayScore));
     let lowMoves = false;
-    if (stage) {
+    if (state.puzzle) {
+      main = `${state.puzzle.placed} / ${state.puzzle.total}`;
+      sub = `PUZZLE ${state.puzzle.n} · ${state.puzzle.name.toUpperCase()}`;
+    } else if (stage) {
       const progress = stage.goal.type === 'score' ? Math.round(displayScore) : stage.progress;
       main = fmt(Math.min(progress, stage.goal.target)) + ' / ' + fmt(stage.goal.target);
       sub = LV.goalLabel(stage.goal) + (stage.clock ? '' : ' · ' + stage.movesLeft + (stage.movesLeft > 1 ? ' COUPS' : ' COUP'));
@@ -3538,7 +3682,7 @@
       ctx.save();
       if (p.glow) { ctx.shadowColor = p.glow; ctx.shadowBlur = 12; }
       ctx.fillStyle = p.ink;
-      ctx.font = themeFont(th, Math.round(ph * (stage ? 0.52 : 0.64) * bump));
+      ctx.font = themeFont(th, Math.round(ph * (stage || state.puzzle ? 0.52 : 0.64) * bump));
       ctx.fillText(main, W / 2, py + ph - ph * 0.13);
       ctx.restore();
     }
@@ -3630,6 +3774,8 @@
     ctx.globalAlpha = 1;
   }
 
+  const isVoid = (i) => !!(state.special && state.special[i] && state.special[i].kind === 'void');
+
   function drawBoard(t) {
     const { bx, by, board, cell } = lay;
     const th = theme();
@@ -3642,7 +3788,7 @@
       const g = dragGeometry(drag, t);
       if (g.valid) {
         ghost = g;
-        preview = L.previewClears(state.board, g.piece, g.row, g.col);
+        preview = state.mode === 'puzzle' ? null : L.previewClears(state.board, g.piece, g.row, g.col);
       }
     }
 
@@ -3651,6 +3797,7 @@
     // Empty cells first, so falling blocks can pass over them.
     for (let r = 0; r < SIZE; r++) {
       for (let c = 0; c < SIZE; c++) {
+        if (isVoid(r * SIZE + c)) continue; // puzzle: outside the drawing
         const [x, y] = cellCenter(r, c);
         drawEmpty(ctx, th, x, y, cell);
       }
@@ -3681,7 +3828,7 @@
         }
         const alpha = 1 - overK * 0.65;
         if (v === L.SPECIAL && state.special && state.special[i]) {
-          if (state.special[i].kind === 'boss') continue; // drawn whole by drawBoss
+          if (state.special[i].kind === 'boss' || state.special[i].kind === 'void') continue; // boss: drawn whole by drawBoss
           const drop = drops.get(i);
           if (drop) {
             const k = (t - drop.t0) / drop.dur;
@@ -3845,6 +3992,13 @@
     ctx.textBaseline = 'alphabetic';
     const piece = state.next;
     if (!piece) return;
+    const more = state.puzzle ? state.puzzle.queue.length - 1 : 0;
+    if (more > 0) {
+      ctx.fillStyle = withAlpha(th.ink, 0.75);
+      ctx.font = themeFont(th, 15);
+      ctx.textAlign = 'center';
+      ctx.fillText('+' + more, nextX + nextW / 2 + 1, ty + trayH - 16);
+    }
     const size = Math.min(miniCell() * 0.62, (nextW - 16) / Math.max(piece.w, piece.h, 3));
     const k = easeOut((t - nextIn) / 320);
     drawPiece(piece, nextX + nextW / 2 + 2, ty + trayH / 2 + 6 + (1 - k) * 20, size, 0.75 * k);

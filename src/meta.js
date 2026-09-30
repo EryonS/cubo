@@ -309,6 +309,35 @@
   const worldPrimeRate = (world) => 1 + 0.25 * WORLD_ORDER.indexOf(world);
   const worldPrime = (world, score) => (WORLD_ORDER.includes(world) ? Math.floor(((score || 0) / 200) * worldPrimeRate(world)) : 0);
 
+  // ---------- Puzzles ----------
+  // profile.puzzles: { [n]: stars 1..3 }. Puzzles open one after the other. First solve pays
+  // PUZZLE_FIRST, each new star PER_NEW_STAR, a finished pack PUZZLE_PACK. Hints cost PUZZLE_HINT.
+  const PUZZLE_FIRST = 15;
+  const PUZZLE_PACK = 60;
+  const PUZZLE_HINT = 30;
+  const PUZZLES_PER_PACK = 10;
+  const puzzleStarsOf = (profile, n) => (profile.puzzles || {})[n];
+  const puzzleOpen = (profile, n) => n === 1 || puzzleStarsOf(profile, n - 1) !== undefined;
+  const puzzlesSolved = (profile) => Object.keys(profile.puzzles || {}).length;
+  const packDone = (profile, pack) => {
+    for (let n = pack * PUZZLES_PER_PACK + 1; n <= (pack + 1) * PUZZLES_PER_PACK; n++) if (puzzleStarsOf(profile, n) === undefined) return false;
+    return true;
+  };
+  // Records a solved puzzle. Returns { profile, report: { earned, total } }.
+  function applyPuzzle(prev, n, stars) {
+    const before = puzzleStarsOf(prev, n);
+    const earned = [];
+    if (before === undefined) earned.push({ label: 'Puzzle résolu', coins: PUZZLE_FIRST });
+    const fresh = stars - (before || 0);
+    if (fresh > 0) earned.push({ label: fresh > 1 ? `${fresh} nouvelles étoiles` : 'Nouvelle étoile', coins: fresh * PER_NEW_STAR });
+    let p = { ...prev, puzzles: { ...(prev.puzzles || {}), [n]: Math.max(stars, before || 0) } };
+    const pack = Math.floor((n - 1) / PUZZLES_PER_PACK);
+    if (before === undefined && packDone(p, pack)) earned.push({ label: 'Pack terminé', coins: PUZZLE_PACK });
+    const total = earned.reduce((a, l) => a + l.coins, 0);
+    p = earn(p, total);
+    return { profile: p, report: { earned, total } };
+  }
+
   // ---------- bonus upgrades ----------
   // profile.upgrades: { [bonus]: 2 | 3 } (absent = level 1). UPGRADE_PRICES[bonus][k] buys level k + 2.
   const UPGRADE_PRICES = {
@@ -541,6 +570,7 @@
     addDays, dayDiff, monthDays,
     DAILY_ATTEMPTS, FREEZE_COST, FREEZE_MAX, STREAK_SKIN, dailyOf, streakOf, dailyAttemptsLeft, startDaily, streakNow,
     applyDaily, buyFreeze, monthTrophy, STICKER_PAGES, STICKERS, STICKER_REWARD, checkStickers,
+    PUZZLE_FIRST, PUZZLE_PACK, PUZZLE_HINT, puzzleStarsOf, puzzleOpen, puzzlesSolved, applyPuzzle,
     WORLD_NAMES, worldFreeOpen, worldPrimeRate, worldPrime, UPGRADE_PRICES, upgradeLevel, upgradePrice, buyUpgrade,
     WORLD_ORDER, LEVELS_PER_WORLD, TRIAL_LEVEL, CHESTS, chestState, openChest, freeBombs, useFreeBomb, bossBeaten, EXTRA_MOVES, START_BONUS_COST, SKIP_COST, extraMovesCost,
     levelStars, levelCleared, totalStars, worldStars, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,

@@ -32,9 +32,11 @@
   // Modes: 'classic' ends when nothing fits; 'chrono' also ends when the clock runs out;
   // 'chill' turns pieces freely and drops no bonuses (coins still show up);
   // 'adventure' plays one level: a goal, a move budget and the rules of its world (see worlds.js);
-  // 'worlds' is an endless Classique run under one world's rules (opts.world, see WORLD_FREE).
+  // 'worlds' is an endless Classique run under one world's rules (opts.world, see worlds.js `free`);
+  // 'puzzle' fills a drawing with a fixed set of pieces (opts.puzzle from puzzles.js): no line
+  // clears, no bonuses, free rotation, free undo all the way back.
   // Levels scale how fast big pieces show up and, in chrono, the clock.
-  const MODES = ['classic', 'chrono', 'chill', 'adventure', 'worlds'];
+  const MODES = ['classic', 'chrono', 'chill', 'adventure', 'worlds', 'puzzle'];
   const LEVELS = {
     easy: { ramp: 0.6, clock: 90000, perLine: 10000, clockMax: 120000 },
     normal: { ramp: 1, clock: 60000, perLine: 7000, clockMax: 90000 },
@@ -99,6 +101,7 @@
     // cleared line takes one hp off stage.goal (type 'boss'); see clearCells and stageMove.
     boss: { hp: 1, boss: true },
     crate: { hp: 2 }, // wooden crates stacked at the start of some levels (stage.fill), 2 hits each
+    void: { hp: 1 }, // puzzle: outside the drawing (never cleared, puzzles have no line clears)
   };
   const BOSS_AT = [3, 3]; // top-left cell of the 2x2 boss: the center of the board
 
@@ -237,7 +240,7 @@
   }
 
   // Pieces turn in chill mode or while the rotate bonus runs.
-  const canTurn = (state) => state.mode === 'chill' || state.effects.rotate > 0;
+  const canTurn = (state) => state.mode === 'chill' || state.mode === 'puzzle' || state.effects.rotate > 0;
 
   // Does this piece have a legal spot, counting rotations when pieces can turn?
   function pieceFits(state, piece) {
@@ -253,11 +256,11 @@
   const trayFits = (state) => state.tray.some((p) => p && pieceFits(state, p));
 
   // Undoing the last placement: first one free, then 1, 2, 3... coins within a run.
-  const undoCost = (state) => (state.stats && state.stats.undos) || 0;
+  const undoCost = (state) => (state.mode === 'puzzle' ? 0 : (state.stats && state.stats.undos) || 0);
   const canUndo = (state) => !!state.undo && (state.budget || 0) >= undoCost(state);
 
   const discardCost = (state) => DISCARD_COST + DISCARD_STEP * ((state.stats && state.stats.discards) || 0);
-  const canDiscard = (state) => (state.budget || 0) >= discardCost(state);
+  const canDiscard = (state) => state.mode !== 'puzzle' && (state.budget || 0) >= discardCost(state);
 
   // Can a stored bonus (or a paid discard) still get the player out of a dead end?
   function canRescue(state) {
@@ -273,6 +276,11 @@
 
   // Sets over / stuck. Stuck = nothing fits right now but a stored bonus can help.
   function settle(state) {
+    if (state.mode === 'puzzle') {
+      state.over = state.puzzle.won;
+      state.stuck = !state.over && !trayFits(state);
+      return;
+    }
     const fits = trayFits(state);
     state.over = !fits && !canRescue(state);
     state.stuck = !fits && !state.over;
@@ -313,6 +321,12 @@
   // announced next piece; only if that leaves no move at all, a few retries keep the game fair
   // without making it endless.
   function refillSlot(state, slot) {
+    if (state.mode === 'puzzle') {
+      const queue = (state.puzzle = { ...state.puzzle, queue: state.puzzle.queue.slice() }).queue;
+      state.tray[slot] = queue.shift() || null;
+      state.next = queue[0] || null;
+      return;
+    }
     state.tray[slot] = state.next || pickPiece(state);
     state.next = pickPiece(state);
     for (let attempt = 0; attempt < MERCY_RETRIES && !trayFits(state); attempt++) {
@@ -340,8 +354,9 @@
   function createGame(seed, opts = {}) {
     const stage = opts.mode === 'adventure' && opts.stage ? opts.stage : null;
     const world = opts.mode === 'worlds' && WORLDS[opts.world] ? opts.world : null;
-    const mode = stage ? 'adventure' : world ? 'worlds'
-      : MODES.includes(opts.mode) && opts.mode !== 'adventure' && opts.mode !== 'worlds' ? opts.mode : 'classic';
+    const puzzle = opts.mode === 'puzzle' && opts.puzzle ? opts.puzzle : null;
+    const mode = stage ? 'adventure' : world ? 'worlds' : puzzle ? 'puzzle'
+      : ['classic', 'chrono', 'chill'].includes(opts.mode) ? opts.mode : 'classic';
     const level = LEVELS[opts.level] && mode !== 'worlds' ? opts.level : 'normal';
     const upgrades = {};
     for (const k of Object.keys(BONUSES)) {
@@ -381,8 +396,78 @@
     if (stage && stage.fill) prefill(state, stage.fill);
     if (stage && rules.setup) rules.setup(state, WORLD_API);
     if (world && rules.free && rules.free.setup) scatterKind(state, rules.free.setup.kind, rules.free.setup.count);
+    if (puzzle) setupPuzzle(state, puzzle);
     refillAll(state);
     return state;
+  }
+
+  // Puzzle board: outside cells are 'void' specials, fixed pieces are plain blocks. The pieces to
+  // place are dealt from state.puzzle.queue; state.puzzle.sol keeps each one's solution cells.
+  function setupPuzzle(state, pz) {
+    pz.mask.forEach((inside, i) => { if (!inside) WORLD_API.addSpecial(state, i, 'void'); });
+    for (const f of pz.fixed) for (const i of f.cells) state.board[i] = f.color;
+    const queue = pz.pieces.map((p) => {
+      const d = dims(p.cells);
+      return { id: state.nextId++, cells: p.cells, w: d.w, h: d.h, color: p.color, bonus: null };
+    });
+    state.puzzle = { n: pz.n, name: pz.name, total: queue.length, placed: 0, hints: 0, won: false, stars: 0, queue,
+      sol: pz.pieces.map((p) => p.sol) };
+  }
+
+  // Stars: 3 without hints, one less per hint, at least 1.
+  const puzzleStars = (hints) => Math.max(1, 3 - hints);
+
+  function placePuzzle(prev, trayIndex, row, col) {
+    const piece = prev.tray[trayIndex];
+    const state = { ...prev, board: prev.board.slice(), tray: prev.tray.slice(), stats: { ...(prev.stats || emptyStats()) }, undo: prev };
+    const placed = piece.cells.map(([r, c]) => [row + r, col + c]);
+    for (const [r, c] of placed) state.board[r * SIZE + c] = piece.color;
+    state.moves += 1;
+    state.stats.pieces += 1;
+    state.tray[trayIndex] = null;
+    refillSlot(state, trayIndex);
+    const pz = (state.puzzle = { ...state.puzzle, placed: state.puzzle.placed + 1 });
+    if (state.board.every((v) => v)) { pz.won = true; pz.stars = puzzleStars(pz.hints); }
+    settle(state);
+    return {
+      state,
+      events: { placed, color: piece.color, rows: [], cols: [], lines: 0, chain: 0, waves: [], damaged: [], blasts: [], spawned: [],
+        cleared: [], collected: [], points: 0, combo: 0, perfect: false, refilled: state.tray[trayIndex] ? [trayIndex] : [], timeGain: 0,
+        over: state.over, stuck: state.stuck, won: pz.won },
+    };
+  }
+
+  // Puzzle hint: puts a tray piece on a solution spot of the same shape that is still empty.
+  // Returns { state, events: place()'s events + hint: true } or null when no such spot is free
+  // (the player's pieces cover them all: undo first).
+  function puzzleHint(prev) {
+    if (prev.mode !== 'puzzle' || prev.over) return null;
+    const empty = (i) => !prev.board[i];
+    for (let slot = 0; slot < prev.tray.length; slot++) {
+      const piece = prev.tray[slot];
+      if (!piece) continue;
+      let turnedPiece = piece;
+      for (let k = 0; k < 4; k++, turnedPiece = rotated(turnedPiece)) {
+        const key = shapeKey(turnedPiece.cells);
+        for (const sol of prev.puzzle.sol) {
+          if (!sol.every(empty)) continue;
+          const cells = normalize(sol.map((i) => [Math.floor(i / SIZE), i % SIZE]));
+          if (shapeKey(cells) !== key) continue;
+          const row = Math.min(...sol.map((i) => Math.floor(i / SIZE)));
+          const col = Math.min(...sol.map((i) => i % SIZE));
+          const tray = prev.tray.slice();
+          tray[slot] = turnedPiece;
+          const withHint = { ...prev, tray, puzzle: { ...prev.puzzle, hints: prev.puzzle.hints + 1 } };
+          // Undoing a hinted piece is allowed; the hint stays counted (see undo).
+          const res = placePuzzle(withHint, slot, row, col);
+          res.state.undo = prev;
+          res.events.hint = true;
+          res.events.slot = slot;
+          return res;
+        }
+      }
+    }
+    return null;
   }
 
   const linePoints = (lines, combo) => ((10 * lines * (lines + 1)) / 2) * combo;
@@ -391,6 +476,7 @@
   function place(prev, trayIndex, row, col) {
     const piece = prev.tray[trayIndex];
     if (prev.over || !piece || !canPlace(prev.board, piece, row, col)) return null;
+    if (prev.mode === 'puzzle') return placePuzzle(prev, trayIndex, row, col);
 
     const state = {
       ...prev,
@@ -828,6 +914,12 @@
     if (prev.over || !canUndo(prev)) return null;
     const cost = undoCost(prev);
     const before = prev.undo;
+    if (prev.mode === 'puzzle') {
+      // Undo walks back one placement at a time; hints used stay counted.
+      const state = { ...before, puzzle: { ...before.puzzle, hints: prev.puzzle.hints } };
+      settle(state);
+      return { state, events: { cost: 0, over: state.over, stuck: state.stuck } };
+    }
     const state = {
       ...before,
       budget: prev.budget - cost,
@@ -907,6 +999,7 @@
     nitroMul,
     clockOf,
     defineWorlds,
+    puzzleHint,
     createGame,
     addMoves,
     place,

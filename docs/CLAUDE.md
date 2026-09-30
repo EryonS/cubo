@@ -3,7 +3,7 @@
 Read this before adding or changing a feature. It routes you to the right feature file and module.
 
 ## Hard rules
-- `src/logic.js`, `src/meta.js`, `src/worlds.js`, `src/levels.js`, `src/tutorial.js` stay **pure**: no DOM, no `window`, JSON-serializable state, seeded RNG only. They are reused as-is in the React Native port.
+- `src/logic.js`, `src/meta.js`, `src/worlds.js`, `src/levels.js`, `src/tutorial.js`, `src/puzzles.js` stay **pure**: no DOM, no `window`, JSON-serializable state, seeded RNG only. They are reused as-is in the React Native port.
 - `src/main.js` only draws, animates, plays sounds, handles input and persists.
 - UI copy is **French**. No emoji anywhere (UI, docs shown to players): draw icons on canvas or in SVG.
 - Any change to a saved shape (`gridlock.v2` run state, `gridlock.profile.v1` profile) needs a migration in `M.migrate` + a test in `tests/`.
@@ -30,6 +30,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Pause, block marks, dark menus | [features/comfort.md](features/comfort.md) | section `pause` and `MARKS` in `src/main.js`, `.dark-menus` in `index.html` |
 | Bonus upgrades (Boutique tab Bonus) | [features/upgrades.md](features/upgrades.md) | `EFFECT_BY_LEVEL` / `bombArea` / `reroll` in `src/logic.js`, `UPGRADE_PRICES` in `src/meta.js`, `renderUpgrades` in `src/main.js` |
 | Mondes mode (endless world runs, prime) | [features/worlds-mode.md](features/worlds-mode.md) | `free` in `src/worlds.js`, mode `worlds` in `src/logic.js`, `worldPrime` in `src/meta.js`, section `Mondes` in `src/main.js` |
+| Puzzles (fill a drawing with a quota of pieces) | [features/puzzles.md](features/puzzles.md) | `src/puzzles.js`, mode `puzzle` in `src/logic.js`, `applyPuzzle` in `src/meta.js`, section `Puzzles` in `src/main.js` |
 
 ## Adding a new feature
 1. Create `docs/features/<feature>.md` (template below) and add a row to the table above.
@@ -55,5 +56,6 @@ Status: shipped | planned
 6. Comfort and retention (**done**, v1): pause, color-blind block marks, dark menus, per-mode stats, secret stickers. A weekend event shipped then was removed on 2026-09-30 (overlapped the daily level, nothing to chase once its tiers were paid).
 7. Aventure v2 (**done**): 20 levels a world, boss fights, coins / combo / crate goals, star chests.
 8. Bonus upgrades + Mondes mode (**done**).
-9. Next: hand-made puzzles (pieces already placed, fixed piece quota, rotate to fill), mascot in the HUD.
-10. Later: polish, React Native port.
+9. Puzzles (**done**): 40 drawings to fill with a quota of pieces.
+10. Next: mascot in the HUD.
+11. Later: polish, React Native port.
