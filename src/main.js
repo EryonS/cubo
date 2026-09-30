@@ -229,13 +229,14 @@
     '#d49cff', '#ff8fb8', '#b6e36b', '#ff7a8a', '#3fc1b0', '#a3b1c9', '#e0b07a',
   ];
   // Menu tokens: dark worlds share these defaults, light worlds override the translucent ones.
+  // --scheme: light themes get the dark menu palette when "Menus sombres" is on (dark ones keep theirs).
   const css = (o) => ({
-    '--good': '#5ee08a', '--hairline': 'rgba(255,255,255,0.12)', '--sunken': 'rgba(0,0,0,0.3)',
+    '--scheme': 'dark', '--good': '#5ee08a', '--hairline': 'rgba(255,255,255,0.12)', '--sunken': 'rgba(0,0,0,0.3)',
     '--scrim': 'rgba(6,7,10,0.72)', '--card-edge': 'inset 0 0 0 2px var(--edge)', '--plate-edge': 'inset 0 0 0 1.5px var(--edge)',
     ...o,
   });
   const lightCss = (o) => css({
-    '--hairline': 'rgba(74,58,102,0.14)', '--sunken': 'rgba(74,58,102,0.1)', '--scrim': 'rgba(74,58,102,0.45)',
+    '--scheme': 'light', '--hairline': 'rgba(74,58,102,0.14)', '--sunken': 'rgba(74,58,102,0.1)', '--scrim': 'rgba(74,58,102,0.45)',
     '--card-edge': 'inset 0 -6px 0 var(--edge)', '--plate-edge': 'inset 0 -3px 0 var(--edge)',
     ...o,
   });
@@ -496,6 +497,7 @@
         '--good': '#0f380f', '--edge': '#306230', '--radius': '6px',
         '--hairline': 'rgba(15,56,15,0.3)', '--sunken': 'rgba(15,56,15,0.18)', '--scrim': 'rgba(15,56,15,0.6)',
         '--card-edge': 'inset 0 0 0 4px var(--edge)', '--plate-edge': 'inset 0 0 0 2px var(--edge)',
+        '--accent-dark': '#9bbc0f', '--on-accent-dark': '#0f380f',
       }),
       paint(g, w, h) {
         g.fillStyle = this.base; g.fillRect(0, 0, w, h);
@@ -698,9 +700,11 @@
   function loadJSON(key) {
     try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; }
   }
+  // Free-play records live in `bests`; Aventure has none, a weekend event keeps its own in the profile.
+  const keepsBest = () => state.mode !== 'adventure' && !state.event;
   function save() {
     if (tut) return; // the scripted tutorial board is never saved
-    if (state.mode !== 'adventure') bests[state.mode] = best;
+    if (keepsBest()) bests[state.mode] = best;
     try { localStorage.setItem(STORE_KEY, JSON.stringify({ state, bests, settings, prefs })); } catch { /* private mode */ }
   }
   function saveProfile() {
@@ -714,7 +718,9 @@
   // Records are kept per mode; old saves only had the classic one.
   const bests = saved.bests || { classic: saved.best || loadJSON(LEGACY_KEY).best || 0 };
   let best = bests[state.mode] || 0;
-  const settings = { sfx: !saved.muted, music: true, vibrate: true, ...saved.settings };
+  // patterns: a symbol per block color. darkMenus: dark menu screens, following the system at first.
+  const settings = { sfx: !saved.muted, music: true, vibrate: true, patterns: false,
+    darkMenus: matchMedia('(prefers-color-scheme: dark)').matches, ...saved.settings };
   const prefs = { mode: 'classic', level: 'normal', ...saved.prefs }; // last menu choice
   const storedProfile = loadJSON(PROFILE_KEY);
   // Local calendar day; daily missions roll over at local midnight.
@@ -748,6 +754,11 @@
   let overAt = 0;
   let aiming = null;      // bomb targeting: { cell: [r, c] | null, pid }
   let flyers = [];        // bonus icons flying from the board to the inventory
+  // Combo feel: light sweeping cleared lines, board punch, combo tag pop / break.
+  let sweeps = [];        // { row | col, t0 }
+  let punch = null;       // { t0, amp }
+  let comboAt = 0;        // last time the combo grew
+  let comboBreak = null;  // { t0, n } the combo that just broke
   // Aventure motion. tracks: final board index -> fall segments [{ t0, dur, from, to }] (rows).
   // shifts: rows sliding with the sea current. drops: special cells landing or growing.
   let tracks = new Map();
@@ -759,12 +770,13 @@
   const FALL_AFTER = 240; // falls start once the wave's cells have faded
   const fallMs = (rows) => 110 + 55 * rows;
 
-  // An Aventure level wears its world's theme; otherwise the equipped one.
-  const themeId = () => (state && state.stage ? state.stage.world : profile.equipped.boards);
+  // An Aventure level or a weekend event run wears its world's theme; otherwise the equipped one.
+  const worldOf = () => (state && (state.stage || state.event) ? (state.stage || state.event).world : null);
+  const themeId = () => worldOf() || profile.equipped.boards;
   const theme = () => THEMES[themeId()] || THEMES.toy;
   // Rétro levels squash every shape family into three LCD greens (the world's drawback).
   const RETRO4 = [null, ...Array.from({ length: 14 }, (_, i) => ['#0f380f', '#306230', '#4d7a1e'][i % 3])];
-  const pal = () => (state && state.stage && state.stage.world === 'retro' ? RETRO4 : paletteOf(theme()));
+  const pal = () => (worldOf() === 'retro' ? RETRO4 : paletteOf(theme()));
   const blockSkin = () => BLOCK_SKINS[profile.equipped.blocks] || BLOCK_SKINS.classic;
   const fmt = (n) => n.toLocaleString('fr-FR');
   const COIN = '<i class="coin"></i>';
@@ -791,6 +803,9 @@
     for (const [k, v] of Object.entries(th.css)) root.setProperty(k, v);
     root.setProperty('--font-display', th.font);
     root.setProperty('--display-style', th.italic ? 'italic' : 'normal');
+    root.setProperty('--menu-accent', th.css['--accent-dark'] || th.css['--accent']);
+    root.setProperty('--menu-on-accent', th.css['--on-accent-dark'] || th.css['--on-accent']);
+    document.body.classList.toggle('dark-menus', !!settings.darkMenus && th.css['--scheme'] === 'light');
     document.body.dataset.theme = themeId();
     document.querySelector('meta[name="theme-color"]').setAttribute('content', th.base);
   }
@@ -948,6 +963,10 @@
     grow: () => glide(300, 760, 0.16, 'triangle', 0.06),
     swoosh: () => noise(0.4, 0.09, 350, 2200, 'bandpass', 0, 2),
     star: (i) => pluck(semis(784, [0, 4, 7][i] || 12), 0.45, 0.1, 0, 3),
+    // Combo tier reached: a sparkle run on top of the clear, longer for higher tiers.
+    sparkle: (tier) => [0, 7, 12, 16, 19, 24].slice(0, 3 + tier).forEach((st, i) => pluck(semis(1568, st), 0.25, 0.04, 0.12 + i * 0.045, 2.4)),
+    // Combo lost: a small deflating slide.
+    fizzle: () => { glide(520, 170, 0.3, 'triangle', 0.05); noise(0.2, 0.025, 3000, 700, 'bandpass'); },
   };
   // Soft generative loop: pad chords, bass on 1 and 3, a sparse music-box arpeggio. Scheduled ahead
   // with a small lookahead timer so it keeps time while the main thread is busy.
@@ -1036,6 +1055,10 @@
   const cellCenter = (r, c) => [lay.bx + (c + 0.5) * lay.cell, lay.by + (r + 0.5) * lay.cell];
   const easeOut = (t) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
   const easeBack = (t) => { t = Math.min(1, Math.max(0, t)); const c = 1.7; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+  // Combo tiers drive colors, rays and confetti: 1 = combo 2-3 or a double, 2 = combo 4-5 or a
+  // triple, 3 = combo 6+.
+  const comboTier = (combo, lines = 0) => (combo >= 6 ? 3 : combo >= 4 || lines >= 3 ? 2 : combo >= 2 || lines >= 2 ? 1 : 0);
+  const tierColor = (tier, t) => (tier >= 3 ? `hsl(${Math.round(t / 4) % 360} 92% 58%)` : tier === 2 ? '#ff8a1f' : theme().accent);
 
   function slotCenter(i) {
     return [lay.bx + lay.slotW * (i + 0.5), lay.ty + lay.trayH / 2];
@@ -1262,8 +1285,13 @@
     if (!res) return;
     if (tut && !T.accepts(tut.step, res.events)) { tutorialNope(); return false; }
     const ev = res.events;
+    const prevCombo = state.combo;
     state = res.state;
     const t = now();
+    if (!ev.lines && prevCombo >= 2 && !state.combo) {
+      comboBreak = { t0: t, n: prevCombo };
+      sfx.fizzle();
+    }
 
     ev.placed.forEach(([r, c]) => pops.push({ r, c, t0: t }));
 
@@ -1280,13 +1308,23 @@
       if (plan) tracks = plan.tracks;
       const [fx, fy] = cellCenter(pr, pc);
       const margin = lay.cell * 1.6;
-      floaters.push({ text: '+' + ev.points + (ev.nitro ? ' ×2' : ''), x: Math.max(margin, Math.min(W - margin, fx)), y: fy, t0: t, big: true });
+      const tier = comboTier(ev.combo, ev.lines);
+      floaters.push({ text: '+' + ev.points + (ev.nitro ? ' ×2' : ''), x: Math.max(margin, Math.min(W - margin, fx)), y: fy, t0: t, big: true,
+        scale: 1 + tier * 0.18, tier });
+      if (!calm()) {
+        for (const r of ev.rows) sweeps.push({ row: r, t0: t });
+        for (const c of ev.cols) sweeps.push({ col: c, t0: t });
+        if (tier) punch = { t0: t, amp: 0.012 + tier * 0.01 };
+        if (tier >= 2 || ev.lines >= 2) confetti(t, 10 + tier * 14 + ev.lines * 6);
+      }
+      if (ev.combo >= 2) comboAt = t;
+      if (ev.combo >= 2 && comboTier(ev.combo) > comboTier(ev.combo - 1)) sfx.sparkle(comboTier(ev.combo));
 
       let text = LINE_WORDS[Math.min(ev.lines, LINE_WORDS.length - 1)];
       let sub = ev.combo >= 2 ? 'COMBO ×' + ev.combo : '';
       if (!text && ev.combo >= 2) { text = 'Combo ×' + ev.combo; sub = ''; }
       if (ev.perfect) { text = 'Grille vide !'; sub = '+300'; }
-      if (text) banners.push({ text, sub });
+      if (text) banners.push({ text, sub, tier: ev.perfect ? 3 : tier });
 
       launchFlyers(ev.collected, t, (b) => Math.hypot(b.r - pr, b.c - pc) * 28);
       collectTips(ev.collected);
@@ -1438,6 +1476,20 @@
     sfx.undo();
     buzz(10);
     afterChange(t, res.events.over);
+  }
+
+  // Star confetti thrown up from the board on big clears, in the board's block colors.
+  function confetti(t0, count) {
+    const colors = pal().filter(Boolean);
+    for (let k = 0; k < count; k++) {
+      particles.push({
+        x: lay.bx + Math.random() * lay.board, y: lay.by + lay.board * (0.3 + Math.random() * 0.3),
+        vx: (Math.random() - 0.5) * 420, vy: -320 - Math.random() * 420,
+        t0: t0 + Math.random() * 120, life: 1100 + Math.random() * 600, g: 620,
+        size: lay.cell * (0.22 + Math.random() * 0.18), color: colors[Math.floor(Math.random() * colors.length)],
+        star: true, rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 10,
+      });
+    }
   }
 
   function burst(cell, t0, count, speed, extraColor) {
@@ -1721,6 +1773,7 @@
     banners = []; overAt = 0; slotIn = [now(), now(), now()]; slotSpin = [0, 0, 0]; nextIn = now();
     aiming = null; flyers = [];
     tracks = new Map(); shifts = []; drops = new Map();
+    sweeps = []; punch = null; comboAt = 0; comboBreak = null;
     showTrash(false);
     syncMode();
     overEl.classList.remove('show');
@@ -2664,6 +2717,7 @@
     drag = null; aiming = null;
     returning = []; pops = []; fades = []; particles = []; floaters = []; banners = []; flyers = [];
     tracks = new Map(); shifts = []; drops = new Map();
+    sweeps = []; punch = null; comboAt = 0; comboBreak = null;
     slotIn = [t, t, t]; slotSpin = [0, 0, 0]; nextIn = t;
     showTrash(false);
   }
@@ -2913,9 +2967,18 @@
     drawHUD(t);
     ctx.save();
     ctx.translate(sx, sy);
+    const pk = punch ? (t - punch.t0) / 240 : 1;
+    if (pk < 1) {
+      const zoom = 1 + punch.amp * Math.sin(Math.PI * pk);
+      const cx = lay.bx + lay.board / 2;
+      const cy = lay.by + lay.board / 2;
+      ctx.translate(cx, cy); ctx.scale(zoom, zoom); ctx.translate(-cx, -cy);
+    } else punch = null;
     drawBoard(t);
+    drawComboGlow(t);
     if (tut) drawTutorialCells(t);
     drawFades(t);
+    drawSweeps(t);
     if (aiming) drawAim(t);
     ctx.restore();
     drawTray(t);
@@ -2980,40 +3043,91 @@
     ctx.fillText(main, W / 2, py + ph - ph * 0.13);
     ctx.restore();
 
-    // Combo: small pill hung under the score.
+    // Combo: small pill hung under the score. Pops when it grows, drops away when it breaks.
+    const tagY = py + ph + 4;
     if (state.combo > 0) {
       const left = L.COMBO_GRACE - state.movesSinceClear;
       const pulse = left === 1 ? 0.55 + 0.45 * Math.abs(Math.sin(t / 180)) : 1;
-      const tag = th.tag;
-      const label = 'COMBO ×' + state.combo;
-      ctx.font = themeFont(th, 17);
-      const tw = ctx.measureText(label).width + 20 + L.COMBO_GRACE * 11 + 8;
-      const tx = W / 2 - tw / 2;
-      const ty = py + ph + 4;
-      ctx.globalAlpha = pulse;
-      ctx.save();
-      if (tag.glow) { ctx.shadowColor = tag.glow; ctx.shadowBlur = 10; }
-      ctx.fillStyle = tag.fill;
-      ctx.beginPath(); ctx.roundRect(tx, ty, tw, 25, 12.5); ctx.fill();
-      ctx.restore();
-      if (tag.line) {
-        ctx.strokeStyle = tag.line; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.roundRect(tx + 2.5, ty + 2.5, tw - 5, 20, 4); ctx.stroke();
-      }
-      ctx.fillStyle = tag.ink;
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(label, tx + 11, ty + 14);
-      for (let i = 0; i < L.COMBO_GRACE; i++) {
-        ctx.globalAlpha = pulse * (i < left ? 1 : 0.25);
-        ctx.beginPath();
-        ctx.arc(tx + tw - 12 - (L.COMBO_GRACE - 1 - i) * 11, ty + 12.5, 3.6, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'alphabetic';
-      ctx.globalAlpha = 1;
+      const pop = calm() || !comboAt ? 0 : 1 - easeOut((t - comboAt) / 420);
+      drawComboTag(th, state.combo, left, tagY, pulse, 1 + 0.45 * pop, 0, false, t);
+    } else if (comboBreak && !calm()) {
+      const k = (t - comboBreak.t0) / 700;
+      if (k >= 1) comboBreak = null;
+      else drawComboTag(th, comboBreak.n, 0, tagY + k * k * lay.cell * 1.6, 1 - k, 1 - 0.2 * k, 0.3 * k, true, t);
     }
+  }
+
+  function drawComboTag(th, combo, left, ty, alpha, scale, rot, broken, t) {
+    const tag = th.tag;
+    const tier = broken ? 0 : comboTier(combo);
+    const label = 'COMBO ×' + combo;
+    ctx.font = themeFont(th, 17);
+    const tw = ctx.measureText(label).width + 20 + L.COMBO_GRACE * 11 + 8;
+    const tx = W / 2 - tw / 2;
+    ctx.save();
+    ctx.translate(W / 2, ty + 12.5);
+    ctx.rotate(rot);
+    ctx.scale(scale, scale);
+    ctx.translate(-W / 2, -(ty + 12.5));
+    ctx.globalAlpha = alpha;
+    ctx.save();
+    if (tier >= 2) { ctx.shadowColor = tierColor(tier, t); ctx.shadowBlur = 8 + 6 * tier; }
+    else if (tag.glow) { ctx.shadowColor = tag.glow; ctx.shadowBlur = 10; }
+    ctx.fillStyle = broken ? '#9b93aa' : tag.fill;
+    ctx.beginPath(); ctx.roundRect(tx, ty, tw, 25, 12.5); ctx.fill();
+    ctx.restore();
+    if (tag.line && !broken) {
+      ctx.strokeStyle = tag.line; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.roundRect(tx + 2.5, ty + 2.5, tw - 5, 20, 4); ctx.stroke();
+    }
+    ctx.fillStyle = broken ? '#ffffff' : tag.ink;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, tx + 11, ty + 14);
+    for (let i = 0; i < L.COMBO_GRACE; i++) {
+      ctx.globalAlpha = alpha * (i < left ? 1 : 0.25);
+      ctx.beginPath();
+      ctx.arc(tx + tw - 12 - (L.COMBO_GRACE - 1 - i) * 11, ty + 12.5, 3.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.globalAlpha = 1;
+  }
+
+  // While a combo runs, the board frame glows in the tier color, faster on the last move of grace.
+  function drawComboGlow(t) {
+    if (state.combo < 2 || state.over) return;
+    const tier = comboTier(state.combo);
+    const left = L.COMBO_GRACE - state.movesSinceClear;
+    const pulse = 0.5 + 0.5 * Math.sin(t / (left === 1 ? 110 : 260));
+    const { bx, by, board } = lay;
+    ctx.save();
+    ctx.strokeStyle = tierColor(tier, t);
+    ctx.shadowColor = ctx.strokeStyle;
+    ctx.shadowBlur = calm() ? 6 : 10 + 8 * tier * pulse;
+    ctx.globalAlpha = calm() ? 0.6 : 0.45 + 0.45 * pulse;
+    ctx.lineWidth = 2 + tier;
+    ctx.beginPath(); ctx.roundRect(bx - 10, by - 10, board + 20, board + 20, theme().frame.r); ctx.stroke();
+    ctx.restore();
+  }
+
+  // A flash of light along each cleared line, widening as it fades.
+  function drawSweeps(t) {
+    sweeps = sweeps.filter((w) => t - w.t0 < 380);
+    const { bx, by, board, cell } = lay;
+    for (const w of sweeps) {
+      const k = (t - w.t0) / 380;
+      const thick = cell * (0.8 + 0.6 * easeOut(k));
+      ctx.globalAlpha = (1 - k) * (1 - k) * 0.85;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      if (w.row !== undefined) ctx.roundRect(bx - 4, by + (w.row + 0.5) * cell - thick / 2, board + 8, thick, thick / 2);
+      else ctx.roundRect(bx + (w.col + 0.5) * cell - thick / 2, by - 4, thick, board + 8, thick / 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
 
   function drawBoard(t) {
@@ -3280,12 +3394,30 @@
     particles = particles.filter((p) => t - p.t0 < p.life);
     for (const p of particles) {
       if (t < p.t0) continue;
-      p.vy += 900 * dt;
+      p.vy += (p.g ?? 900) * dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       const k = (t - p.t0) / p.life;
       ctx.globalAlpha = 1 - k;
       ctx.fillStyle = p.color;
+      if (p.star) {
+        p.vx *= 0.985;
+        p.rot += p.vr * dt;
+        const s = p.size * (1 - k * 0.3);
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const rr = i % 2 ? s * 0.22 : s * 0.5;
+          const a = (i * Math.PI) / 5 - Math.PI / 2;
+          ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        continue;
+      }
       const s = p.size * (1 - k * 0.5);
       ctx.beginPath(); ctx.roundRect(p.x - s / 2, p.y - s / 2, s, s, s * 0.25); ctx.fill();
     }
@@ -3299,14 +3431,20 @@
     for (const f of floaters) {
       const k = (t - f.t0) / 900;
       ctx.globalAlpha = 1 - easeOut(Math.max(0, (k - 0.5) * 2));
-      ctx.fillStyle = th.ink;
-      ctx.font = themeFont(th, f.big ? 32 : 20);
+      ctx.fillStyle = f.tier ? tierColor(f.tier, t) : th.ink;
+      ctx.font = themeFont(th, Math.round((f.big ? 32 : 20) * (f.scale || 1)));
       ctx.strokeStyle = withAlpha(th.base, 0.92);
       ctx.lineJoin = 'round';
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 5 + (f.tier || 0);
       const y = f.y - easeOut(k) * lay.cell * 1.4;
-      ctx.strokeText(f.text, f.x, y);
-      ctx.fillText(f.text, f.x, y);
+      // Combo points pop in with a bounce.
+      const pop = f.tier && !calm() ? easeBack(k * 5) : 1;
+      ctx.save();
+      ctx.translate(f.x, y);
+      ctx.scale(pop, pop);
+      ctx.strokeText(f.text, 0, 0);
+      ctx.fillText(f.text, 0, 0);
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   }
@@ -3319,10 +3457,30 @@
     if (k >= 1) { banners.shift(); return; }
     const scale = calm() ? 1 : easeBack(k * 4);
     const alpha = k > 0.7 ? 1 - (k - 0.7) / 0.3 : calm() ? Math.min(1, k * 8) : 1;
+    const tier = banner.tier || 0;
     ctx.save();
     ctx.translate(W / 2, lay.by + lay.board * 0.42);
-    ctx.scale(scale, scale);
+    ctx.scale(scale * (1 + 0.08 * Math.max(0, tier - 1)), scale * (1 + 0.08 * Math.max(0, tier - 1)));
+    // Higher tiers wobble in, over a slowly turning sunburst.
+    if (tier && !calm()) ctx.rotate(Math.sin(k * 20) * 0.035 * tier * (1 - Math.min(1, k * 2.5)));
     ctx.globalAlpha = alpha;
+    if (tier >= 2 && !calm()) {
+      ctx.save();
+      ctx.translate(0, -lay.cell * 0.3);
+      ctx.rotate(t / 1600);
+      ctx.globalAlpha = alpha * 0.2;
+      ctx.fillStyle = tierColor(tier, t);
+      const R = lay.board * 0.52 * easeOut(k * 3);
+      for (let i = 0; i < 12; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, R, (i * Math.PI) / 6, (i * Math.PI) / 6 + Math.PI / 14);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+      ctx.globalAlpha = alpha;
+    }
     ctx.textAlign = 'center';
     ctx.lineJoin = 'round';
     const th = theme();
@@ -3339,7 +3497,14 @@
     const shift = banner.icon ? (iconSize + 10) / 2 : 0;
     ctx.lineWidth = 10;
     ctx.strokeText(banner.text, shift, 0);
-    ctx.fillStyle = banner.gold ? th.accent : th.ink;
+    if (tier >= 3) {
+      // Rainbow sliding across the letters.
+      const g = ctx.createLinearGradient(shift - textW / 2, 0, shift + textW / 2, 0);
+      for (let i = 0; i <= 4; i++) g.addColorStop(i / 4, `hsl(${(Math.round(t / 4) + i * 70) % 360} 92% 58%)`);
+      ctx.fillStyle = g;
+    } else {
+      ctx.fillStyle = tier ? tierColor(tier, t) : banner.gold ? th.accent : th.ink;
+    }
     ctx.fillText(banner.text, shift, 0);
     if (banner.icon) drawIcon(banner.icon, shift - textW / 2 - 10 - iconSize / 2, -lay.cell * 0.32, iconSize);
     if (banner.sub) {

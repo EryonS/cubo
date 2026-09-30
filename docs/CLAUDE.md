@@ -24,6 +24,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Aventure mode (map, levels, stars, rewards) | [features/aventure.md](features/aventure.md) | `src/levels.js`, `src/meta.js`, section `aventure` in `src/main.js` |
 | World rules, special cells | [features/worlds.md](features/worlds.md) | `src/worlds.js`, `KINDS` in `src/logic.js`, `drawSpecial` in `src/main.js` |
 | Défis screen, daily level, streak, share | [features/daily.md](features/daily.md) | `daily` in `src/levels.js`, daily/streak in `src/meta.js`, sections `daily level, streak, profile` and `Défis screen` in `src/main.js` |
+| Combo / line clear effects (juice) | [features/combo-feel.md](features/combo-feel.md) | `commit`, `drawBanner`, `drawComboTag` in `src/main.js` |
 | Guided first game, one-time tips | [features/tutorial.md](features/tutorial.md) | `src/tutorial.js`, `tipSeen` / `markTip` in `src/meta.js`, sections `tutorial` and `tips` in `src/main.js` |
 | Sticker album, trophies, profile and stats | [features/album.md](features/album.md) | `STICKERS` / `checkStickers` / `monthTrophy` in `src/meta.js`, `#profile` screen |
 
@@ -47,4 +48,5 @@ Status: shipped | planned
 2. Aventure (**done**, v1): world map, 10 levels per world, world rules, stars, coin helpers, theme unlock on boss.
 3. Retention (**done**, v1): daily level + share text, day streak with freezes, sticker album with monthly trophies, profile and stats.
 4. Onboarding (**done**): guided first game + one-time tips.
-5. Later: two players on one phone, pause button, polish.
+5. Combo feel (**done**): tiered clear effects.
+6. Later: two players on one phone, pause button, polish.
