@@ -9,7 +9,7 @@ Each has Facile / Normal / Difficile, and its own record.
 
 ## Files
 - `src/logic.js`: `MODES`, `LEVELS`, `createGame(seed, { mode, level, budget })`.
-- `index.html`: home menu (`#menu-mode`, `#menu-level`).
+- `index.html`: Partie libre sheet `#free` (`#menu-mode`, `#menu-level`), opened from the home row.
 - `src/main.js`: `MODE_NAMES`, `LEVEL_NAMES`, `syncMode`, `renderMenu`, `bests`.
 
 ## Saved state

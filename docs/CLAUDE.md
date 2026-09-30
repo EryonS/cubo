@@ -5,7 +5,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 ## Hard rules
 - `src/logic.js`, `src/meta.js`, `src/worlds.js`, `src/levels.js`, `src/tutorial.js`, `src/puzzles.js` stay **pure**: no DOM, no `window`, JSON-serializable state, seeded RNG only. They are reused as-is in the React Native port.
 - `src/main.js` only draws, animates, plays sounds, handles input and persists.
-- UI copy is **French**. No emoji anywhere (UI, docs shown to players): draw icons on canvas or in SVG.
+- UI copy is **French**; a shape to place is a **forme**, a **pièce** is always a coin. No emoji anywhere (UI, docs shown to players): draw icons on canvas or in SVG.
 - Any change to a saved shape (`gridlock.v2` run state, `gridlock.profile.v1` profile) needs a migration in `M.migrate` + a test in `tests/`.
 - New static file (font, image, script) → add it to `ASSETS` in `sw.js` and bump `CACHE`.
 - Visual work follows `DESIGN.md`; product scope follows `PRODUCT.md`.
@@ -32,6 +32,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Mondes mode (endless world runs, prime) | [features/worlds-mode.md](features/worlds-mode.md) | `free` in `src/worlds.js`, mode `worlds` in `src/logic.js`, `worldPrime` in `src/meta.js`, section `Mondes` in `src/main.js` |
 | Puzzles (fill a drawing with a quota of pieces) | [features/puzzles.md](features/puzzles.md) | `src/puzzles.js`, mode `puzzle` in `src/logic.js`, `applyPuzzle` in `src/meta.js`, section `Puzzles` in `src/main.js` |
 | Mascot Cubo (moods, tap, setting) | [features/mascot.md](features/mascot.md) | section `mascot` in `src/main.js` |
+| Tab bar, home screen, dialogs, screen layout | [features/navigation.md](features/navigation.md) | `#tabbar` / `#menu` / `#ask` in `index.html`, sections `home menu`, `tab bar`, `confirmation dialog` in `src/main.js` |
 
 ## Adding a new feature
 1. Create `docs/features/<feature>.md` (template below) and add a row to the table above.
@@ -58,5 +59,6 @@ Status: shipped | planned
 7. Aventure v2 (**done**): 20 levels a world, boss fights, coins / combo / crate goals, star chests.
 8. Bonus upgrades + Mondes mode (**done**).
 9. Puzzles (**done**): 40 drawings to fill with a quota of pieces.
+10. UI/UX audit (**done**, 2026-09-30): tab bar (Jouer / Défis / Boutique / Profil), new home, Mondes moved into each Aventure world, streak moved to Défis, styled confirm dialogs, boss refunds an already bought theme, paid skip only after 2 failures, "forme" for shapes and "pièce" only for coins.
 10. Mascot Cubo (**done**).
 11. Later: polish, React Native port.

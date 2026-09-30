@@ -53,7 +53,7 @@
     { key: 'bomb', stat: 'bombCells', mode: 'total', text: (n) => `Fais sauter ${n} blocs à la bombe`, tiers: [[20, 20], [45, 35], [90, 50]] },
     { key: 'perfect', stat: 'perfects', mode: 'total', text: () => 'Vide toute la grille', tiers: [[1, 40], [1, 40], [1, 50]] },
     { key: 'games', stat: 'games', mode: 'total', text: (n) => `Joue ${n} parties`, tiers: [[3, 20], [5, 30], [8, 40]] },
-    { key: 'pieces', stat: 'pieces', mode: 'total', text: (n) => `Pose ${n} pièces`, tiers: [[80, 20], [150, 30], [300, 50]] },
+    { key: 'pieces', stat: 'pieces', mode: 'total', text: (n) => `Pose ${n} formes`, tiers: [[80, 20], [150, 30], [300, 50]] },
   ];
   const TEMPLATE = Object.fromEntries(MISSIONS.map((m) => [m.key, m]));
 
@@ -271,12 +271,30 @@
       adventure: { ...adventureOf(prev), stars: { ...starsOf(prev), [key]: Math.max(stars, before || 0) } },
     };
     let themeUnlocked = null;
-    if (n === LEVELS_PER_WORLD && findSkin('boards', world) && !prev.owned.boards.includes(world)) {
-      p.owned = { ...prev.owned, boards: [...prev.owned.boards, world] };
+    let result = p;
+    const theme = n === LEVELS_PER_WORLD && before === undefined && findSkin('boards', world);
+    if (theme && !prev.owned.boards.includes(world)) {
+      result = { ...p, owned: { ...prev.owned, boards: [...prev.owned.boards, world] } };
       themeUnlocked = world;
+    } else if (theme && theme.price) {
+      // The theme was bought before the boss fell: the boss pays its price back instead.
+      earned.push({ label: `Thème ${theme.name} déjà à toi`, coins: theme.price });
+      result = earn(p, theme.price);
     }
-    return { profile: p, report: { earned, total, themeUnlocked } };
+    const sum = earned.reduce((a, l) => a + l.coins, 0);
+    return { profile: result, report: { earned, total: sum, themeUnlocked } };
   }
+
+  // Failed attempts per level (the level sheet offers a paid skip after SKIP_AFTER of them).
+  const SKIP_AFTER = 2;
+  const levelFails = (profile, world, n) => (adventureOf(profile).fails || {})[levelKey(world, n)] || 0;
+  function recordFail(prev, world, n) {
+    const adv = adventureOf(prev);
+    const key = levelKey(world, n);
+    return { ...prev, adventure: { ...adv, fails: { ...(adv.fails || {}), [key]: levelFails(prev, world, n) + 1 } } };
+  }
+  const canSkip = (profile, world, n) =>
+    n < LEVELS_PER_WORLD && !levelCleared(profile, world, n) && levelFails(profile, world, n) >= SKIP_AFTER;
 
   // Pays to mark a (non-boss) level as passed with no star.
   function skipLevel(prev, world, n) {
@@ -572,7 +590,7 @@
     applyDaily, buyFreeze, monthTrophy, STICKER_PAGES, STICKERS, STICKER_REWARD, checkStickers,
     PUZZLE_FIRST, PUZZLE_PACK, PUZZLE_HINT, puzzleStarsOf, puzzleOpen, puzzlesSolved, applyPuzzle,
     WORLD_NAMES, worldFreeOpen, worldPrimeRate, worldPrime, UPGRADE_PRICES, upgradeLevel, upgradePrice, buyUpgrade,
-    WORLD_ORDER, LEVELS_PER_WORLD, TRIAL_LEVEL, CHESTS, chestState, openChest, freeBombs, useFreeBomb, bossBeaten, EXTRA_MOVES, START_BONUS_COST, SKIP_COST, extraMovesCost,
+    WORLD_ORDER, LEVELS_PER_WORLD, TRIAL_LEVEL, CHESTS, chestState, openChest, freeBombs, useFreeBomb, bossBeaten, EXTRA_MOVES, START_BONUS_COST, SKIP_COST, SKIP_AFTER, levelFails, recordFail, canSkip, extraMovesCost,
     levelStars, levelCleared, totalStars, worldStars, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,
     SKINS, MISSIONS, createProfile, migrate, ensureDay, missionStatus, missionText, runCoins, applyRun, doubleRun, spend, buy, equip, nextGoal };
 });

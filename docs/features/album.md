@@ -3,7 +3,7 @@ Status: shipped (v1, 2026-09-30)
 
 ## Profile screen
 Menu > Profil, three tabs:
-- **Album**: streak card (flame, current, record, freezes + buy a freeze), month trophy shelf (from `DAILY_START` to now), then 26 stickers on 4 pages. Unearned stickers are grey with their hint; newly earned ones play a peel animation the first time the album opens.
+- **Album**: month trophy shelf (the streak card and freeze moved to the Défis tab on 2026-09-30) (from `DAILY_START` to now), then 26 stickers on 4 pages. Unearned stickers are grey with their hint; newly earned ones play a peel animation the first time the album opens.
 - The calendar moved to the Défis screen (see [daily.md](daily.md)); the profile has only Album and Stats.
 - **Stats**: pills for Classique / Chrono / Chill, each with 4 tiles (games, record, average, best combo) and a bar chart of the last 20 scores (tap or hover a bar for its value); then lifetime counters, Aventure stars, dailies cleared, longest streak.
 

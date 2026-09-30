@@ -22,7 +22,7 @@
       --panel-2: #fbf1f6;
       --slot: #ffffff;
       --text: #4a3a66;
-      --muted: #8a7aa3;
+      --muted: #6e5f8c;
       --accent: #7c5cff;
       --on-accent: #ffffff;
       --good: #1f9e68;
@@ -81,6 +81,8 @@
     .hint-btn:active { transform: scale(0.95); }
     .hint-btn:disabled { opacity: .45; cursor: default; }
     body.puzzle .hint-btn { display: inline-flex; }
+    #wallet { cursor: default; }
+    #wallet:active { transform: none; }
     #wallet {
       left: 16px; display: flex; gap: 7px; align-items: center;
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 21px;
@@ -111,7 +113,8 @@
     .inv-btn canvas.icon { width: 32px; height: 32px; pointer-events: none; }
     .inv-btn:active { transform: scale(0.92); }
     .inv-btn.empty { background: transparent; box-shadow: inset 0 0 0 1.5px var(--hairline); cursor: default; }
-    .inv-btn.empty > * { opacity: 0.28; filter: grayscale(1); }
+    .inv-btn.empty { opacity: .6; }
+    .inv-btn.empty > * { opacity: 0.3; filter: grayscale(1); }
     .inv-btn .count {
       position: absolute; top: -6px; right: -6px; min-width: 21px; height: 21px; padding: 0 5px;
       border-radius: 6px; background: var(--accent); color: var(--on-accent);
@@ -202,7 +205,7 @@
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 18px; line-height: 1.1;
       box-shadow: inset 0 0 0 2px transparent; transition: box-shadow 150ms, background 150ms;
     }
-    .seg button small { display: block; margin-top: 3px; font-family: system-ui, sans-serif; font-style: normal; font-size: 11.5px; text-wrap: balance; font-weight: 600; color: var(--muted); }
+    .seg button small { display: block; margin-top: 3px; font-family: system-ui, sans-serif; font-style: normal; font-size: 12px; text-wrap: balance; font-weight: 600; color: var(--muted); }
     .seg button.on { box-shadow: inset 0 0 0 2.5px var(--accent); }
     #menu-play { margin-top: 14px; }
     /* Home menu: Aventure, a week of daily levels, free play, then icon shortcuts. */
@@ -250,15 +253,10 @@
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 13px; line-height: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.35);
     }
     #missions-open .badge:empty { display: none; }
-    #missions-open.all .badge { background: var(--good); }
+    #missions-open .badge { background: var(--good); }
     #defis .missions h3 { margin: 16px 2px 8px; font-family: inherit; font-style: normal; font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
     .seg.pills { margin-top: 8px; }
     .seg.pills button { padding: 8px 6px 7px; font-size: 16px; border-radius: 999px; }
-    .menu-foot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
-    .menu-foot button { border: 0; border-radius: calc(var(--radius) - 6px); padding: 10px 4px 8px; cursor: pointer; background: var(--panel-2); color: var(--text);
-      display: flex; flex-direction: column; align-items: center; gap: 3px; font-weight: 800; font-size: 13px; transition: transform 120ms cubic-bezier(.2,.8,.2,1); }
-    .menu-foot button:active { transform: scale(0.95); }
-    .menu-foot svg { color: var(--accent); }
     .setting { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 8px;
       border-radius: calc(var(--radius) - 4px); background: var(--panel-2); font-weight: 800; font-size: 16px; text-align: left; }
     .setting small { display: block; font-weight: 600; font-size: 12px; color: var(--muted); margin-top: 2px; }
@@ -346,11 +344,11 @@
     /* ---------- shop ---------- */
     .shop-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 16px; }
     .shop-head h2 { margin: 0; flex: 1; text-align: left; }
-    .shop-head .coins {
+    .shop-head .coins, .home-head .coins {
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 22px; line-height: 1;
       display: inline-flex; align-items: center; gap: 5px; padding: 8px 10px 6px; border-radius: 8px; background: var(--panel-2);
     }
-    .shop-head .coins .coin { margin: 0 0 2px; }
+    .shop-head .coins .coin, .home-head .coins .coin { margin: 0 0 2px; }
     .close { width: 38px; height: 38px; border: 0; border-radius: 10px; background: var(--panel-2); color: var(--text); cursor: pointer; display: grid; place-items: center; }
     .tabs { display: flex; gap: 4px; padding: 4px; border-radius: calc(var(--radius) - 2px); background: var(--panel-2); margin-bottom: 14px; }
     .tab, .ptab {
@@ -422,8 +420,6 @@
     /* Mondes screen: world tiles, then the picked world's rules, record, prime and Play. */
     .fw-intro { margin: -4px 2px 12px; }
     .world-tile.pick { box-shadow: inset 0 0 0 3px var(--accent); }
-    #freeworlds-pick { margin-top: 14px; }
-    #freeworlds-pick h3 { margin: 0 2px 10px; text-align: left; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 22px; line-height: 1.1; }
     .fw-facts { display: flex; gap: 8px; margin-bottom: 12px; }
     .fw-facts div { flex: 1; padding: 8px 10px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); text-align: left; }
     .fw-facts small { display: block; font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
@@ -461,7 +457,7 @@
     .chest { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px;
       border: 0; padding: 0; background: none; cursor: pointer; color: var(--muted); }
     .chest svg { filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
-    .chest small { font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+    .chest small { font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
     .chest small .star, .chest small .coin { margin: 0; }
     .chest.locked svg { filter: grayscale(1) opacity(.55); }
     .chest.ready small { color: var(--accent); }
@@ -472,9 +468,9 @@
     @keyframes chest-wiggle { 0%, 70%, 100% { transform: rotate(0); } 78% { transform: rotate(-9deg); } 86% { transform: rotate(8deg); } 94% { transform: rotate(-4deg); } }
     @media (prefers-reduced-motion: reduce) { .chest.ready svg, .chest.burst svg { animation: none; } }
     .lvl.locked { cursor: default; }
-    .lvl.locked .num { background: var(--sunken); color: var(--muted); box-shadow: none; }
+    .lvl.locked .num { background: var(--panel-2); color: var(--muted); box-shadow: inset 0 0 0 2px var(--hairline); }
     .lvl .stars { display: flex; gap: 1px; }
-    .lvl small { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: -2px; }
+    .lvl small { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: -2px; }
     .stage-goal { margin: 6px 0 4px; font-size: 18px; font-weight: 800; }
     .stage-sub { color: var(--muted); font-size: 14px; font-weight: 700; }
     .day-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0 2px; }
@@ -512,15 +508,15 @@
     .sticker .badge { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; background: var(--c, var(--accent)); color: #fff;
       box-shadow: 0 0 0 3px #fff, 0 4px 10px rgba(0,0,0,.2); }
     .sticker b { font-size: 13px; line-height: 1.15; }
-    .sticker span { font-size: 11px; line-height: 1.25; color: var(--muted); font-weight: 700; }
-    .sticker .when { font-size: 10px; font-weight: 600; opacity: .8; }
+    .sticker span { font-size: 12px; line-height: 1.25; color: var(--muted); font-weight: 700; }
+    .sticker .when { font-size: 11px; font-weight: 600; opacity: .8; }
     .sticker.off .badge { background: var(--sunken); color: var(--muted); box-shadow: none; }
     .sticker.fresh .badge { animation: peel 700ms cubic-bezier(.2,1.4,.4,1) both; }
     @keyframes peel { 0% { transform: rotate(-25deg) scale(.4); opacity: 0; } 60% { transform: rotate(6deg) scale(1.12); } }
     .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .cal-head b { font-family: var(--font-display); font-style: var(--display-style); font-size: 20px; text-transform: capitalize; }
     .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-    .cal .dow { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; }
+    .cal .dow { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; }
     .cal button { aspect-ratio: 1; border: 0; border-radius: 10px; padding: 2px 0 0; background: var(--panel-2); color: var(--text); cursor: pointer;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-weight: 800; font-size: 14px; }
     .cal button .stars { display: flex; }
@@ -544,7 +540,7 @@
       width: min(340px, calc(100% - 32px)); padding: 10px 16px 12px; border-radius: var(--radius);
       background: var(--panel); color: var(--text); text-align: center; box-shadow: var(--plate-edge), 0 4px 12px rgba(0,0,0,0.25);
     }
-    #coach small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+    #coach small { display: block; font-size: 12px; font-weight: 800; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
     #coach b { display: block; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 21px; line-height: 1.15; }
     #coach span { display: block; font-size: 14px; font-weight: 700; color: var(--muted); line-height: 1.25; }
     #coach.nope span { color: var(--danger, #e5484d); }
@@ -564,7 +560,7 @@
     }
     #tip.show { display: block; animation: fade 200ms; }
     #tip b { display: block; font-family: var(--font-display); font-style: var(--display-style); font-size: 17px; margin-bottom: 2px; }
-    #tip small { display: block; margin-top: 6px; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
+    #tip small { display: block; margin-top: 6px; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
     #tip::after {
       content: ''; position: absolute; left: var(--arrow, 50%); width: 14px; height: 14px; margin-left: -7px;
       background: inherit; transform: rotate(45deg); border-radius: 3px;
@@ -601,10 +597,157 @@
     .chart-cap { margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--muted); text-align: left; }
     .chart-empty { margin-top: 12px; padding: 16px 12px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); font-size: 13px; font-weight: 700; color: var(--muted); }
 
+    /* ---------- tab bar + hub screens (Jouer, Défis, Boutique, Profil) ---------- */
+    :root { --tabbar-h: 64px; --tabbar-gap: max(10px, env(safe-area-inset-bottom)); }
+    #tabbar {
+      position: fixed; z-index: 20; left: 50%; bottom: var(--tabbar-gap); transform: translateX(-50%);
+      width: min(384px, calc(100% - 24px)); height: var(--tabbar-h); display: none; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 6px;
+      border-radius: calc(var(--radius) + 4px); background: var(--panel); color: var(--text);
+      box-shadow: var(--plate-edge), 0 10px 30px rgba(0,0,0,.28);
+    }
+    body.hub-on #tabbar { display: grid; }
+    #tabbar button {
+      position: relative; border: 0; border-radius: calc(var(--radius) - 4px); padding: 0; background: transparent; color: var(--muted); cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-weight: 800; font-size: 12px; line-height: 1.1;
+      transition: background 160ms, color 160ms, transform 120ms cubic-bezier(.2,.8,.2,1);
+    }
+    #tabbar button:active { transform: scale(.94); }
+    #tabbar button.on { background: var(--accent); color: var(--on-accent); }
+    #tabbar .dot { position: absolute; top: 6px; left: calc(50% + 8px); width: 10px; height: 10px; border-radius: 50%; background: #ff5d73; box-shadow: 0 0 0 2px var(--panel); }
+    #tabbar button.on .dot { box-shadow: 0 0 0 2px var(--accent); }
+    .overlay.hub { padding-bottom: calc(var(--tabbar-gap) + var(--tabbar-h) + 10px); }
+    .overlay.hub .card {
+      height: calc(100vh - 34px - var(--tabbar-h) - 24px); max-height: 760px;
+      height: calc(100dvh - max(12px, env(safe-area-inset-top)) - var(--tabbar-gap) - var(--tabbar-h) - 22px);
+    }
+    /* Switching tabs: no scrim fade or card bounce, just a quick crossfade. */
+    .overlay.no-anim.show { animation: none; }
+    .overlay.no-anim .card { animation: fade 160ms ease-out; }
+
+    /* Home (Jouer tab) */
+    .home-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .home-head .brand { flex: 1; min-width: 0; margin: 0; text-align: left; font-size: 34px; }
+    .home-head .coins { font-size: 19px; padding: 7px 10px 5px; }
+    #menu-continue { margin-bottom: 12px; }
+    .hero { position: relative; margin-bottom: 10px; }
+    .hero-main {
+      width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px; border: 0; border-radius: var(--radius); cursor: pointer; text-align: left;
+      background: var(--accent); color: var(--on-accent); box-shadow: 0 5px 0 rgba(0,0,0,.2); transition: transform 120ms cubic-bezier(.2,.8,.2,1);
+    }
+    .hero-main:active { transform: scale(.98); }
+    .hero-art { flex: none; width: 92px; height: 69px; border-radius: 14px; box-shadow: 0 0 0 3px rgba(255,255,255,.4); }
+    .hero-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .hero-txt small { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+    .hero-txt b { font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 22px; line-height: 1.05; }
+    .hero-sub { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 800; opacity: .92; }
+    .hero-sub .star.on path { fill: #ffd23f; stroke: none; }
+    .hero-go { flex: none; align-self: flex-end; padding: 8px 14px 6px; border-radius: 999px; background: var(--on-accent); color: var(--accent);
+      font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 17px; line-height: 1; text-transform: uppercase; }
+    .hero-map { position: absolute; top: 8px; right: 8px; display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 10px; border: 0; border-radius: 999px;
+      background: rgba(255,255,255,.22); color: var(--on-accent); font-weight: 800; font-size: 13px; cursor: pointer; }
+    .hero-map::after { content: ''; position: absolute; inset: -8px; }
+    .hero.quiet .hero-main { background: var(--panel-2); color: var(--text); box-shadow: none; }
+    .hero.quiet .hero-go { background: var(--accent); color: var(--on-accent); }
+    .hero.quiet .hero-map { background: var(--panel); color: var(--text); }
+    .hero.quiet .hero-art { box-shadow: none; }
+    .home-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .tile { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px 14px; border: 0; border-radius: calc(var(--radius) - 2px);
+      background: var(--panel-2); color: var(--text); cursor: pointer; text-align: left; transition: transform 120ms cubic-bezier(.2,.8,.2,1); }
+    .tile:active { transform: scale(.97); }
+    .tile.done { box-shadow: inset 0 0 0 2px var(--good); }
+    .tile-top { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .tile .ico { color: var(--accent); }
+    .tile .flame { font-weight: 800; font-size: 15px; }
+    .tile b { font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 19px; line-height: 1.05; }
+    .tile small { font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.25; }
+    .free { display: flex; gap: 8px; margin-bottom: 10px; }
+    .free-pick { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 10px 34px 10px 14px; border: 0;
+      border-radius: calc(var(--radius) - 2px); background: var(--panel-2); color: var(--text); cursor: pointer; text-align: left; }
+    .free-pick .menu-label { margin: 0; font-size: 12px; }
+    .free-pick b { font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 18px; line-height: 1.1; }
+    .free-pick small { font-size: 13px; font-weight: 700; color: var(--muted); }
+    .free-pick .chev { position: absolute; right: 12px; top: 50%; margin-top: -8px; color: var(--muted); }
+    #menu-play { flex: none; width: 104px; background: var(--panel); color: var(--accent); box-shadow: inset 0 0 0 2.5px var(--accent); }
+    #menu-play.primary { background: var(--accent); color: var(--on-accent); box-shadow: 0 4px 0 rgba(0,0,0,.22); }
+    #menu-missions { margin-top: 0; }
+    #free .menu-label:first-of-type { margin-top: 4px; }
+    #free-note { margin-top: 12px; }
+
+    /* Défis tab */
+    .today { padding: 14px; border-radius: var(--radius); background: var(--panel-2); text-align: left; }
+    .today.done { box-shadow: inset 0 0 0 2px var(--good); }
+    .today small { display: block; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .today .goal-line { display: block; margin-top: 4px; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 21px; line-height: 1.1; }
+    .today .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+    .today .row > span { font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.3; }
+    .today .row .stars { display: flex; }
+    .today .btn { flex: none; padding-inline: 22px; }
+    .today .btn:disabled { opacity: .5; cursor: default; }
+    .cal-toggle { justify-content: space-between; }
+    .cal-toggle svg { transition: transform 200ms; }
+    .cal-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+    #defis-cal { margin-top: 12px; }
+
+    /* Confirmation dialog (replaces the browser's confirm) */
+    #ask { z-index: 30; }
+    #ask .card { width: min(320px, 100%); }
+    #ask h2 { font-size: 24px; }
+    .ask-text { margin: 10px 0 0; font-weight: 700; color: var(--muted); line-height: 1.35; }
+    #ask .btn.danger { background: #e5484d; color: #fff; }
+
+    /* Result cards: actions stay reachable at the bottom while the rest scrolls. */
+    .card.sticky-foot { padding-bottom: 0; }
+    .card.sticky-foot > .actions { position: sticky; bottom: 0; z-index: 1; margin-top: 16px; padding: 12px 0 20px; background: var(--panel); }
+    .over-missions { margin-top: 12px; }
+    .over-missions .mission { margin-bottom: 6px; }
+    .missions-line { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 10px 12px; border-radius: calc(var(--radius) - 6px);
+      background: var(--panel-2); font-size: 14px; font-weight: 800; }
+    .missions-line .pips { display: flex; gap: 4px; }
+    .missions-line .pips i { width: 14px; height: 6px; border-radius: 3px; background: var(--hairline); }
+    .missions-line .pips i.done { background: var(--good); }
+
+    /* Aventure: levels on a winding path, endless run under the grid */
+    .path-wrap { position: relative; }
+    .path { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+    .path path { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 7; }
+    .path .todo { stroke: var(--hairline); stroke-dasharray: 0.1 13; stroke-width: 6; }
+    .path .done { stroke: var(--accent); opacity: .3; }
+    .levels { position: relative; }
+    .lvl.locked .stars { visibility: hidden; }
+    .lvl.trial.locked .num { box-shadow: inset 0 0 0 3px rgba(255,209,102,.8); }
+    .world-tile.far { opacity: .55; }
+    .endless { margin-top: 18px; padding: 12px 14px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); text-align: left; }
+    .endless h3 { margin: 0 0 4px; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 19px; }
+    .endless p { margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.35; }
+    .endless .fw-facts { margin: 10px 0; }
+    .endless .fw-facts div { background: var(--panel); }
+    .endless .btn { width: 100%; }
+    .pz-locked { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2);
+      font-size: 13px; font-weight: 700; color: var(--muted); text-align: left; }
+    .pz-locked svg { flex: none; }
+    .lvl .num canvas { width: 32px; height: 32px; }
+    .skin .via { margin: -4px 0 7px; font-size: 12px; font-weight: 700; color: var(--muted); }
+    .setting { cursor: pointer; }
+    #settings .section-title:first-of-type { margin-top: 0; }
+    @media (max-width: 380px) {
+      #menu-play { width: 86px; font-size: 19px; padding-inline: 6px; }
+      .free-pick { padding-right: 28px; }
+      .free-pick b { font-size: 16px; }
+      .free-pick .chev { right: 8px; }
+    }
+    @media (max-height: 700px) {
+      .home-head { margin-bottom: 10px; }
+      .home-head .brand { font-size: 28px; }
+      .hero-main { padding: 12px; }
+      .hero-art { width: 76px; height: 57px; }
+      .tile { padding: 10px 12px; }
+      .tile-top { margin-bottom: 2px; }
+    }
+
     /* ---------- dark menus ---------- */
     /* Screens outside the game (.overlay.ui) switch to a night palette when a light theme is on.
        The accent stays the theme's (--menu-accent, lightened for Rétro); the game itself is untouched. */
-    body.dark-menus .overlay.ui {
+    body.dark-menus .overlay.ui, body.dark-menus #tabbar {
       --panel: #211a2e; --panel-2: #2c2440; --slot: #211a2e;
       --text: #f1ecff; --muted: #a99dc6; --good: #5ee08a; --edge: #3b3155;
       --accent: var(--menu-accent); --on-accent: var(--menu-on-accent);
@@ -634,7 +777,7 @@
 </head>
 <body>
   <canvas id="game"></canvas>
-  <button id="wallet" class="hud-btn" aria-label="Boutique"><i class="coin"></i><span id="wallet-coins">0</span><span id="wallet-pending"></span></button>
+  <div id="wallet" class="hud-btn" role="status" aria-label="Pièces"><i class="coin"></i><span id="wallet-coins">0</span><span id="wallet-pending"></span></div>
   <button id="undo" class="hud-btn" aria-label="Annuler le dernier coup"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span class="badge"></span></button>
   <button id="menu-open" class="hud-btn" aria-label="Pause"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4.5" width="4.2" height="15" rx="1.6"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.6"/></svg></button>
   <button id="missions-open" class="hud-btn" aria-label="Missions du jour"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span class="badge"></span></button>
@@ -652,58 +795,78 @@
       <h2>Bien joué !</h2>
       <p>Tu connais l'essentiel.</p>
       <ul class="rules">
-        <li>La partie s'arrête quand plus aucune pièce ne rentre.</li>
+        <li>La partie s'arrête quand plus aucune forme ne rentre.</li>
         <li>Plusieurs lignes d'un coup rapportent beaucoup plus.</li>
-        <li>Bonus, pièces, poubelle : on t'explique au bon moment.</li>
+        <li>Bonus, pièces à ramasser, poubelle : on t'explique au bon moment.</li>
       </ul>
       <div class="actions"><button class="btn primary" id="tutorial-play">Jouer</button></div>
     </div>
   </div>
 
-  <div id="menu" class="overlay ui">
+  <div id="menu" class="overlay ui hub">
     <div class="card">
-      <div class="brand">Gridlock</div>
+      <div class="home-head">
+        <div class="brand">Gridlock</div>
+        <span class="coins"><i class="coin"></i> <span id="menu-coins">0</span></span>
+        <button class="close" id="menu-settings" aria-label="Réglages"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></button>
+      </div>
       <button class="btn primary wide" id="menu-continue">Continuer<small id="menu-continue-sub"></small></button>
-      <button class="btn primary wide menu-adv" id="menu-adventure"><span>Aventure</span><small id="menu-adventure-sub"></small></button>
-      <button class="menu-defis" id="menu-defis">
-        <svg class="ico" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg>
-        <span class="txt"><b>Défis</b><small id="menu-daily-sub"></small></span>
-        <span class="flame" id="menu-flame"></span>
-        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
-      </button>
+      <div class="hero" id="menu-hero">
+        <button class="hero-main" id="menu-adventure">
+          <canvas class="hero-art" id="menu-adventure-art" width="240" height="180" aria-hidden="true"></canvas>
+          <span class="hero-txt"><small>Aventure</small><b id="menu-adventure-title"></b><span class="hero-sub" id="menu-adventure-sub"></span></span>
+          <span class="hero-go" id="menu-adventure-go">Jouer</span>
+        </button>
+        <button class="hero-map" id="menu-map"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3.5 6v14L9 18l6 2 5.5-2V4L15 6z"/><path d="M9 4v14M15 6v14"/></svg>Carte</button>
+      </div>
+      <div class="home-tiles">
+        <button class="tile" id="menu-defis">
+          <span class="tile-top"><svg class="ico" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg><span class="flame" id="menu-flame"></span></span>
+          <b>Défi du jour</b><small id="menu-daily-sub"></small>
+        </button>
+        <button class="tile" id="menu-puzzles">
+          <span class="tile-top"><svg class="ico" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v4H4z"/></svg></span>
+          <b>Puzzles</b><small id="menu-puzzles-sub"></small>
+        </button>
+      </div>
+      <div class="free">
+        <button class="free-pick" id="menu-free-pick" aria-label="Choisir le mode de la partie libre">
+          <span class="menu-label">Partie libre</span>
+          <b id="menu-free-label"></b>
+          <small id="menu-free-sub"></small>
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="btn" id="menu-play">Jouer</button>
+      </div>
       <button class="menu-defis" id="menu-missions">
-        <svg class="ico" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>
+        <svg class="ico" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>
         <span class="txt"><b>Missions</b><small id="menu-missions-sub"></small></span>
         <span class="pips" id="menu-missions-pips"></span>
         <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
       </button>
-      <button class="menu-defis" id="menu-worlds">
-        <svg class="ico" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.6 2.4 3.8 5.2 3.8 8.5s-1.2 6.1-3.8 8.5c-2.6-2.4-3.8-5.2-3.8-8.5s1.2-6.1 3.8-8.5z"/></svg>
-        <span class="txt"><b>Mondes</b><small id="menu-worlds-sub"></small></span>
-        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
-      </button>
-      <button class="menu-defis" id="menu-puzzles">
-        <svg class="ico" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v4H4z"/></svg>
-        <span class="txt"><b>Puzzles</b><small id="menu-puzzles-sub"></small></span>
-        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
-      </button>
-      <div class="menu-head"><span class="menu-label">Partie libre</span></div>
+    </div>
+  </div>
+
+  <div id="free" class="overlay ui">
+    <div class="card">
+      <div class="shop-head">
+        <h2>Partie libre</h2>
+        <button class="close" id="free-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="menu-label">Mode</div>
       <div class="seg" id="menu-mode">
         <button data-mode="classic">Classique<small>Sans limite</small></button>
         <button data-mode="chrono">Chrono<small>Contre la montre</small></button>
         <button data-mode="chill">Chill<small>Rotation libre</small></button>
       </div>
+      <div class="menu-label">Difficulté</div>
       <div class="seg pills" id="menu-level">
         <button data-level="easy">Facile</button>
         <button data-level="normal">Normal</button>
         <button data-level="hard">Difficile</button>
       </div>
-      <button class="btn primary wide" id="menu-play">Jouer</button>
-      <div class="menu-foot">
-        <button id="menu-shop"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Boutique</button>
-        <button id="menu-profile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg>Profil</button>
-        <button id="menu-settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>Réglages</button>
-      </div>
+      <p class="defis-note" id="free-note"></p>
+      <div class="actions"><button class="btn primary" id="free-play">Jouer</button></div>
     </div>
   </div>
 
@@ -713,12 +876,15 @@
         <h2>Réglages</h2>
         <button class="close" id="settings-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
+      <div class="section-title">Son</div>
       <div class="setting"><div>Sons<small>Effets du jeu</small></div><button class="toggle" role="switch" data-setting="sfx" aria-label="Sons"></button></div>
       <div class="setting"><div>Musique<small>Petite mélodie de fond</small></div><button class="toggle" role="switch" data-setting="music" aria-label="Musique"></button></div>
       <div class="setting" id="setting-vibrate"><div>Vibrations<small>Retour haptique sur mobile</small></div><button class="toggle" role="switch" data-setting="vibrate" aria-label="Vibrations"></button></div>
+      <div class="section-title">Affichage</div>
       <div class="setting"><div>Motifs sur les blocs<small>Un symbole par couleur, pour mieux les distinguer</small></div><button class="toggle" role="switch" data-setting="patterns" aria-label="Motifs sur les blocs"></button></div>
       <div class="setting"><div>Mascotte<small>Cubo, perché sur le plateau, réagit à ta partie</small></div><button class="toggle" role="switch" data-setting="mascot" aria-label="Mascotte"></button></div>
       <div class="setting"><div>Menus sombres<small>Écrans hors jeu en sombre avec les thèmes clairs</small></div><button class="toggle" role="switch" data-setting="darkMenus" aria-label="Menus sombres"></button></div>
+      <div class="section-title">Aide</div>
       <button class="setting link" id="setting-tutorial"><div>Revoir le tutoriel<small>Une partie guidée en 3 étapes</small></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
     </div>
   </div>
@@ -739,7 +905,7 @@
   </div>
 
   <div id="over" class="overlay">
-    <div class="card" id="over-card">
+    <div class="card sticky-foot" id="over-card">
       <h2 id="over-title">Plus de place !</h2>
       <div class="score" id="over-score">0</div>
       <div class="best" id="over-best">Record : 0</div>
@@ -763,7 +929,7 @@
         <button class="close" id="legend-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="legend-list" id="legend-list"></div>
-      <div class="legend-note">Efface un bloc qui porte une icône pour la ramasser. Les bonus vont dans ta barre (2 max par type), les pièces dans ton porte-monnaie. Une pièce ne te plaît pas ? Glisse-la tout en bas pour la jeter : 10 pièces, puis 5 de plus à chaque fois dans la partie. Un chrono se cumule sur deux utilisations et s'arrête quand un menu est ouvert. Améliore tes bonus en Boutique, onglet Bonus.</div>
+      <div class="legend-note">Efface un bloc qui porte une icône pour la ramasser. Les bonus vont dans ta barre (2 max par type), les pièces dans ton porte-monnaie. Une forme ne te plaît pas ? Maintiens-la tout en bas pour la jeter : 10 pièces, puis 5 de plus à chaque fois dans la partie. Un chrono se cumule sur deux utilisations et s'arrête quand un menu est ouvert. Améliore tes bonus dans la Boutique, onglet Bonus.</div>
     </div>
   </div>
 
@@ -785,20 +951,8 @@
         <span class="star-pill" id="puzzles-stars"></span>
         <button class="close" id="puzzles-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
-      <p class="defis-note fw-intro">Remplis le dessin avec les pièces données. Touche une pièce pour la tourner, annuler est gratuit.</p>
+      <p class="defis-note fw-intro">Remplis le dessin avec les formes données. Touche une forme pour la tourner, annuler est gratuit.</p>
       <div id="puzzles-list"></div>
-    </div>
-  </div>
-
-  <div id="freeworlds" class="overlay ui">
-    <div class="card">
-      <div class="shop-head">
-        <h2>Mondes</h2>
-        <button class="close" id="freeworlds-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-      </div>
-      <p class="defis-note fw-intro">Une partie sans fin avec les règles d'un monde. Chaque point rapporte une prime en pièces, plus grosse dans les mondes lointains.</p>
-      <div class="worlds" id="freeworlds-list"></div>
-      <div id="freeworlds-pick"></div>
     </div>
   </div>
 
@@ -811,7 +965,8 @@
       </div>
       <div class="rules" id="world-rules"></div>
       <div class="chests" id="world-chests"></div>
-      <div class="levels" id="levels"></div>
+      <div class="path-wrap"><svg class="path" id="levels-path" aria-hidden="true"></svg><div class="levels" id="levels"></div></div>
+      <div id="world-endless"></div>
     </div>
   </div>
 
@@ -820,15 +975,14 @@
   </div>
 
   <div id="level-end" class="overlay">
-    <div class="card" id="level-end-card"></div>
+    <div class="card sticky-foot" id="level-end-card"></div>
   </div>
 
-  <div id="defis" class="overlay ui">
+  <div id="defis" class="overlay ui hub">
     <div class="card">
       <div class="shop-head">
         <h2>Défis</h2>
         <span class="star-pill flame" id="defis-flame"></span>
-        <button class="close" id="defis-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div id="defis-body"></div>
     </div>
@@ -845,11 +999,10 @@
     </div>
   </div>
 
-  <div id="profile" class="overlay ui">
+  <div id="profile" class="overlay ui hub">
     <div class="card">
       <div class="shop-head">
         <h2>Profil</h2>
-        <button class="close" id="profile-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="tabs">
         <button class="ptab on" data-ptab="album">Album</button>
@@ -859,20 +1012,33 @@
     </div>
   </div>
 
-  <div id="shop" class="overlay ui">
+  <div id="shop" class="overlay ui hub">
     <div class="card">
       <div class="shop-head">
         <h2>Boutique</h2>
         <span class="coins"><i class="coin"></i> <span id="shop-coins">0</span></span>
-        <button class="close" id="shop-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="tabs">
         <button class="tab on" data-tab="boards">Thèmes</button>
         <button class="tab" data-tab="blocks">Blocs</button>
         <button class="tab" data-tab="bonus">Bonus</button>
-        <button class="tab" data-tab="missions">Missions</button>
       </div>
       <div id="shop-body"></div>
+    </div>
+  </div>
+
+  <nav id="tabbar" aria-label="Navigation principale">
+    <button data-go="menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><path d="M15 17h5M17.5 14.5v5"/></svg><span>Jouer</span></button>
+    <button data-go="defis"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg><span>Défis</span><i class="dot" hidden></i></button>
+    <button data-go="shop"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span>Boutique</span></button>
+    <button data-go="profile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg><span>Profil</span></button>
+  </nav>
+
+  <div id="ask" class="overlay ui" role="alertdialog" aria-modal="true" aria-labelledby="ask-title">
+    <div class="card">
+      <h2 id="ask-title"></h2>
+      <p class="ask-text" id="ask-text"></p>
+      <div class="actions"><button class="btn ghost" id="ask-no">Annuler</button><button class="btn primary" id="ask-yes"></button></div>
     </div>
   </div>
 

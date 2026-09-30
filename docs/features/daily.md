@@ -2,7 +2,7 @@
 Status: shipped (v1, 2026-09-30; Défis screen added the same day)
 
 ## Défis screen
-- Menu row "Défis" (`#menu-defis`): today's level status and the streak flame.
+- Home tile "Défi du jour" (`#menu-defis`): today's world, attempts and streak flame; opens today's level sheet. The Défis tab (see navigation.md) shows today's level first, the streak and freeze, today's missions, and the calendar folded under "Rattraper un niveau manqué".
 - `#defis` overlay, one screen: month calendar (past days and today; stars = cleared) and, below, the picked day's level card (today by default, titled "Aujourd'hui") plus the month trophy hint. Tapping the card opens the daily sheet; its "Retour" comes back here. Future days and days before `DAILY_START` are disabled. Streak count sits in the header pill.
 - Daily seeds for free play ("graines") were tried and dropped the same day: without a goal or leaderboard they added nothing over normal free play.
 

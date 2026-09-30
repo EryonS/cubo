@@ -39,8 +39,8 @@
   const secs = (type, lv) => L.EFFECT_BY_LEVEL[type][lv - 1] / 1000;
   const times = (n) => '×' + String(n).replace('.', ',');
   const BONUS_UI = {
-    rotate: { name: 'Toupie', hint: () => 'Touche une pièce pour la tourner',
-      desc: (lv) => `${secs('rotate', lv)} s : touche une pièce du bac pour la faire pivoter.`, levels: ['30 s', '45 s', '60 s'] },
+    rotate: { name: 'Toupie', hint: () => 'Touche une forme pour la tourner',
+      desc: (lv) => `${secs('rotate', lv)} s : touche une forme du bac pour la faire pivoter.`, levels: ['30 s', '45 s', '60 s'] },
     nitro: { name: 'Étoile', hint: (lv) => 'Points ' + times(L.NITRO_BY_LEVEL[lv - 1]),
       desc: (lv) => `30 s : tous les points comptent ${lv === 1 ? 'double' : times(L.NITRO_BY_LEVEL[lv - 1])}.`, levels: ['Points ×2', 'Points ×2,5', 'Points ×3'] },
     shield: { name: 'Bulle', hint: () => 'Le combo ne casse plus',
@@ -48,8 +48,8 @@
     bomb: { name: 'Bombe', hint: () => 'Glisse-la sur la grille',
       desc: (lv) => 'Glisse-la sur la grille : ' + ['elle fait sauter une zone de 21 cases.', 'elle fait sauter un carré de 25 cases.', 'carré de 25 cases, plus toute la ligne et la colonne.'][lv - 1],
       levels: ['21 cases', 'Carré de 25', 'Carré + grande croix'] },
-    reroll: { name: 'Tornade', hint: () => 'Nouvelles pièces',
-      desc: (lv) => ['Remplace les 3 pièces du bac.', 'Remplace les 3 pièces du bac par des pièces qui rentrent.', 'Remplace les 3 pièces du bac par des petites pièces qui rentrent.'][lv - 1],
+    reroll: { name: 'Tornade', hint: () => 'Nouvelles formes',
+      desc: (lv) => ['Remplace les 3 formes du bac.', 'Remplace les 3 formes du bac par des formes qui rentrent.', 'Remplace les 3 formes du bac par des petites formes qui rentrent.'][lv - 1],
       levels: ['Au hasard', 'Qui rentrent', 'Petites, qui rentrent'] },
   };
   // Upgrade level of a bonus in the current run (bought levels apply to the run in progress too).
@@ -279,7 +279,7 @@
       tag: { fill: '#b7f0d8', line: null, ink: '#1e7a55' },
       css: lightCss({
         '--bg': '#ffeef4', '--panel': '#ffffff', '--panel-2': '#fbf1f6', '--slot': '#ffffff',
-        '--text': '#4a3a66', '--muted': '#8a7aa3', '--accent': '#7c5cff', '--on-accent': '#ffffff',
+        '--text': '#4a3a66', '--muted': '#6e5f8c', '--accent': '#7c5cff', '--on-accent': '#ffffff',
         '--good': '#1f9e68', '--edge': '#f3dce8', '--radius': '22px',
       }),
       paint(g, w, h) {
@@ -299,7 +299,7 @@
       tag: { fill: '#ffd23f', line: null, ink: '#6b3a00' },
       css: lightCss({
         '--bg': '#8fdcff', '--panel': '#ffffff', '--panel-2': '#eef8ff', '--slot': '#ffffff',
-        '--text': '#1d3557', '--muted': '#5b7494', '--accent': '#ff4d6d', '--on-accent': '#ffffff',
+        '--text': '#1d3557', '--muted': '#4a6282', '--accent': '#ff4d6d', '--on-accent': '#ffffff',
         '--good': '#2f9e44', '--edge': '#d6e9f7', '--radius': '18px',
         '--hairline': 'rgba(29,53,87,0.14)', '--sunken': 'rgba(29,53,87,0.1)', '--scrim': 'rgba(29,53,87,0.45)',
       }),
@@ -419,7 +419,7 @@
       tag: { fill: '#2a9df4', line: null, ink: '#ffffff' },
       css: lightCss({
         '--bg': '#dff3fc', '--panel': '#ffffff', '--panel-2': '#eef8fd', '--slot': '#ffffff',
-        '--text': '#1b3a5c', '--muted': '#5f7f9c', '--accent': '#2a9df4', '--on-accent': '#ffffff',
+        '--text': '#1b3a5c', '--muted': '#4a6884', '--accent': '#2a9df4', '--on-accent': '#ffffff',
         '--good': '#1f9e68', '--edge': '#cdeaf8', '--radius': '18px',
         '--hairline': 'rgba(27,58,92,0.14)', '--sunken': 'rgba(27,58,92,0.1)', '--scrim': 'rgba(27,58,92,0.45)',
       }),
@@ -772,6 +772,7 @@
   let recordAnnounced = false;
   let runSettled = false;
   let levelSettled = false; // Aventure: level result recorded (stars, coins)
+  let failCounted = false; // Aventure: this attempt already counted as a failure (paid skip offer)
   let announced = new Set(); // missions already celebrated this run
 
   // ---------- animation state ----------
@@ -1753,8 +1754,8 @@
     checkMissions();
     if (state.stuck && !over) {
       if (state.mode === 'puzzle') tip('stuck-puzzle', 'Ça ne rentre plus', 'Annule tes derniers coups (gratuit), ou prends un indice.', undoEl);
-      else if (state.mode === 'chill') tip('stuck-chill', 'Coincé ?', 'Annule ton dernier coup, ou glisse une pièce tout en bas pour la jeter.', undoEl);
-      else tip('stuck', 'Coincé ?', 'Utilise un bonus, annule ton dernier coup, ou glisse une pièce tout en bas pour la jeter.', undoEl);
+      else if (state.mode === 'chill') tip('stuck-chill', 'Coincé ?', 'Annule ton dernier coup, ou maintiens une forme tout en bas pour la jeter.', undoEl);
+      else tip('stuck', 'Coincé ?', 'Utilise un bonus, annule ton dernier coup, ou maintiens une forme tout en bas pour la jeter.', undoEl);
     }
     if (over) endGame(t);
     renderInventory();
@@ -1778,9 +1779,8 @@
   function renderMissionBadges() {
     const status = M.missionStatus(profile, liveRun());
     const done = status.filter((m) => m.done).length;
-    missionsOpenEl.querySelector('.badge').textContent = `${done}/${status.length}`;
-    missionsOpenEl.classList.toggle('all', done === status.length);
-    document.getElementById('menu-missions-sub').textContent = done === status.length ? 'Toutes faites' : `${done}/${status.length} faites`;
+    missionsOpenEl.querySelector('.badge').textContent = done ? `${done}/${status.length}` : '';
+    document.getElementById('menu-missions-sub').textContent = done === status.length ? 'Toutes faites' : `${done}/${status.length} faites aujourd’hui`;
     document.getElementById('menu-missions-pips').innerHTML = status.map((m) => `<i class="${m.done ? 'done' : ''}"><b style="width:${(m.current / m.target) * 100}%"></b></i>`).join('');
   }
   function openMissions() {
@@ -1796,7 +1796,6 @@
     if (missionsFromMenu) openMenu();
   }
   missionsOpenEl.addEventListener('click', openMissions);
-  document.getElementById('menu-missions').addEventListener('click', () => { sfx.turn(); openMissions(); });
   document.getElementById('missions-close').addEventListener('click', closeMissions);
   missionsEl.addEventListener('click', (e) => { if (e.target === missionsEl) closeMissions(); });
 
@@ -1917,7 +1916,7 @@
       adBtn.innerHTML = `Regarder une pub · +${report.total}${COIN}`;
       setTimeout(() => adBtn.classList.add('show'), linesDone);
     }
-    renderMissionList(document.getElementById('over-missions'), report ? report.completed : [], null);
+    renderRunMissions(document.getElementById('over-missions'));
     overEl.classList.add('show');
   }
 
@@ -1994,6 +1993,14 @@
     }
   }
 
+  // Game over: one line for today's missions (the ones this run finished are already in the coin lines).
+  function renderRunMissions(el) {
+    const status = M.missionStatus(profile, {});
+    const done = status.filter((m) => m.done).length;
+    el.className = 'missions over-missions';
+    el.innerHTML = `<div class="missions-line"><span>Missions du jour · ${done}/${status.length}</span><span class="pips">${status.map((m) => `<i class="${m.done ? 'done' : ''}"></i>`).join('')}</span></div>`;
+  }
+
   // opts: { mode, level, stage, seed }; mode and level default to the current game's.
   function newGame(opts = {}) {
     profile = M.ensureDay(profile, today());
@@ -2004,6 +2011,7 @@
     state = L.createGame(opts.seed ?? Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage,
       world, upgrades: profile.upgrades, puzzle: opts.puzzle });
     levelSettled = false;
+    failCounted = false;
     paintBackground();
     best = bests[recordKey()] || 0;
     bestAtStart = best;
@@ -2038,31 +2046,83 @@
   }
 
   const inProgress = () => !state.over && state.moves > 0;
-  // ---------- home menu ----------
+  // ---------- confirmation dialog ----------
+  const askEl = document.getElementById('ask');
+  let askDone = null;
+  // In-game replacement for window.confirm. Resolves true when the player agrees.
+  function ask({ title, text, ok, danger }) {
+    if (askDone) askDone(false);
+    document.getElementById('ask-title').textContent = title;
+    document.getElementById('ask-text').textContent = text;
+    const yes = document.getElementById('ask-yes');
+    yes.textContent = ok;
+    yes.classList.toggle('danger', !!danger);
+    askEl.classList.add('show');
+    return new Promise((resolve) => {
+      askDone = (v) => { askDone = null; askEl.classList.remove('show'); resolve(v); };
+    });
+  }
+  document.getElementById('ask-yes').addEventListener('click', () => { if (askDone) askDone(true); });
+  document.getElementById('ask-no').addEventListener('click', () => { if (askDone) { sfx.turn(); askDone(false); } });
+  askEl.addEventListener('click', (e) => { if (e.target === askEl && askDone) askDone(false); });
+  // Runs go() now, or once the player agrees to drop the run in progress (its coins are kept).
+  function guardRun(needed, go) {
+    if (!needed) { go(); return; }
+    ask({ title: 'Abandonner ?', text: 'La partie en cours s’arrête. Les pièces gagnées sont gardées.', ok: 'Abandonner', danger: true })
+      .then((yes) => { if (yes) go(); });
+  }
+
+  // ---------- home menu (Jouer tab) ----------
+  // Continue, the next Aventure level, the daily level and Puzzles, free play, missions.
   const menuEl = document.getElementById('menu');
+  const freePickEl = document.getElementById('free');
   const MODE_NAMES = { classic: 'Classique', chrono: 'Chrono', chill: 'Chill' };
   const LEVEL_NAMES = { easy: 'Facile', normal: 'Normal', hard: 'Difficile' };
+  const MODE_NOTES = {
+    classic: 'Pose des formes sans limite de temps, jusqu’à ce que plus rien ne rentre.',
+    chrono: 'La partie tourne contre la montre : chaque ligne effacée rajoute du temps.',
+    chill: 'Touche une forme pour la tourner. Pas de bonus, pas de pression.',
+  };
   // "Classique · Normal", or "Mondes · Glace".
   const modeLabel = () => (state.puzzle ? `Puzzle ${state.puzzle.n} · ${state.puzzle.name}` : state.mode === 'worlds' ? 'Mondes · ' + WD.WORLDS[state.world].name : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]}`);
+  const heroArt = document.getElementById('menu-adventure-art');
+
+  // Next Aventure level to play: the first open level not cleared yet, in map order.
+  function nextAdventure() {
+    for (const w of M.WORLD_ORDER) {
+      if (!M.worldOpen(profile, w)) return null;
+      for (let n = 1; n <= M.LEVELS_PER_WORLD; n++) if (M.levelOpen(profile, w, n) && !M.levelCleared(profile, w, n)) return [w, n];
+    }
+    return null;
+  }
+  const lastOpenWorld = () => M.WORLD_ORDER.filter((w) => M.worldOpen(profile, w)).pop() || M.WORLD_ORDER[0];
 
   function renderMenu() {
+    const playing = inProgress();
     const cont = document.getElementById('menu-continue');
-    cont.style.display = inProgress() ? '' : 'none';
+    cont.style.display = playing ? '' : 'none';
     document.getElementById('menu-continue-sub').textContent = state.stage
       ? `${state.stage.daily ? 'Niveau du jour #' + LV.dayNumber(state.stage.daily) : 'Aventure · ' + WD.WORLDS[state.stage.world].name + ' ' + state.stage.n} · ${LV.goalText(state.stage.goal)}`
       : state.puzzle ? modeLabel() : `${modeLabel()} · ${fmt(state.score)} pts`;
+    const next = nextAdventure();
+    document.getElementById('menu-hero').classList.toggle('quiet', playing);
+    drawPreview(heroArt, profile.equipped.blocks, next ? next[0] : lastOpenWorld());
+    document.getElementById('menu-adventure-title').textContent = next ? `${worldName(next[0])} · ${levelName(next[1])}` : 'Carte des mondes';
     document.getElementById('menu-adventure-sub').innerHTML = starSvg(true, 14) + `${M.totalStars(profile)} / ${M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3}`;
-    document.getElementById('menu-adventure').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
+    document.getElementById('menu-adventure-go').textContent = next ? 'Jouer' : 'Voir';
+    document.getElementById('menu-adventure').setAttribute('aria-label', next ? `Aventure : jouer ${worldName(next[0])}, ${levelName(next[1])}` : 'Aventure : carte des mondes');
     renderDailyButton();
     renderMissionBadges();
     document.getElementById('menu-puzzles-sub').textContent = `${M.puzzlesSolved(profile)} / ${PZ.COUNT} résolus`;
-    const nOpen = freeOpenCount();
-    document.getElementById('menu-worlds-sub').textContent = nOpen
-      ? `${nOpen} / ${M.WORLD_ORDER.length} ouverts · partie sans fin`
-      : "Réussis l'épreuve d'un monde en Aventure";
-    document.getElementById('menu-play').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
+    document.getElementById('menu-free-label').textContent = `${MODE_NAMES[prefs.mode]} · ${LEVEL_NAMES[prefs.level]}`;
+    document.getElementById('menu-free-sub').textContent = { classic: 'Sans limite', chrono: 'Contre la montre', chill: 'Rotation libre' }[prefs.mode];
+    document.getElementById('menu-coins').textContent = fmt(profile.coins);
+    renderFreePick();
+  }
+  function renderFreePick() {
     for (const b of document.querySelectorAll('#menu-mode button')) b.classList.toggle('on', b.dataset.mode === prefs.mode);
     for (const b of document.querySelectorAll('#menu-level button')) b.classList.toggle('on', b.dataset.level === prefs.level);
+    document.getElementById('free-note').textContent = MODE_NOTES[prefs.mode];
   }
 
   function openMenu() {
@@ -2080,7 +2140,40 @@
   document.getElementById('menu-open').addEventListener('click', () => { unlockAudio(); sfx.turn(); openPause(); });
   document.getElementById('over-menu').addEventListener('click', openMenu);
   document.getElementById('menu-continue').addEventListener('click', () => { unlockAudio(); closeMenu(); });
-  menuEl.addEventListener('click', (e) => { if (e.target === menuEl && inProgress()) closeMenu(); });
+  document.getElementById('menu-adventure').addEventListener('click', () => {
+    unlockAudio();
+    sfx.turn();
+    const next = nextAdventure();
+    closeMenu();
+    if (next) openStage(next[0], next[1]); else openAdventure();
+  });
+  document.getElementById('menu-map').addEventListener('click', () => { sfx.turn(); openAdventure(); });
+  document.getElementById('menu-defis').addEventListener('click', () => { sfx.turn(); openDailySheet(today(), 'menu'); });
+  document.getElementById('menu-missions').addEventListener('click', () => {
+    sfx.turn();
+    goTab('defis');
+    document.getElementById('defis-missions').scrollIntoView({ block: 'start', behavior: calm() ? 'auto' : 'smooth' });
+  });
+  document.getElementById('menu-settings').addEventListener('click', () => { sfx.turn(); openSettings('menu'); });
+
+  // Free play: the picked mode and level show on the home row; the sheet changes them.
+  const playFree = () => guardRun(inProgress(), () => {
+    freePickEl.classList.remove('show');
+    closeMenu();
+    restartRun({ mode: prefs.mode, level: prefs.level });
+  });
+  document.getElementById('menu-play').addEventListener('click', () => { unlockAudio(); playFree(); });
+  document.getElementById('free-play').addEventListener('click', () => { unlockAudio(); playFree(); });
+  document.getElementById('menu-free-pick').addEventListener('click', () => {
+    unlockAudio();
+    sfx.turn();
+    renderFreePick();
+    closeMenu();
+    freePickEl.classList.add('show');
+  });
+  const closeFreePick = () => { freePickEl.classList.remove('show'); openMenu(); };
+  document.getElementById('free-close').addEventListener('click', closeFreePick);
+  freePickEl.addEventListener('click', (e) => { if (e.target === freePickEl) closeFreePick(); });
   for (const b of document.querySelectorAll('#menu-mode button, #menu-level button')) {
     b.addEventListener('click', () => {
       unlockAudio();
@@ -2091,13 +2184,6 @@
       save();
     });
   }
-  document.getElementById('menu-play').addEventListener('click', () => {
-    unlockAudio();
-    if (inProgress() && !confirm('Abandonner la partie en cours ? Les pièces gagnées sont gardées.')) return;
-    closeMenu();
-    restartRun({ mode: prefs.mode, level: prefs.level });
-  });
-  document.getElementById('menu-shop').addEventListener('click', openShop);
 
   // ---------- Puzzles ----------
   const puzzlesEl = document.getElementById('puzzles');
@@ -2115,7 +2201,12 @@
       const first = k * PZ.PER_PACK + 1;
       let solved = 0;
       for (let n = first; n < first + PZ.PER_PACK; n++) if (M.puzzleStarsOf(profile, n) !== undefined) solved += 1;
-      list.insertAdjacentHTML('beforeend', `<div class="pz-pack"><h3>${pack.name}</h3><span>${solved} / ${PZ.PER_PACK} · ${PZ.quotaOf(first)} à ${PZ.quotaOf(first + PZ.PER_PACK - 1)} pièces</span></div>`);
+      list.insertAdjacentHTML('beforeend', `<div class="pz-pack"><h3>${pack.name}</h3><span>${solved} / ${PZ.PER_PACK} · ${PZ.quotaOf(first)} à ${PZ.quotaOf(first + PZ.PER_PACK - 1)} formes</span></div>`);
+      // A pack not reached yet is a single line instead of ten padlocks.
+      if (!M.puzzleOpen(profile, first)) {
+        list.insertAdjacentHTML('beforeend', `<div class="pz-locked">${LOCK_SVG}<span>Finis le pack ${PZ.PACKS[k - 1].name} pour ouvrir ces ${PZ.PER_PACK} puzzles.</span></div>`);
+        return;
+      }
       const grid = document.createElement('div');
       grid.className = 'levels';
       for (let n = first; n < first + PZ.PER_PACK; n++) {
@@ -2124,7 +2215,9 @@
         const b = document.createElement('button');
         b.className = 'lvl' + (open ? '' : ' locked') + (stars !== undefined ? ' done' : '');
         b.innerHTML = `<span class="num">${open ? n : LOCK_SVG}</span><span class="stars">${starsRow(stars || 0, 12)}</span>`;
-        b.setAttribute('aria-label', `Puzzle ${n}` + (open ? '' : ', verrouillé'));
+        // Solved: the drawing itself replaces the number.
+        if (stars !== undefined) b.querySelector('.num').replaceChildren(puzzleThumb(n));
+        b.setAttribute('aria-label', `Puzzle ${n}` + (stars !== undefined ? ', ' + pzOf(n).name : '') + (open ? '' : ', verrouillé'));
         b.addEventListener('click', () => { if (open) { sfx.turn(); startPuzzle(n); } else sfx.nope(); });
         grid.appendChild(b);
       }
@@ -2132,18 +2225,39 @@
     });
     puzzlesEl.classList.add('show');
   }
+  // Building a puzzle tiles its drawing: keep the ones the list needs.
+  const pzCache = {};
+  const pzOf = (n) => (pzCache[n] = pzCache[n] || PZ.puzzle(n));
+  // Small silhouette of a solved puzzle's drawing, in the theme's accent.
+  function puzzleThumb(n) {
+    const cv = document.createElement('canvas');
+    const px = Math.round(32 * Math.min(window.devicePixelRatio || 1, 3));
+    cv.width = px; cv.height = px;
+    const g = cv.getContext('2d');
+    const cell = px / SIZE;
+    g.fillStyle = getComputedStyle(puzzlesEl).getPropertyValue('--accent').trim() || '#7c5cff';
+    pzOf(n).mask.forEach((on, i) => {
+      if (!on) return;
+      g.beginPath();
+      g.roundRect((i % SIZE) * cell + 0.3, Math.floor(i / SIZE) * cell + 0.3, cell - 0.6, cell - 0.6, cell * 0.2);
+      g.fill();
+    });
+    return cv;
+  }
   document.getElementById('menu-puzzles').addEventListener('click', () => { sfx.turn(); openPuzzles(); });
   document.getElementById('puzzles-close').addEventListener('click', () => { puzzlesEl.classList.remove('show'); openMenu(); });
   puzzlesEl.addEventListener('click', (e) => { if (e.target === puzzlesEl) { puzzlesEl.classList.remove('show'); openMenu(); } });
 
   function startPuzzle(n) {
     unlockAudio();
-    if (inProgress() && !state.stage && !state.puzzle && !confirm('Abandonner la partie en cours ? Les pièces gagnées sont gardées.')) return;
+    guardRun(inProgress() && !state.stage && !state.puzzle, () => launchPuzzle(n));
+  }
+  function launchPuzzle(n) {
     puzzlesEl.classList.remove('show');
     levelEndEl.classList.remove('show');
     menuEl.classList.remove('show');
     restartRun({ mode: 'puzzle', puzzle: PZ.puzzle(n) });
-    banners.push({ text: 'Puzzle ' + n, sub: state.puzzle.name + ' · ' + state.puzzle.total + ' pièces', gold: true });
+    banners.push({ text: 'Puzzle ' + n, sub: state.puzzle.name + ' · ' + state.puzzle.total + ' formes', gold: true });
   }
 
   // Hint button (puzzle only): places one piece on a right spot for a few coins.
@@ -2228,78 +2342,6 @@
     starChimes(pz.stars);
   }
 
-  // ---------- Mondes (endless runs under a world's rules) ----------
-  const freeEl = document.getElementById('freeworlds');
-  let freePick = null;
-  const freeOpenCount = () => M.WORLD_ORDER.filter((w) => M.worldFreeOpen(profile, w)).length;
-
-  function openFreeWorlds() {
-    unlockAudio();
-    menuEl.classList.remove('show');
-    overEl.classList.remove('show');
-    const opened = M.WORLD_ORDER.filter((w) => M.worldFreeOpen(profile, w));
-    if (!freePick) freePick = state.mode === 'worlds' ? state.world : opened[opened.length - 1] || M.WORLD_ORDER[0];
-    renderFreeWorlds();
-    freeEl.classList.add('show');
-  }
-
-  function renderFreeWorlds() {
-    const list = document.getElementById('freeworlds-list');
-    list.innerHTML = '';
-    for (const w of M.WORLD_ORDER) {
-      const open = M.worldFreeOpen(profile, w);
-      const tile = document.createElement('button');
-      tile.className = 'world-tile' + (open ? '' : ' locked') + (w === freePick ? ' pick' : '');
-      tile.setAttribute('aria-pressed', w === freePick ? 'true' : 'false');
-      const cv = document.createElement('canvas');
-      cv.width = 240; cv.height = 180;
-      tile.appendChild(cv);
-      drawPreview(cv, profile.equipped.blocks, w);
-      tile.insertAdjacentHTML('beforeend', `<div class="name">${worldName(w)}</div>`);
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      const record = bests['worlds-' + w] || 0;
-      meta.textContent = open ? (record ? 'Record ' + fmt(record) : 'Pas encore joué') : 'Épreuve à réussir';
-      if (!open) tile.insertAdjacentHTML('beforeend', `<span class="lock">${LOCK_SVG}</span>`);
-      tile.appendChild(meta);
-      tile.addEventListener('click', () => {
-        sfx.turn();
-        freePick = w;
-        renderFreeWorlds();
-        document.getElementById('freeworlds-pick').scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'end' });
-      });
-      list.appendChild(tile);
-    }
-    const pick = document.getElementById('freeworlds-pick');
-    const w = freePick;
-    const rules = WD.WORLDS[w];
-    const open = M.worldFreeOpen(profile, w);
-    const note = rules.free && rules.free.note ? `<div class="info"><b>i</b><span>${rules.free.note}</span></div>` : '';
-    pick.innerHTML = `<h3>${worldName(w)}</h3>
-      <div class="rules"><div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div>${note}</div>`;
-    if (!open) {
-      pick.insertAdjacentHTML('beforeend', `<div class="fw-locked">Réussis l'épreuve de ce monde en Aventure (niveau ${M.TRIAL_LEVEL}) pour y jouer sans fin.</div>`);
-      return;
-    }
-    const rate = M.worldPrimeRate(w);
-    pick.insertAdjacentHTML('beforeend', `<div class="fw-facts">
-      <div><small>Record</small><b>${fmt(bests['worlds-' + w] || 0)}</b></div>
-      <div><small>Prime</small><b>${fmt(Math.round(rate * 5))}</b>${COIN}<small>par 1 000 pts</small></div></div>`);
-    const play = document.createElement('button');
-    play.className = 'btn primary wide';
-    play.textContent = 'Jouer';
-    play.addEventListener('click', () => {
-      unlockAudio();
-      if (inProgress() && !state.stage && !confirm('Abandonner la partie en cours ? Les pièces gagnées sont gardées.')) return;
-      freeEl.classList.remove('show');
-      restartRun({ mode: 'worlds', world: w });
-    });
-    pick.appendChild(play);
-  }
-  document.getElementById('menu-worlds').addEventListener('click', () => { sfx.turn(); openFreeWorlds(); });
-  document.getElementById('freeworlds-close').addEventListener('click', () => { freeEl.classList.remove('show'); openMenu(); });
-  freeEl.addEventListener('click', (e) => { if (e.target === freeEl) { freeEl.classList.remove('show'); openMenu(); } });
-
   // ---------- aventure ----------
   const adventureEl = document.getElementById('adventure');
   const worldEl = document.getElementById('world');
@@ -2332,7 +2374,9 @@
     for (const w of M.WORLD_ORDER) {
       const open = M.worldOpen(profile, w);
       const tile = document.createElement('button');
-      tile.className = 'world-tile' + (open ? '' : ' locked');
+      const prevWorld = M.WORLD_ORDER[M.WORLD_ORDER.indexOf(w) - 1];
+      const far = !open && prevWorld && !M.worldOpen(profile, prevWorld);
+      tile.className = 'world-tile' + (open ? '' : ' locked') + (far ? ' far' : '');
       const cv = document.createElement('canvas');
       cv.width = 240; cv.height = 180;
       tile.appendChild(cv);
@@ -2340,7 +2384,8 @@
       tile.insertAdjacentHTML('beforeend', `<div class="name">${worldName(w)}</div>`);
       const meta = document.createElement('div');
       meta.className = 'meta';
-      if (open) meta.innerHTML = starSvg(true, 13) + `${M.worldStars(profile, w)} / ${WORLD_MAX_STARS}`;
+      if (far) meta.textContent = 'Plus loin sur la carte';
+      else if (open) meta.innerHTML = starSvg(true, 13) + `${M.worldStars(profile, w)} / ${WORLD_MAX_STARS}`;
       else {
         const prev = M.WORLD_ORDER[M.WORLD_ORDER.indexOf(w) - 1];
         const needStars = M.worldGate(w);
@@ -2375,12 +2420,59 @@
       const b = document.createElement('button');
       b.className = 'lvl' + (open ? '' : ' locked') + (stars !== undefined ? ' done' : '') + (boss ? ' boss' : '') + (trial ? ' trial' : '');
       b.innerHTML = `<span class="num">${open ? n : LOCK_SVG}</span>` +
-        (boss && stars === undefined ? '<small>Boss</small>' : `<span class="stars">${starsRow(stars || 0, 12)}</span>`);
+        ((boss || trial) && stars === undefined ? `<small>${boss ? 'Boss' : 'Épreuve'}</small>` : `<span class="stars">${starsRow(stars || 0, 12)}</span>`);
+      // Winding path: rows of 5, every other row runs right to left.
+      const row = Math.floor((n - 1) / 5);
+      b.style.gridRow = row + 1;
+      b.style.gridColumn = (row % 2 ? 4 - ((n - 1) % 5) : (n - 1) % 5) + 1;
       b.setAttribute('aria-label', levelName(n) + (trial || boss ? ` (niveau ${n})` : '') + (open ? '' : ', verrouillé'));
       b.addEventListener('click', () => { if (open) { sfx.turn(); openStage(w, n); } else sfx.nope(); });
       grid.appendChild(b);
     }
+    renderEndless(w);
     worldEl.classList.add('show');
+    requestAnimationFrame(drawLevelPath);
+  }
+
+  // Line joining the level buttons in order: solid up to the last cleared level, dotted after.
+  function drawLevelPath() {
+    const svg = document.getElementById('levels-path');
+    if (!worldEl.classList.contains('show')) return;
+    const box = svg.getBoundingClientRect();
+    const pts = [...document.querySelectorAll('#levels .num')].map((el) => {
+      const r = el.getBoundingClientRect();
+      return [Math.round(r.left + r.width / 2 - box.left), Math.round(r.top + r.height / 2 - box.top)];
+    });
+    if (!pts.length || !box.width) return;
+    const cleared = [...document.querySelectorAll('#levels .lvl')].filter((b) => b.classList.contains('done')).length;
+    const line = (a) => a.map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join('');
+    svg.setAttribute('viewBox', `0 0 ${Math.round(box.width)} ${Math.round(box.height)}`);
+    svg.innerHTML = `<path class="todo" d="${line(pts.slice(Math.max(0, cleared - 1)))}"/>` + (cleared > 1 ? `<path class="done" d="${line(pts.slice(0, cleared))}"/>` : '');
+  }
+  window.addEventListener('resize', () => requestAnimationFrame(drawLevelPath));
+
+  // Endless run under the world's rules (the former Mondes mode), opened by the world's trial.
+  function renderEndless(w) {
+    const el = document.getElementById('world-endless');
+    const open = M.worldFreeOpen(profile, w);
+    const rules = WD.WORLDS[w];
+    if (!open) {
+      el.innerHTML = `<div class="endless"><h3>Partie sans fin</h3><p>Réussis l'épreuve (niveau ${M.TRIAL_LEVEL}) pour jouer ici sans limite de coups, avec une prime en pièces.</p></div>`;
+      return;
+    }
+    const rate = M.worldPrimeRate(w);
+    el.innerHTML = `<div class="endless"><h3>Partie sans fin</h3>
+      <p>Les règles de ${worldName(w)}, sans limite de coups. Chaque point rapporte une prime en pièces.${rules.free && rules.free.note ? ' ' + rules.free.note : ''}</p>
+      <div class="fw-facts"><div><small>Record</small><b>${fmt(bests['worlds-' + w] || 0)}</b></div>
+      <div><small>Prime</small><b>${fmt(Math.round(rate * 5))}</b>${COIN}<small>par 1 000 pts</small></div></div>
+      <button class="btn ghost" data-act="endless">Jouer sans fin</button></div>`;
+    el.querySelector('[data-act="endless"]').addEventListener('click', () => {
+      unlockAudio();
+      guardRun(inProgress() && !state.stage, () => {
+        hideAdventure();
+        restartRun({ mode: 'worlds', world: w });
+      });
+    });
   }
 
   // Star chests of a world: a bar of the world's stars with 3 chests on it; a ready one opens on tap.
@@ -2423,7 +2515,10 @@
     const best = M.levelStars(profile, w, n);
     const card = document.getElementById('stage-card');
     const budget = stage.clock ? `${Math.round(stage.clock / 1000)} secondes (les lignes rajoutent du temps)` : `${stage.maxMoves} coups`;
-    const canSkip = n < M.LEVELS_PER_WORLD && best === undefined;
+    const canSkip = M.canSkip(profile, w, n);
+    // Stars: 1 for the win, 2 with 15 % of the budget left, 3 with 30 % (see finishStage in logic.js).
+    const keep = (k) => (stage.clock ? `${Math.ceil((stage.clock / 1000) * k)} s` : `${Math.ceil(stage.maxMoves * k)} coups`);
+    const starRule = `1 étoile en réussissant, 2 s'il te reste ${keep(0.15)}, 3 s'il t'en reste ${keep(0.3)}.`;
     card.innerHTML = `
       <div class="shop-head">
         <button class="close" data-act="back" aria-label="Retour au monde"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -2435,6 +2530,7 @@
       ${n === M.TRIAL_LEVEL ? '<div class="stage-note">Un niveau plus corsé au milieu du monde, mieux payé.</div>' : ''}
       <div class="stage-sub">${budget}</div>
       <div class="stage-stars">${starsRow(best || 0, 34)}</div>
+      <div class="stage-note">${starRule}</div>
       <button class="opt${stageBomb ? ' on' : ''}" data-act="bomb"><span>Partir avec une Bombe</span><span class="price">${M.freeBombs(profile) ? `Offerte (×${M.freeBombs(profile)})` : M.START_BONUS_COST + COIN}</span></button>
       ${canSkip ? `<button class="opt" data-act="skip"><span>Passer le niveau (sans étoile)</span><span class="price">${M.SKIP_COST}${COIN}</span></button>` : ''}
       <div class="actions"><button class="btn primary" data-act="play">Jouer</button></div>`;
@@ -2446,8 +2542,8 @@
     const skipBtn = card.querySelector('[data-act="skip"]');
     if (skipBtn) {
       skipBtn.disabled = profile.coins < M.SKIP_COST;
-      skipBtn.addEventListener('click', () => {
-        if (!confirm(`Passer ce niveau pour ${M.SKIP_COST} pièces ? Il ne rapporte aucune étoile.`)) return;
+      skipBtn.addEventListener('click', async () => {
+        if (!await ask({ title: 'Passer le niveau ?', text: `Il coûte ${M.SKIP_COST} pièces et ne rapporte aucune étoile.`, ok: 'Passer' })) return;
         const next = M.skipLevel(profile, w, n);
         if (!next) { sfx.nope(); return; }
         profile = next;
@@ -2464,7 +2560,9 @@
 
   function startLevel(w, n) {
     unlockAudio();
-    if (inProgress() && !state.stage && !confirm('Abandonner la partie en cours ? Les pièces gagnées sont gardées.')) return;
+    guardRun(inProgress() && !state.stage, () => launchLevel(w, n));
+  }
+  function launchLevel(w, n) {
     const freeBomb = stageBomb && M.freeBombs(profile) > 0;
     const bomb = freeBomb || (stageBomb && profile.coins >= M.START_BONUS_COST);
     stageBomb = false;
@@ -2496,6 +2594,12 @@
       saveProfile();
       renderWallet();
     }
+    // One failed attempt per level start, even if bought moves run out again.
+    if (!stage.won && !stage.daily && !failCounted) {
+      failCounted = true;
+      profile = M.recordFail(profile, stage.world, stage.n);
+      saveProfile();
+    }
     setTimeout(() => { if (stage.won) { sfx.mission(); buzz([20, 40, 20]); } else { sfx.over(); buzz([40, 60, 80]); } }, 350);
     setTimeout(() => showLevelEnd(runReport, levelReport), stage.won ? 900 : 1300);
     save();
@@ -2525,7 +2629,7 @@
       <div class="stage-sub">${worldName(w)} · ${levelName(n)}</div>
       <div class="stage-stars">${starsRow(stage.stars, 44)}</div>
       <div class="stage-sub">${LV.goalText(stage.goal)} · ${fmt(Math.min(stage.goal.type === 'score' ? state.score : stage.progress, stage.goal.target))} / ${fmt(stage.goal.target)}</div>
-      ${levelReport && levelReport.themeUnlocked ? `<div class="unlock">Thème « ${worldName(levelReport.themeUnlocked)} » débloqué ! Équipe-le dans la Boutique.</div>` : ''}
+      ${levelReport && levelReport.themeUnlocked ? `<div class="unlock">Thème « ${worldName(levelReport.themeUnlocked)} » débloqué !</div><button class="opt" data-act="equip"><span>Mettre ce thème maintenant</span><span class="price">Équiper</span></button>` : ''}
       <div class="earn">${lines.map((l) => `<div class="earn-line in"><span>${l.label}</span><b>+${l.coins}${COIN}</b></div>`).join('')}</div>
       ${total ? `<div class="coins-total"><span>Pièces</span><span class="v">+${fmt(total)} ${COIN}</span></div>` : ''}
       ${outOfMoves ? `<button class="opt" data-act="more"><span>+${M.EXTRA_MOVES} coups pour finir (1 étoile max)</span><span class="price">${moreCost}${COIN}</span></button>` : ''}
@@ -2539,6 +2643,17 @@
     if (again) again.addEventListener('click', () => startLevel(w, n));
     if (next) card.querySelector('[data-act="next"]').addEventListener('click', () => (next[1] === 1 && next[0] !== w ? openWorld(next[0]) : openStage(next[0], next[1])));
     bindMoreMoves(card, moreCost);
+    const equip = card.querySelector('[data-act="equip"]');
+    if (equip) equip.addEventListener('click', () => {
+      const next = M.equip(profile, 'boards', levelReport.themeUnlocked);
+      if (!next) { sfx.nope(); return; }
+      profile = next;
+      saveProfile();
+      paintBackground();
+      sfx.buy();
+      equip.disabled = true;
+      equip.querySelector('.price').textContent = 'Équipé';
+    });
     levelEndEl.classList.add('show');
     starChimes(stage.stars);
   }
@@ -2566,7 +2681,6 @@
     });
   }
 
-  document.getElementById('menu-adventure').addEventListener('click', openAdventure);
   document.getElementById('adventure-close').addEventListener('click', () => { hideAdventure(); openMenu(); });
   document.getElementById('world-back').addEventListener('click', openAdventure);
   for (const el of [adventureEl, worldEl, stageEl]) {
@@ -2612,9 +2726,12 @@
     const d = M.dailyOf(profile, t);
     const left = M.dailyAttemptsLeft(profile, t, t);
     const streak = M.streakNow(profile, t);
-    document.getElementById('menu-daily-sub').textContent = d.stars !== undefined ? `Niveau #${LV.dayNumber(t)} réussi`
-      : left ? `Niveau #${LV.dayNumber(t)} · ${left} essai${left > 1 ? 's' : ''}` : 'Plus d’essai, reviens demain';
-    document.getElementById('menu-flame').innerHTML = FLAME_SVG(20, streak > 0) + streak;
+    const world = worldName(LV.daily(t).world);
+    document.getElementById('menu-daily-sub').textContent = d.stars !== undefined ? `${world} · réussi`
+      : left ? `${world} · ${left} essai${left > 1 ? 's' : ''}` : 'Reviens demain';
+    document.getElementById('menu-defis').classList.toggle('done', d.stars !== undefined);
+    document.getElementById('menu-flame').innerHTML = FLAME_SVG(18, streak > 0) + streak;
+    document.getElementById('menu-flame').setAttribute('aria-label', `Série de ${streak} jour${streak > 1 ? 's' : ''}`);
   }
 
   let dailyBack = 'menu'; // where "Retour" goes from the daily sheet: 'menu' or 'defis'
@@ -2646,7 +2763,7 @@
     if (!left) play.textContent = 'Reviens demain';
     card.querySelector('[data-act="back"]').addEventListener('click', () => {
       hideAdventure();
-      if (dailyBack === 'defis') openDefis(day); else openMenu();
+      if (dailyBack === 'defis') goTab('defis'); else openMenu();
     });
     for (const b of card.querySelectorAll('[data-nav]')) b.addEventListener('click', () => { sfx.turn(); openDailySheet(M.addDays(day, +b.dataset.nav)); });
     play.addEventListener('click', () => startDaily(day));
@@ -2668,7 +2785,9 @@
 
   function startDaily(day) {
     unlockAudio();
-    if (inProgress() && !state.stage && !confirm('Abandonner la partie en cours ? Les pièces gagnées sont gardées.')) return;
+    guardRun(inProgress() && !state.stage, () => launchDaily(day));
+  }
+  function launchDaily(day) {
     const next = M.startDaily(profile, day, today());
     if (!next) { sfx.nope(); return; }
     profile = next;
@@ -2695,7 +2814,7 @@
       <div class="stage-stars">${starsRow(stage.stars, 44)}</div>
       <div class="stage-sub">${LV.goalText(stage.goal)} · ${fmt(Math.min(stage.goal.type === 'score' ? state.score : stage.progress, stage.goal.target))} / ${fmt(stage.goal.target)}</div>
       ${streak ? `<div class="unlock flame">${FLAME_SVG(20)} Série : ${streak.count} jour${streak.count > 1 ? 's' : ''}</div>` : ''}
-      ${report && report.unlocked ? `<div class="unlock">Skin de blocs « Or » débloqué ! Équipe-le dans la Boutique.</div>` : ''}
+      ${report && report.unlocked ? `<div class="unlock">Skin de blocs « Or » débloqué ! Équipe-le dans la Boutique, onglet Blocs.</div>` : ''}
       <div class="earn">${lines.map((l) => `<div class="earn-line in"><span>${l.label}</span><b>+${l.coins}${COIN}</b></div>`).join('')}</div>
       ${total ? `<div class="coins-total"><span>Pièces</span><span class="v">+${fmt(total)} ${COIN}</span></div>` : ''}
       ${outOfMoves ? `<button class="opt" data-act="more"><span>+${M.EXTRA_MOVES} coups pour finir (1 étoile max)</span><span class="price">${moreCost}${COIN}</span></button>` : ''}
@@ -2726,9 +2845,6 @@
   for (const b of document.querySelectorAll('.ptab')) {
     b.addEventListener('click', () => { profileTab = b.dataset.ptab; sfx.turn(); renderProfile(); });
   }
-  document.getElementById('menu-profile').addEventListener('click', () => openProfile());
-  document.getElementById('profile-close').addEventListener('click', () => { profileEl.classList.remove('show'); openMenu(); });
-  profileEl.addEventListener('click', (e) => { if (e.target === profileEl) { profileEl.classList.remove('show'); openMenu(); } });
 
   function renderProfile() {
     for (const b of document.querySelectorAll('.ptab')) b.classList.toggle('on', b.dataset.ptab === profileTab);
@@ -2751,12 +2867,6 @@
       bar.addEventListener('pointerenter', show);
       bar.addEventListener('click', show);
     }
-    const freeze = body.querySelector('[data-act="freeze"]');
-    if (freeze) freeze.addEventListener('click', () => {
-      const next = M.buyFreeze(profile);
-      if (!next) { sfx.nope(); return; }
-      profile = next; saveProfile(); renderWallet(); sfx.buy(); renderProfile();
-    });
   }
 
   function monthsSinceStart() {
@@ -2775,18 +2885,10 @@
     : 'Obtenu';
 
   function albumHtml() {
-    const t = today();
-    const st = M.streakOf(profile);
-    const now = M.streakNow(profile, t);
     const got = profile.stickers || {};
     const count = M.STICKERS.filter((s) => got[s.id]).length; // ignores retired stickers
     let html = `
-      <div class="streak-card">
-        ${FLAME_SVG(38, now > 0)}<span class="big">${now}</span>
-        <div class="txt"><b>Série de jours</b><br>Record : ${st.best} · Gels : ${st.freezes}/${M.FREEZE_MAX}</div>
-      </div>
-      <button class="opt" data-act="freeze" ${st.freezes >= M.FREEZE_MAX || profile.coins < M.FREEZE_COST ? 'disabled' : ''}><span>Acheter un gel de série</span><span class="price">${M.FREEZE_COST}${COIN}</span></button>
-      <div class="section-title">Trophées du mois</div>
+      <div class="section-title" style="margin-top:0">Trophées du mois</div>
       <div class="shelf">${monthsSinceStart().map((m) => `<div class="trophy">${TROPHY_SVG(M.monthTrophy(profile, m))}${frMonthShort(m)}</div>`).join('')}</div>`;
     html += `<div class="section-title">Autocollants · ${count} / ${M.STICKERS.length}</div>`;
     for (const page of M.STICKER_PAGES) {
@@ -2804,32 +2906,49 @@
     return html;
   }
 
-  // ----- Défis screen: month calendar, the picked day's level below (today by default) -----
+  // ----- Défis tab: today's level first, the streak, today's missions, then past days on demand -----
   const defisEl = document.getElementById('defis');
   let calMonth = null; // 'YYYY-MM' shown in the calendar
   let defisDay = null; // day picked in the calendar
+  let calOpen = false;
 
   function openDefis(day) {
     unlockAudio();
     defisDay = day || defisDay || today();
     if (defisDay > today()) defisDay = today();
     calMonth = defisDay.slice(0, 7);
+    if (day && day !== today()) calOpen = true;
     menuEl.classList.remove('show');
     hideAdventure();
     renderDefis();
     defisEl.classList.add('show');
   }
-  const closeDefis = () => { defisEl.classList.remove('show'); openMenu(); };
-  document.getElementById('menu-defis').addEventListener('click', () => { sfx.turn(); openDefis(today()); });
-  document.getElementById('defis-close').addEventListener('click', closeDefis);
-  defisEl.addEventListener('click', (e) => { if (e.target === defisEl) closeDefis(); });
 
   function renderDefis() {
     const t = today();
     const streak = M.streakNow(profile, t);
     document.getElementById('defis-flame').innerHTML = FLAME_SVG(18, streak > 0) + streak;
     const body = document.getElementById('defis-body');
-    body.innerHTML = calendarHtml() + dayHtml(defisDay);
+    body.innerHTML = todayHtml() + streakHtml() + '<div class="missions" id="defis-missions"></div>'
+      + '<div class="defis-note">Elles avancent dans tous les modes. Trois nouvelles chaque jour.</div>'
+      + `<div class="section-title">Jours passés</div>
+         <button class="opt cal-toggle" data-act="cal" aria-expanded="${calOpen}"><span>Rattraper un niveau manqué</span>
+         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>`
+      + (calOpen ? `<div id="defis-cal">${calendarHtml()}${dayHtml(defisDay)}</div>` : '');
+    renderMissionList(document.getElementById('defis-missions'), [], liveRun());
+    body.querySelector('[data-act="today"]').addEventListener('click', () => { sfx.turn(); startDaily(t); });
+    body.querySelector('[data-act="cal"]').addEventListener('click', () => {
+      calOpen = !calOpen;
+      sfx.turn();
+      renderDefis();
+      if (calOpen) document.getElementById('defis-cal').scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+    });
+    const freeze = body.querySelector('[data-act="freeze"]');
+    freeze.addEventListener('click', () => {
+      const next = M.buyFreeze(profile);
+      if (!next) { sfx.nope(); return; }
+      profile = next; saveProfile(); renderWallet(); sfx.buy(); renderDefis();
+    });
     for (const b of body.querySelectorAll('[data-cal]')) {
       b.addEventListener('click', () => {
         calMonth = M.addDays(calMonth + '-15', +b.dataset.cal * 30).slice(0, 7);
@@ -2838,7 +2957,41 @@
       });
     }
     for (const b of body.querySelectorAll('[data-day]')) b.addEventListener('click', () => { defisDay = b.dataset.day; sfx.turn(); renderDefis(); });
-    body.querySelector('[data-act="daily"]').addEventListener('click', () => openDailySheet(defisDay, 'defis'));
+    const daily = body.querySelector('[data-act="daily"]');
+    if (daily) daily.addEventListener('click', () => openDailySheet(defisDay, 'defis'));
+  }
+
+  // Today's level with its Play button: the reason to open the tab.
+  function todayHtml() {
+    const t = today();
+    const stage = LV.daily(t);
+    const d = M.dailyOf(profile, t);
+    const left = M.dailyAttemptsLeft(profile, t, t);
+    const done = d.stars !== undefined;
+    const budget = stage.clock ? `${Math.round(stage.clock / 1000)} s` : `${stage.maxMoves} coups`;
+    const status = done ? `<span class="stars">${starsRow(d.stars, 18)}</span>`
+      : left ? `${budget} · ${left} essai${left > 1 ? 's' : ''} sur ${M.DAILY_ATTEMPTS}` : 'Plus d’essai aujourd’hui';
+    return `
+      <div class="today${done ? ' done' : ''}">
+        <small>Niveau du jour #${LV.dayNumber(t)} · ${worldName(stage.world)}</small>
+        <span class="goal-line">${LV.goalText(stage.goal)}</span>
+        <div class="row"><span>${status}</span>
+          <button class="btn primary" data-act="today" ${left ? '' : 'disabled'}>${!left ? 'Demain' : done ? 'Rejouer' : 'Jouer'}</button></div>
+      </div>
+      <p class="defis-note">Le même niveau pour tout le monde. Réussis-en un chaque jour pour garder ta série.</p>`;
+  }
+
+  function streakHtml() {
+    const t = today();
+    const st = M.streakOf(profile);
+    const now = M.streakNow(profile, t);
+    return `
+      <div class="section-title">Série</div>
+      <div class="streak-card">
+        ${FLAME_SVG(38, now > 0)}<span class="big">${now}</span>
+        <div class="txt"><b>jour${now > 1 ? 's' : ''} d'affilée</b><br>Record : ${st.best} · Gels : ${st.freezes}/${M.FREEZE_MAX}</div>
+      </div>
+      <button class="opt" data-act="freeze" ${st.freezes >= M.FREEZE_MAX || profile.coins < M.FREEZE_COST ? 'disabled' : ''}><span>Gel de série : protège un jour manqué</span><span class="price">${M.FREEZE_COST}${COIN}</span></button>`;
   }
 
   function calendarHtml() {
@@ -2936,9 +3089,9 @@
     const rows = [
       ['Parties jouées', fmt(lt.games || 0)],
       ['Meilleur score (tous modes)', fmt(lt.score || 0)],
-      ['Meilleur combo', '×' + (lt.bestCombo || 0)],
+      ['Meilleur combo', lt.bestCombo ? '×' + lt.bestCombo : '–'],
       ['Lignes effacées', fmt(lt.lines || 0)],
-      ['Pièces posées', fmt(lt.pieces || 0)],
+      ['Formes posées', fmt(lt.pieces || 0)],
       ['Grilles vidées', fmt(lt.perfects || 0)],
       ['Bonus utilisés', fmt(lt.bonusUsed || 0)],
       ['Pièces gagnées', fmt(lt.coinsEarned || 0)],
@@ -2967,17 +3120,22 @@
       save();
     });
   }
-  let settingsFromPause = false;
-  function openSettings(fromPause) {
-    settingsFromPause = fromPause;
+  // The whole row flips its switch, not just the small toggle.
+  for (const row of document.querySelectorAll('.setting')) {
+    const toggle = row.querySelector('.toggle');
+    if (toggle) row.addEventListener('click', (e) => { if (!toggle.contains(e.target)) toggle.click(); });
+  }
+  let settingsFrom = 'menu'; // 'menu' or 'pause': where closing goes back to
+  function openSettings(from) {
+    settingsFrom = from;
+    if (from === 'menu') closeMenu();
     renderSettings();
     settingsEl.classList.add('show');
   }
   function closeSettings() {
     settingsEl.classList.remove('show');
-    if (settingsFromPause) openPause();
+    if (settingsFrom === 'pause') openPause(); else openMenu();
   }
-  document.getElementById('menu-settings').addEventListener('click', () => openSettings(false));
   document.getElementById('settings-close').addEventListener('click', closeSettings);
   settingsEl.addEventListener('click', (e) => { if (e.target === settingsEl) closeSettings(); });
 
@@ -2990,7 +3148,7 @@
       const where = st.daily ? `Niveau du jour #${LV.dayNumber(st.daily)}` : `${worldName(st.world)} · ${levelName(st.n)}`;
       return `${where} · ${LV.goalText(st.goal)}`;
     }
-    if (state.puzzle) return `${modeLabel()} · ${state.puzzle.placed} / ${state.puzzle.total} pièces`;
+    if (state.puzzle) return `${modeLabel()} · ${state.puzzle.placed} / ${state.puzzle.total} formes`;
     return `${modeLabel()} · ${fmt(state.score)} pts`;
   }
   function openPause() {
@@ -3007,15 +3165,15 @@
   const closePause = () => pauseEl.classList.remove('show');
   document.getElementById('pause-resume').addEventListener('click', () => { unlockAudio(); closePause(); });
   pauseEl.addEventListener('click', (e) => { if (e.target === pauseEl) closePause(); });
-  document.getElementById('pause-restart').addEventListener('click', () => {
+  document.getElementById('pause-restart').addEventListener('click', async () => {
     unlockAudio();
-    if (inProgress() && !confirm('Recommencer depuis le début ? Les pièces gagnées sont gardées.')) return;
+    if (inProgress() && !await ask({ title: 'Recommencer ?', text: 'La partie reprend depuis le début. Les pièces gagnées sont gardées.', ok: 'Recommencer', danger: true })) return;
     closePause();
     if (state.stage) startLevel(state.stage.world, state.stage.n);
     else if (state.puzzle) startPuzzle(state.puzzle.n);
     else restartRun({ mode: state.mode, level: state.level });
   });
-  document.getElementById('pause-settings').addEventListener('click', () => { closePause(); openSettings(true); });
+  document.getElementById('pause-settings').addEventListener('click', () => { closePause(); openSettings('pause'); });
   document.getElementById('pause-menu').addEventListener('click', () => { closePause(); openMenu(); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && !tut && !state.over && !pausedByUi() && (state.moves > 0 || state.clock > 0)) openPause();
@@ -3056,6 +3214,7 @@
     const pending = document.getElementById('wallet-pending');
     pending.textContent = runCoinsShown && !runSettled ? '+' + runCoinsShown : '';
     document.getElementById('shop-coins').textContent = fmt(profile.coins);
+    document.getElementById('menu-coins').textContent = fmt(profile.coins);
     renderHint();
   }
   walletEl.addEventListener('animationend', () => walletEl.classList.remove('bump'));
@@ -3073,9 +3232,6 @@
     renderShop();
     shopEl.classList.add('show');
   }
-  document.getElementById('wallet').addEventListener('click', openShop);
-  document.getElementById('shop-close').addEventListener('click', () => shopEl.classList.remove('show'));
-  shopEl.addEventListener('click', (e) => { if (e.target === shopEl) shopEl.classList.remove('show'); });
   for (const tab of document.querySelectorAll('.tab')) {
     tab.addEventListener('click', () => { shopTab = tab.dataset.tab; renderShop(); });
   }
@@ -3084,13 +3240,6 @@
     renderWallet();
     for (const tab of document.querySelectorAll('.tab')) tab.classList.toggle('on', tab.dataset.tab === shopTab);
     shopBody.innerHTML = '';
-    if (shopTab === 'missions') {
-      const list = document.createElement('div');
-      list.className = 'missions';
-      shopBody.appendChild(list);
-      renderMissionList(list, [], state.over ? {} : L.runStats(state));
-      return;
-    }
     if (shopTab === 'bonus') { renderUpgrades(justBought); return; }
     const kind = shopTab;
     const grid = document.createElement('div');
@@ -3127,7 +3276,14 @@
         if (owned) sfx.turn(); else { sfx.buy(); buzz([20, 40, 20]); }
         renderShop(owned ? null : skin.id);
       });
-      card.append(cv, name, btn);
+      card.append(cv, name);
+      if (kind === 'boards' && !owned && WD.WORLDS[skin.id]) {
+        const via = document.createElement('div');
+        via.className = 'via';
+        via.textContent = 'Ou bats son boss';
+        card.appendChild(via);
+      }
+      card.appendChild(btn);
       grid.appendChild(card);
       drawPreview(cv, kind === 'blocks' ? skin.id : profile.equipped.blocks, kind === 'boards' ? skin.id : profile.equipped.boards);
     }
@@ -3356,6 +3512,48 @@
   }
   renderInventory();
 
+  // ---------- tab bar ----------
+  // Jouer, Défis, Boutique and Profil are the four hub screens. The bar shows while one of them is
+  // up and nothing else covers it (level sheets, settings, dialogs, the game itself).
+  const tabbarEl = document.getElementById('tabbar');
+  const HUBS = { menu: menuEl, defis: defisEl, shop: shopEl, profile: profileEl };
+  const HUB_OPEN = { menu: openMenu, defis: () => openDefis(), shop: openShop, profile: () => openProfile() };
+
+  function goTab(name) {
+    unlockAudio();
+    const was = Object.values(HUBS).some((el) => el.classList.contains('show'));
+    for (const [k, el] of Object.entries(HUBS)) if (k !== name) el.classList.remove('show');
+    HUBS[name].classList.toggle('no-anim', was);
+    HUB_OPEN[name]();
+    HUBS[name].querySelector('.card').scrollTop = 0;
+  }
+  for (const b of tabbarEl.querySelectorAll('[data-go]')) {
+    b.addEventListener('click', () => {
+      if (HUBS[b.dataset.go].classList.contains('show')) { HUBS[b.dataset.go].querySelector('.card').scrollTo({ top: 0, behavior: calm() ? 'auto' : 'smooth' }); return; }
+      sfx.turn();
+      goTab(b.dataset.go);
+    });
+  }
+
+  function syncTabbar() {
+    const shown = [...document.querySelectorAll('.overlay.show')];
+    const hub = Object.keys(HUBS).find((k) => HUBS[k].classList.contains('show'));
+    const on = !!hub && shown.every((el) => el.classList.contains('hub'));
+    document.body.classList.toggle('hub-on', on);
+    for (const b of tabbarEl.querySelectorAll('[data-go]')) {
+      const active = b.dataset.go === hub;
+      b.classList.toggle('on', active);
+      if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    }
+    // Only touch the class when needed: every class write would call this observer again.
+    for (const el of Object.values(HUBS)) if (!el.classList.contains('show') && el.classList.contains('no-anim')) el.classList.remove('no-anim');
+    // A dot on Défis while today's level can still be won.
+    const t = today();
+    tabbarEl.querySelector('.dot').hidden = !(M.dailyOf(profile, t).stars === undefined && M.dailyAttemptsLeft(profile, t, t) > 0);
+  }
+  const overlayWatch = new MutationObserver(syncTabbar);
+  for (const el of document.querySelectorAll('.overlay')) overlayWatch.observe(el, { attributes: true, attributeFilter: ['class'] });
+
   // ---------- tutorial ----------
   // Guided first game: scripted steps from tutorial.js. The HUD makes room for the coach card,
   // a hand shows the drag, target cells glow. Nothing here is saved or counted.
@@ -3565,7 +3763,7 @@
       tip('bonus', 'Bonus gagné !', `${BONUS_UI[bonus.type].name} : touche-le en bas pour l'utiliser. Le bouton « ? » explique chaque bonus.`, invButtons[bonus.type]);
     }
     if (collected.some((b) => b.coins)) {
-      tip('coins', 'Des pièces !', 'Dépense-les en Boutique, ou pour jeter une pièce et annuler un coup.', walletEl);
+      tip('coins', 'Des pièces !', 'Dépense-les en Boutique, ou pour jeter une forme et annuler un coup.', walletEl);
     }
   }
 
@@ -3577,9 +3775,9 @@
         return rectOf(x, y - 6, lay.board, 12);
       });
     } else if (state.mode === 'chill') {
-      tip('chill', 'Chill', 'Touche une pièce pour la tourner. Pas de bonus, pas de pression.', () => rectOf(lay.bx, lay.ty, lay.nextX - lay.bx, lay.trayH));
+      tip('chill', 'Chill', 'Touche une forme pour la tourner. Pas de bonus, pas de pression.', () => rectOf(lay.bx, lay.ty, lay.nextX - lay.bx, lay.trayH));
     } else if (state.mode === 'puzzle') {
-      tip('puzzle', 'Puzzle', 'Remplis tout le dessin avec les pièces données. Touche une pièce pour la tourner.', () => rectOf(lay.bx, lay.ty, lay.nextX - lay.bx, lay.trayH));
+      tip('puzzle', 'Puzzle', 'Remplis tout le dessin avec les formes données. Touche une forme pour la tourner.', () => rectOf(lay.bx, lay.ty, lay.nextX - lay.bx, lay.trayH));
     } else if (state.mode === 'worlds') {
       tip('worlds', 'Mondes', 'Partie sans fin avec les règles du monde. Plus tu marques, plus la prime en pièces grossit.', plate);
     } else if (state.stage && state.stage.daily) {
@@ -3941,7 +4139,7 @@
     ctx.textBaseline = 'alphabetic';
     // Aventure: the plate shows the goal progress and the moves left instead of score / record.
     const stage = state.stage;
-    let sub = 'RECORD ' + fmt(best);
+    let sub = best ? 'RECORD ' + fmt(best) : 'SCORE';
     let main = fmt(Math.round(displayScore));
     let lowMoves = false;
     if (state.puzzle) {
@@ -4161,8 +4359,8 @@
     else if (state.stuck) {
       const inv = state.inventory;
       if (inv.bomb > 0 || inv.reroll > 0 || inv.rotate > 0) text = 'Bloqué ! Utilise un bonus ou termine la partie';
-      else if (L.canUndo(state)) text = 'Bloqué ! Annule ton coup ou jette une pièce';
-      else text = 'Bloqué ! Glisse une pièce en bas pour la jeter';
+      else if (L.canUndo(state)) text = 'Bloqué ! Annule ton coup ou jette une forme';
+      else text = 'Bloqué ! Maintiens une forme en bas pour la jeter';
     }
     if (!text) return;
     const chrono = state.mode === 'chrono' || !!(state.stage && state.stage.clock);
@@ -4263,11 +4461,14 @@
   // Narrow column right of the tray: the piece that fills the next emptied slot.
   function drawNext(t) {
     const { nextX, nextW, ty, trayH } = lay;
+    if (tut) return;
     const th = theme();
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
-    ctx.beginPath(); ctx.roundRect(nextX + 4, ty + 6, nextW - 6, trayH - 12, 12); ctx.fill();
-    ctx.fillStyle = withAlpha(th.ink, 0.6);
-    ctx.font = themeFont(th, 10);
+    ctx.fillStyle = withAlpha(th.ink, 0.07);
+    ctx.strokeStyle = withAlpha(th.ink, 0.14);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(nextX + 4, ty + 6, nextW - 6, trayH - 12, 12); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = withAlpha(th.ink, 0.72);
+    ctx.font = themeFont(th, 11);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     if ('letterSpacing' in ctx) ctx.letterSpacing = '1px';
@@ -4285,7 +4486,7 @@
     }
     const size = Math.min(miniCell() * 0.62, (nextW - 16) / Math.max(piece.w, piece.h, 3));
     const k = easeOut((t - nextIn) / 320);
-    drawPiece(piece, nextX + nextW / 2 + 2, ty + trayH / 2 + 6 + (1 - k) * 20, size, 0.75 * k);
+    drawPiece(piece, nextX + nextW / 2 + 2, ty + trayH / 2 + 6 + (1 - k) * 20, size, 0.9 * k);
   }
 
   // Chrono mode: time bar in the gap between the board and the tray.

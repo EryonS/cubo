@@ -16,7 +16,7 @@
   const STEPS = [
     {
       id: 'drag',
-      title: 'Glisse la pièce sur la grille',
+      title: 'Glisse la forme sur la grille',
       text: 'Pose-la où tu veux.',
       lines: 0,
       board: [],

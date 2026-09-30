@@ -54,3 +54,37 @@ test('skipping costs coins, gives no star, and is refused on bosses', () => {
 test('extra moves get pricier within an attempt', () => {
   assert.deepEqual([0, 1, 2].map(M.extraMovesCost), [20, 40, 80]);
 });
+
+test('a boss pays the theme price back when the theme was already bought', () => {
+  let p = { ...fresh(), coins: 500 };
+  p = M.buy(p, 'boards', 'plain');
+  const coins = p.coins;
+  for (let n = 1; n < M.LEVELS_PER_WORLD; n++) p = M.applyLevel(p, 'plain', n, 3).profile;
+  const before = p.coins;
+  const boss = M.applyLevel(p, 'plain', M.LEVELS_PER_WORLD, 3);
+  assert.equal(boss.report.themeUnlocked, null);
+  const refund = boss.report.earned.find((l) => l.label.includes('déjà à toi'));
+  assert.equal(refund.coins, 150);
+  assert.equal(boss.profile.coins - before, boss.report.total);
+  assert.ok(coins < before);
+  // Beating the boss again pays no second refund.
+  const again = M.applyLevel(boss.profile, 'plain', M.LEVELS_PER_WORLD, 3);
+  assert.equal(again.report.earned.some((l) => l.label.includes('déjà à toi')), false);
+});
+
+test('the paid skip shows up only after two failed attempts', () => {
+  let p = fresh();
+  assert.equal(M.canSkip(p, 'plain', 1), false);
+  p = M.recordFail(p, 'plain', 1);
+  assert.equal(M.canSkip(p, 'plain', 1), false);
+  p = M.recordFail(p, 'plain', 1);
+  assert.equal(M.levelFails(p, 'plain', 1), 2);
+  assert.equal(M.canSkip(p, 'plain', 1), true);
+  assert.equal(M.canSkip(p, 'plain', 2), false);
+  p = M.applyLevel(p, 'plain', 1, 1).profile;
+  assert.equal(M.canSkip(p, 'plain', 1), false);
+  // Never on a boss.
+  let q = fresh();
+  for (let k = 0; k < 3; k++) q = M.recordFail(q, 'plain', M.LEVELS_PER_WORLD);
+  assert.equal(M.canSkip(q, 'plain', M.LEVELS_PER_WORLD), false);
+});

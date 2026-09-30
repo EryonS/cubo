@@ -8,7 +8,7 @@ A fourth mode next to Classique / Chrono / Chill: short levels (1-3 min) with a 
 - **Goals**: lines, score, special cells (`clear`), coins to pick up (`coins`, progress = `stats.coins`), a combo to reach (`combo`), crates (`clear` of kind `crate`: Plaine only, bottom rows stacked with crates and one 2-4 gap each, 2 hits a crate; `stage.fill` = rows), boss (`boss`).
 - **Boss fight** (`goal: { type: 'boss', target: hp, name }`, `stage.boss: { every, count, kind }`): a 2x2 boss in the center (`L.BOSS_AT`) that line clears never remove; every boss cell inside a cleared line (or a bomb blast) takes 1 hp, so a line through it takes 2. Every `every` moves it drops `count` cells of `kind` (spawned events carry `attack: true`). Gravity lands blocks on it, the sea current skips its rows. The HUD plate shows an hp bar; the boss has a face (eyes follow the dragged piece), flashes when hit, squashes when it strikes back.
 - **Star chests** (`M.CHESTS`): at 15 / 35 / 55 world stars: 40 coins, 2 free starting Bombes (`adventure.bombs`, used before paying on the level sheet), 150 coins. Opened once.
-- **Level sheet**: goal, budget, best stars; options: start with a Bombe (30 coins), skip the level without a star (250 coins, not for bosses).
+- **Level sheet**: goal, budget, best stars; options: start with a Bombe (30 coins), skip the level without a star (250 coins, not for bosses, offered only after 2 failed attempts: `M.canSkip`, `M.recordFail`, `profile.adventure.fails`). The sheet states the star rule (keep 15 % / 30 % of the budget). Levels sit on a winding path (rows of 5, every other row reversed, `drawLevelPath`); the world ends with the endless run card (worlds-mode.md). Home hero card jumps to the next level (`nextAdventure`). After a boss, the level end offers to equip the new theme.
 - **In level**: the world's theme is forced; the score plate shows `progress / target` and `LABEL · N COUPS`. Moves left ≤ 3 blink.
 - **End**: 1 star for the win, +1 with 15% of the budget left, +1 with 30% (clock left for timed levels). Out of moves: buy +5 moves (20, 40, 80... coins per attempt), stars then capped at 1.
 - **Rewards**: first clear 10 coins (Épreuve 25, boss 60), +5 per new star; beating a boss gives the world's theme (still sold in the Boutique). Grid coins and daily missions count as in any run.
@@ -25,7 +25,7 @@ A fourth mode next to Classique / Chrono / Chill: short levels (1-3 min) with a 
 
 ## Saved state
 - Run (`gridlock.v2`): `state.stage = { world, n, goal, maxMoves, movesLeft, progress, won, stars, extra, clock?, setup?, ramp }`, `state.special[64]`.
-- Profile (version 3): `profile.adventure = { stars: { "<world>-<n>": 0..3 } (key present = cleared, 0 = skipped), opened?: [world], chests?: { "<world>-<i>": true }, bombs?: n }`.
+- Profile (version 3): `profile.adventure = { stars: { "<world>-<n>": 0..3 } (key present = cleared, 0 = skipped), opened?: [world], chests?: { "<world>-<i>": true }, bombs?: n, fails?: { "<world>-<n>": count } }` (fails optional, read with a default).
 
 ## Gotchas
 - Retune budgets with `node tools/balance.js` after changing a rule, a kind or the piece odds. Target: bot wins 90-100% early, ≥70% late and on bosses (v2 run: world averages 88-100%, bosses 69-100%).
