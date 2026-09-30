@@ -626,7 +626,7 @@
 
     /* Home (Jouer tab) */
     .home-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-    .home-head .brand { flex: 1; min-width: 0; margin: 0; text-align: left; font-size: 34px; }
+    .home-head .brand { flex: 1; min-width: 0; margin: 0; text-align: left; font-size: clamp(22px, 7.5vw, 34px); white-space: nowrap; }
     .home-head .coins { font-size: 19px; padding: 7px 10px 5px; }
     #menu-continue { margin-bottom: 12px; }
     .hero { position: relative; margin-bottom: 10px; }
@@ -694,6 +694,9 @@
     #ask h2 { font-size: 24px; }
     .ask-text { margin: 10px 0 0; font-weight: 700; color: var(--muted); line-height: 1.35; }
     #ask .btn.danger { background: #e5484d; color: #fff; }
+    /* Labels stay whole: side by side when both fit, stacked on narrow cards. */
+    #ask .actions { flex-wrap: wrap; }
+    #ask .actions > .btn { flex: 1 1 auto; min-width: max-content; white-space: nowrap; }
 
     /* Result cards: actions stay reachable at the bottom while the rest scrolls. */
     .card.sticky-foot { padding-bottom: 0; }
@@ -735,9 +738,26 @@
       .free-pick b { font-size: 16px; }
       .free-pick .chev { right: 8px; }
     }
+    /* Rétro / Arcade: Press Start 2P is almost twice as wide as Baloo 2 at the same size. Matching
+       Baloo 2's x-height (0.46) brings it back to Baloo's size and leaves Baloo text unchanged. */
+    .pixel-font { font-size-adjust: 0.46; }
+    .pixel-font .btn small { font-size-adjust: none; }
+    .pixel-font .btn, .pixel-font .brand { letter-spacing: 0; }
+    .pixel-font .hero-txt b { font-size: 17px; line-height: 1.3; }
+    .pixel-font .tile b { font-size: 16px; line-height: 1.25; }
+    @supports not (font-size-adjust: 0.46) {
+      .pixel-font .btn, .pixel-font #menu-play { font-size: 14px; line-height: 1.3; }
+      .pixel-font .tile b { font-size: 13px; line-height: 1.3; }
+    }
+    /* 320px phones: a smaller hero picture leaves the title room to breathe. */
+    @media (max-width: 340px) {
+      .hero .hero-main { gap: 8px; }
+      .hero-main .hero-art { width: 56px; height: 42px; border-radius: 10px; }
+      .hero-go { padding-inline: 10px; }
+    }
     @media (max-height: 700px) {
       .home-head { margin-bottom: 10px; }
-      .home-head .brand { font-size: 28px; }
+      .home-head .brand { font-size: min(28px, 7.5vw); }
       .hero-main { padding: 12px; }
       .hero-art { width: 76px; height: 57px; }
       .tile { padding: 10px 12px; }

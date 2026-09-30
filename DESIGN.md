@@ -71,7 +71,7 @@ Themes are whole worlds (`SKINS.boards` in `src/meta.js`, visuals in `THEMES` in
 Tokens above are the Jouet theme. Per-theme values live in each theme's `css` map: `--bg`, `--panel`, `--panel-2`, `--slot`, `--text`, `--muted`, `--accent`, `--on-accent`, `--good`, `--edge`, `--radius`, `--card-edge`, `--plate-edge`, and the translucent helpers `--hairline` (thin outlines), `--sunken` (tracks, disabled fills) and `--scrim` (overlay backdrop). Dark worlds get defaults from `css()`, light worlds from `lightCss()`. The accent is reserved for primary action, counts and timers. Block colors come from `PALETTE` unless the theme ships its own `palette` (Jouet does); every palette keeps 14 distinct colors, one per shape family.
 
 ## Typography
-Baloo 2 everywhere (UI and display), Press Start 2P for the two pixel worlds with `scale: 0.62` so numbers fit. Both are bundled in `fonts/` for offline play. Score on the plate: 0.64 x plate height. Game-over score: 76px.
+Baloo 2 everywhere (UI and display), Press Start 2P for the two pixel worlds with `scale: 0.62` so numbers fit. In the DOM menus the pixel font gets `font-size-adjust: 0.46` (Baloo 2's x-height, body class `pixel-font`) so labels keep Baloo's size; button labels never wrap mid-word (the confirm dialog stacks its buttons instead). Both are bundled in `fonts/` for offline play. Score on the plate: 0.64 x plate height. Game-over score: 76px.
 
 ## Layout
 Tall screens: HUD buttons row, then score plate + combo tag sitting right above the board. Screens under 760px tall: the plate moves up between the wallet and the undo button. Bonus timers drain as a ring around their inventory button.

@@ -844,6 +844,7 @@
     root.setProperty('--menu-on-accent', th.css['--on-accent-dark'] || th.css['--on-accent']);
     document.body.classList.toggle('dark-menus', !!settings.darkMenus && th.css['--scheme'] === 'light');
     document.body.dataset.theme = themeId();
+    document.body.classList.toggle('pixel-font', th.font === PIXEL_FONT); // wider glyphs: smaller button labels
     document.querySelector('meta[name="theme-color"]').setAttribute('content', th.base);
   }
 
