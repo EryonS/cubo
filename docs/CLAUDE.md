@@ -23,7 +23,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Saves and migrations | [features/persistence.md](features/persistence.md) | `M.migrate`, `save()` / `saveProfile()` in `src/main.js` |
 | Aventure mode (map, levels, stars, rewards) | [features/aventure.md](features/aventure.md) | `src/levels.js`, `src/meta.js`, section `aventure` in `src/main.js` |
 | World rules, special cells | [features/worlds.md](features/worlds.md) | `src/worlds.js`, `KINDS` in `src/logic.js`, `drawSpecial` in `src/main.js` |
-| Daily level, streak, share | [features/daily.md](features/daily.md) | `daily` in `src/levels.js`, daily/streak in `src/meta.js`, section `daily level, streak, profile` in `src/main.js` |
+| Défis screen, daily level, streak, share | [features/daily.md](features/daily.md) | `daily` in `src/levels.js`, daily/streak in `src/meta.js`, sections `daily level, streak, profile` and `Défis screen` in `src/main.js` |
 | Sticker album, trophies, profile and stats | [features/album.md](features/album.md) | `STICKERS` / `checkStickers` / `monthTrophy` in `src/meta.js`, `#profile` screen |
 
 ## Adding a new feature

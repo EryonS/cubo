@@ -1460,10 +1460,41 @@
       banners.push({ text: 'Mission réussie', sub: m.text + ' · +' + m.reward, subIcon: 'coin', gold: true });
       sfx.mission();
     }
+    renderMissionBadges();
   }
+
+  // Missions: menu row, HUD badge, and a sheet reachable from both (live progress during a run).
+  const missionsEl = document.getElementById('missions');
+  const missionsOpenEl = document.getElementById('missions-open');
+  const liveRun = () => (state.over || state.stage ? {} : L.runStats(state));
+  function renderMissionBadges() {
+    const status = M.missionStatus(profile, liveRun());
+    const done = status.filter((m) => m.done).length;
+    missionsOpenEl.querySelector('.badge').textContent = `${done}/${status.length}`;
+    missionsOpenEl.classList.toggle('all', done === status.length);
+    document.getElementById('menu-missions-sub').textContent = done === status.length ? 'Toutes faites' : `${done}/${status.length} faites`;
+    document.getElementById('menu-missions-pips').innerHTML = status.map((m) => `<i class="${m.done ? 'done' : ''}"><b style="width:${(m.current / m.target) * 100}%"></b></i>`).join('');
+  }
+  function openMissions() {
+    unlockAudio();
+    missionsFromMenu = menuEl.classList.contains('show');
+    menuEl.classList.remove('show');
+    renderMissionList(document.getElementById('missions-list'), [], liveRun());
+    missionsEl.classList.add('show');
+  }
+  let missionsFromMenu = false;
+  function closeMissions() {
+    missionsEl.classList.remove('show');
+    if (missionsFromMenu) openMenu();
+  }
+  missionsOpenEl.addEventListener('click', openMissions);
+  document.getElementById('menu-missions').addEventListener('click', () => { sfx.turn(); openMissions(); });
+  document.getElementById('missions-close').addEventListener('click', closeMissions);
+  missionsEl.addEventListener('click', (e) => { if (e.target === missionsEl) closeMissions(); });
 
   function resetAnnounced() {
     announced = new Set(M.missionStatus(profile, L.runStats(state)).filter((m) => m.done).map((m) => m.id));
+    renderMissionBadges();
   }
   resetAnnounced();
 
@@ -1701,9 +1732,10 @@
     document.getElementById('menu-continue-sub').textContent = state.stage
       ? `${state.stage.daily ? 'Niveau du jour #' + LV.dayNumber(state.stage.daily) : 'Aventure · ' + WD.WORLDS[state.stage.world].name + ' ' + state.stage.n} · ${LV.goalText(state.stage.goal)}`
       : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]} · ${fmt(state.score)} pts`;
-    document.getElementById('menu-adventure-sub').textContent = `${M.totalStars(profile)} / ${M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3} étoiles`;
+    document.getElementById('menu-adventure-sub').innerHTML = starSvg(true, 14) + `${M.totalStars(profile)} / ${M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3}`;
     document.getElementById('menu-adventure').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
     renderDailyButton();
+    renderMissionBadges();
     document.getElementById('menu-play').className = 'btn wide ' + (inProgress() ? 'ghost' : 'primary');
     for (const b of document.querySelectorAll('#menu-mode button')) b.classList.toggle('on', b.dataset.mode === prefs.mode);
     for (const b of document.querySelectorAll('#menu-level button')) b.classList.toggle('on', b.dataset.level === prefs.level);
@@ -2001,18 +2033,21 @@
 
   const dailyWord = (day) => (day === today() ? 'Niveau du jour' : 'Jour rattrapé');
 
+  // Menu "Défis" button: today's level status and streak.
   function renderDailyButton() {
-    const day = today();
-    const stage = LV.daily(day);
-    const d = M.dailyOf(profile, day);
-    const left = M.dailyAttemptsLeft(profile, day, day);
-    const streak = M.streakNow(profile, day);
-    const status = d.stars !== undefined ? 'réussi' : left ? `${left} essai${left > 1 ? 's' : ''}` : 'plus d’essai';
-    document.getElementById('menu-daily-sub').textContent = `#${LV.dayNumber(day)} · ${worldName(stage.world)} · ${status}`;
-    document.getElementById('menu-flame').innerHTML = FLAME_SVG(20, streak > 0) + (streak || '');
+    const t = today();
+    const d = M.dailyOf(profile, t);
+    const left = M.dailyAttemptsLeft(profile, t, t);
+    const streak = M.streakNow(profile, t);
+    document.getElementById('menu-daily-sub').textContent = d.stars !== undefined ? `Niveau #${LV.dayNumber(t)} réussi`
+      : left ? `Niveau #${LV.dayNumber(t)} · ${left} essai${left > 1 ? 's' : ''}` : 'Plus d’essai, reviens demain';
+    document.getElementById('menu-flame').innerHTML = FLAME_SVG(20, streak > 0) + streak;
   }
 
-  function openDailySheet(day) {
+  let dailyBack = 'menu'; // where "Retour" goes from the daily sheet: 'menu' or 'defis'
+
+  function openDailySheet(day, from) {
+    if (from) dailyBack = from;
     const t = today();
     const stage = LV.daily(day);
     const d = M.dailyOf(profile, day);
@@ -2023,7 +2058,11 @@
     const tries = day === t ? `${left} essai${left > 1 ? 's' : ''} sur ${M.DAILY_ATTEMPTS} aujourd'hui` : 'Essais illimités, ne compte pas pour la série';
     card.innerHTML = `
       <div class="shop-head"><h2>${dailyWord(day)}</h2><span class="star-pill">#${LV.dayNumber(day)}</span></div>
-      <div class="stage-sub">${worldName(stage.world)} · ${frDate(day)}</div>
+      <div class="day-nav">
+        <button class="close" data-nav="-1" aria-label="Jour précédent" ${day <= LV.DAILY_START ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <span class="stage-sub">${worldName(stage.world)} · ${frDate(day)}</span>
+        <button class="close" data-nav="1" aria-label="Jour suivant" ${day >= t ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
       <div class="stage-goal">${LV.goalText(stage.goal)}</div>
       <div class="stage-sub">${budget} · ${tries}</div>
       <div class="stage-stars">${starsRow(d.stars || 0, 34)}</div>
@@ -2032,7 +2071,11 @@
     const play = card.querySelector('[data-act="play"]');
     play.disabled = !left;
     if (!left) play.textContent = 'Reviens demain';
-    card.querySelector('[data-act="back"]').addEventListener('click', () => { hideAdventure(); openMenu(); });
+    card.querySelector('[data-act="back"]').addEventListener('click', () => {
+      hideAdventure();
+      if (dailyBack === 'defis') openDefis(day); else openMenu();
+    });
+    for (const b of card.querySelectorAll('[data-nav]')) b.addEventListener('click', () => { sfx.turn(); openDailySheet(M.addDays(day, +b.dataset.nav)); });
     play.addEventListener('click', () => startDaily(day));
     const freeze = card.querySelector('[data-act="freeze"]');
     if (freeze) {
@@ -2045,6 +2088,7 @@
     }
     hideAdventure();
     profileEl.classList.remove('show');
+    defisEl.classList.remove('show');
     menuEl.classList.remove('show');
     stageEl.classList.add('show');
   }
@@ -2115,12 +2159,11 @@
 
   // ----- profile screen -----
   let profileTab = 'album';
-  let calMonth = null; // 'YYYY-MM' shown in the calendar
 
   function openProfile(tab) {
     unlockAudio();
     if (tab) profileTab = tab;
-    calMonth = calMonth || today().slice(0, 7);
+    if (profileTab === 'calendar') profileTab = 'album';
     menuEl.classList.remove('show');
     renderProfile();
     profileEl.classList.add('show');
@@ -2131,13 +2174,11 @@
   document.getElementById('menu-profile').addEventListener('click', () => openProfile());
   document.getElementById('profile-close').addEventListener('click', () => { profileEl.classList.remove('show'); openMenu(); });
   profileEl.addEventListener('click', (e) => { if (e.target === profileEl) { profileEl.classList.remove('show'); openMenu(); } });
-  document.getElementById('menu-daily').addEventListener('click', () => openDailySheet(today()));
 
   function renderProfile() {
     for (const b of document.querySelectorAll('.ptab')) b.classList.toggle('on', b.dataset.ptab === profileTab);
     const body = document.getElementById('profile-body');
     if (profileTab === 'album') body.innerHTML = albumHtml();
-    else if (profileTab === 'calendar') { body.innerHTML = calendarHtml(); bindCalendar(body); }
     else body.innerHTML = statsHtml();
     freshStickers.clear();
     const freeze = body.querySelector('[data-act="freeze"]');
@@ -2187,11 +2228,47 @@
     return html;
   }
 
+  // ----- Défis screen: month calendar, the picked day's level below (today by default) -----
+  const defisEl = document.getElementById('defis');
+  let calMonth = null; // 'YYYY-MM' shown in the calendar
+  let defisDay = null; // day picked in the calendar
+
+  function openDefis(day) {
+    unlockAudio();
+    defisDay = day || defisDay || today();
+    if (defisDay > today()) defisDay = today();
+    calMonth = defisDay.slice(0, 7);
+    menuEl.classList.remove('show');
+    hideAdventure();
+    renderDefis();
+    defisEl.classList.add('show');
+  }
+  const closeDefis = () => { defisEl.classList.remove('show'); openMenu(); };
+  document.getElementById('menu-defis').addEventListener('click', () => { sfx.turn(); openDefis(today()); });
+  document.getElementById('defis-close').addEventListener('click', closeDefis);
+  defisEl.addEventListener('click', (e) => { if (e.target === defisEl) closeDefis(); });
+
+  function renderDefis() {
+    const t = today();
+    const streak = M.streakNow(profile, t);
+    document.getElementById('defis-flame').innerHTML = FLAME_SVG(18, streak > 0) + streak;
+    const body = document.getElementById('defis-body');
+    body.innerHTML = calendarHtml() + dayHtml(defisDay);
+    for (const b of body.querySelectorAll('[data-cal]')) {
+      b.addEventListener('click', () => {
+        calMonth = M.addDays(calMonth + '-15', +b.dataset.cal * 30).slice(0, 7);
+        sfx.turn();
+        renderDefis();
+      });
+    }
+    for (const b of body.querySelectorAll('[data-day]')) b.addEventListener('click', () => { defisDay = b.dataset.day; sfx.turn(); renderDefis(); });
+    body.querySelector('[data-act="daily"]').addEventListener('click', () => openDailySheet(defisDay, 'defis'));
+  }
+
   function calendarHtml() {
     const t = today();
     const days = M.monthDays(calMonth);
     const offset = (new Date(days[0] + 'T12:00:00').getDay() + 6) % 7; // Monday first
-    const trophy = M.monthTrophy(profile, calMonth);
     let html = `<div class="cal-head">
         <button class="close" data-cal="-1" aria-label="Mois précédent" ${calMonth <= LV.DAILY_START.slice(0, 7) ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
         <b>${frMonth(calMonth)}</b>
@@ -2202,22 +2279,31 @@
     for (const day of days) {
       const d = M.dailyOf(profile, day);
       const off = day > t || day < LV.DAILY_START;
-      const cls = (d.stars !== undefined ? ' done' : '') + (day === t ? ' today' : '');
-      html += `<button data-day="${day}" class="${cls.trim()}" ${off ? 'disabled' : ''}>${Number(day.slice(8))}${d.stars !== undefined ? `<span class="stars">${starsRow(d.stars, 8)}</span>` : ''}</button>`;
+      const cls = (d.stars !== undefined ? ' done' : '') + (day === t ? ' today' : '') + (day === defisDay ? ' pick' : '');
+      const mark = d.stars !== undefined ? `<span class="stars">${starsRow(d.stars, 8)}</span>` : '';
+      html += `<button data-day="${day}" class="${cls.trim()}" ${off ? 'disabled' : ''} aria-label="${frDate(day)}">${Number(day.slice(8))}${mark}</button>`;
     }
-    html += `</div><div class="section-title">${trophy ? `Trophée ${trophy === 'gold' ? "d'or" : "d'argent"} gagné ce mois-ci` : 'Réussis tous les jours du mois pour son trophée (or avec 3 étoiles partout)'}</div>`;
-    return html;
+    return html + '</div>';
   }
 
-  function bindCalendar(body) {
-    for (const b of body.querySelectorAll('[data-cal]')) {
-      b.addEventListener('click', () => {
-        calMonth = M.addDays(calMonth + '-15', +b.dataset.cal * 30).slice(0, 7);
-        sfx.turn();
-        renderProfile();
-      });
-    }
-    for (const b of body.querySelectorAll('[data-day]')) b.addEventListener('click', () => openDailySheet(b.dataset.day));
+  // The picked day's level card (stars, attempts).
+  function dayHtml(day) {
+    const t = today();
+    const stage = LV.daily(day);
+    const d = M.dailyOf(profile, day);
+    const left = M.dailyAttemptsLeft(profile, day, t);
+    const done = d.stars !== undefined;
+    const side = done ? `<span class="stars">${starsRow(d.stars, 14)}</span>Réussi`
+      : day === t ? (left ? `${left} essai${left > 1 ? 's' : ''}` : 'Demain') : 'Rattrapage';
+    const dateLabel = new Date(day + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const trophy = M.monthTrophy(profile, calMonth);
+    return `
+      <div class="day-title">${day === t ? "Aujourd'hui" : dateLabel}</div>
+      <button class="defi${done ? ' done' : ''}" data-act="daily">
+        <span class="txt"><b>Niveau #${LV.dayNumber(day)} · ${worldName(stage.world)}</b><span>${LV.goalText(stage.goal)}</span></span>
+        <span class="side">${side}</span>
+      </button>
+      <div class="defis-note">${trophy ? `Trophée ${trophy === 'gold' ? "d'or" : "d'argent"} gagné ce mois-ci.` : 'Trophée du mois : réussis chaque niveau du jour (or avec 3 étoiles partout).'}</div>`;
   }
 
   function statsHtml() {

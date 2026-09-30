@@ -4,7 +4,7 @@ Status: shipped (v1, 2026-09-30)
 ## Profile screen
 Menu > Profil, three tabs:
 - **Album**: streak card (flame, current, record, freezes + buy a freeze), month trophy shelf (from `DAILY_START` to now), then 26 stickers on 4 pages. Unearned stickers are grey with their hint; newly earned ones play a peel animation the first time the album opens.
-- **Calendrier**: month grid (Monday first) with each day's stars; tap a past day or today to open its daily sheet. Months before `DAILY_START` and future days are disabled.
+- The calendar moved to the Défis screen (see [daily.md](daily.md)); the profile has only Album and Stats.
 - **Stats**: lifetime counters, records per mode, Aventure stars, dailies cleared, longest streak.
 
 ## Stickers
@@ -22,7 +22,7 @@ Default reward 20 coins. Checked after every run, level, daily and Boutique purc
 ## Files
 - `src/meta.js`: `STICKER_PAGES`, `STICKERS` (id, page, name, hint, test, reward?), `checkStickers`, `monthTrophy`, lifetime via `addLifetime` in `applyRun` and `earn()` for coins earned outside runs.
 - `src/logic.js`: `stats.used` counts each bonus type per run.
-- `src/main.js`: `openProfile`, `albumHtml`, `calendarHtml`, `statsHtml`, SVG icons (`FLAME_SVG`, `TROPHY_SVG`, `STICKER_GLYPHS`).
+- `src/main.js`: `openProfile`, `albumHtml`, `statsHtml`, SVG icons (`FLAME_SVG`, `TROPHY_SVG`, `STICKER_GLYPHS`).
 - `index.html`: `#profile` overlay, `.ptab` tabs (not `.tab`: the shop binds every `.tab`).
 
 ## Saved state

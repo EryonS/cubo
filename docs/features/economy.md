@@ -3,7 +3,7 @@ Status: shipped
 
 ## What it does
 - **Coins**: picked up on the grid (coin +1, bag +5), plus end-of-run bonuses and mission rewards. Spent on discards (10, +5 each), undos (free, then 1, 2, 3...) and the Boutique.
-- **Missions**: 3 per day, same draw for everyone that day, harder every 6 completed.
+- **Missions**: 3 per day, same draw for everyone that day, harder every 6 completed. Shown in the menu row "Missions" (progress pips), the in-game HUD button `#missions-open` (badge `done/3`, live run progress, pauses timers like any overlay) and the `#missions` sheet; `renderMissionBadges` refreshes both after each move.
 - **Boutique**: block skins and world themes, cosmetic only.
 - **Rewarded ad** (stub): doubles a run's coins once.
 
