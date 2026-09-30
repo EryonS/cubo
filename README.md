@@ -55,6 +55,7 @@ Chaque niveau a un objectif (lignes, points ou cases spéciales à détruire) et
 Battre le boss (niveau 10) offre le thème du monde et, avec assez d'étoiles, ouvre le monde suivant.
 Pièces : +5 coups quand on n'en a plus (20, 40, 80…), partir avec une Bombe (30), passer un niveau (250).
 Équilibrage : `node tools/balance.js 10` fait jouer un bot sur les 80 niveaux.
+Icônes : `python3 tools/make_icons.py` redessine `icons/*.png` depuis `tools/icons.html`.
 
 ## Niveau du jour, série et Profil
 

@@ -27,5 +27,5 @@ A fourth mode next to Classique / Chrono / Chill: short levels (1-3 min) with a 
 ## Gotchas
 - Retune budgets with `node tools/balance.js` after changing a rule, a kind or the piece odds. v1 target: bot wins 90-100% early, ≥70% in Volcan.
 - A new goal type needs: `stageMove` progress, `goalText` / `goalLabel`, the HUD, and the bot's goal awareness.
-- Gravity chains snap instantly (no falling animation yet).
+- Gravity chains are animated wave by wave (`events.waves`); the board state is already final, only the drawing lags.
 - Records per mode ignore Aventure (`bests` skips it).

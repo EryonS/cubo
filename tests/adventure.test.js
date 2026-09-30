@@ -59,6 +59,11 @@ test('gravity drops blocks and chains a second line', () => {
   assert.equal(res.events.chain, 1);
   assert.equal(res.events.lines, 2);
   assert.equal(res.state.stage.progress, 2);
+  // The renderer gets each wave: what it cleared and how blocks fell after it.
+  assert.equal(res.events.waves.length, 2);
+  assert.equal(res.events.waves[0].cleared.length, S);
+  assert.ok(res.events.waves[0].moves.every(([from, to]) => to % S === from % S && to > from));
+  assert.equal(res.events.waves[1].cleared.length, S);
 });
 
 test('an ember blast clears its row and column', () => {

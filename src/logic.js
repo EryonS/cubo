@@ -381,11 +381,14 @@
     }
 
     // Gravity worlds: blocks fall after a clear, and every new full line is a chain step.
+    // waves[k] = the cells cleared in step k and the falls that follow it (for the renderer).
     let chain = 0;
     let allLines = lines;
+    const waves = [];
     if (lines && rules.gravity) {
+      let wave = { cleared: hit.cleared.map(({ r, c }) => r * SIZE + c), moves: fall(state) };
+      waves.push(wave);
       for (;;) {
-        fall(state);
         const next = findClears(state.board);
         const n = next.rows.length + next.cols.length;
         if (!n) break;
@@ -393,8 +396,11 @@
         allLines += n;
         state.combo += 1;
         const more = clearCells(state, clearedIndices(next.rows, next.cols));
+        for (const cell of more.cleared) cell.wave = chain;
         points += linePoints(n, state.combo) * lineMul(rules, more);
         mergeHits(hit, more);
+        wave = { cleared: more.cleared.map(({ r, c }) => r * SIZE + c), moves: fall(state) };
+        waves.push(wave);
       }
     }
     const cleared = hit.cleared;
@@ -434,6 +440,7 @@
         cols,
         lines: allLines,
         chain,
+        waves,
         damaged: hit.damaged,
         blasts: hit.blasts,
         spawned,
@@ -501,7 +508,9 @@
   const lineMul = (rules, hit) => (rules.lineMul ? rules.lineMul(hit) : 1);
 
   // Every column drops its cells to the bottom, keeping their order (bonus and special ride along).
+  // Returns the moves as [from, to] board indices.
   function fall(state) {
+    const moves = [];
     for (let c = 0; c < SIZE; c++) {
       let write = SIZE - 1;
       for (let r = SIZE - 1; r >= 0; r--) {
@@ -511,10 +520,12 @@
         if (j !== i) {
           state.board[j] = state.board[i]; state.bonus[j] = state.bonus[i]; state.special[j] = state.special[i];
           state.board[i] = 0; state.bonus[i] = null; state.special[i] = null;
+          moves.push([i, j]);
         }
         write -= 1;
       }
     }
+    return moves;
   }
 
   // After a move in adventure: goal progress, world events, move budget, win / loss.

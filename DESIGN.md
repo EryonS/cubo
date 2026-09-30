@@ -91,6 +91,13 @@ Round and soft: pills for score and combo, 22px cards, board radius 18-26px, cel
 - **Cards** (menu, game over, boutique, legend): `--panel` with `--card-edge`.
 - **Boutique theme preview**: mini plate + board patch drawn with the real theme code.
 
+## Motion and sound
+- Toy feel: pieces pop, lines flash then shrink, blocks fall with gravity and bounce once on landing, the sea current slides a row with a small overshoot, asteroids and embers drop in from above, mushrooms grow.
+- Gravity chains play as waves 430 ms apart, so each reaction reads on its own.
+- `prefers-reduced-motion`: no shake, no falls, slides or drops (cells appear in place), banners fade instead of bouncing.
+- Sounds are synthesized (WebAudio): xylophone / music-box plucks for clears, bonuses and stars, a wooden tok for placing, slide whistle for game over, filtered noise for cracks, whooshes and sizzles. Music is a soft pad with a music-box arpeggio.
+- App icons: Jouet style (pink polka dots, white board, candy blocks), drawn by `tools/icons.html`, exported with `python3 tools/make_icons.py`.
+
 ## Do's and Don'ts
 - Do draw every icon (canvas/SVG). Don't use emoji.
 - Do keep blocks readable on every theme; backgrounds stay behind a mostly opaque board slab.

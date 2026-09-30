@@ -746,6 +746,16 @@
   let overAt = 0;
   let aiming = null;      // bomb targeting: { cell: [r, c] | null, pid }
   let flyers = [];        // bonus icons flying from the board to the inventory
+  // Aventure motion. tracks: final board index -> fall segments [{ t0, dur, from, to }] (rows).
+  // shifts: rows sliding with the sea current. drops: special cells landing or growing.
+  let tracks = new Map();
+  let shifts = [];
+  let drops = new Map();
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const calm = () => reducedMotion.matches;
+  const WAVE_MS = 430;   // gravity chain: time between two clear waves
+  const FALL_AFTER = 240; // falls start once the wave's cells have faded
+  const fallMs = (rows) => 110 + 55 * rows;
 
   // An Aventure level wears its world's theme; otherwise the equipped one.
   const themeId = () => (state && state.stage ? state.stage.world : profile.equipped.boards);
@@ -832,57 +842,100 @@
     if (ac && ac.state === 'suspended') ac.resume();
     music.sync();
   }
-  function tone(freq, dur, type = 'sine', vol = 0.12, delay = 0) {
-    if (!settings.sfx || !ac) return;
+  const semis = (base, n) => base * Math.pow(2, n / 12);
+  const live = () => settings.sfx && ac;
+
+  // Toy instruments. pluck: xylophone / music-box bar (fundamental + a bright partial that dies fast).
+  function pluck(freq, dur = 0.25, vol = 0.1, delay = 0, bright = 3.9) {
+    if (!live()) return;
+    const t = ac.currentTime + delay;
+    for (const [mul, v, d] of [[1, vol, dur], [bright, vol * 0.35, dur * 0.25]]) {
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(freq * mul, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(v, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g).connect(ac.destination);
+      o.start(t);
+      o.stop(t + d + 0.02);
+    }
+  }
+  // Pitch slide: slide whistle, boing, pop.
+  function glide(f0, f1, dur, type = 'sine', vol = 0.08, delay = 0) {
+    if (!live()) return;
     const t = ac.currentTime + delay;
     const o = ac.createOscillator();
     const g = ac.createGain();
     o.type = type;
-    o.frequency.setValueAtTime(freq, t);
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f1, t + dur);
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g).connect(ac.destination);
     o.start(t);
     o.stop(t + dur + 0.02);
   }
-  const semis = (base, n) => base * Math.pow(2, n / 12);
+  // Filtered noise: clicks, cracks, whooshes, sizzles. f0 -> f1 sweeps the filter.
+  let noiseBuf = null;
+  function noise(dur, vol, f0, f1 = f0, type = 'bandpass', delay = 0, q = 1.2) {
+    if (!live()) return;
+    if (!noiseBuf) {
+      noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const t = ac.currentTime + delay;
+    const src = ac.createBufferSource();
+    const f = ac.createBiquadFilter();
+    const g = ac.createGain();
+    src.buffer = noiseBuf;
+    f.type = type; f.Q.value = q;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(ac.destination);
+    src.start(t);
+    src.stop(t + dur + 0.02);
+  }
+  const PENTA = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
   const sfx = {
-    pick: () => tone(620, 0.05, 'triangle', 0.06),
-    toss: () => [0, -5, -10].forEach((s, i) => tone(semis(520, s), 0.09, 'triangle', 0.07, i * 0.05)),
-    undo: () => [7, 0].forEach((s, i) => tone(semis(660, s), 0.08, 'sine', 0.08, i * 0.06)),
-    tick: (hi) => tone(hi ? 1320 : 990, 0.03, 'square', 0.025),
-    time: () => [0, 7].forEach((s, i) => tone(semis(784, s), 0.1, 'sine', 0.07, i * 0.05)),
-    place: () => { tone(170, 0.09, 'triangle', 0.22); tone(340, 0.05, 'sine', 0.06); },
-    nope: () => tone(130, 0.14, 'sawtooth', 0.04),
+    pick: () => pluck(1046, 0.06, 0.05),
+    // Wooden toy block on a table.
+    place: () => { pluck(262, 0.12, 0.2, 0, 2.76); noise(0.025, 0.05, 2500, 2500, 'highpass'); },
+    toss: () => glide(700, 180, 0.2, 'triangle', 0.07),
+    undo: () => glide(380, 760, 0.14, 'sine', 0.08),
+    tick: (hi) => pluck(hi ? 1568 : 1175, 0.05, 0.05),
+    time: () => [0, 7].forEach((st, i) => pluck(semis(1046, st), 0.18, 0.06, i * 0.05)),
+    nope: () => glide(240, 150, 0.16, 'square', 0.035),
+    // Xylophone run up the pentatonic scale; longer for more lines, higher with the combo.
     clear: (lines, combo) => {
-      const base = semis(392, Math.min(combo - 1, 12) * 2);
-      const steps = [0, 4, 7, 12, 16, 19].slice(0, 2 + Math.min(lines, 4));
-      steps.forEach((s, i) => tone(semis(base, s), 0.18, 'triangle', 0.1, i * 0.055));
+      const base = semis(392, Math.min(combo - 1, 10) * 2);
+      PENTA.slice(0, 2 + Math.min(lines, 4) * 2).forEach((st, i) => pluck(semis(base, st), 0.3, 0.09, i * 0.045));
     },
-    over: () => [0, -3, -7, -12].forEach((s, i) => tone(semis(330, s), 0.3, 'triangle', 0.1, i * 0.13)),
-    turn: () => { tone(740, 0.04, 'square', 0.03); tone(990, 0.05, 'triangle', 0.05, 0.03); },
-    bonus: () => [0, 7, 12, 19].forEach((s, i) => tone(semis(660, s), 0.14, 'square', 0.04, i * 0.07)),
-    collect: () => [0, 12].forEach((s, i) => tone(semis(880, s), 0.1, 'sine', 0.07, 0.35 + i * 0.08)),
-    mission: () => [0, 4, 7, 12, 7, 12].forEach((s, i) => tone(semis(523, s), 0.16, 'triangle', 0.08, 0.3 + i * 0.08)),
-    coin: (i) => tone(semis(988, (i % 5) * 2), 0.07, 'square', 0.035),
-    buy: () => [0, 4, 7, 12, 16].forEach((s, i) => tone(semis(523, s), 0.2, 'triangle', 0.09, i * 0.06)),
-    bomb: () => {
-      if (!settings.sfx || !ac) return;
-      const t = ac.currentTime;
-      const o = ac.createOscillator();
-      const g = ac.createGain();
-      o.type = 'sawtooth';
-      o.frequency.setValueAtTime(160, t);
-      o.frequency.exponentialRampToValueAtTime(35, t + 0.4);
-      g.gain.setValueAtTime(0.25, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
-      o.connect(g).connect(ac.destination);
-      o.start(t);
-      o.stop(t + 0.5);
-    },
+    // Slide whistle down, then a low bar.
+    over: () => { glide(880, 196, 0.75, 'triangle', 0.07); pluck(131, 0.5, 0.12, 0.75, 2.76); },
+    turn: () => pluck(1568, 0.06, 0.05),
+    bonus: () => [0, 4, 7, 12, 16].forEach((st, i) => pluck(semis(1046, st), 0.4, 0.05, i * 0.06, 3)),
+    collect: () => [0, 12].forEach((st, i) => pluck(semis(1319, st), 0.3, 0.05, 0.35 + i * 0.08, 2.4)),
+    mission: () => [0, 4, 7, 12, 7, 12, 16].forEach((st, i) => pluck(semis(523, st), 0.35, 0.08, 0.3 + i * 0.07)),
+    coin: (i) => pluck(semis(1976, (i % 5) * 2), 0.14, 0.04, 0, 2.4),
+    buy: () => [0, 4, 7, 12, 16].forEach((st, i) => pluck(semis(523, st), 0.35, 0.09, i * 0.06)),
+    bomb: () => { glide(170, 38, 0.45, 'sawtooth', 0.2); noise(0.5, 0.25, 1200, 150, 'lowpass'); },
+    // Aventure.
+    land: () => { pluck(147, 0.14, 0.14, 0, 2); noise(0.04, 0.04, 800, 800, 'lowpass'); },
+    crack: () => { noise(0.09, 0.12, 5000, 2500, 'highpass'); pluck(2349, 0.06, 0.03); },
+    pop: () => glide(420, 1400, 0.07, 'sine', 0.1),
+    thunk: () => { glide(190, 55, 0.2, 'sine', 0.22); noise(0.12, 0.08, 600, 200, 'lowpass'); },
+    sizzle: () => noise(0.35, 0.05, 4500, 3000, 'bandpass', 0, 0.8),
+    grow: () => glide(300, 760, 0.16, 'triangle', 0.06),
+    swoosh: () => noise(0.4, 0.09, 350, 2200, 'bandpass', 0, 2),
+    star: (i) => pluck(semis(784, [0, 4, 7][i] || 12), 0.45, 0.1, 0, 3),
   };
-  // Soft generative loop: pad chords, bass on 1 and 3, a sparse arpeggio. Scheduled ahead
+  // Soft generative loop: pad chords, bass on 1 and 3, a sparse music-box arpeggio. Scheduled ahead
   // with a small lookahead timer so it keeps time while the main thread is busy.
   const music = (() => {
     const BPM = 92;
@@ -896,7 +949,7 @@
     let step = 0;
     let nextAt = 0;
 
-    function voice(freq, at, dur, type, vol, cutoff) {
+    function voice(freq, at, dur, type, vol, cutoff, attack = Math.min(0.4, dur * 0.3)) {
       const o = ac.createOscillator();
       const g = ac.createGain();
       const f = ac.createBiquadFilter();
@@ -905,7 +958,7 @@
       o.type = type;
       o.frequency.value = freq;
       g.gain.setValueAtTime(0.0001, at);
-      g.gain.exponentialRampToValueAtTime(vol, at + Math.min(0.4, dur * 0.3));
+      g.gain.exponentialRampToValueAtTime(vol, at + attack);
       g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
       o.connect(f).connect(g).connect(bus);
       o.start(at);
@@ -922,7 +975,8 @@
         }
         if (i === 0 || i === 4) voice(hz(root), nextAt, STEP * 3, 'sine', 0.16, 400);
         const a = ARP[i];
-        if (a >= 0 && (step % 32 < 24 || i % 2 === 0)) voice(hz(tones[a] + 12), nextAt, STEP * 1.6, 'triangle', 0.035, 2400);
+        // Music-box arpeggio: instant attack, bell-like decay, two octaves up.
+        if (a >= 0 && (step % 32 < 24 || i % 2 === 0)) voice(hz(tones[a] + 24), nextAt, STEP * 2.4, 'sine', 0.03, 8000, 0.005);
         nextAt += STEP;
         step += 1;
       }
@@ -1202,11 +1256,14 @@
     if (ev.lines) {
       const pr = ev.placed.reduce((s, p) => s + p[0], 0) / ev.placed.length;
       const pc = ev.placed.reduce((s, p) => s + p[1], 0) / ev.placed.length;
+      const plan = ev.waves && ev.waves.length && !calm() ? planFalls(ev.waves, t) : null;
       for (const cell of ev.cleared) {
-        const delay = Math.hypot(cell.r - pr, cell.c - pc) * 28;
-        fades.push({ ...cell, t0: t, delay });
+        const wave = cell.wave || 0;
+        const delay = wave ? wave * WAVE_MS + cell.c * 12 : Math.hypot(cell.r - pr, cell.c - pc) * 28;
+        fades.push({ ...cell, t0: t, delay, segs: plan && plan.fadeSegs.get(wave + ':' + (cell.r * SIZE + cell.c)) });
         burst(cell, t + delay, 4, 60 + ev.combo * 20);
       }
+      if (plan) tracks = plan.tracks;
       const [fx, fy] = cellCenter(pr, pc);
       const margin = lay.cell * 1.6;
       floaters.push({ text: '+' + ev.points + (ev.nitro ? ' ×2' : ''), x: Math.max(margin, Math.min(W - margin, fx)), y: fy, t0: t, big: true });
@@ -1237,19 +1294,84 @@
     afterChange(t, ev.over);
   }
 
+  // Turns the logic's gravity waves into per-block fall paths. Every block present after a wave's
+  // clear follows its moves; blocks cleared by a later wave hand their path to their fade.
+  function planFalls(waves, t) {
+    let live = new Map();
+    const fadeSegs = new Map();
+    waves.forEach((wave, w) => {
+      if (w > 0) {
+        for (const i of wave.cleared) {
+          if (live.has(i)) fadeSegs.set(w + ':' + i, live.get(i));
+          live.delete(i);
+        }
+      }
+      const start = t + w * WAVE_MS + FALL_AFTER;
+      const moved = new Map();
+      for (const [from, to] of wave.moves) {
+        const rows = Math.floor(to / SIZE) - Math.floor(from / SIZE);
+        moved.set(to, [...(live.get(from) || []), { t0: start, dur: fallMs(rows), from: Math.floor(from / SIZE), to: Math.floor(to / SIZE) }]);
+      }
+      for (const [from] of wave.moves) live.delete(from);
+      for (const [to, segs] of moved) live.set(to, segs);
+    });
+    // One soft landing per wave that moved anything.
+    waves.forEach((wave, w) => {
+      if (!wave.moves.length) return;
+      const longest = Math.max(...wave.moves.map(([a, b]) => Math.floor(b / SIZE) - Math.floor(a / SIZE)));
+      setTimeout(() => sfx.land(), w * WAVE_MS + FALL_AFTER + fallMs(longest));
+      if (w > 0) setTimeout(() => sfx.clear(1, state.combo), w * WAVE_MS);
+    });
+    return { tracks: live, fadeSegs };
+  }
+
+  // Row a falling block is drawn at: accelerating fall, then a small bounce on landing.
+  function segRow(segs, t, row) {
+    for (const seg of segs) {
+      if (t < seg.t0) return seg.from;
+      const p = (t - seg.t0) / seg.dur;
+      if (p < 1) return seg.from + (seg.to - seg.from) * p * p;
+      const q = (t - seg.t0 - seg.dur) / 160;
+      if (q < 1 && seg === segs[segs.length - 1]) return seg.to - 0.1 * Math.sin(q * Math.PI);
+    }
+    return row;
+  }
+  const tracksBusy = (segs, t) => { const last = segs[segs.length - 1]; return t < last.t0 + last.dur + 160; };
+
   // Aventure feedback: cracked cells, blasts, gravity chains, and what the world dropped this turn.
   function stageEffects(ev, t) {
     for (const d of ev.damaged || []) burst({ r: d.r, c: d.c, kind: d.kind }, t, 5, 80, '#ffffff');
+    if ((ev.damaged || []).length) sfx.crack();
+    if ((ev.cleared || []).some((c) => c.kind === 'bubble')) sfx.pop();
     if (ev.blasts && ev.blasts.length) {
       banners.push({ text: 'Boum !', sub: 'Explosion en croix' });
-      shake = 18;
+      if (!calm()) shake = 18;
       sfx.bomb();
     }
-    if (ev.chain) banners.push({ text: 'Réaction ×' + (ev.chain + 1), sub: 'La gravité enchaîne', gold: true });
+    if (ev.chain) {
+      const banner = { text: 'Réaction ×' + (ev.chain + 1), sub: 'La gravité enchaîne', gold: true };
+      if (calm()) banners.push(banner); else setTimeout(() => banners.push(banner), WAVE_MS);
+    }
     for (const sp of ev.spawned || []) {
-      if (sp.row !== undefined) { banners.push({ text: 'Courant !', sub: 'Une ligne a glissé' }); continue; }
-      pops.push({ r: sp.r, c: sp.c, t0: t + 150 });
-      burst({ r: sp.r, c: sp.c, kind: sp.kind === 'firefly' ? 'ember' : sp.kind }, t + 150, 6, 60);
+      const at = t + 250;
+      if (sp.row !== undefined) {
+        banners.push({ text: 'Courant !', sub: 'Une ligne a glissé' });
+        if (!calm()) shifts.push({ row: sp.row, t0: at });
+        sfx.swoosh();
+        continue;
+      }
+      if (sp.kind === 'firefly') {
+        pops.push({ r: sp.r, c: sp.c, t0: at });
+        burst({ r: sp.r, c: sp.c, kind: 'ember' }, at, 6, 50, '#fff6a0');
+        setTimeout(() => sfx.coin(3), 250);
+        continue;
+      }
+      const land = sp.kind === 'mushroom' ? 320 : 420;
+      if (!calm()) drops.set(sp.r * SIZE + sp.c, { t0: at, kind: sp.kind, dur: land });
+      setTimeout(() => {
+        burst({ r: sp.r, c: sp.c, kind: sp.kind }, now(), 6, 70);
+        if (sp.kind === 'mushroom') sfx.grow(); else if (sp.kind === 'ember') sfx.sizzle(); else sfx.thunk();
+      }, 250 + (calm() ? 0 : land));
     }
   }
 
@@ -1549,6 +1671,7 @@
     returning = []; pops = []; fades = []; particles = []; floaters = [];
     banners = []; overAt = 0; slotIn = [now(), now(), now()]; slotSpin = [0, 0, 0]; nextIn = now();
     aiming = null; flyers = [];
+    tracks = new Map(); shifts = []; drops = new Map();
     showTrash(false);
     syncMode();
     overEl.classList.remove('show');
@@ -1815,6 +1938,12 @@
     if (next) card.querySelector('[data-act="next"]').addEventListener('click', () => (next[1] === 1 && next[0] !== w ? openWorld(next[0]) : openStage(next[0], next[1])));
     bindMoreMoves(card, moreCost);
     levelEndEl.classList.add('show');
+    starChimes(stage.stars);
+  }
+
+  // One chime per star, in step with the stars' CSS entrance (0, 180, 360 ms).
+  function starChimes(n) {
+    for (let k = 0; k < n; k++) setTimeout(() => sfx.star(k), 60 + k * 180);
   }
 
   function bindMoreMoves(card, cost) {
@@ -1981,6 +2110,7 @@
     }
     bindMoreMoves(card, moreCost);
     levelEndEl.classList.add('show');
+    starChimes(stage.stars);
   }
 
   // ----- profile screen -----
@@ -2442,7 +2572,7 @@
     ctx.drawImage(bgCanvas, 0, 0, W, H);
     if (theme().animate) theme().animate(ctx, W, H, t);
 
-    shake *= 0.86;
+    shake = calm() ? 0 : shake * 0.86;
     const sx = (Math.random() - 0.5) * shake;
     const sy = (Math.random() - 0.5) * shake;
 
@@ -2567,13 +2697,30 @@
 
     const overK = overAt ? easeOut((t - overAt) / 900) : 0;
 
+    // Empty cells first, so falling blocks can pass over them.
     for (let r = 0; r < SIZE; r++) {
       for (let c = 0; c < SIZE; c++) {
         const [x, y] = cellCenter(r, c);
+        drawEmpty(ctx, th, x, y, cell);
+      }
+    }
+    shifts = shifts.filter((sh) => t - sh.t0 < 420);
+    for (let r = 0; r < SIZE; r++) {
+      // Sea current: the row slides one cell right (the wrapped cell enters from the left edge).
+      const sh = shifts.find((x) => x.row === r);
+      const dx = sh ? -(1 - easeBack(Math.max(0, (t - sh.t0) / 420))) * cell : 0;
+      if (dx) { ctx.save(); ctx.beginPath(); ctx.rect(bx, by + r * cell, board, cell); ctx.clip(); }
+      for (let c = 0; c < SIZE; c++) {
+        let [x, y] = cellCenter(r, c);
+        x += dx;
         const i = r * SIZE + c;
         const v = state.board[i];
-        drawEmpty(ctx, th, x, y, cell);
         if (!v) continue;
+        const segs = tracks.get(i);
+        if (segs) {
+          if (tracksBusy(segs, t)) y = cellCenter(segRow(segs, t, r), c)[1];
+          else tracks.delete(i);
+        }
 
         let scale = 1;
         const pop = pops.find((p) => p.r === r && p.c === c);
@@ -2583,12 +2730,22 @@
         }
         const alpha = 1 - overK * 0.65;
         if (v === L.SPECIAL && state.special && state.special[i]) {
+          const drop = drops.get(i);
+          if (drop) {
+            const k = (t - drop.t0) / drop.dur;
+            if (k >= 1.4) drops.delete(i);
+            else if (k < 0) continue; // not arrived yet
+            else if (drop.kind === 'mushroom') scale *= k < 1 ? 0.3 + 0.7 * easeBack(k) : 1;
+            else if (k < 1) y = by - cell * 1.5 + (y - by + cell * 1.5) * k * k;
+            else scale *= 1 + 0.12 * Math.sin(Math.min(1, (k - 1) / 0.4) * Math.PI);
+          }
           drawSpecial(state.special[i], x, y, cell, t, alpha, scale);
           continue;
         }
         const color = preview && preview.has(i) ? pal()[ghost.piece.color] : pal()[v];
         drawBlock(x, y, cell, color, alpha, scale, state.bonus[i]);
       }
+      if (dx) ctx.restore();
     }
     pops = pops.filter((p) => t - p.t0 < 240);
 
@@ -2682,7 +2839,8 @@
     fades = fades.filter((f) => t - f.t0 - f.delay < 320);
     for (const f of fades) {
       const k = (t - f.t0 - f.delay) / 320;
-      const [x, y] = cellCenter(f.r, f.c);
+      let [x, y] = cellCenter(f.r, f.c);
+      if (f.segs && k < 0) y = cellCenter(segRow(f.segs, t, f.r), f.c)[1];
       if (f.kind) { drawSpecial({ kind: f.kind, hp: 1 }, x, y, lay.cell, t, k < 0 ? 1 : 1 - k, k < 0 ? 1 : 1.1 - easeOut(k)); continue; }
       if (k < 0) { drawBlock(x, y, lay.cell, pal()[f.color]); continue; }
       const flash = k < 0.25 ? '#ffffff' : pal()[f.color];
@@ -2822,8 +2980,8 @@
     banner.t0 ??= t;
     const k = (t - banner.t0) / 1300;
     if (k >= 1) { banners.shift(); return; }
-    const scale = easeBack(k * 4);
-    const alpha = k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1;
+    const scale = calm() ? 1 : easeBack(k * 4);
+    const alpha = k > 0.7 ? 1 - (k - 0.7) / 0.3 : calm() ? Math.min(1, k * 8) : 1;
     ctx.save();
     ctx.translate(W / 2, lay.by + lay.board * 0.42);
     ctx.scale(scale, scale);
