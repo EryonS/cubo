@@ -148,26 +148,93 @@
     return stage;
   }
 
-  // ---------- Halloween event (October) ----------
-  // 10 hand-made levels in the 'halloween' world (worlds.js): pumpkins to break, ghosts that jump
-  // around, a giant pumpkin boss at the end. Budgets balanced with the greedy bot (tools/bot.js).
-  const EVENT_LEVELS = [
-    { goal: { type: 'clear', kind: 'pumpkin', target: 4 }, setup: { kind: 'pumpkin', count: 6 }, maxMoves: 48 },
-    { goal: { type: 'lines', target: 8 }, setup: { kind: 'pumpkin', count: 2 }, maxMoves: 34 },
-    { goal: { type: 'score', target: 700 }, setup: { kind: 'pumpkin', count: 3 }, maxMoves: 50 },
-    { goal: { type: 'clear', kind: 'ghost', target: 3 }, setup: { kind: 'pumpkin', count: 2 }, maxMoves: 50 },
-    { goal: { type: 'coins', target: 20 }, setup: { kind: 'pumpkin', count: 6 }, maxMoves: 44 },
-    { goal: { type: 'combo', target: 4 }, setup: { kind: 'pumpkin', count: 2 }, maxMoves: 40 },
-    { goal: { type: 'clear', kind: 'pumpkin', target: 8 }, setup: { kind: 'pumpkin', count: 10 }, maxMoves: 70 },
-    { goal: { type: 'lines', target: 14 }, setup: { kind: 'pumpkin', count: 4 }, maxMoves: 52 },
-    { goal: { type: 'score', target: 1500 }, setup: { kind: 'pumpkin', count: 4 }, maxMoves: 84 },
-    { boss: { name: 'Citrouille géante', hp: 14, every: 5, count: 1, kind: 'ghost' }, setup: { kind: 'pumpkin', count: 4 }, maxMoves: 70 },
-  ];
-  const EVENT_WORLD = 'halloween';
-  function eventLevel(n) {
-    const def = EVENT_LEVELS[n - 1];
+  // ---------- season events ----------
+  // 10 hand-made levels per event, each in its event's world (worlds.js). Level 10 is a boss.
+  // Budgets balanced with the greedy bot (tools/bot.js): about 85-100 % wins, 70 %+ on bosses.
+  // Nouvel An is timed (clock in ms, bot pace 2.5 s a move).
+  const C = (kind, target) => ({ type: 'clear', kind, target });
+  const G = (type, target) => ({ type, target });
+  const boss = (name, hp, kind) => ({ name, hp, every: 5, count: 1, kind });
+  const EVENT_LEVELS = {
+    newyear: [
+      { goal: G('score', 600), setup: { kind: 'rocket', count: 3 }, clock: 75000 },
+      { goal: G('lines', 9), setup: { kind: 'rocket', count: 2 }, clock: 75000 },
+      { goal: C('rocket', 6), setup: { kind: 'rocket', count: 7 }, clock: 75000 },
+      { goal: G('combo', 4), setup: { kind: 'rocket', count: 2 }, clock: 75000 },
+      { goal: G('score', 650), setup: { kind: 'rocket', count: 3 }, clock: 75000 },
+      { goal: G('lines', 11), setup: { kind: 'rocket', count: 2 }, clock: 75000 },
+      { goal: C('rocket', 8), setup: { kind: 'rocket', count: 9 }, clock: 80000 },
+      { goal: G('coins', 8), setup: { kind: 'rocket', count: 2 }, clock: 80000 },
+      { goal: G('score', 1000), setup: { kind: 'rocket', count: 3 }, clock: 80000 },
+      { boss: boss('Horloge de minuit', 12, 'rock'), setup: { kind: 'rocket', count: 2 }, clock: 90000 },
+    ],
+    valentine: [
+      { goal: C('heart', 6), setup: { count: 4 }, maxMoves: 24 },
+      { goal: G('lines', 8), setup: { count: 2 }, maxMoves: 33 },
+      { goal: G('score', 700), setup: { count: 2 }, maxMoves: 59 },
+      { goal: C('heart', 10), setup: { count: 6 }, maxMoves: 26 },
+      { goal: G('combo', 4), setup: { count: 2 }, maxMoves: 36 },
+      { goal: C('rose', 3), setup: { count: 2 }, maxMoves: 67 },
+      { goal: G('lines', 13), setup: { count: 3 }, maxMoves: 46 },
+      { goal: C('heart', 16), setup: { count: 9 }, maxMoves: 24 },
+      { goal: G('score', 1500), setup: { count: 3 }, maxMoves: 81 },
+      { boss: boss('Cupidon', 14, 'rose'), setup: { count: 2 }, maxMoves: 50 },
+    ],
+    easter: [
+      { goal: C('egg', 2), setup: { count: 6, eggs: 3 }, maxMoves: 27 },
+      { goal: G('lines', 8), setup: { count: 3, eggs: 1 }, maxMoves: 33 },
+      { goal: C('egg', 3), setup: { count: 8, eggs: 4 }, maxMoves: 29 },
+      { goal: G('score', 800), setup: { count: 4, eggs: 2 }, maxMoves: 63 },
+      { goal: G('coins', 15), setup: { count: 6, eggs: 4 }, maxMoves: 63 },
+      { goal: C('egg', 5), setup: { count: 10, eggs: 6 }, maxMoves: 44 },
+      { goal: G('combo', 4), setup: { count: 4, eggs: 2 }, maxMoves: 34 },
+      { goal: C('egg', 7), setup: { count: 12, eggs: 8 }, maxMoves: 40 },
+      { goal: G('lines', 14), setup: { count: 5, eggs: 2 }, maxMoves: 48 },
+      { boss: boss('Lapin géant', 14, 'bush'), setup: { count: 5, eggs: 0 }, maxMoves: 45 },
+    ],
+    beach: [
+      { goal: C('crab', 3), setup: { kind: 'crab', count: 4 }, maxMoves: 32 },
+      { goal: G('lines', 8), setup: { kind: 'crab', count: 2 }, maxMoves: 29 },
+      { goal: G('score', 800), setup: { kind: 'crab', count: 2 }, maxMoves: 56 },
+      { goal: C('crab', 6), setup: { kind: 'crab', count: 7 }, maxMoves: 38 },
+      { goal: G('coins', 14), setup: { kind: 'crab', count: 4 }, maxMoves: 67 },
+      { goal: G('combo', 4), setup: { kind: 'crab', count: 2 }, maxMoves: 34 },
+      { goal: C('crab', 9), setup: { kind: 'crab', count: 10 }, maxMoves: 36 },
+      { goal: G('lines', 14), setup: { kind: 'crab', count: 3 }, maxMoves: 42 },
+      { goal: G('score', 1500), setup: { kind: 'crab', count: 3 }, maxMoves: 80 },
+      { boss: boss('Crabe géant', 14, 'crab'), setup: { kind: 'crab', count: 2 }, maxMoves: 49 },
+    ],
+    halloween: [
+      { goal: C('pumpkin', 4), setup: { kind: 'pumpkin', count: 6 }, maxMoves: 52 },
+      { goal: G('lines', 8), setup: { kind: 'pumpkin', count: 2 }, maxMoves: 33 },
+      { goal: G('score', 700), setup: { kind: 'pumpkin', count: 3 }, maxMoves: 54 },
+      { goal: C('ghost', 3), setup: { kind: 'pumpkin', count: 2 }, maxMoves: 45 },
+      { goal: G('coins', 20), setup: { kind: 'pumpkin', count: 6 }, maxMoves: 41 },
+      { goal: G('combo', 4), setup: { kind: 'pumpkin', count: 2 }, maxMoves: 33 },
+      { goal: C('pumpkin', 8), setup: { kind: 'pumpkin', count: 10 }, maxMoves: 65 },
+      { goal: G('lines', 14), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 48 },
+      { goal: G('score', 1500), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 90 },
+      { boss: boss('Citrouille géante', 14, 'ghost'), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 52 },
+    ],
+    xmas: [
+      { goal: C('present', 3), setup: { kind: 'present', count: 5 }, maxMoves: 54 },
+      { goal: G('lines', 8), setup: { kind: 'present', count: 2 }, maxMoves: 33 },
+      { goal: G('score', 800), setup: { kind: 'present', count: 3 }, maxMoves: 60 },
+      { goal: C('snowpile', 5), setup: { kind: 'present', count: 2 }, maxMoves: 54 },
+      { goal: G('combo', 4), setup: { kind: 'present', count: 2 }, maxMoves: 36 },
+      { goal: C('present', 6), setup: { kind: 'present', count: 8 }, maxMoves: 60 },
+      { goal: G('lines', 13), setup: { kind: 'present', count: 3 }, maxMoves: 45 },
+      { goal: G('coins', 12), setup: { kind: 'present', count: 3 }, maxMoves: 71 },
+      { goal: G('score', 1500), setup: { kind: 'present', count: 4 }, maxMoves: 76 },
+      { boss: boss('Renne farceur', 14, 'snowpile'), setup: { kind: 'present', count: 3 }, maxMoves: 59 },
+    ],
+  };
+  // Level n (1-10) of an event: an Aventure stage in the event's world.
+  function eventLevel(id, n) {
+    const def = (EVENT_LEVELS[id] || [])[n - 1];
     if (!def) return null;
-    const base = { world: EVENT_WORLD, n, event: EVENT_WORLD, boss: !!def.boss, ramp: 0.6 + n * 0.03, setup: def.setup, maxMoves: def.maxMoves };
+    const base = { world: id, n, event: id, boss: !!def.boss, ramp: 0.6 + n * 0.03, setup: def.setup, maxMoves: def.clock ? 99 : def.maxMoves };
+    if (def.clock) base.clock = def.clock;
     if (!def.boss) return { ...base, goal: def.goal };
     const { name, hp, ...attack } = def.boss;
     return { ...base, goal: { type: 'boss', target: hp, name }, boss: { name, ...attack } };
@@ -195,13 +262,15 @@
 
   // French goal text for the HUD and level cards.
   const KIND_NAMES = { bubble: 'bulles', asteroid: 'astéroïdes', ice: 'blocs de glace', mushroom: 'champignons', ember: 'braises', crate: 'caisses', rock: 'rochers',
-    pumpkin: 'citrouilles', ghost: 'fantômes', mole: 'taupes', jelly: 'méduses', hole: 'trous noirs', snowman: 'bonshommes de neige', vine: 'lianes', glitch: 'bugs', token: 'jetons', lava: 'coulées de lave' };
+    pumpkin: 'citrouilles', ghost: 'fantômes', present: 'cadeaux', snowpile: 'tas de neige', heart: 'cœurs', rose: 'roses',
+    bush: 'buissons', egg: 'œufs', water: 'vagues', crab: 'crabes', rocket: 'fusées', mole: 'taupes', jelly: 'méduses', hole: 'trous noirs', snowman: 'bonshommes de neige', vine: 'lianes', glitch: 'bugs', token: 'jetons', lava: 'coulées de lave' };
   function goalText(goal) {
     if (goal.type === 'lines') return `Efface ${goal.target} lignes`;
     if (goal.type === 'score') return `Fais ${goal.target.toLocaleString('fr-FR')} points`;
     if (goal.type === 'coins') return `Ramasse ${goal.target} pièces`;
     if (goal.type === 'combo') return `Fais un combo ×${goal.target}`;
     if (goal.type === 'boss') return `Bats ${goal.name}`;
+    if (goal.kind === 'egg') return `Trouve ${goal.target} œufs`;
     return `Détruis ${goal.target} ${KIND_NAMES[goal.kind]}`;
   }
   // Short uppercase label next to the progress on the score plate.

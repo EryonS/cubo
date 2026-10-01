@@ -15,7 +15,7 @@ Each Aventure world changes the rules with one advantage and one drawback. Rules
 | Arcade | all points ×1.5 | clock (60 s, boss 75 s), lines add 3 s | - |
 | Volcan | a destroyed ember clears its row and column | every 6 moves an ember falls; after 8 moves it hardens into rock (2 hp) | ember (1 hp) → rock |
 
-Levels 11-19 add a second obstacle per world: see twists.md. `WORLDS.halloween` is the October event's world (not on the map, see halloween.md).
+Levels 11-19 add a second obstacle per world: see twists.md. The season events' worlds (`newyear`, `valentine`, `easter`, `beach`, `halloween`, `xmas`) live here too, off the map (see seasons.md).
 
 ## Files
 - `src/worlds.js`: `WORLDS` (name, plus / minus text for the world screen, hooks), `ORDER`.

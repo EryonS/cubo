@@ -32,8 +32,13 @@
       { id: 'retro', name: 'Rétro', price: 1000 },
       { id: 'arcade', name: 'Arcade', price: 1200 },
       { id: 'volcano', name: 'Volcan', price: 1500 },
-      // Not sold: the Halloween event reward.
+      // Not sold: season event rewards (EVENTS).
+      { id: 'newyear', name: 'Nouvel An', price: null, exclusive: 'Nouvel An' },
+      { id: 'valentine', name: 'Saint-Valentin', price: null, exclusive: 'Saint-Valentin' },
+      { id: 'easter', name: 'Pâques', price: null, exclusive: 'Pâques' },
+      { id: 'beach', name: 'Plage', price: null, exclusive: 'Plage' },
       { id: 'halloween', name: 'Halloween', price: null, exclusive: 'Halloween' },
+      { id: 'xmas', name: 'Noël', price: null, exclusive: 'Noël' },
     ],
     // Cubo's wardrobe: a head piece worn in every theme. 'auto' keeps the theme's own (sprout,
     // starfish, helmet...). Drawn in the renderer (drawCuboHat), keyed by id.
@@ -45,8 +50,13 @@
       { id: 'glasses', name: 'Lunettes', price: 250 },
       { id: 'tophat', name: 'Haut-de-forme', price: 350 },
       { id: 'crown', name: 'Couronne', price: 500 },
-      // Not sold: the Halloween event reward.
+      // Not sold: season event rewards (EVENTS).
+      { id: 'sequin', name: 'Chapeau pailleté', price: null, exclusive: 'Nouvel An' },
+      { id: 'hearts', name: 'Serre-tête cœurs', price: null, exclusive: 'Saint-Valentin' },
+      { id: 'bunny', name: 'Oreilles de lapin', price: null, exclusive: 'Pâques' },
+      { id: 'straw', name: 'Chapeau de paille', price: null, exclusive: 'Plage' },
       { id: 'witch', name: 'Chapeau de sorcière', price: null, exclusive: 'Halloween' },
+      { id: 'santa', name: 'Bonnet de Noël', price: null, exclusive: 'Noël' },
     ],
   };
 
@@ -55,7 +65,7 @@
     blocks: { candy: 400 },
     boards: { night: 0, sunset: 300, desert: 500, mountain: 800, dash: 1200 },
   };
-  const PROFILE_VERSION = 5;
+  const PROFILE_VERSION = 6;
 
   // stat: key in the run stats. mode 'best' = within one game, 'total' = accumulates across games.
   // tiers: [target, reward], harder tiers unlock as more missions get completed.
@@ -122,13 +132,21 @@
   // falls back to the free skin. v3 (Aventure v2, 20 levels a world): worlds open under the v1 rule
   // (boss at level 10, 18 stars a world) are recorded in adventure.opened so none closes again.
   // v5 (2026-10-01): Cubo's wardrobe, owned.cubo / equipped.cubo.
+  // v6 (2026-10-01): season events; Halloween progress moves from profile.halloween to seasons.halloween.
   function migrate(prev) {
     const version = prev.version || 1;
     if (version >= PROFILE_VERSION) return { profile: prev, refund: 0 };
     const skins = version < 2 ? migrateSkins(prev) : { profile: prev, refund: 0 };
     const adventure = version < 3 ? migrateAdventure(skins.profile) : skins.profile;
     const dailies = version < 4 ? refundDailyAttempts(adventure) : adventure;
-    return { profile: { ...addWardrobe(dailies), version: PROFILE_VERSION }, refund: skins.refund };
+    const wardrobe = version < 5 ? addWardrobe(dailies) : dailies;
+    return { profile: { ...moveHalloween(wardrobe), version: PROFILE_VERSION }, refund: skins.refund };
+  }
+
+  function moveHalloween(prev) {
+    if (!prev.halloween) return prev;
+    const { halloween, ...rest } = prev;
+    return { ...rest, seasons: { ...(prev.seasons || {}), halloween } };
   }
 
   function addWardrobe(prev) {
@@ -414,54 +432,74 @@
   }
 
 
-  // ---------- Halloween event ----------
-  // Open every October (local dates). Progress belongs to one year: profile.halloween = { year,
-  // stars: { [n]: 0..3 } }, left behind when a new October starts. Clearing the 10 levels gives the
-  // Halloween theme and Cubo's witch hat the first time (coins once they are owned) and the year's
-  // trophy: silver, gold with every star. profile.trophies: { 'halloween-<year>': 'silver' | 'gold' }.
-  const EVENT = { id: 'halloween', name: 'Halloween', month: '10', levels: 10, theme: 'halloween', hat: 'witch' };
+  // ---------- season events ----------
+  // One event per season, each open on its months (local dates), 10 levels in its own world.
+  // Progress belongs to one year: profile.seasons[id] = { year, stars: { [n]: 0..3 } }, left behind
+  // when the event comes back the next year. Clearing the 10 levels gives the event's theme and
+  // Cubo head piece the first time (coins once both are owned) and the year's trophy: silver, gold
+  // with every star. profile.trophies: { '<id>-<year>': 'silver' | 'gold' }.
+  const EVENTS = [
+    { id: 'newyear', name: 'Nouvel An', months: ['01'], hat: 'sequin', icon: 'rocket', blurb: 'une nuit de fusées contre la montre' },
+    { id: 'valentine', name: 'Saint-Valentin', months: ['02'], hat: 'hearts', icon: 'heart', blurb: 'des cœurs jumeaux et des roses épineuses' },
+    { id: 'easter', name: 'Pâques', months: ['04'], hat: 'bunny', icon: 'egg', blurb: 'une chasse aux œufs dans les buissons' },
+    { id: 'beach', name: 'Plage', months: ['07', '08'], hat: 'straw', icon: 'crab', blurb: 'des crabes et la marée qui monte' },
+    { id: 'halloween', name: 'Halloween', months: ['10'], hat: 'witch', icon: 'pumpkin', blurb: 'des citrouilles et des fantômes' },
+    { id: 'xmas', name: 'Noël', months: ['12'], hat: 'santa', icon: 'present', blurb: 'des cadeaux sous la neige' },
+  ].map((e) => ({ ...e, theme: e.id, levels: 10 }));
   const EVENT_FIRST = 15;
   const EVENT_BOSS = 50;
   const EVENT_DONE_COINS = 200; // the rewards are already owned (a later year)
-  const eventActive = (day) => day.slice(5, 7) === EVENT.month;
+  const eventById = (id) => EVENTS.find((e) => e.id === id) || null;
+  // The event open on `day`, or null.
+  const eventFor = (day) => EVENTS.find((e) => e.months.includes(day.slice(5, 7))) || null;
+  const eventActive = (day, id) => { const e = eventFor(day); return !!e && (!id || e.id === id); };
   const eventYear = (day) => day.slice(0, 4);
-  const eventEnd = (day) => `${eventYear(day)}-10-31`;
-  const eventOf = (profile, day) =>
-    profile.halloween && profile.halloween.year === eventYear(day) ? profile.halloween : { year: eventYear(day), stars: {} };
-  const eventStars = (profile, day, n) => eventOf(profile, day).stars[n];
-  const eventCleared = (profile, day) => Object.keys(eventOf(profile, day).stars).length;
-  const eventTotalStars = (profile, day) => Object.values(eventOf(profile, day).stars).reduce((a, b) => a + b, 0);
-  const eventLevelOpen = (profile, day, n) => eventActive(day) && n >= 1 && n <= EVENT.levels && (n === 1 || eventStars(profile, day, n - 1) !== undefined);
-  const seasonTrophy = (profile, year) => (profile.trophies || {})[`${EVENT.id}-${year}`] || null;
-  const eventRewardsOwned = (profile) => profile.owned.boards.includes(EVENT.theme) && (profile.owned.cubo || []).includes(EVENT.hat);
+  // Last day the event is open, as 'YYYY-MM-DD'.
+  function eventEnd(id, day) {
+    const last = eventById(id).months.slice(-1)[0];
+    return monthDays(`${eventYear(day)}-${last}`).slice(-1)[0];
+  }
+  const eventOf = (profile, id, day) => {
+    const ev = (profile.seasons || {})[id];
+    return ev && ev.year === eventYear(day) ? ev : { year: eventYear(day), stars: {} };
+  };
+  const eventStars = (profile, id, day, n) => eventOf(profile, id, day).stars[n];
+  const eventCleared = (profile, id, day) => Object.keys(eventOf(profile, id, day).stars).length;
+  const eventTotalStars = (profile, id, day) => Object.values(eventOf(profile, id, day).stars).reduce((a, b) => a + b, 0);
+  const eventLevelOpen = (profile, id, day, n) => eventActive(day, id) && n >= 1 && n <= eventById(id).levels
+    && (n === 1 || eventStars(profile, id, day, n - 1) !== undefined);
+  const seasonTrophy = (profile, id, year) => (profile.trophies || {})[`${id}-${year}`] || null;
+  const eventRewardsOwned = (profile, ev) => profile.owned.boards.includes(ev.theme) && (profile.owned.cubo || []).includes(ev.hat);
 
   // Records a won event level. Returns { profile, report: { earned, total, unlocked: [{ kind, id }], trophy } }.
-  function applyEvent(prev, day, n, stars) {
-    if (!eventLevelOpen(prev, day, n)) return { profile: prev, report: { earned: [], total: 0, unlocked: [], trophy: null } };
-    const ev = eventOf(prev, day);
+  function applyEvent(prev, id, day, n, stars) {
+    const evDef = eventById(id);
+    if (!evDef || !eventLevelOpen(prev, id, day, n)) return { profile: prev, report: { earned: [], total: 0, unlocked: [], trophy: null } };
+    const ev = eventOf(prev, id, day);
     const before = ev.stars[n];
     const earned = [];
-    if (before === undefined) earned.push({ label: n === EVENT.levels ? 'Boss vaincu' : 'Niveau réussi', coins: n === EVENT.levels ? EVENT_BOSS : EVENT_FIRST });
+    if (before === undefined) earned.push({ label: n === evDef.levels ? 'Boss vaincu' : 'Niveau réussi', coins: n === evDef.levels ? EVENT_BOSS : EVENT_FIRST });
     const fresh = stars - (before || 0);
     if (fresh > 0) earned.push({ label: fresh > 1 ? `${fresh} nouvelles étoiles` : 'Nouvelle étoile', coins: fresh * PER_NEW_STAR });
-    let p = { ...prev, halloween: { year: ev.year, stars: { ...ev.stars, [n]: Math.max(stars, before || 0) } } };
+    let p = { ...prev, seasons: { ...(prev.seasons || {}), [id]: { year: ev.year, stars: { ...ev.stars, [n]: Math.max(stars, before || 0) } } } };
     const unlocked = [];
-    const done = eventCleared(p, day) === EVENT.levels;
-    if (done && eventCleared(prev, day) < EVENT.levels) {
-      if (eventRewardsOwned(p)) earned.push({ label: 'Récompense Halloween', coins: EVENT_DONE_COINS });
+    const done = eventCleared(p, id, day) === evDef.levels;
+    if (done && eventCleared(prev, id, day) < evDef.levels) {
+      if (eventRewardsOwned(p, evDef)) earned.push({ label: 'Récompense ' + evDef.name, coins: EVENT_DONE_COINS });
       const owned = { ...p.owned };
-      for (const [kind, id] of [['boards', EVENT.theme], ['cubo', EVENT.hat]]) {
-        if ((owned[kind] || []).includes(id)) continue;
-        owned[kind] = [...(owned[kind] || []), id];
-        unlocked.push({ kind, id });
+      for (const [kind, sid] of [['boards', evDef.theme], ['cubo', evDef.hat]]) {
+        if ((owned[kind] || []).includes(sid)) continue;
+        owned[kind] = [...(owned[kind] || []), sid];
+        unlocked.push({ kind, id: sid });
       }
       p = { ...p, owned };
     }
     let trophy = null;
     if (done) {
-      const kind = eventTotalStars(p, day) === EVENT.levels * 3 ? 'gold' : 'silver';
-      const key = `${EVENT.id}-${ev.year}`;
-      if ((p.trophies || {})[key] !== kind && (p.trophies || {})[key] !== 'gold') {
+      const kind = eventTotalStars(p, id, day) === evDef.levels * 3 ? 'gold' : 'silver';
+      const key = `${id}-${ev.year}`;
+      const had = (p.trophies || {})[key];
+      if (had !== kind && had !== 'gold') {
         p = { ...p, trophies: { ...(p.trophies || {}), [key]: kind } };
         trophy = kind;
       }
@@ -693,7 +731,7 @@
   const needsTutorial = (profile) => !tipSeen(profile, 'tutorial') && !profile.games && !totalStars(profile);
 
   return {
-    EVENT, eventActive, eventYear, eventEnd, eventOf, eventStars, eventCleared, eventTotalStars, eventLevelOpen, seasonTrophy, applyEvent,
+    EVENTS, eventById, eventFor, eventActive, eventYear, eventEnd, eventOf, eventStars, eventCleared, eventTotalStars, eventLevelOpen, seasonTrophy, applyEvent,
     tipSeen, markTip, needsTutorial,
     HISTORY, modeStats, recentScores,
     addDays, dayDiff, monthDays,

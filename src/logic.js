@@ -118,9 +118,20 @@
     glitch: { hp: 1, hop: 3 },
     token: { hp: 2, time: 4000 },
     lava: { hp: 1, flow: true },
-    // Halloween event (levels.js EVENT_LEVELS).
+    // Season events (levels.js EVENT_LEVELS). link: destroying one destroys the other cell with the
+    // same sp.link. sidestep: walks left or right each move. burst: clears its diagonals when destroyed.
+    // hides: some carry sp.egg; destroyed, they count as a found 'egg' (and drop a coin).
     pumpkin: { hp: 2, loot: 'bag' },
     ghost: { hp: 1, hop: 2 },
+    present: { hp: 2, gift: true },
+    snowpile: { hp: 1 },
+    heart: { hp: 1, link: true },
+    rose: { hp: 2 },
+    bush: { hp: 1, hides: true },
+    egg: { hp: 1 }, // never on the board: what a bush with an egg turns into when found
+    water: { hp: 1, ttl: 6 },
+    crab: { hp: 1, sidestep: true, loot: 'coin' },
+    rocket: { hp: 1, burst: true },
   };
   const BOSS_AT = [3, 3]; // top-left cell of the 2x2 boss: the center of the board
 
@@ -647,8 +658,24 @@
           hit.blasts.push({ r, c });
           for (let k = 0; k < SIZE; k++) queue.push(r * SIZE + k, k * SIZE + c);
         }
-        const gift = kind.gift ? weightedPick(state, Object.keys(BONUSES), (k) => BONUSES[k].weight) : kind.loot || null;
-        hit.cleared.push({ r, c, color: SPECIAL, bonus: gift, kind: sp.kind });
+        if (kind.burst) {
+          hit.blasts.push({ r, c, kind: sp.kind });
+          for (let k = -SIZE; k < SIZE; k++) {
+            for (const cc of [c + k, c - k]) {
+              const rr = r + k;
+              if (k && rr >= 0 && rr < SIZE && cc >= 0 && cc < SIZE) queue.push(rr * SIZE + cc);
+            }
+          }
+        }
+        if (kind.link) {
+          // Its partner goes too, wherever it is, whatever hp it has left.
+          const mate = state.special.findIndex((o, j) => j !== i && o && o.kind === sp.kind && o.link === sp.link);
+          if (mate >= 0 && !done.has(mate)) { state.special[mate] = { ...state.special[mate], hp: 1 }; queue.push(mate); }
+        }
+        const egg = kind.hides && sp.egg;
+        if (egg) hit.destroyed.egg = (hit.destroyed.egg || 0) + 1;
+        const gift = kind.gift ? weightedPick(state, Object.keys(BONUSES), (k) => BONUSES[k].weight) : egg ? 'coin' : kind.loot || null;
+        hit.cleared.push({ r, c, color: SPECIAL, bonus: gift, kind: egg ? 'egg' : sp.kind });
       } else {
         hit.cleared.push({ r, c, color: state.board[i], bonus: state.bonus[i] });
       }
@@ -767,6 +794,14 @@
       } else if (kind.hop && sp.age % kind.hop === 0) {
         const to = WORLD_API.pick(state, WORLD_API.emptyCells(state));
         if (to >= 0) out.push({ ...moveSpecial(state, i, to), hop: true });
+      } else if (kind.sidestep) {
+        // Crabs walk sideways: keep going the same way, turn around at a wall or a block.
+        const c = i % SIZE;
+        let dir = sp.dir || 1;
+        const ok = (d) => c + d >= 0 && c + d < SIZE && empty(i + d);
+        if (!ok(dir)) dir = -dir;
+        if (ok(dir)) { state.special[i] = { ...sp, dir }; out.push(moveSpecial(state, i, i + dir)); }
+        else state.special[i] = { ...sp, dir };
       } else if (kind.flow && i + SIZE < SIZE * SIZE && empty(i + SIZE)) {
         out.push(moveSpecial(state, i, i + SIZE));
       } else if (kind.spread) {
@@ -893,10 +928,10 @@
     plainCells: (state) => state.board.map((v, i) => (v && v !== SPECIAL ? i : -1)).filter((i) => i >= 0),
     isBoss,
     pick: (state, list) => (list.length ? list[Math.floor(nextRandom(state) * list.length)] : -1),
-    addSpecial(state, i, kind) {
+    addSpecial(state, i, kind, extra) {
       state.board[i] = SPECIAL;
       state.bonus[i] = null;
-      state.special[i] = { kind, hp: KINDS[kind].hp, age: 0 };
+      state.special[i] = { kind, hp: KINDS[kind].hp, age: 0, ...extra };
       return { r: Math.floor(i / SIZE), c: i % SIZE, kind };
     },
     // Shifts row r one cell to the right, wrapping around (cells keep their bonus / special).

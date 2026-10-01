@@ -146,6 +146,79 @@
     afterMove: dropEvery(6, 'ghost'),
   };
 
+  // Valentine: setup.count pairs of linked hearts (destroying one destroys its mate).
+  function pairs(state, api) {
+    const setup = (state.stage || {}).setup;
+    if (!setup) return;
+    for (let k = 0; k < setup.count; k++) {
+      for (let m = 0; m < 2; m++) {
+        const i = api.pick(state, api.emptyCells(state));
+        if (i >= 0) api.addSpecial(state, i, 'heart', { link: k });
+      }
+    }
+  }
+
+  // Easter: setup.count bushes, setup.eggs of them hide an egg (nothing tells which).
+  function hideEggs(state, api) {
+    const setup = (state.stage || {}).setup;
+    if (!setup) return;
+    for (let k = 0; k < setup.count; k++) {
+      const i = api.pick(state, api.emptyCells(state));
+      if (i >= 0) api.addSpecial(state, i, 'bush', k < setup.eggs ? { egg: true } : undefined);
+    }
+  }
+
+  // Beach: every 8 moves the sea floods the empty cells of the lowest row that has any (water
+  // leaves by itself, KINDS.water.ttl).
+  function tide(state, api) {
+    if (state.moves % 8) return [];
+    for (let r = api.SIZE - 1; r >= 0; r--) {
+      const empty = [];
+      for (let c = 0; c < api.SIZE; c++) if (!state.board[r * api.SIZE + c]) empty.push(r * api.SIZE + c);
+      if (empty.length) return empty.map((i) => api.addSpecial(state, i, 'water'));
+    }
+    return [];
+  }
+
+  // Season events (levels.js EVENT_LEVELS), not on the map. One per season, each with its own cells.
+  Object.assign(WORLDS, {
+    newyear: {
+      name: 'Nouvel An',
+      plus: 'Une fusée effacée explose en X sur ses diagonales',
+      minus: 'Chrono : minuit approche (les lignes rajoutent 3 s)',
+      setup: scatter,
+      afterMove: dropEvery(7, 'rocket'),
+    },
+    valentine: {
+      name: 'Saint-Valentin',
+      plus: 'Les cœurs vont par deux : en casser un casse aussi son jumeau, où qu’il soit',
+      minus: 'Tous les 6 coups, une rose épineuse pousse (2 lignes pour la couper)',
+      setup: pairs,
+      afterMove: dropEvery(6, 'rose'),
+    },
+    easter: {
+      name: 'Pâques',
+      plus: 'Certains buissons cachent un œuf : efface-les pour le trouver (+1 pièce)',
+      minus: 'Tous les 6 coups, un buisson vide repousse',
+      setup: hideEggs,
+      afterMove: dropEvery(6, 'bush'),
+    },
+    beach: {
+      name: 'Plage',
+      plus: 'Un crabe attrapé lâche une pièce',
+      minus: 'Marée : tous les 8 coups, la mer couvre la rangée vide la plus basse, puis se retire',
+      setup: scatter,
+      afterMove: tide,
+    },
+    xmas: {
+      name: 'Noël',
+      plus: 'Un cadeau ouvert (2 lignes) donne un bonus au hasard',
+      minus: 'Tous les 5 coups, un tas de neige tombe sur la grille',
+      setup: scatter,
+      afterMove: dropEvery(5, 'snowpile'),
+    },
+  });
+
   // Map order: the Aventure path and the Boutique theme order.
   const ORDER = ['plain', 'sea', 'space', 'ice', 'forest', 'retro', 'arcade', 'volcano'];
 

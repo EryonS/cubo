@@ -583,6 +583,294 @@
         }
       },
     },
+    // ---------- season event themes (meta.js EVENTS) ----------
+    // Nouvel An: a city at midnight, lit windows, a clock tower, fireworks bursting over the roofs.
+    newyear: {
+      base: '#0b0f2e', board: 'rgba(14,18,52,0.88)', empty: 'rgba(160,180,255,0.1)', cellR: 0.2,
+      font: FONT, weight: 800,
+      ink: '#f4f1ff', accent: '#ffd23f', danger: '#ff5d7a',
+      frame: { r: 20, line: '#ffd23f', lw: 2, inset: 3, glow: '#ffb000' },
+      plate: { fill: 'rgba(14,18,52,0.92)', line: '#ffd23f', lw: 2, inset: 3, r: 22, ink: '#ffe58a', sub: '#b9c2ff', glow: '#ffb000' },
+      tag: { fill: '#ffd23f', line: null, ink: '#1a1440', glow: '#ffb000' },
+      css: css({
+        '--bg': '#0b0f2e', '--panel': '#161c48', '--panel-2': '#212a63', '--slot': 'rgba(14,18,52,0.88)',
+        '--text': '#f4f1ff', '--muted': '#b4bce6', '--accent': '#ffd23f', '--on-accent': '#1a1440',
+        '--edge': '#ffd23f', '--radius': '20px', '--card-glow': '0 0 36px rgba(255,210,63,0.25)',
+      }),
+      paint(g, w, h) {
+        g.fillStyle = vGradient(g, h, ['#05071c', '#141a4a', '#3a2466']); g.fillRect(0, 0, w, h);
+        const rnd = seeded(2027);
+        g.fillStyle = '#fff';
+        for (let i = 0; i < 70; i++) { g.globalAlpha = 0.2 + rnd() * 0.6; g.fillRect(rnd() * w, rnd() * h * 0.6, 1.5, 1.5); }
+        g.globalAlpha = 1;
+        // Skyline: buildings with lit windows, a clock tower in the middle at five to midnight.
+        const ground = h * 0.86;
+        let x = -10;
+        while (x < w) {
+          const bw = 26 + rnd() * 44;
+          const bh = h * (0.08 + rnd() * 0.16);
+          g.fillStyle = rnd() < 0.5 ? '#0a0d26' : '#10143a';
+          g.fillRect(x, ground - bh, bw, bh + h);
+          g.fillStyle = 'rgba(255,214,120,0.85)';
+          for (let wy = ground - bh + 6; wy < ground - 6; wy += 10) for (let wx = x + 5; wx < x + bw - 6; wx += 9) if (rnd() < 0.35) g.fillRect(wx, wy, 4, 5);
+          x += bw + 2;
+        }
+        const tx = w * 0.5, tw = Math.min(46, w * 0.12), th2 = h * 0.3;
+        g.fillStyle = '#0a0d26';
+        g.fillRect(tx - tw / 2, ground - th2, tw, th2 + h);
+        g.beginPath(); g.moveTo(tx - tw / 2 - 4, ground - th2); g.lineTo(tx, ground - th2 - tw * 0.9); g.lineTo(tx + tw / 2 + 4, ground - th2); g.fill();
+        const cr = tw * 0.36, cy = ground - th2 + tw * 0.55;
+        g.fillStyle = '#fff3c4';
+        g.beginPath(); g.arc(tx, cy, cr, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = '#1a1440'; g.lineWidth = 2; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(tx, cy); g.lineTo(tx, cy - cr * 0.8); g.moveTo(tx, cy); g.lineTo(tx - cr * 0.25, cy - cr * 0.55); g.stroke();
+        g.fillStyle = '#05071c'; g.fillRect(0, ground, w, h - ground);
+      },
+      animate(g, w, h, t) {
+        // Fireworks: each one rises, bursts into a ring of sparks, then fades; staggered loops.
+        // They burst in the open sky above the board.
+        const COLORS = ['#ffd23f', '#ff5d8f', '#5ce1ff', '#9be36b', '#c77dff', '#ff9f43'];
+        for (let i = 0; i < 7; i++) {
+          const period = 2200 + i * 330;
+          const k = ((t + i * 761) % period) / period;
+          const rnd = seeded(31 + i * 7 + Math.floor((t + i * 761) / period));
+          const fx = w * (0.08 + rnd() * 0.84);
+          const fy = h * (0.03 + rnd() * 0.18);
+          const col = COLORS[Math.floor(rnd() * COLORS.length)];
+          const col2 = COLORS[Math.floor(rnd() * COLORS.length)];
+          const size = Math.min(w, h) * (0.1 + rnd() * 0.08);
+          if (k < 0.2) {
+            const p = k / 0.2;
+            const y = h * 0.86 - (h * 0.86 - fy) * (1 - (1 - p) * (1 - p));
+            g.fillStyle = 'rgba(255,240,200,0.9)';
+            g.fillRect(fx - 1, y, 2, 8);
+          } else {
+            const p = (k - 0.2) / 0.8;
+            const r = size * (1 - (1 - p) * (1 - p));
+            const drop = p * p * 22;
+            g.globalAlpha = Math.max(0, 1 - p * p);
+            if (p < 0.12) {
+              // Flash at the center.
+              g.fillStyle = 'rgba(255,255,240,0.8)';
+              g.beginPath(); g.arc(fx, fy, size * 0.3 * (1 - p / 0.12), 0, Math.PI * 2); g.fill();
+            }
+            for (const [ring, c, n] of [[1, col, 22], [0.55, col2, 12]]) {
+              g.fillStyle = c;
+              g.strokeStyle = c; g.lineWidth = 1.2;
+              for (let a = 0; a < n; a++) {
+                const ang = (a / n) * Math.PI * 2 + ring;
+                const px = fx + Math.cos(ang) * r * ring, py = fy + Math.sin(ang) * r * ring + drop;
+                g.beginPath(); g.moveTo(fx + Math.cos(ang) * r * ring * 0.7, fy + Math.sin(ang) * r * ring * 0.7 + drop * 0.7); g.lineTo(px, py); g.stroke();
+                g.beginPath(); g.arc(px, py, 2, 0, Math.PI * 2); g.fill();
+              }
+            }
+            g.globalAlpha = 1;
+          }
+        }
+      },
+    },
+    // Saint-Valentin: a pink dusk, soft clouds, hearts floating up.
+    valentine: {
+      base: '#ffc2d4', board: '#ffffff', empty: '#ffe4ec', cellR: 0.24,
+      font: FONT, weight: 800,
+      ink: '#6a1b4d', accent: '#ff4d6d', danger: '#d6204a',
+      frame: { r: 22, line: '#ff8fab', lw: 3, inset: 3 },
+      plate: { fill: '#ffffff', line: '#ff8fab', lw: 2.5, inset: 3, r: 24, ink: '#ff4d6d', sub: '#b0577e' },
+      tag: { fill: '#ff4d6d', line: null, ink: '#ffffff' },
+      css: lightCss({
+        '--bg': '#ffc2d4', '--panel': '#ffffff', '--panel-2': '#ffeaf1', '--slot': '#ffffff',
+        '--text': '#6a1b4d', '--muted': '#a0507a', '--accent': '#ff4d6d', '--on-accent': '#ffffff',
+        '--good': '#2f9e44', '--edge': '#ffc2d4', '--radius': '22px',
+        '--hairline': 'rgba(106,27,77,0.14)', '--sunken': 'rgba(106,27,77,0.08)', '--scrim': 'rgba(106,27,77,0.4)',
+      }),
+      paint(g, w, h) {
+        g.fillStyle = vGradient(g, h, ['#ffd6e2', '#ffb0c8', '#e48ad0']); g.fillRect(0, 0, w, h);
+        const sun = g.createRadialGradient(w * 0.5, h * 0.9, 0, w * 0.5, h * 0.9, w * 0.7);
+        sun.addColorStop(0, 'rgba(255,240,200,0.7)'); sun.addColorStop(1, 'rgba(255,240,200,0)');
+        g.fillStyle = sun; g.fillRect(0, 0, w, h);
+        g.fillStyle = 'rgba(255,255,255,0.75)';
+        for (const [xf, yf, sc] of [[0.15, 0.12, 1], [0.75, 0.2, 0.8], [0.4, 0.06, 0.6], [0.9, 0.6, 0.7], [0.05, 0.55, 0.8]]) {
+          const cx = w * xf, cy = h * yf;
+          g.beginPath(); g.arc(cx, cy, 20 * sc, 0, Math.PI * 2); g.arc(cx + 24 * sc, cy - 8 * sc, 24 * sc, 0, Math.PI * 2); g.arc(cx + 50 * sc, cy, 18 * sc, 0, Math.PI * 2); g.fill();
+        }
+      },
+      animate(g, w, h, t) {
+        for (let i = 0; i < 9; i++) {
+          const rnd = seeded(14 + i);
+          const sz = 7 + rnd() * 9;
+          const x = w * rnd() + Math.sin(t / 900 + i) * 14;
+          const y = h - loop(t * (0.02 + rnd() * 0.02) + rnd() * h, h + 40, 20);
+          g.globalAlpha = 0.35 + 0.3 * rnd();
+          g.fillStyle = ['#ff4d6d', '#ffffff', '#ff8fab'][i % 3];
+          g.beginPath();
+          g.moveTo(x, y + sz * 0.7);
+          g.bezierCurveTo(x - sz, y, x - sz * 0.6, y - sz * 0.8, x, y - sz * 0.3);
+          g.bezierCurveTo(x + sz * 0.6, y - sz * 0.8, x + sz, y, x, y + sz * 0.7);
+          g.fill();
+        }
+        g.globalAlpha = 1;
+      },
+    },
+    // Pâques: a spring meadow, flowers, painted eggs hidden in the grass, butterflies.
+    easter: {
+      base: '#bfe8ff', board: '#fff8e6', empty: '#f3e8cc', cellR: 0.22,
+      font: FONT, weight: 800,
+      ink: '#3a4a1e', accent: '#ff8fb8', danger: '#e63946',
+      frame: { r: 22, line: '#b7e07a', lw: 4, inset: 3 },
+      plate: { fill: '#ffffff', line: null, r: 22, ink: '#7a5cff', sub: '#6a8a3a' },
+      tag: { fill: '#ffd23f', line: null, ink: '#6b3a00' },
+      css: lightCss({
+        '--bg': '#bfe8ff', '--panel': '#ffffff', '--panel-2': '#f1fae4', '--slot': '#ffffff',
+        '--text': '#3a4a1e', '--muted': '#5f7440', '--accent': '#7a5cff', '--on-accent': '#ffffff',
+        '--good': '#2f9e44', '--edge': '#dcefc4', '--radius': '20px',
+        '--hairline': 'rgba(58,74,30,0.14)', '--sunken': 'rgba(58,74,30,0.08)', '--scrim': 'rgba(58,74,30,0.4)',
+      }),
+      paint(g, w, h) {
+        g.fillStyle = vGradient(g, h, ['#a8e0ff', '#e6f7ff']); g.fillRect(0, 0, w, h);
+        g.fillStyle = '#fff3a8';
+        g.beginPath(); g.arc(w * 0.85, h * 0.1, Math.min(w, h) * 0.07, 0, Math.PI * 2); g.fill();
+        hills(g, w, h, h * 0.8, h * 0.035, '#a8e07a', 0.7);
+        hills(g, w, h, h * 0.88, h * 0.03, '#7cc95a', 2.1, 1.3);
+        const rnd = seeded(404);
+        for (let i = 0; i < 30; i++) {
+          const fx = rnd() * w, fy = h * (0.84 + rnd() * 0.15);
+          g.fillStyle = ['#ffffff', '#ffd23f', '#ff8fb8', '#c7a6ff'][i % 4];
+          for (let k = 0; k < 5; k++) { g.beginPath(); g.arc(fx + Math.cos(k * 1.26) * 3, fy + Math.sin(k * 1.26) * 3, 2.4, 0, Math.PI * 2); g.fill(); }
+          g.fillStyle = '#ffb000'; g.beginPath(); g.arc(fx, fy, 1.6, 0, Math.PI * 2); g.fill();
+        }
+        for (const [xf, col] of [[0.18, '#ff8fb8'], [0.62, '#6ea8ff'], [0.9, '#ffd23f']]) {
+          const ex = w * xf, ey = h * 0.93;
+          g.fillStyle = col;
+          g.beginPath(); g.ellipse(ex, ey, 8, 11, 0.2, 0, Math.PI * 2); g.fill();
+          g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillRect(ex - 8, ey - 2, 16, 3);
+        }
+      },
+      animate(g, w, h, t) {
+        for (let i = 0; i < 3; i++) {
+          const x = loop(t * (0.02 + i * 0.008) + i * 160, w, 30);
+          const y = h * (0.25 + i * 0.15) + Math.sin(t / 400 + i * 2) * 20;
+          const flap = Math.abs(Math.sin(t / 90 + i));
+          g.fillStyle = ['#ff8fb8', '#ffd23f', '#c7a6ff'][i];
+          for (const d of [-1, 1]) { g.beginPath(); g.ellipse(x + d * 5 * flap, y, 6 * flap + 1, 8, d * 0.4, 0, Math.PI * 2); g.fill(); }
+          g.fillStyle = '#3a2a1a'; g.fillRect(x - 1, y - 6, 2, 12);
+        }
+      },
+    },
+    // Plage: sun, sea with rolling waves, sand, a palm tree, gulls.
+    beach: {
+      base: '#8fdcff', board: '#fff3d6', empty: '#f5e2b8', cellR: 0.22,
+      font: FONT, weight: 800,
+      ink: '#0d4a6b', accent: '#ff7a3d', danger: '#e63946',
+      frame: { r: 22, line: '#f0c987', lw: 4, inset: 3 },
+      plate: { fill: '#ffffff', line: null, r: 22, ink: '#ff7a3d', sub: '#3d86a8' },
+      tag: { fill: '#2ec4d6', line: null, ink: '#ffffff' },
+      css: lightCss({
+        '--bg': '#8fdcff', '--panel': '#ffffff', '--panel-2': '#eaf8ff', '--slot': '#ffffff',
+        '--text': '#0d4a6b', '--muted': '#3d6f8a', '--accent': '#ff7a3d', '--on-accent': '#ffffff',
+        '--good': '#2f9e44', '--edge': '#cfeefb', '--radius': '20px',
+        '--hairline': 'rgba(13,74,107,0.14)', '--sunken': 'rgba(13,74,107,0.08)', '--scrim': 'rgba(13,74,107,0.4)',
+      }),
+      paint(g, w, h) {
+        g.fillStyle = vGradient(g, h, ['#4fc3f7', '#b8ecff']); g.fillRect(0, 0, w, h * 0.72);
+        g.fillStyle = '#ffe066';
+        g.beginPath(); g.arc(w * 0.18, h * 0.1, Math.min(w, h) * 0.08, 0, Math.PI * 2); g.fill();
+        g.fillStyle = vGradient(g, h, ['#1fa2d6', '#1fa2d6', '#0d7fb0']);
+        g.fillRect(0, h * 0.68, w, h * 0.12);
+        g.fillStyle = '#f7dca0';
+        g.beginPath(); g.moveTo(0, h * 0.8); g.quadraticCurveTo(w * 0.5, h * 0.76, w, h * 0.8); g.lineTo(w, h); g.lineTo(0, h); g.fill();
+        // Palm tree on the right.
+        const px = w * 0.97, py = h * 0.92;
+        g.strokeStyle = '#a0682f'; g.lineWidth = 8; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(px, py); g.quadraticCurveTo(px - 18, h * 0.75, px - 6, h * 0.6); g.stroke();
+        g.fillStyle = '#2f9e44';
+        for (const a of [-2.6, -2, -1.2, -0.6, 0]) {
+          g.save(); g.translate(px - 6, h * 0.6); g.rotate(a);
+          g.beginPath(); g.ellipse(26, 0, 30, 7, 0.25, 0, Math.PI * 2); g.fill(); g.restore();
+        }
+        g.fillStyle = '#ff8fab';
+        g.beginPath(); g.arc(w * 0.12, h * 0.95, 6, Math.PI, 0); g.fill();
+      },
+      animate(g, w, h, t) {
+        g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 2.5; g.lineCap = 'round';
+        for (let row = 0; row < 3; row++) {
+          const y = h * (0.7 + row * 0.035);
+          g.beginPath();
+          for (let x = 0; x <= w; x += 8) {
+            const yy = y + Math.sin(x / 26 + t / 500 + row * 2) * 3;
+            if (x) g.lineTo(x, yy); else g.moveTo(x, yy);
+          }
+          g.stroke();
+        }
+        g.strokeStyle = '#ffffff'; g.lineWidth = 2;
+        for (let i = 0; i < 2; i++) {
+          const x = loop(t * (0.03 + i * 0.01) + i * 200, w, 30);
+          const y = h * (0.2 + i * 0.12) + Math.sin(t / 600 + i) * 10;
+          const f = Math.sin(t / 120 + i) * 4;
+          g.beginPath(); g.moveTo(x - 10, y - f); g.quadraticCurveTo(x - 5, y - 6, x, y); g.quadraticCurveTo(x + 5, y - 6, x + 10, y - f); g.stroke();
+        }
+      },
+    },
+    // Noël: a snowy night, fir trees, a decorated tree with twinkling lights, snow falling.
+    xmas: {
+      base: '#0d2238', board: 'rgba(10,30,50,0.9)', empty: 'rgba(200,230,255,0.1)', cellR: 0.2,
+      font: FONT, weight: 800,
+      ink: '#f2fbff', accent: '#ffd23f', danger: '#ff5d6a',
+      frame: { r: 20, line: '#e8364a', lw: 3, inset: 3, glow: '#e8364a' },
+      plate: { fill: '#e8364a', line: '#ffffff', lw: 2.5, inset: 4, r: 22, ink: '#ffffff', sub: '#ffd6da' },
+      tag: { fill: '#2f9e5a', line: null, ink: '#ffffff' },
+      css: css({
+        '--bg': '#0d2238', '--panel': '#15324f', '--panel-2': '#1d4266', '--slot': 'rgba(10,30,50,0.9)',
+        '--text': '#f2fbff', '--muted': '#a9c4dc', '--accent': '#ff5d6a', '--on-accent': '#ffffff',
+        '--good': '#5ee08a', '--edge': '#e8364a', '--radius': '20px', '--card-glow': '0 0 36px rgba(232,54,74,0.3)',
+      }),
+      paint(g, w, h) {
+        g.fillStyle = vGradient(g, h, ['#07152a', '#13314f', '#2a4f73']); g.fillRect(0, 0, w, h);
+        const rnd = seeded(1225);
+        g.fillStyle = '#fff';
+        for (let i = 0; i < 40; i++) { g.globalAlpha = 0.2 + rnd() * 0.5; g.fillRect(rnd() * w, rnd() * h * 0.5, 1.5, 1.5); }
+        g.globalAlpha = 1;
+        g.fillStyle = '#f2f8ff';
+        g.beginPath(); g.arc(w * 0.82, h * 0.1, Math.min(w, h) * 0.06, 0, Math.PI * 2); g.fill();
+        hills(g, w, h, h * 0.82, h * 0.03, '#9fbad3', 0.8);
+        // Fir trees.
+        const fir = (fx, fy, sz, col) => {
+          g.fillStyle = col;
+          for (let k = 0; k < 3; k++) {
+            const yy = fy - k * sz * 0.45;
+            g.beginPath(); g.moveTo(fx - sz * (0.55 - k * 0.12), yy); g.lineTo(fx, yy - sz * 0.6); g.lineTo(fx + sz * (0.55 - k * 0.12), yy); g.fill();
+          }
+        };
+        fir(w * 0.08, h * 0.86, 40, '#1f5a44'); fir(w * 0.22, h * 0.84, 28, '#2a6e54'); fir(w * 0.95, h * 0.85, 34, '#1f5a44');
+        hills(g, w, h, h * 0.9, h * 0.02, '#c6d9ea', 1.9, 0.6);
+        // The big tree, star on top.
+        fir(w * 0.7, h * 0.92, 60, '#2f7a4a');
+        g.fillStyle = '#ffd23f';
+        g.beginPath();
+        for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + (k * Math.PI) / 5; const r = k % 2 ? 4 : 10; g.lineTo(w * 0.7 + Math.cos(a) * r, h * 0.92 - 60 * 1.5 + Math.sin(a) * r); }
+        g.fill();
+      },
+      animate(g, w, h, t) {
+        // Lights on the big tree.
+        const rnd = seeded(77);
+        for (let i = 0; i < 12; i++) {
+          const k = rnd();
+          const yy = h * 0.92 - 8 - k * 80;
+          const span = (1 - k) * 30;
+          const xx = w * 0.7 + (rnd() * 2 - 1) * span;
+          const on = Math.sin(t / 300 + i * 1.7) > -0.2;
+          g.fillStyle = on ? ['#ff5d6a', '#ffd23f', '#5ce1ff', '#9be36b'][i % 4] : 'rgba(255,255,255,0.2)';
+          g.beginPath(); g.arc(xx, yy, 2.6, 0, Math.PI * 2); g.fill();
+        }
+        g.fillStyle = 'rgba(255,255,255,0.85)';
+        for (let i = 0; i < 40; i++) {
+          const r2 = seeded(500 + i);
+          const sp = 0.02 + r2() * 0.03;
+          const x = loop(r2() * w + Math.sin(t / 1000 + i) * 20, w, 5);
+          const y = loop(r2() * h + t * sp, h, 5);
+          g.beginPath(); g.arc(x, y, 1 + r2() * 2, 0, Math.PI * 2); g.fill();
+        }
+      },
+    },
     // October event: moonlit night, a hill with a crooked tree and pumpkins, bats crossing.
     halloween: {
       base: '#160c26', board: 'rgba(24,14,40,0.9)', empty: 'rgba(255,150,60,0.09)', cellR: 0.2,
@@ -1136,6 +1424,25 @@
   SONGS.halloween = { bpm: 92, chords: [[45, [57, 60, 64, 68]], [41, [57, 60, 65, 69]], [44, [56, 59, 62, 65]], [45, [57, 60, 64, 67]]],
     arp: [0, 2, 3, 2, 1, -1, 3, -1], pad: { type: 'sawtooth', vol: 0.025, cut: 600 }, bass: { type: 'triangle', vol: 0.14, cut: 380, steps: [0, 3, 4, 6] },
     bell: { type: 'sine', vol: 0.035, cut: 6000, oct: 24, len: 2.5 }, drums: { kick: [0, 4], hat: [2, 6] } }; // Halloween: A minor with a creepy diminished turn
+  // Season events: Nouvel An swing with bells, Saint-Valentin soft waltz-y major sevenths, Pâques a
+  // bright pastoral loop, Plage a lazy island groove, Noël sleigh bells over a I-vi-IV-V.
+  Object.assign(SONGS, {
+    newyear: { bpm: 116, chords: [[41, [57, 60, 64, 69]], [38, [57, 62, 65, 69]], [43, [59, 62, 67, 71]], [36, [60, 64, 67, 72]]],
+      arp: [0, 2, 1, 3, 2, 1, 3, 2], pad: { type: 'triangle', vol: 0.04, cut: 1400 }, bass: { type: 'triangle', vol: 0.14, cut: 500, steps: [0, 2, 4, 6] },
+      bell: { type: 'sine', vol: 0.035, cut: 9000, oct: 24, len: 1.4 }, drums: { kick: [0, 4], snare: [2, 6], hat: [1, 3, 5, 7] } },
+    valentine: { bpm: 80, chords: [[41, [57, 60, 64, 69]], [43, [59, 62, 65, 71]], [40, [55, 59, 64, 67]], [45, [57, 60, 64, 67]]],
+      arp: [0, 1, 2, 3, 2, 1, -1, -1], pad: { type: 'sine', vol: 0.06, cut: 1200 }, bass: { type: 'sine', vol: 0.13, cut: 350, steps: [0, 4] },
+      bell: { type: 'sine', vol: 0.03, cut: 6000, oct: 12, len: 2.5 } },
+    easter: { bpm: 104, chords: [[43, [59, 62, 67, 71]], [48, [60, 64, 67, 72]], [40, [59, 64, 67, 71]], [50, [57, 62, 66, 69]]],
+      arp: [0, 1, 2, 1, 3, 2, 1, 2], pad: { type: 'triangle', vol: 0.04, cut: 1600 }, bass: { type: 'triangle', vol: 0.14, cut: 450, steps: [0, 3, 4] },
+      bell: { type: 'triangle', vol: 0.03, cut: 5000, oct: 12, len: 1 }, drums: { hat: [2, 6] } },
+    beach: { bpm: 96, chords: [[38, [57, 62, 66, 69]], [43, [59, 62, 67, 71]], [45, [57, 61, 64, 69]], [43, [59, 62, 67, 71]]],
+      arp: [-1, 0, -1, 2, -1, 1, 3, -1], pad: { type: 'sine', vol: 0.05, cut: 1000 }, bass: { type: 'sine', vol: 0.15, cut: 400, steps: [0, 3, 6] },
+      bell: { type: 'triangle', vol: 0.03, cut: 3500, oct: 12, len: 1.2 }, drums: { kick: [0, 5], hat: [2, 6] } },
+    xmas: { bpm: 112, chords: [[36, [60, 64, 67, 72]], [45, [57, 60, 64, 69]], [41, [57, 60, 65, 69]], [43, [59, 62, 67, 71]]],
+      arp: [0, 1, 2, 3, 2, 1, 0, -1], pad: { type: 'triangle', vol: 0.04, cut: 1500 }, bass: { type: 'triangle', vol: 0.14, cut: 500, steps: [0, 4] },
+      bell: { type: 'sine', vol: 0.04, cut: 10000, oct: 24, len: 1.8 }, drums: { hat: [0, 1, 2, 3, 4, 5, 6, 7] } },
+  });
   const music = (() => {
     const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
     let bus = null;
@@ -1329,7 +1636,8 @@
 
   // ---------- special cells (Aventure) ----------
   const SPECIAL_COLORS = { ice: '#9fdcf7', asteroid: '#8a8fa3', rock: '#6b5a52', mushroom: '#e84a4a', ember: '#ff6a1a', bubble: '#7fd8ff', crate: '#c98b4a', boss: '#ffffff',
-    pumpkin: '#ff8a1a', ghost: '#f4f0ff', mole: '#9a6a48', jelly: '#ff8fd0', hole: '#8a5cff', snowman: '#ffffff', vine: '#4fb33f', glitch: '#ff3fd0', token: '#ffd23f', lava: '#ff5a1a' };
+    pumpkin: '#ff8a1a', ghost: '#f4f0ff', present: '#e8364a', snowpile: '#ffffff', heart: '#ff4d6d', rose: '#d6204a',
+    bush: '#4fae4a', egg: '#ffd23f', water: '#4fc3f7', crab: '#ff6a4a', rocket: '#ffd23f', mole: '#9a6a48', jelly: '#ff8fd0', hole: '#8a5cff', snowman: '#ffffff', vine: '#4fb33f', glitch: '#ff3fd0', token: '#ffd23f', lava: '#ff5a1a' };
 
   // Moves left before a cell with a ttl leaves (mole, hole): small dots around it.
   function ttlDots(sp, cx, cy, s, color) {
@@ -1463,6 +1771,121 @@
       ctx.fillStyle = '#2a1a40';
       for (const d of [-1, 1]) { ctx.beginPath(); ctx.ellipse(cx + d * s * 0.12, cy - s * 0.06, s * 0.05, s * 0.08, 0, 0, Math.PI * 2); ctx.fill(); }
       ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.1, s * 0.05, s * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === 'present') {
+      ctx.fillStyle = '#e8364a';
+      ctx.beginPath(); ctx.roundRect(x + s * 0.06, y + s * 0.2, s * 0.88, s * 0.74, s * 0.1); ctx.fill();
+      ctx.fillStyle = '#ff5a6a';
+      ctx.beginPath(); ctx.roundRect(x + s * 0.02, y + s * 0.14, s * 0.96, s * 0.22, s * 0.08); ctx.fill();
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillRect(cx - s * 0.07, y + s * 0.14, s * 0.14, s * 0.8);
+      ctx.fillRect(x + s * 0.02, y + s * 0.2, s * 0.96, s * 0.1);
+      for (const d of [-1, 1]) { ctx.beginPath(); ctx.ellipse(cx + d * s * 0.14, y + s * 0.1, s * 0.15, s * 0.08, d * -0.5, 0, Math.PI * 2); ctx.fill(); }
+      if (cracked) crack(cx, cy + s * 0.1, s);
+    } else if (kind === 'snowpile') {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(x + s * 0.04, y + s * 0.92);
+      ctx.quadraticCurveTo(x + s * 0.1, y + s * 0.42, x + s * 0.36, y + s * 0.42);
+      ctx.quadraticCurveTo(cx, y + s * 0.14, x + s * 0.66, y + s * 0.38);
+      ctx.quadraticCurveTo(x + s * 0.94, y + s * 0.4, x + s * 0.96, y + s * 0.92);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#d6ecfa';
+      ctx.beginPath(); ctx.ellipse(cx, y + s * 0.86, s * 0.42, s * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(x + s * 0.3, y + s * 0.56, s * 0.05, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === 'heart') {
+      // Twins share a color (sp.link), so the pairs read at a glance.
+      const col = ['#ff4d6d', '#c77dff', '#ff9f43', '#3fc1b0', '#5c8dff', '#ff7ad9', '#9be36b', '#ffd23f', '#a0522d'][(sp.link || 0) % 9];
+      const beat = 1 + 0.05 * Math.sin(t / 220 + (sp.link || 0));
+      ctx.translate(cx, cy); ctx.scale(beat, beat);
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(0, s * 0.38);
+      ctx.bezierCurveTo(-s * 0.55, s * 0.02, -s * 0.36, -s * 0.42, 0, -s * 0.18);
+      ctx.bezierCurveTo(s * 0.36, -s * 0.42, s * 0.55, s * 0.02, 0, s * 0.38);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.beginPath(); ctx.ellipse(-s * 0.17, -s * 0.12, s * 0.08, s * 0.05, -0.6, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === 'rose') {
+      ctx.strokeStyle = '#3f8a3a'; ctx.lineWidth = s * 0.07; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(cx, cy + s * 0.44); ctx.lineTo(cx, cy); ctx.stroke();
+      ctx.fillStyle = '#3f8a3a';
+      ctx.beginPath(); ctx.ellipse(cx + s * 0.14, cy + s * 0.24, s * 0.12, s * 0.06, -0.5, 0, Math.PI * 2); ctx.fill();
+      for (const [tx, ty, d] of [[0, 0.12, -1], [0, 0.32, 1]]) { ctx.beginPath(); ctx.moveTo(cx + tx * s, cy + ty * s); ctx.lineTo(cx + d * s * 0.1, cy + (ty - 0.04) * s); ctx.lineTo(cx, cy + (ty + 0.04) * s); ctx.fill(); }
+      ctx.fillStyle = '#d6204a';
+      ctx.beginPath(); ctx.arc(cx, cy - s * 0.12, s * 0.26, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#8a0f2a'; ctx.lineWidth = s * 0.035;
+      ctx.beginPath(); ctx.arc(cx, cy - s * 0.12, s * 0.15, 0.4, Math.PI * 1.7); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx + s * 0.02, cy - s * 0.12, s * 0.06, Math.PI, Math.PI * 2.6); ctx.stroke();
+      if (cracked) crack(cx, cy - s * 0.1, s * 0.8);
+    } else if (kind === 'bush') {
+      ctx.fillStyle = '#3f9a3a';
+      for (const [fx, fy, fr] of [[-0.2, 0.12, 0.24], [0.2, 0.12, 0.24], [0, -0.06, 0.28], [0, 0.2, 0.26]]) { ctx.beginPath(); ctx.arc(cx + fx * s, cy + fy * s, fr * s, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = '#5fc14a';
+      for (const [fx, fy, fr] of [[-0.14, -0.04, 0.12], [0.12, -0.12, 0.1], [0.18, 0.12, 0.09]]) { ctx.beginPath(); ctx.arc(cx + fx * s, cy + fy * s, fr * s, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = '#ff8fb8';
+      for (const [fx, fy] of [[-0.22, 0.2], [0.08, 0.04], [0.26, -0.06]]) { ctx.beginPath(); ctx.arc(cx + fx * s, cy + fy * s, s * 0.035, 0, Math.PI * 2); ctx.fill(); }
+    } else if (kind === 'egg') {
+      ctx.fillStyle = '#ffe28a';
+      ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.04, s * 0.3, s * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); ctx.clip();
+      ctx.fillStyle = '#ff8fb8'; ctx.fillRect(cx - s * 0.4, cy - s * 0.08, s * 0.8, s * 0.1);
+      ctx.fillStyle = '#6ea8ff'; ctx.fillRect(cx - s * 0.4, cy + s * 0.12, s * 0.8, s * 0.08);
+      ctx.fillStyle = '#6fd6a0';
+      for (const fx of [-0.16, 0, 0.16]) { ctx.beginPath(); ctx.arc(cx + fx * s, cy - s * 0.2, s * 0.04, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.beginPath(); ctx.ellipse(cx - s * 0.12, cy - s * 0.16, s * 0.05, s * 0.09, -0.4, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === 'water') {
+      const g = ctx.createLinearGradient(cx, y, cx, y + s);
+      g.addColorStop(0, 'rgba(120,220,255,0.9)'); g.addColorStop(1, 'rgba(30,140,220,0.9)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.roundRect(x, y, s, s, s * 0.2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = s * 0.06; ctx.lineCap = 'round';
+      const ph = t / 300 + cx * 0.05;
+      for (const fy of [0.32, 0.62]) {
+        ctx.beginPath();
+        for (let k = 0; k <= 8; k++) { const px = x + s * (0.12 + k * 0.095); const py = y + s * fy + Math.sin(ph + k * 1.2) * s * 0.04; if (k) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+        ctx.stroke();
+      }
+      // Moves left before the sea goes back out.
+      ttlDots(sp, cx, cy, s, '#ffffff');
+    } else if (kind === 'crab') {
+      const step = Math.sin(t / 160 + cx) * s * 0.02;
+      ctx.strokeStyle = '#d9472a'; ctx.lineWidth = s * 0.05; ctx.lineCap = 'round';
+      for (const d of [-1, 1]) for (const k of [0, 1, 2]) {
+        ctx.beginPath(); ctx.moveTo(cx + d * s * 0.2, cy + s * (0.08 + k * 0.08)); ctx.lineTo(cx + d * s * 0.4, cy + s * (0.16 + k * 0.1) + (k % 2 ? step : -step)); ctx.stroke();
+      }
+      ctx.fillStyle = '#ff6a4a';
+      ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.1, s * 0.3, s * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+      for (const d of [-1, 1]) {
+        ctx.beginPath(); ctx.arc(cx + d * s * 0.34, cy - s * 0.14, s * 0.11, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffe6dc';
+        ctx.beginPath(); ctx.moveTo(cx + d * s * 0.34, cy - s * 0.14); ctx.lineTo(cx + d * s * 0.46, cy - s * 0.24); ctx.lineTo(cx + d * s * 0.42, cy - s * 0.08); ctx.fill();
+        ctx.fillStyle = '#ff6a4a';
+      }
+      ctx.strokeStyle = '#d9472a'; ctx.lineWidth = s * 0.04;
+      for (const d of [-1, 1]) { ctx.beginPath(); ctx.moveTo(cx + d * s * 0.08, cy - s * 0.04); ctx.lineTo(cx + d * s * 0.1, cy - s * 0.16); ctx.stroke(); }
+      ctx.fillStyle = '#ffffff';
+      for (const d of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + d * s * 0.1, cy - s * 0.18, s * 0.055, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = '#1a1a2a';
+      for (const d of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + d * s * 0.1, cy - s * 0.18, s * 0.028, 0, Math.PI * 2); ctx.fill(); }
+    } else if (kind === 'rocket') {
+      const wob = Math.sin(t / 140 + cx) * 0.06;
+      ctx.translate(cx, cy); ctx.rotate(wob);
+      // Sparks under the nozzle.
+      ctx.fillStyle = '#ffd23f';
+      for (let k = 0; k < 3; k++) { const a = (t / 90 + k * 2.1) % 1; ctx.globalAlpha = alpha * (1 - a); ctx.beginPath(); ctx.arc((k - 1) * s * 0.07, s * (0.36 + a * 0.12), s * 0.04, 0, Math.PI * 2); ctx.fill(); }
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#5c8dff';
+      ctx.beginPath(); ctx.roundRect(-s * 0.13, -s * 0.18, s * 0.26, s * 0.5, s * 0.06); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-s * 0.13, s * 0.02, s * 0.26, s * 0.07);
+      ctx.fillStyle = '#ff4d6d';
+      ctx.beginPath(); ctx.moveTo(-s * 0.15, -s * 0.18); ctx.lineTo(0, -s * 0.44); ctx.lineTo(s * 0.15, -s * 0.18); ctx.fill();
+      for (const d of [-1, 1]) { ctx.beginPath(); ctx.moveTo(d * s * 0.13, s * 0.14); ctx.lineTo(d * s * 0.26, s * 0.34); ctx.lineTo(d * s * 0.13, s * 0.32); ctx.fill(); }
+      ctx.fillStyle = '#ffd23f';
+      ctx.beginPath(); ctx.arc(0, -s * 0.06, s * 0.06, 0, Math.PI * 2); ctx.fill();
     } else if (kind === 'mole') {
       // Dirt mound with the mole peeking out.
       ctx.fillStyle = '#7a4e2c';
@@ -1601,6 +2024,7 @@
   const BOSS_LOOK = {
     plain: '#6cc94f', sea: '#9b6bff', space: '#62d6b4', ice: '#dff2ff',
     forest: '#a2703c', retro: '#306230', arcade: '#ff4fb8', volcano: '#ff5a2a', halloween: '#ff8a1a',
+    newyear: '#5c6bff', valentine: '#ff4d8f', easter: '#9b7bff', beach: '#ff6a4a', xmas: '#c8a27a',
   };
   let bossHitAt = 0;
   let bossAttackAt = 0;
@@ -1988,8 +2412,12 @@
     for (const d of ev.damaged || []) burst({ r: d.r, c: d.c, kind: d.kind }, t, 5, 80, '#ffffff');
     if ((ev.damaged || []).length) sfx.crack();
     if ((ev.cleared || []).some((c) => c.kind === 'bubble')) sfx.pop();
+    const eggs = (ev.cleared || []).filter((c) => c.kind === 'egg').length;
+    if (eggs) { banners.push({ text: eggs > 1 ? eggs + ' œufs trouvés !' : 'Œuf trouvé !', sub: '', gold: true }); sfx.sparkle(2); }
     if (ev.blasts && ev.blasts.length) {
-      banners.push({ text: 'Boum !', sub: 'Explosion en croix' });
+      const rocket = ev.blasts.some((b) => b.kind === 'rocket');
+      banners.push(rocket ? { text: 'Feu d’artifice !', sub: 'Explosion en X', gold: true } : { text: 'Boum !', sub: 'Explosion en croix' });
+      if (rocket && !calm()) confetti(t, 30);
       if (!calm()) shake = 18;
       sfx.bomb();
     }
@@ -3121,7 +3549,7 @@
       levelSettled = true;
       const res = stage.daily
         ? M.applyDaily(profile, stage.daily, today(), stage.stars)
-        : stage.event ? M.applyEvent(profile, stage.eventDay || today(), stage.n, stage.stars)
+        : stage.event ? M.applyEvent(profile, stage.event, stage.eventDay || today(), stage.n, stage.stars)
           : M.applyLevel(profile, stage.world, stage.n, stage.stars);
       profile = res.profile;
       levelReport = res.report;
@@ -3157,7 +3585,7 @@
     const lines = [...(runReport ? runReport.earned : []), ...(levelReport ? levelReport.earned : [])];
     const total = lines.reduce((a, l) => a + l.coins, 0);
     if (stage.daily) { showDailyEnd(title, lines, total, outOfMoves, levelReport); return; }
-    if (stage.event) { showEventEnd(stage.won ? (n === M.EVENT.levels ? 'Boss vaincu !' : 'Niveau réussi !') : title, lines, total, outOfMoves, levelReport); return; }
+    if (stage.event) { showEventEnd(stage.won ? (n === 10 ? 'Boss vaincu !' : 'Niveau réussi !') : title, lines, total, outOfMoves, levelReport); return; }
     const next = stage.won ? nextLevelOf(w, n) : null;
     const moreCost = M.extraMovesCost(stage.extra);
     card.innerHTML = `
@@ -3223,24 +3651,32 @@
   }
 
 
-  // ---------- Halloween event (October) ----------
-  // Home row (October only) -> event screen: rules, the three rewards, 10 levels on a path.
-  // Levels play like Aventure levels in the 'halloween' world; progress is per year (meta.js).
+  // ---------- season events ----------
+  // Home row (only while an event is open) -> event screen: rules, the three rewards, 10 levels on a
+  // path. Levels play like Aventure levels in the event's world; progress is per year (meta.js EVENTS).
   const eventEl = document.getElementById('event');
-  const eventLevelName = (n) => (n === M.EVENT.levels ? 'Boss' : 'Niveau ' + n);
+  const eventLevelName = (n) => (n === 10 ? 'Boss' : 'Niveau ' + n);
   const eventInProgress = () => inProgress() && !!(state.stage && state.stage.event);
+  // The event shown: the one of the level in progress, else the one open today.
+  const shownEvent = () => (eventInProgress() ? M.eventById(state.stage.event) : M.eventFor(today()));
   const eventDayNow = () => (eventInProgress() && state.stage.eventDay) || today();
+  const FR_MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const frDay = (day) => `${+day.slice(8, 10)}${day.slice(8, 10) === '01' ? 'er' : ''} ${FR_MONTHS[+day.slice(5, 7) - 1]}`;
+  const hatName = (id) => (M.SKINS.cubo.find((x) => x.id === id) || {}).name || '';
 
   function renderEventRow() {
     const row = document.getElementById('menu-event');
-    row.hidden = !M.eventActive(today());
-    if (row.hidden) return;
-    document.getElementById('menu-event-ico').innerHTML = kindIcon('pumpkin', 30);
-    const done = M.eventCleared(profile, today());
-    const trophy = M.seasonTrophy(profile, M.eventYear(today()));
+    const ev = shownEvent();
+    row.hidden = !ev;
+    if (!ev) return;
+    document.getElementById('menu-event-ico').innerHTML = kindIcon(ev.icon, 30);
+    document.getElementById('menu-event-name').textContent = ev.name;
+    const day = today();
+    const done = M.eventCleared(profile, ev.id, day);
+    const trophy = M.seasonTrophy(profile, ev.id, M.eventYear(day));
     document.getElementById('menu-event-sub').textContent = eventInProgress() ? `${eventLevelName(state.stage.n)} en cours`
-      : done >= M.EVENT.levels ? `Terminé · trophée ${trophy === 'gold' ? 'en or' : 'en argent'}`
-        : `${done} / ${M.EVENT.levels} niveaux · jusqu’au 31 octobre`;
+      : done >= ev.levels ? `Terminé · trophée ${trophy === 'gold' ? 'en or' : 'en argent'}`
+        : `${done} / ${ev.levels} niveaux · jusqu’au ${frDay(M.eventEnd(ev.id, day))}`;
   }
   document.getElementById('menu-event').addEventListener('click', () => {
     unlockAudio();
@@ -3250,7 +3686,7 @@
   });
 
   function openEvent() {
-    if (!M.eventActive(today())) { openMenu(); return; }
+    if (!M.eventFor(today())) { openMenu(); return; }
     menuEl.classList.remove('show');
     overEl.classList.remove('show');
     hideAdventure();
@@ -3263,28 +3699,30 @@
 
   function renderEvent() {
     const day = today();
+    const ev = M.eventFor(day);
     const year = M.eventYear(day);
-    const rules = WD.WORLDS.halloween;
-    document.getElementById('event-stars').innerHTML = starSvg(true, 16) + `${M.eventTotalStars(profile, day)} / ${M.EVENT.levels * 3}`;
-    document.getElementById('event-intro').textContent = `Événement d’octobre : ${M.EVENT.levels} niveaux hantés jusqu’au 31. Finis-les pour gagner le thème Halloween, le chapeau de sorcière de Cubo et le trophée ${year}. Tout repart à zéro l’an prochain.`;
+    const rules = WD.WORLDS[ev.id];
+    document.getElementById('event-title').textContent = ev.name;
+    document.getElementById('event-stars').innerHTML = starSvg(true, 16) + `${M.eventTotalStars(profile, ev.id, day)} / ${ev.levels * 3}`;
+    document.getElementById('event-intro').textContent = `Événement de saison jusqu’au ${frDay(M.eventEnd(ev.id, day))} : ${ev.levels} niveaux, ${ev.blurb}. Finis-les pour gagner le thème ${ev.name}, ${hatName(ev.hat).toLowerCase()} pour Cubo et le trophée ${year}. Tout repart à zéro l’an prochain.`;
     document.getElementById('event-rules').innerHTML =
       `<div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div>`;
-    const trophy = M.seasonTrophy(profile, year);
+    const trophy = M.seasonTrophy(profile, ev.id, year);
     const has = (kind, id) => (profile.owned[kind] || []).includes(id);
     const rewards = document.getElementById('event-rewards');
     rewards.innerHTML = `
-      <div><canvas width="240" height="180"></canvas><span>Thème Halloween</span>${has('boards', 'halloween') ? '<span class="got">Gagné</span>' : ''}</div>
-      <div><canvas width="240" height="180"></canvas><span>Chapeau de sorcière</span>${has('cubo', 'witch') ? '<span class="got">Gagné</span>' : ''}</div>
+      <div><canvas width="240" height="180"></canvas><span>Thème ${ev.name}</span>${has('boards', ev.theme) ? '<span class="got">Gagné</span>' : ''}</div>
+      <div><canvas width="240" height="180"></canvas><span>${hatName(ev.hat)}</span>${has('cubo', ev.hat) ? '<span class="got">Gagné</span>' : ''}</div>
       <div>${TROPHY_SVG(trophy, 54)}<span>Trophée ${year}</span><span class="${trophy ? 'got' : ''}">${trophy === 'gold' ? 'Or' : trophy === 'silver' ? 'Argent · or avec 30 étoiles' : 'Or avec 30 étoiles'}</span></div>`;
     const [themeCv, hatCv] = rewards.querySelectorAll('canvas');
-    drawPreview(themeCv, profile.equipped.blocks, 'halloween');
-    drawCuboPreview(hatCv, 'witch', 'halloween');
+    drawPreview(themeCv, profile.equipped.blocks, ev.theme);
+    drawCuboPreview(hatCv, ev.hat, ev.theme);
     const grid = document.getElementById('event-levels');
     grid.innerHTML = '';
-    for (let n = 1; n <= M.EVENT.levels; n++) {
-      const open = M.eventLevelOpen(profile, day, n);
-      const stars = M.eventStars(profile, day, n);
-      const boss = n === M.EVENT.levels;
+    for (let n = 1; n <= ev.levels; n++) {
+      const open = M.eventLevelOpen(profile, ev.id, day, n);
+      const stars = M.eventStars(profile, ev.id, day, n);
+      const boss = n === ev.levels;
       const b = document.createElement('button');
       b.className = 'lvl' + (open ? '' : ' locked') + (stars !== undefined ? ' done' : '') + (boss ? ' boss' : '');
       b.innerHTML = `<span class="num">${open ? n : LOCK_SVG}</span>` +
@@ -3293,59 +3731,62 @@
       b.style.gridRow = row + 1;
       b.style.gridColumn = (row % 2 ? 4 - ((n - 1) % 5) : (n - 1) % 5) + 1;
       b.setAttribute('aria-label', eventLevelName(n) + (open ? '' : ', verrouillé'));
-      b.addEventListener('click', () => { if (open) { sfx.turn(); openEventStage(n); } else sfx.nope(); });
+      b.addEventListener('click', () => { if (open) { sfx.turn(); openEventStage(ev.id, n); } else sfx.nope(); });
       grid.appendChild(b);
     }
   }
 
-  function openEventStage(n) {
-    const stage = LV.eventLevel(n);
-    const best = M.eventStars(profile, today(), n);
+  function openEventStage(id, n) {
+    const ev = M.eventById(id);
+    const stage = LV.eventLevel(id, n);
+    const best = M.eventStars(profile, id, today(), n);
     const card = document.getElementById('stage-card');
-    const keep = (k) => `${Math.ceil(stage.maxMoves * k)} coups`;
+    const budget = stage.clock ? `${Math.round(stage.clock / 1000)} secondes (les lignes rajoutent du temps)` : `${stage.maxMoves} coups`;
+    const keep = (k) => (stage.clock ? `${Math.ceil((stage.clock / 1000) * k)} s` : `${Math.ceil(stage.maxMoves * k)} coups`);
     card.innerHTML = `
       <div class="shop-head">
         <button class="close" data-act="back" aria-label="Retour à l’événement"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
         <h2>${eventLevelName(n)}</h2>
       </div>
-      <div class="stage-sub">Halloween · niveau ${n}</div>
+      <div class="stage-sub">${ev.name} · niveau ${n}</div>
       <div class="stage-goal">${LV.goalText(stage.goal)}</div>
-      ${stage.boss ? `<div class="stage-note">Elle a ${stage.goal.target} PV : chaque ligne qui la traverse lui en retire 2. Tous les ${stage.boss.every} coups, elle lâche un fantôme.</div>` : ''}
-      <div class="stage-sub">${stage.maxMoves} coups</div>
+      ${stage.boss ? `<div class="stage-note">${stage.goal.target} PV : chaque ligne qui le traverse en retire 2. Tous les ${stage.boss.every} coups, il riposte avec des ${LV.KIND_NAMES[stage.boss.kind]}.</div>` : ''}
+      <div class="stage-sub">${budget}</div>
       <div class="stage-stars">${starsRow(best || 0, 34)}</div>
       <div class="stage-note">1 étoile en réussissant, 2 s'il te reste ${keep(0.15)}, 3 s'il t'en reste ${keep(0.3)}.</div>
       <div class="actions"><button class="btn primary" data-act="play">Jouer</button></div>`;
     card.querySelector('[data-act="back"]').addEventListener('click', () => { stageEl.classList.remove('show'); openEvent(); });
-    card.querySelector('[data-act="play"]').addEventListener('click', () => { unlockAudio(); launchEventLevel(n); });
+    card.querySelector('[data-act="play"]').addEventListener('click', () => { unlockAudio(); launchEventLevel(id, n); });
     eventEl.classList.remove('show');
     stageEl.classList.add('show');
   }
 
-  function launchEventLevel(n) {
+  function launchEventLevel(id, n) {
     const day = eventDayNow();
     hideAdventure();
     eventEl.classList.remove('show');
     menuEl.classList.remove('show');
-    restartRun({ mode: 'adventure', stage: { ...LV.eventLevel(n), eventDay: day } });
-    banners.push({ text: n === M.EVENT.levels ? 'Boss !' : 'Halloween', sub: LV.goalText(state.stage.goal), gold: true, tier: n === M.EVENT.levels ? 2 : 0 });
+    restartRun({ mode: 'adventure', stage: { ...LV.eventLevel(id, n), eventDay: day } });
+    banners.push({ text: n === 10 ? 'Boss !' : M.eventById(id).name, sub: LV.goalText(state.stage.goal), gold: true, tier: n === 10 ? 2 : 0 });
   }
 
   function showEventEnd(title, lines, total, outOfMoves, report) {
     const stage = state.stage;
     const n = stage.n;
+    const ev = M.eventById(stage.event);
     const card = document.getElementById('level-end-card');
-    const next = stage.won && n < M.EVENT.levels && M.eventActive(today()) ? n + 1 : null;
+    const next = stage.won && n < ev.levels && M.eventActive(today(), ev.id) ? n + 1 : null;
     const moreCost = M.extraMovesCost(stage.extra);
     const unlocked = (report && report.unlocked) || [];
-    const names = { boards: 'Thème « Halloween » débloqué !', cubo: 'Chapeau de sorcière pour Cubo !' };
+    const names = { boards: `Thème « ${ev.name} » débloqué !`, cubo: `${hatName(ev.hat)} pour Cubo !` };
     card.innerHTML = `
       <h2>${title}</h2>
-      <div class="stage-sub">Halloween · ${eventLevelName(n)}</div>
+      <div class="stage-sub">${ev.name} · ${eventLevelName(n)}</div>
       <div class="stage-stars">${starsRow(stage.stars, 44)}</div>
       <div class="stage-sub">${LV.goalText(stage.goal)} · ${fmt(Math.min(stage.goal.type === 'score' ? state.score : stage.progress, stage.goal.target))} / ${fmt(stage.goal.target)}</div>
       ${unlocked.map((u) => `<div class="unlock">${names[u.kind]}</div>`).join('')}
       ${unlocked.length ? '<button class="opt" data-act="wear"><span>Les mettre maintenant</span><span class="price">Équiper</span></button>' : ''}
-      ${report && report.trophy ? `<div class="unlock">Trophée Halloween ${M.eventYear(stage.eventDay || today())} ${report.trophy === 'gold' ? 'en or' : 'en argent'} !</div>` : ''}
+      ${report && report.trophy ? `<div class="unlock">Trophée ${ev.name} ${M.eventYear(stage.eventDay || today())} ${report.trophy === 'gold' ? 'en or' : 'en argent'} !</div>` : ''}
       <div class="earn">${lines.map((l) => `<div class="earn-line in"><span>${l.label}</span><b>+${l.coins}${COIN}</b></div>`).join('')}</div>
       ${total ? `<div class="coins-total"><span>Pièces</span><span class="v">+${fmt(total)} ${COIN}</span></div>` : ''}
       ${outOfMoves ? `<button class="opt" data-act="more"><span>+${M.EXTRA_MOVES} coups pour finir (1 étoile max)</span><span class="price">${moreCost}${COIN}</span></button>` : ''}
@@ -3356,8 +3797,8 @@
       </div>`;
     card.querySelector('[data-act="map"]').addEventListener('click', () => { levelEndEl.classList.remove('show'); openEvent(); });
     const again = card.querySelector('[data-act="again"]');
-    if (again) again.addEventListener('click', () => { levelEndEl.classList.remove('show'); launchEventLevel(n); });
-    if (next) card.querySelector('[data-act="next"]').addEventListener('click', () => { levelEndEl.classList.remove('show'); openEventStage(next); });
+    if (again) again.addEventListener('click', () => { levelEndEl.classList.remove('show'); launchEventLevel(ev.id, n); });
+    if (next) card.querySelector('[data-act="next"]').addEventListener('click', () => { levelEndEl.classList.remove('show'); openEventStage(ev.id, next); });
     bindMoreMoves(card, moreCost);
     const wear = card.querySelector('[data-act="wear"]');
     if (wear) wear.addEventListener('click', () => {
@@ -3594,13 +4035,16 @@
     let html = `
       <div class="section-title" style="margin-top:0">Trophées du mois</div>
       <div class="shelf">${monthsSinceStart().map((m) => `<div class="trophy">${TROPHY_SVG(M.monthTrophy(profile, m))}${frMonthShort(m)}</div>`).join('')}</div>`;
-    // Season trophies: one per Halloween since the first (2026), shown once there is one to chase.
-    const years = [];
-    for (let y = 2026; y <= +today().slice(0, 4); y++) if (y < +today().slice(0, 4) || M.eventActive(today()) || M.seasonTrophy(profile, String(y))) years.push(String(y));
-    if (years.length) {
-      html += `<div class="section-title">Trophées de saison</div>
-        <div class="shelf">${years.map((y) => `<div class="trophy">${TROPHY_SVG(M.seasonTrophy(profile, y))}Halloween ${y}</div>`).join('')}</div>`;
+    // Season trophies: every one won, plus the event open now (still to win), in calendar order.
+    const now = M.eventFor(today());
+    const shelf = [];
+    for (let y = 2026; y <= +today().slice(0, 4); y++) {
+      for (const ev of M.EVENTS) {
+        const won = M.seasonTrophy(profile, ev.id, String(y));
+        if (won || (now && now.id === ev.id && String(y) === M.eventYear(today()))) shelf.push(`<div class="trophy">${TROPHY_SVG(won)}${ev.name} ${y}</div>`);
+      }
     }
+    if (shelf.length) html += `<div class="section-title">Trophées de saison</div><div class="shelf">${shelf.join('')}</div>`;
     html += `<div class="section-title">Autocollants · ${count} / ${M.STICKERS.length}</div>`;
     for (const page of M.STICKER_PAGES) {
       html += `<div class="section-title">${page.name}</div><div class="stickers">`;
@@ -3878,7 +4322,7 @@
   function runLabel() {
     const st = state.stage;
     if (st) {
-      const where = st.daily ? `Niveau du jour #${LV.dayNumber(st.daily)}` : st.event ? `Halloween · ${eventLevelName(st.n)}` : `${worldName(st.world)} · ${levelName(st.n)}`;
+      const where = st.daily ? `Niveau du jour #${LV.dayNumber(st.daily)}` : st.event ? `${M.eventById(st.event).name} · ${eventLevelName(st.n)}` : `${worldName(st.world)} · ${levelName(st.n)}`;
       return `${where} · ${LV.goalText(st.goal)}`;
     }
     if (state.puzzle) return `${modeLabel()} · ${state.puzzle.placed} / ${state.puzzle.total} formes`;
@@ -3908,7 +4352,7 @@
     if (inProgress() && !await ask({ title: 'Recommencer ?', text, ok: 'Recommencer', danger: true })) return;
     closePause();
     if (daily) launchDaily(daily);
-    else if (state.stage && state.stage.event) launchEventLevel(state.stage.n);
+    else if (state.stage && state.stage.event) launchEventLevel(state.stage.event, state.stage.n);
     else if (state.stage) startLevel(state.stage.world, state.stage.n);
     else if (state.puzzle) startPuzzle(state.puzzle.n);
     else restartRun({ mode: state.mode, level: state.level });
@@ -4647,6 +5091,11 @@
       taps: ['happy', 'wow', 'wink', 'happy'], burst: 'pixel' },
     arcade: { base: '#ff5fd0', dark: '#b02a92', light: '#ffc4ef', cheek: '#36f9ff', hat: 'headphones', taps: ['cool', 'happy', 'cool', 'star'], burst: 'note' },
     volcano: { base: '#ff9a4d', dark: '#d1562a', light: '#ffd6b0', cheek: '#ff5a5a', hat: 'flame', taps: ['hot', 'wow', 'hot', 'happy'], burst: 'spark' },
+    newyear: { base: '#ffd86b', dark: '#d9a520', light: '#fff4c4', cheek: '#ff8fa8', hat: 'sequin', taps: ['star', 'wow', 'happy', 'star'], burst: 'star' },
+    valentine: { base: '#ff9ec0', dark: '#e0608f', light: '#ffe0ec', cheek: '#ff4d6d', hat: 'hearts', taps: ['love', 'happy', 'love', 'wink'], burst: 'heart' },
+    easter: { base: '#c7b3ff', dark: '#8f74e0', light: '#efe8ff', cheek: '#ff8fb8', hat: 'bunny', taps: ['happy', 'wink', 'wow', 'love'], burst: 'petal' },
+    beach: { base: '#5cd6e0', dark: '#2a9fb0', light: '#d4fbff', cheek: '#ff8f6a', hat: 'straw', taps: ['cool', 'happy', 'cool', 'wow'], burst: 'bubble' },
+    xmas: { base: '#ff6b6b', dark: '#c73e4a', light: '#ffd4d4', cheek: '#ffffff', hat: 'santa', taps: ['happy', 'shiver', 'love', 'star'], burst: 'snow' },
     halloween: { base: '#ff9a3c', dark: '#cc6514', light: '#ffd9a8', cheek: '#ff5a5a', leaf: '#5fae3a', leafDark: '#3a7a22', hat: 'witch', taps: ['wow', 'happy', 'wink', 'star'], burst: 'bat' },
   };
   // The theme's look, wearing the wardrobe's head piece when one is equipped (Boutique tab Cubo).
@@ -5132,6 +5581,72 @@
       ctx.fillRect(-sw * 0.25, -sh * 0.16, sw * 0.5, sh * 0.1);
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
       ctx.fillRect(-sw * 0.18, -sh * 0.48, sw * 0.06, sh * 0.3);
+    } else if (hat === 'santa') {
+      const y0 = top + sh * 0.16;
+      ctx.fillStyle = '#e8364a';
+      ctx.beginPath();
+      ctx.moveTo(cx - sw * 0.46, y0);
+      ctx.quadraticCurveTo(cx - sw * 0.3, top - sh * 0.4, cx + sw * 0.18, top - sh * 0.36);
+      ctx.quadraticCurveTo(cx + sw * 0.5 + sway * s * 0.1, top - sh * 0.2, cx + sw * 0.56, top + sh * 0.02); // the tip flops to the side
+      ctx.quadraticCurveTo(cx + sw * 0.3, top - sh * 0.1, cx + sw * 0.46, y0);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.roundRect(cx - sw * 0.52, y0 - sh * 0.1, sw * 1.04, sh * 0.17, sh * 0.08); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + sw * 0.56, top + sh * 0.04, s * 0.08, 0, Math.PI * 2); ctx.fill();
+    } else if (hat === 'hearts') {
+      // Headband with two hearts on springs.
+      ctx.strokeStyle = '#ff4d6d'; ctx.lineWidth = s * 0.04;
+      ctx.beginPath(); ctx.ellipse(cx, top + sh * 0.3, sw * 0.5, sh * 0.42, 0, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+      ctx.strokeStyle = '#6a1b4d'; ctx.lineWidth = s * 0.02;
+      for (const d of [-1, 1]) {
+        const hx = cx + d * sw * 0.2 + sway * s * 0.04 * d, hy = top - sh * 0.3;
+        ctx.beginPath(); ctx.moveTo(cx + d * sw * 0.16, top + sh * 0.02); ctx.quadraticCurveTo(cx + d * sw * 0.28, top - sh * 0.12, hx, hy); ctx.stroke();
+        ctx.save(); ctx.translate(hx, hy); ctx.rotate(d * 0.2);
+        ctx.fillStyle = '#ff4d6d';
+        ctx.beginPath(); ctx.moveTo(0, s * 0.09); ctx.bezierCurveTo(-s * 0.14, 0, -s * 0.09, -s * 0.11, 0, -s * 0.04); ctx.bezierCurveTo(s * 0.09, -s * 0.11, s * 0.14, 0, 0, s * 0.09); ctx.fill();
+        ctx.restore();
+      }
+    } else if (hat === 'bunny') {
+      for (const d of [-1, 1]) {
+        ctx.save();
+        ctx.translate(cx + d * sw * 0.18, top + sh * 0.08);
+        ctx.rotate(d * (0.18 + (d > 0 ? sway * 0.4 : 0)));
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.ellipse(0, -sh * 0.38, s * 0.1, sh * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffb3cf';
+        ctx.beginPath(); ctx.ellipse(0, -sh * 0.36, s * 0.05, sh * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+    } else if (hat === 'straw') {
+      const y0 = top + sh * 0.12;
+      ctx.translate(cx, y0); ctx.rotate(-0.08 + sway * 0.1);
+      ctx.fillStyle = '#f2cf74';
+      ctx.beginPath(); ctx.ellipse(0, 0, sw * 0.7, sh * 0.12, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, -sh * 0.04, sw * 0.32, sh * 0.32, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = '#ff7a3d';
+      ctx.fillRect(-sw * 0.32, -sh * 0.12, sw * 0.64, sh * 0.08);
+      ctx.strokeStyle = 'rgba(160,110,40,0.45)'; ctx.lineWidth = s * 0.015;
+      for (const k of [0.3, 0.5]) { ctx.beginPath(); ctx.ellipse(0, 0, sw * k * 1.4, sh * 0.06, 0, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.fillStyle = '#ff5d8f';
+      ctx.beginPath(); ctx.arc(sw * 0.22, -sh * 0.1, s * 0.05, 0, Math.PI * 2); ctx.fill();
+    } else if (hat === 'sequin') {
+      // Gold top hat covered in sparkles.
+      const y0 = top + sh * 0.08;
+      ctx.translate(cx, y0); ctx.rotate(-0.1 + sway * 0.12);
+      const g = ctx.createLinearGradient(-sw * 0.25, -sh * 0.5, sw * 0.25, 0);
+      g.addColorStop(0, '#fff1a8'); g.addColorStop(0.5, '#ffd23f'); g.addColorStop(1, '#c9900a');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(0, 0, sw * 0.42, sh * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(-sw * 0.25, -sh * 0.5, sw * 0.5, sh * 0.5, s * 0.04); ctx.fill();
+      ctx.fillStyle = '#1a1440';
+      ctx.fillRect(-sw * 0.25, -sh * 0.15, sw * 0.5, sh * 0.09);
+      ctx.fillStyle = '#ffffff';
+      for (let k = 0; k < 5; k++) {
+        const on = still || (Math.floor(t / 200) + k) % 3 === 0;
+        if (!on) continue;
+        const px = (-0.18 + (k % 3) * 0.17) * sw, py = -sh * (0.24 + (k % 2) * 0.16);
+        ctx.beginPath(); ctx.moveTo(px, py - s * 0.04); ctx.lineTo(px + s * 0.012, py); ctx.lineTo(px, py + s * 0.04); ctx.lineTo(px - s * 0.012, py); ctx.fill();
+      }
     } else if (hat === 'witch') {
       const y0 = top + sh * 0.1;
       ctx.translate(cx, y0); ctx.rotate(-0.06 + sway * 0.15);
