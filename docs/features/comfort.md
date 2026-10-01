@@ -16,6 +16,9 @@ Réglages > Menus sombres was removed on 2026-10-01 at the user's request: with 
 ## Record flag
 Free runs with a record (Classique, Chrono, Chill, Mondes): a pennant planted on the board frame's top-left corner carries the record the run started with, in the theme's combo-tag colors; the score plate then reads SCORE. It waves harder in the last 10 %, and topples over when the record falls (with the "Nouveau record" banner, confetti and Cubo's star eyes). `drawRecordFlag`, `flagDownAt`. A bar inside the score plate was tried first and dropped (user didn't like it).
 
+## Tray pads
+Each of the three tray slots and the Ensuite column sits on a pad in the theme's board color (soft shadow, hairline edge, `drawTrayPad`), so pieces read on any background (snow, sand, night skies). Tray pieces are sized `slotW / 5.8` so a 5-long piece stays inside its pad.
+
 ## Files
 - `index.html`: `#pause`, settings rows, `.ui` classes.
 - `src/main.js`: sections `pause` and `settings`, `MARKS` / `drawMark`, `applyThemeCss`.

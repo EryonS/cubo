@@ -1622,7 +1622,7 @@
   function slotCenter(i) {
     return [lay.bx + lay.slotW * (i + 0.5), lay.ty + lay.trayH / 2];
   }
-  const miniCell = () => Math.min(lay.cell * 0.5, lay.slotW / 5.4);
+  const miniCell = () => Math.min(lay.cell * 0.5, lay.slotW / 5.8); // a 5-long piece stays inside its tray pad
 
   function drawPiece(piece, cx, cy, cellSize, alpha = 1) {
     const ox = cx - (piece.w * cellSize) / 2;
@@ -6211,6 +6211,11 @@
     // Chill turns pieces all the time: no need to flag the slots.
     const canTurn = state.effects.rotate > 0 && !state.over;
     drawNext(t);
+    // Each slot sits on a pad in the board's color, so pieces read on any background.
+    for (let i = 0; i < 3; i++) {
+      const [cx] = slotCenter(i);
+      drawTrayPad(cx - lay.slotW / 2 + 4, lay.ty + 6, lay.slotW - 8, lay.trayH - 12);
+    }
     for (let i = 0; i < 3; i++) {
       const piece = state.tray[i];
       if (!piece || returning.some((p) => p.idx === i)) continue;
@@ -6234,17 +6239,29 @@
     }
   }
 
+  // A tray pad: the board slab's color with a soft shadow and a hairline edge.
+  function drawTrayPad(x, y, w, h) {
+    const th = theme();
+    const r = Math.min(16, th.frame.r);
+    ctx.save();
+    ctx.shadowColor = th.shadow || 'rgba(0,0,0,0.22)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
+    ctx.globalAlpha = 0.88;
+    ctx.fillStyle = th.board;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = withAlpha(th.ink, 0.12);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.stroke();
+  }
+
   // Narrow column right of the tray: the piece that fills the next emptied slot.
   function drawNext(t) {
     const { nextX, nextW, ty, trayH } = lay;
     if (tut) return;
     const th = theme();
-    ctx.fillStyle = withAlpha(th.ink, 0.07);
-    ctx.strokeStyle = withAlpha(th.ink, 0.14);
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.roundRect(nextX + 4, ty + 6, nextW - 6, trayH - 12, 12); ctx.fill(); ctx.stroke();
+    drawTrayPad(nextX + 4, ty + 6, nextW - 6, trayH - 12);
     ctx.fillStyle = withAlpha(th.ink, 0.72);
-    ctx.font = themeFont(th, 11);
+    fitFont(th, 11, 'ENSUITE', nextW - 18); // narrow phones: stays inside its pad
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     if ('letterSpacing' in ctx) ctx.letterSpacing = '1px';
