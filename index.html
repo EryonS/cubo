@@ -323,6 +323,12 @@
       font-size: 22px; line-height: 1; letter-spacing: .03em; text-transform: uppercase;
       transition: transform 120ms cubic-bezier(.2,.8,.2,1);
     }
+    /* Disabled: faded, flat, no press bounce. Specific rules below may tune the opacity. */
+    button:disabled { cursor: default; }
+    .btn:disabled, .close:disabled, .opt:disabled, .tile:disabled, .seg button:disabled { opacity: .4; box-shadow: none; filter: saturate(.4); }
+    button:disabled:active { transform: none; }
+    .btn, .tab, .ptab, .seg button, .hero-go { white-space: nowrap; }
+    .btn small, .seg button small { white-space: normal; }
     .btn:active { transform: scale(0.97); }
     .btn.primary { background: var(--accent); color: var(--on-accent); flex: 1.4; box-shadow: 0 4px 0 rgba(0,0,0,0.22); }
     .btn.ghost { background: var(--panel-2); color: var(--text); }
@@ -399,6 +405,28 @@
     .star-pill { display: inline-flex; align-items: center; gap: 4px; padding: 7px 10px 5px; border-radius: 999px; background: var(--panel-2);
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 18px; line-height: 1; font-variant-numeric: tabular-nums; }
     .worlds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    /* Aventure: world strip on top (scrolls sideways), picked world below. */
+    .world-strip { display: flex; gap: 8px; margin: 0 -16px 14px; padding: 4px 16px 6px; overflow-x: auto; scroll-snap-type: x proximity;
+      scrollbar-width: none; overscroll-behavior-x: contain; }
+    .world-strip::-webkit-scrollbar { display: none; }
+    .world-strip .world-tile { flex: none; width: 82px; padding: 4px 4px 6px; scroll-snap-align: center; transition: transform 120ms; }
+    .world-strip .world-tile:active { transform: scale(.95); }
+    .world-strip .world-tile.locked { cursor: pointer; }
+    .world-strip .world-tile .name { display: block; margin-top: 4px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .world-strip .world-tile .meta { margin-top: 1px; font-size: 12px; }
+    .world-strip .world-tile .meta svg { width: 12px; height: 12px; }
+    .world-strip .world-tile.pick { background: var(--panel); box-shadow: inset 0 0 0 3px var(--accent); }
+    .world-title { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .world-title h3 { flex: 1; min-width: 0; margin: 0; text-align: left; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
+      font-size: 26px; line-height: 1; text-transform: uppercase; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .world-title .close { width: 34px; height: 34px; flex: none; }
+    .world-title .star-pill { font-size: 16px; padding: 6px 9px 4px; }
+    .world-lock { margin-bottom: 10px; }
+    .world-lock:empty { display: none; }
+    .world-page.locked .rules, .world-page.locked .path-wrap { opacity: .55; }
+    .world-page.from-right { animation: slide-r 240ms cubic-bezier(.2,.8,.2,1); }
+    .world-page.from-left { animation: slide-l 240ms cubic-bezier(.2,.8,.2,1); }
+    @media (prefers-reduced-motion: reduce) { .world-page.from-right, .world-page.from-left { animation: none; } }
     .world-tile { position: relative; padding: 6px 6px 8px; border: 0; border-radius: calc(var(--radius) - 2px); background: var(--panel-2); color: var(--text); cursor: pointer; text-align: center; }
     .world-tile canvas { width: 100%; aspect-ratio: 4 / 3; border-radius: calc(var(--radius) - 6px); display: block; }
     .world-tile .name { margin-top: 6px; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 17px; line-height: 1.1; }
@@ -728,7 +756,7 @@
     .lvl .num canvas { width: 32px; height: 32px; }
     .skin .via { margin: -4px 0 7px; font-size: 12px; font-weight: 700; color: var(--muted); }
     .setting { cursor: pointer; }
-    #settings .section-title:first-of-type { margin-top: 0; }
+    #settings-body > .section-title:first-child { margin-top: 0; }
     @media (max-width: 380px) {
       #menu-play { width: 86px; font-size: 19px; padding-inline: 6px; }
       .free-pick { padding-right: 28px; }
@@ -742,6 +770,36 @@
       .hero-art { width: 76px; height: 57px; }
       .tile { padding: 10px 12px; }
       .tile-top { margin-bottom: 2px; }
+    }
+
+    /* ---------- full-screen menus (phones) ---------- */
+    /* Hubs and menu screens (.screen) fill the phone: no floating card, the tab bar docks to the bottom edge.
+       Content stays in a centered column on wider phones. Dialogs and sheets keep their card. */
+    @media (max-width: 600px) {
+      .overlay.screen { padding: 0; place-items: stretch; background: var(--panel); backdrop-filter: none; -webkit-backdrop-filter: none; }
+      .overlay.screen .card {
+        width: 100%; height: 100%; max-height: none; border-radius: 0; box-shadow: none;
+        padding: max(16px, calc(env(safe-area-inset-top) + 10px)) max(16px, calc((100% - 480px) / 2)) 24px;
+        animation: screen-in 240ms cubic-bezier(.2,.8,.2,1);
+      }
+      .overlay.screen.show { animation: none; }
+      .overlay.hub.screen { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
+      .overlay.hub.screen .card { height: 100%; max-height: none; }
+      #tabbar {
+        left: 0; bottom: 0; transform: none; width: 100%; border-radius: 0;
+        height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+        padding: 6px max(8px, calc((100% - 480px) / 2)) calc(6px + env(safe-area-inset-bottom));
+        box-shadow: 0 -1px 0 var(--hairline), 0 -6px 18px rgba(0,0,0,.06);
+      }
+    }
+    /* Changing tab by swipe or tap: the new hub slides in from the side it lives on. */
+    .overlay.hub.from-right .card { animation: slide-r 240ms cubic-bezier(.2,.8,.2,1); }
+    .overlay.hub.from-left .card { animation: slide-l 240ms cubic-bezier(.2,.8,.2,1); }
+    @keyframes screen-in { from { opacity: 0; transform: translateY(14px); } }
+    @keyframes slide-r { from { opacity: 0; transform: translateX(48px); } }
+    @keyframes slide-l { from { opacity: 0; transform: translateX(-48px); } }
+    @media (prefers-reduced-motion: reduce) {
+      .overlay.screen .card, .overlay.hub.from-right .card, .overlay.hub.from-left .card { animation: none; }
     }
 
     /* ---------- dark menus ---------- */
@@ -803,7 +861,7 @@
     </div>
   </div>
 
-  <div id="menu" class="overlay ui hub">
+  <div id="menu" class="overlay ui hub screen">
     <div class="card">
       <div class="home-head">
         <div class="brand">Gridlock</div>
@@ -829,9 +887,9 @@
           <b>Puzzles</b><small id="menu-puzzles-sub"></small>
         </button>
       </div>
-      <div class="free">
+      <div class="free" id="menu-free">
         <button class="free-pick" id="menu-free-pick" aria-label="Choisir le mode de la partie libre">
-          <span class="menu-label">Partie libre</span>
+          <span class="menu-label" id="menu-free-tag">Partie libre</span>
           <b id="menu-free-label"></b>
           <small id="menu-free-sub"></small>
           <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -870,12 +928,13 @@
     </div>
   </div>
 
-  <div id="settings" class="overlay ui">
+  <div id="settings" class="overlay ui screen">
     <div class="card">
       <div class="shop-head">
         <h2>Réglages</h2>
         <button class="close" id="settings-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
+      <div id="settings-body">
       <div class="section-title">Son</div>
       <div class="setting"><div>Sons<small>Effets du jeu</small></div><button class="toggle" role="switch" data-setting="sfx" aria-label="Sons"></button></div>
       <div class="setting"><div>Musique<small>Petite mélodie de fond</small></div><button class="toggle" role="switch" data-setting="music" aria-label="Musique"></button></div>
@@ -886,6 +945,7 @@
       <div class="setting"><div>Menus sombres<small>Écrans hors jeu en sombre avec les thèmes clairs</small></div><button class="toggle" role="switch" data-setting="darkMenus" aria-label="Menus sombres"></button></div>
       <div class="section-title">Aide</div>
       <button class="setting link" id="setting-tutorial"><div>Revoir le tutoriel<small>Une partie guidée en 3 étapes</small></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
     </div>
   </div>
 
@@ -933,18 +993,31 @@
     </div>
   </div>
 
-  <div id="adventure" class="overlay ui">
+  <div id="adventure" class="overlay ui screen">
     <div class="card">
       <div class="shop-head">
+        <button class="close" id="adventure-close" aria-label="Retour"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
         <h2>Aventure</h2>
         <span class="star-pill" id="adventure-stars"></span>
-        <button class="close" id="adventure-close" aria-label="Fermer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
-      <div class="worlds" id="worlds"></div>
+      <div class="world-strip no-swipe" id="worlds" role="tablist" aria-label="Mondes"></div>
+      <div class="world-page" id="world-page">
+        <div class="world-title">
+          <h3 id="world-name"></h3>
+          <span class="star-pill" id="world-stars"></span>
+          <button class="close" data-step="-1" aria-label="Monde précédent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button class="close" data-step="1" aria-label="Monde suivant"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div class="world-lock" id="world-lock"></div>
+        <div class="rules" id="world-rules"></div>
+        <div class="chests" id="world-chests"></div>
+        <div class="path-wrap"><svg class="path" id="levels-path" aria-hidden="true"></svg><div class="levels" id="levels"></div></div>
+        <div id="world-endless"></div>
+      </div>
     </div>
   </div>
 
-  <div id="puzzles" class="overlay ui">
+  <div id="puzzles" class="overlay ui screen">
     <div class="card">
       <div class="shop-head">
         <h2>Puzzles</h2>
@@ -956,20 +1029,6 @@
     </div>
   </div>
 
-  <div id="world" class="overlay ui">
-    <div class="card">
-      <div class="shop-head">
-        <button class="close" id="world-back" aria-label="Retour à la carte"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-        <h2 id="world-name"></h2>
-        <span class="star-pill" id="world-stars"></span>
-      </div>
-      <div class="rules" id="world-rules"></div>
-      <div class="chests" id="world-chests"></div>
-      <div class="path-wrap"><svg class="path" id="levels-path" aria-hidden="true"></svg><div class="levels" id="levels"></div></div>
-      <div id="world-endless"></div>
-    </div>
-  </div>
-
   <div id="stage" class="overlay ui">
     <div class="card" id="stage-card"></div>
   </div>
@@ -978,7 +1037,7 @@
     <div class="card sticky-foot" id="level-end-card"></div>
   </div>
 
-  <div id="defis" class="overlay ui hub">
+  <div id="defis" class="overlay ui hub screen">
     <div class="card">
       <div class="shop-head">
         <h2>Défis</h2>
@@ -999,7 +1058,7 @@
     </div>
   </div>
 
-  <div id="profile" class="overlay ui hub">
+  <div id="profile" class="overlay ui hub screen">
     <div class="card">
       <div class="shop-head">
         <h2>Profil</h2>
@@ -1007,12 +1066,13 @@
       <div class="tabs">
         <button class="ptab on" data-ptab="album">Album</button>
         <button class="ptab" data-ptab="stats">Stats</button>
+        <button class="ptab" data-ptab="settings">Réglages</button>
       </div>
       <div id="profile-body"></div>
     </div>
   </div>
 
-  <div id="shop" class="overlay ui hub">
+  <div id="shop" class="overlay ui hub screen">
     <div class="card">
       <div class="shop-head">
         <h2>Boutique</h2>

@@ -739,7 +739,7 @@
   function save() {
     if (tut) return; // the scripted tutorial board is never saved
     if (keepsBest()) bests[recordKey()] = best;
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ state, bests, settings, prefs })); } catch { /* private mode */ }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ state, parked, bests, settings, prefs })); } catch { /* private mode */ }
   }
   function saveProfile() {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch { /* private mode */ }
@@ -751,6 +751,9 @@
   if (!state.mode) state = { ...state, mode: 'classic', level: 'normal', clock: 0 };
   // The weekend event was removed (2026-09-30): a saved event run goes on as plain Classique.
   if (state.event) { state = { ...state }; delete state.event; }
+  // A free run (Classique, Chrono, Chill, Mondes) set aside while the player does a level, a daily or a puzzle.
+  // It waits here until resumed or until a new free run starts.
+  let parked = saved.parked && saved.parked.effects && !saved.parked.over ? saved.parked : null;
   // Records are kept per mode; old saves only had the classic one.
   const bests = saved.bests || { classic: saved.best || loadJSON(LEGACY_KEY).best || 0 };
   let best = bests[recordKey()] || 0;
@@ -2010,6 +2013,10 @@
     const world = opts.world || (mode === 'worlds' ? state.world : null);
     state = L.createGame(opts.seed ?? Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage,
       world, upgrades: profile.upgrades, puzzle: opts.puzzle });
+    enterRun();
+  }
+  // Shows `state` as a fresh or resumed run: run flags, wallet, effects, HUD.
+  function enterRun() {
     levelSettled = false;
     failCounted = false;
     paintBackground();
@@ -2017,9 +2024,9 @@
     bestAtStart = best;
     recordAnnounced = false;
     runSettled = false;
-    runCoinsShown = 0;
+    runCoinsShown = (state.stats && state.stats.coins) || 0;
     renderWallet();
-    displayScore = 0;
+    displayScore = state.score;
     drag = null;
     returning = []; pops = []; fades = []; particles = []; floaters = [];
     banners = []; overAt = 0; slotIn = [now(), now(), now()]; slotSpin = [0, 0, 0]; nextIn = now();
@@ -2039,13 +2046,67 @@
   document.getElementById('again').addEventListener('click', () => { unlockAudio(); newGame(); });
 
   // Ends the current run (coins and missions count) and starts a new one.
+  // A free run in progress is parked instead when a level, a daily or a puzzle starts.
   function restartRun(opts) {
-    const report = state.over ? null : settleRun();
+    const park = !isFree(opts) && freeInProgress();
+    if (park) parked = state;
+    const report = state.over || park ? null : settleRun();
+    const coins = ((report && report.total) || 0) + (isFree(opts) ? dropParked() : 0);
     newGame(opts);
-    if (report && report.total) banners.push({ icon: 'coin', text: '+' + report.total, sub: 'Pièces de la partie', gold: true });
+    if (coins) banners.push({ icon: 'coin', text: '+' + coins, sub: 'Pièces de la partie', gold: true });
   }
 
   const inProgress = () => !state.over && state.moves > 0;
+  const isFree = (st) => !st.stage && !st.puzzle;
+  const freeInProgress = () => isFree(state) && inProgress();
+  // A new free run replaces the parked one: its coins and missions count now. Returns the coins earned.
+  function dropParked() {
+    if (!parked) return 0;
+    const res = M.applyRun(M.ensureDay(profile, today()), L.runStats(parked));
+    parked = null;
+    profile = res.profile;
+    saveProfile();
+    renderWallet();
+    return res.report.total;
+  }
+  // Back to the parked free run; the level or puzzle in progress, if any, is dropped.
+  function resumeParked() {
+    if (!parked) return;
+    if (!state.over) settleRun();
+    state = parked;
+    parked = null;
+    enterRun();
+  }
+  // ---------- swipe ----------
+  // Calls cb(1) on a quick swipe to the left (next), cb(-1) to the right (previous). Vertical scrolls,
+  // slow drags, and gestures that start on a horizontal scroller (.no-swipe) are ignored.
+  function onSwipe(el, cb) {
+    let start = null;
+    el.addEventListener('pointerdown', (e) => {
+      start = e.pointerType === 'mouse' || e.target.closest('.no-swipe') ? null : { x: e.clientX, y: e.clientY, t: performance.now() };
+    });
+    el.addEventListener('pointercancel', () => { start = null; });
+    el.addEventListener('pointerup', (e) => {
+      if (!start) return;
+      const dx = e.clientX - start.x, dy = e.clientY - start.y, dt = performance.now() - start.t;
+      start = null;
+      if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.6 || dt > 700) return;
+      swallowClick(el);
+      cb(dx < 0 ? 1 : -1);
+    });
+  }
+  // A swipe that ends on a button must not also press it. The next touch clears the guard.
+  function swallowClick(el) {
+    const stop = (e) => { e.stopPropagation(); e.preventDefault(); off(); };
+    const off = () => {
+      el.removeEventListener('click', stop, { capture: true });
+      el.removeEventListener('pointerdown', off, { capture: true });
+    };
+    el.addEventListener('click', stop, { capture: true });
+    el.addEventListener('pointerdown', off, { capture: true });
+    setTimeout(off, 400);
+  }
+
   // ---------- confirmation dialog ----------
   const askEl = document.getElementById('ask');
   let askDone = null;
@@ -2068,7 +2129,8 @@
   // Runs go() now, or once the player agrees to drop the run in progress (its coins are kept).
   function guardRun(needed, go) {
     if (!needed) { go(); return; }
-    ask({ title: 'Abandonner ?', text: 'La partie en cours s’arrête. Les pièces gagnées sont gardées.', ok: 'Abandonner', danger: true })
+    const which = freeInProgress() || parked ? 'Ta partie libre en cours' : 'La partie en cours';
+    ask({ title: 'Abandonner ?', text: which + ' s’arrête. Les pièces gagnées sont gardées.', ok: 'Abandonner', danger: true })
       .then((yes) => { if (yes) go(); });
   }
 
@@ -2084,7 +2146,7 @@
     chill: 'Touche une forme pour la tourner. Pas de bonus, pas de pression.',
   };
   // "Classique · Normal", or "Mondes · Glace".
-  const modeLabel = () => (state.puzzle ? `Puzzle ${state.puzzle.n} · ${state.puzzle.name}` : state.mode === 'worlds' ? 'Mondes · ' + WD.WORLDS[state.world].name : `${MODE_NAMES[state.mode]} · ${LEVEL_NAMES[state.level]}`);
+  const modeLabel = (st = state) => (st.puzzle ? `Puzzle ${st.puzzle.n} · ${st.puzzle.name}` : st.mode === 'worlds' ? 'Mondes · ' + WD.WORLDS[st.world].name : `${MODE_NAMES[st.mode]} · ${LEVEL_NAMES[st.level]}`);
   const heroArt = document.getElementById('menu-adventure-art');
 
   // Next Aventure level to play: the first open level not cleared yet, in map order.
@@ -2114,8 +2176,15 @@
     renderDailyButton();
     renderMissionBadges();
     document.getElementById('menu-puzzles-sub').textContent = `${M.puzzlesSolved(profile)} / ${PZ.COUNT} résolus`;
-    document.getElementById('menu-free-label').textContent = `${MODE_NAMES[prefs.mode]} · ${LEVEL_NAMES[prefs.level]}`;
-    document.getElementById('menu-free-sub').textContent = { classic: 'Sans limite', chrono: 'Contre la montre', chill: 'Rotation libre' }[prefs.mode];
+    // A parked free run shows here, ready to resume; the chevron still picks a new one.
+    document.getElementById('menu-free-tag').textContent = parked ? 'Partie en cours' : 'Partie libre';
+    document.getElementById('menu-free-label').textContent = parked ? modeLabel(parked) : `${MODE_NAMES[prefs.mode]} · ${LEVEL_NAMES[prefs.level]}`;
+    document.getElementById('menu-free-sub').textContent = parked ? `${fmt(parked.score)} pts`
+      : { classic: 'Sans limite', chrono: 'Contre la montre', chill: 'Rotation libre' }[prefs.mode];
+    const play = document.getElementById('menu-play');
+    play.textContent = parked ? 'Reprendre' : 'Jouer';
+    play.classList.toggle('primary', !!parked && !playing);
+    document.getElementById('menu-free').classList.toggle('parked', !!parked);
     document.getElementById('menu-coins').textContent = fmt(profile.coins);
     renderFreePick();
   }
@@ -2123,6 +2192,7 @@
     for (const b of document.querySelectorAll('#menu-mode button')) b.classList.toggle('on', b.dataset.mode === prefs.mode);
     for (const b of document.querySelectorAll('#menu-level button')) b.classList.toggle('on', b.dataset.level === prefs.level);
     document.getElementById('free-note').textContent = MODE_NOTES[prefs.mode];
+    document.getElementById('free-play').textContent = parked ? 'Nouvelle partie' : 'Jouer';
   }
 
   function openMenu() {
@@ -2157,12 +2227,19 @@
   document.getElementById('menu-settings').addEventListener('click', () => { sfx.turn(); openSettings('menu'); });
 
   // Free play: the picked mode and level show on the home row; the sheet changes them.
-  const playFree = () => guardRun(inProgress(), () => {
+  const playFree = () => guardRun(inProgress() || parked, () => {
     freePickEl.classList.remove('show');
     closeMenu();
     restartRun({ mode: prefs.mode, level: prefs.level });
   });
-  document.getElementById('menu-play').addEventListener('click', () => { unlockAudio(); playFree(); });
+  document.getElementById('menu-play').addEventListener('click', () => {
+    unlockAudio();
+    if (!parked) { playFree(); return; }
+    const go = () => { closeMenu(); resumeParked(); };
+    if (!inProgress()) { go(); return; }
+    ask({ title: 'Reprendre ?', text: 'Le niveau en cours s’arrête pour reprendre ta partie libre. Les pièces gagnées sont gardées.', ok: 'Reprendre' })
+      .then((yes) => { if (yes) go(); });
+  });
   document.getElementById('free-play').addEventListener('click', () => { unlockAudio(); playFree(); });
   document.getElementById('menu-free-pick').addEventListener('click', () => {
     unlockAudio();
@@ -2250,7 +2327,7 @@
 
   function startPuzzle(n) {
     unlockAudio();
-    guardRun(inProgress() && !state.stage && !state.puzzle, () => launchPuzzle(n));
+    launchPuzzle(n); // a free run in progress is parked, not dropped
   }
   function launchPuzzle(n) {
     puzzlesEl.classList.remove('show');
@@ -2344,7 +2421,6 @@
 
   // ---------- aventure ----------
   const adventureEl = document.getElementById('adventure');
-  const worldEl = document.getElementById('world');
   const stageEl = document.getElementById('stage');
   const levelEndEl = document.getElementById('level-end');
   const STAR_PATH = 'M12 2.6l2.8 5.8 6.4.9-4.6 4.5 1.1 6.3L12 17.1l-5.7 3 1.1-6.3L2.8 9.3l6.4-.9z';
@@ -2360,53 +2436,83 @@
   let openWorldId = null;
 
   function hideAdventure() {
-    for (const el of [adventureEl, worldEl, stageEl, levelEndEl]) el.classList.remove('show');
+    for (const el of [adventureEl, stageEl, levelEndEl]) el.classList.remove('show');
   }
 
+  // Aventure is one screen: a strip of worlds on top, the picked world below (rules, chests, levels,
+  // endless run). Swipe the world or use the arrows to change world; locked worlds show what opens them.
+  const worldIndex = (w) => M.WORLD_ORDER.indexOf(w);
+  function worldGateText(w) {
+    const prev = M.WORLD_ORDER[worldIndex(w) - 1];
+    if (prev && !M.worldOpen(profile, prev)) return 'Ouvre d’abord ' + worldName(prev) + '.';
+    return !M.levelCleared(profile, prev, M.LEVELS_PER_WORLD)
+      ? `Bats le boss de ${worldName(prev)} pour ouvrir ce monde.`
+      : `Il te faut ${M.worldGate(w)} étoiles pour ouvrir ce monde.`;
+  }
+
+  function renderWorldStrip() {
+    const list = document.getElementById('worlds');
+    if (list.childElementCount !== M.WORLD_ORDER.length) {
+      list.innerHTML = '';
+      for (const w of M.WORLD_ORDER) {
+        const tile = document.createElement('button');
+        tile.dataset.w = w;
+        tile.setAttribute('role', 'tab');
+        const cv = document.createElement('canvas');
+        cv.width = 120; cv.height = 90;
+        tile.appendChild(cv);
+        tile.insertAdjacentHTML('beforeend', `<span class="name">${worldName(w)}</span><span class="meta"></span>`);
+        tile.addEventListener('click', () => { if (openWorldId !== w) { sfx.turn(); showWorld(w); } });
+        list.appendChild(tile);
+      }
+    }
+    for (const tile of list.children) {
+      const w = tile.dataset.w;
+      const open = M.worldOpen(profile, w);
+      tile.className = 'world-tile' + (open ? '' : ' locked') + (w === openWorldId ? ' pick' : '');
+      tile.setAttribute('aria-selected', w === openWorldId);
+      drawPreview(tile.querySelector('canvas'), profile.equipped.blocks, w);
+      tile.querySelector('.meta').innerHTML = open ? starSvg(true, 11) + M.worldStars(profile, w) : LOCK_SVG;
+    }
+  }
+
+  // Opens Aventure on the world of the next level to play.
   function openAdventure() {
+    const next = nextAdventure();
+    openWorld(next ? next[0] : lastOpenWorld());
+  }
+
+  function openWorld(w) {
     unlockAudio();
     hideAdventure();
     menuEl.classList.remove('show');
     overEl.classList.remove('show');
     document.getElementById('adventure-stars').innerHTML = starSvg(true, 18) + fmt(M.totalStars(profile));
-    const list = document.getElementById('worlds');
-    list.innerHTML = '';
-    for (const w of M.WORLD_ORDER) {
-      const open = M.worldOpen(profile, w);
-      const tile = document.createElement('button');
-      const prevWorld = M.WORLD_ORDER[M.WORLD_ORDER.indexOf(w) - 1];
-      const far = !open && prevWorld && !M.worldOpen(profile, prevWorld);
-      tile.className = 'world-tile' + (open ? '' : ' locked') + (far ? ' far' : '');
-      const cv = document.createElement('canvas');
-      cv.width = 240; cv.height = 180;
-      tile.appendChild(cv);
-      drawPreview(cv, profile.equipped.blocks, w);
-      tile.insertAdjacentHTML('beforeend', `<div class="name">${worldName(w)}</div>`);
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      if (far) meta.textContent = 'Plus loin sur la carte';
-      else if (open) meta.innerHTML = starSvg(true, 13) + `${M.worldStars(profile, w)} / ${WORLD_MAX_STARS}`;
-      else {
-        const prev = M.WORLD_ORDER[M.WORLD_ORDER.indexOf(w) - 1];
-        const needStars = M.worldGate(w);
-        meta.innerHTML = !M.levelCleared(profile, prev, M.LEVELS_PER_WORLD)
-          ? `Bats le boss ${worldName(prev)}`
-          : starSvg(true, 13) + `${needStars} requises`;
-        tile.insertAdjacentHTML('beforeend', `<span class="lock">${LOCK_SVG}</span>`);
-      }
-      tile.appendChild(meta);
-      tile.addEventListener('click', () => { if (open) { sfx.turn(); openWorld(w); } else sfx.nope(); });
-      list.appendChild(tile);
-    }
+    showWorld(w);
     adventureEl.classList.add('show');
+    requestAnimationFrame(() => {
+      const tile = document.querySelector(`#worlds [data-w="${w}"]`);
+      if (tile) tile.scrollIntoView({ block: 'nearest', inline: 'center' });
+      drawLevelPath();
+    });
   }
 
-  function openWorld(w) {
+  // dir: -1 / 1 slides the page in from that side.
+  function showWorld(w, dir = 0) {
+    const from = openWorldId;
     openWorldId = w;
-    hideAdventure();
+    if (!dir && from) dir = Math.sign(worldIndex(w) - worldIndex(from));
+    const open = M.worldOpen(profile, w);
+    renderWorldStrip();
+    const page = document.getElementById('world-page');
+    page.classList.toggle('locked', !open);
     document.getElementById('world-name').textContent = worldName(w);
-    document.getElementById('world-stars').innerHTML = starSvg(true, 18) + `${M.worldStars(profile, w)} / ${WORLD_MAX_STARS}`;
-    renderChests(w);
+    document.getElementById('world-stars').innerHTML = open ? starSvg(true, 16) + `${M.worldStars(profile, w)} / ${WORLD_MAX_STARS}` : LOCK_SVG;
+    document.getElementById('world-lock').innerHTML = open ? '' : `<div class="pz-locked">${LOCK_SVG}<span>${worldGateText(w)}</span></div>`;
+    const i = worldIndex(w);
+    page.querySelector('[data-step="-1"]').disabled = i === 0;
+    page.querySelector('[data-step="1"]').disabled = i === M.WORLD_ORDER.length - 1;
+    if (open) renderChests(w); else document.getElementById('world-chests').innerHTML = '';
     const rules = WD.WORLDS[w];
     document.getElementById('world-rules').innerHTML =
       `<div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div>`;
@@ -2429,15 +2535,33 @@
       b.addEventListener('click', () => { if (open) { sfx.turn(); openStage(w, n); } else sfx.nope(); });
       grid.appendChild(b);
     }
-    renderEndless(w);
-    worldEl.classList.add('show');
+    if (open) renderEndless(w); else document.getElementById('world-endless').innerHTML = '';
+    if (dir && !calm()) {
+      page.classList.remove('from-left', 'from-right');
+      void page.offsetWidth;
+      page.classList.add(dir > 0 ? 'from-right' : 'from-left');
+    }
+    const tile = document.querySelector(`#worlds [data-w="${w}"]`);
+    if (tile && adventureEl.classList.contains('show')) tile.scrollIntoView({ block: 'nearest', inline: 'center', behavior: calm() ? 'auto' : 'smooth' });
     requestAnimationFrame(drawLevelPath);
   }
+  const stepWorld = (d) => {
+    const w = M.WORLD_ORDER[worldIndex(openWorldId) + d];
+    if (!w) return false;
+    sfx.turn();
+    showWorld(w, d);
+    return true;
+  };
+  for (const b of document.querySelectorAll('#world-page [data-step]')) b.addEventListener('click', () => stepWorld(+b.dataset.step));
+  onSwipe(document.getElementById('world-page'), (d) => { if (!stepWorld(d)) sfx.nope(); });
+  document.getElementById('world-page').addEventListener('animationend', (e) => {
+    if (e.target.id === 'world-page') e.target.classList.remove('from-left', 'from-right');
+  });
 
   // Line joining the level buttons in order: solid up to the last cleared level, dotted after.
   function drawLevelPath() {
     const svg = document.getElementById('levels-path');
-    if (!worldEl.classList.contains('show')) return;
+    if (!adventureEl.classList.contains('show')) return;
     const box = svg.getBoundingClientRect();
     const pts = [...document.querySelectorAll('#levels .num')].map((el) => {
       const r = el.getBoundingClientRect();
@@ -2468,7 +2592,7 @@
       <button class="btn ghost" data-act="endless">Jouer sans fin</button></div>`;
     el.querySelector('[data-act="endless"]').addEventListener('click', () => {
       unlockAudio();
-      guardRun(inProgress() && !state.stage, () => {
+      guardRun(freeInProgress() || parked, () => {
         hideAdventure();
         restartRun({ mode: 'worlds', world: w });
       });
@@ -2560,7 +2684,7 @@
 
   function startLevel(w, n) {
     unlockAudio();
-    guardRun(inProgress() && !state.stage, () => launchLevel(w, n));
+    launchLevel(w, n); // a free run in progress is parked, not dropped
   }
   function launchLevel(w, n) {
     const freeBomb = stageBomb && M.freeBombs(profile) > 0;
@@ -2682,8 +2806,7 @@
   }
 
   document.getElementById('adventure-close').addEventListener('click', () => { hideAdventure(); openMenu(); });
-  document.getElementById('world-back').addEventListener('click', openAdventure);
-  for (const el of [adventureEl, worldEl, stageEl]) {
+  for (const el of [adventureEl, stageEl]) {
     el.addEventListener('click', (e) => { if (e.target === el) { hideAdventure(); openMenu(); } });
   }
 
@@ -2785,7 +2908,7 @@
 
   function startDaily(day) {
     unlockAudio();
-    guardRun(inProgress() && !state.stage, () => launchDaily(day));
+    launchDaily(day); // a free run in progress is parked, not dropped
   }
   function launchDaily(day) {
     const next = M.startDaily(profile, day, today());
@@ -2849,6 +2972,12 @@
   function renderProfile() {
     for (const b of document.querySelectorAll('.ptab')) b.classList.toggle('on', b.dataset.ptab === profileTab);
     const body = document.getElementById('profile-body');
+    if (profileTab === 'settings') {
+      // The same rows as the Réglages screen, moved here while this tab shows.
+      body.replaceChildren(settingsBody);
+      renderSettings();
+      return;
+    }
     if (profileTab === 'album') body.innerHTML = albumHtml();
     else body.innerHTML = statsHtml();
     freshStickers.clear();
@@ -3104,6 +3233,7 @@
 
   // ---------- settings ----------
   const settingsEl = document.getElementById('settings');
+  const settingsBody = document.getElementById('settings-body');
   if (!navigator.vibrate) document.getElementById('setting-vibrate').style.display = 'none';
   function renderSettings() {
     for (const t of document.querySelectorAll('.toggle')) t.setAttribute('aria-checked', String(!!settings[t.dataset.setting]));
@@ -3129,6 +3259,10 @@
   function openSettings(from) {
     settingsFrom = from;
     if (from === 'menu') closeMenu();
+    if (settingsBody.parentElement !== settingsEl.firstElementChild) {
+      settingsEl.firstElementChild.appendChild(settingsBody);
+      if (profileTab === 'settings') profileTab = 'album';
+    }
     renderSettings();
     settingsEl.classList.add('show');
   }
@@ -3519,13 +3653,29 @@
   const HUBS = { menu: menuEl, defis: defisEl, shop: shopEl, profile: profileEl };
   const HUB_OPEN = { menu: openMenu, defis: () => openDefis(), shop: openShop, profile: () => openProfile() };
 
+  const HUB_ORDER = Object.keys(HUBS);
+  const currentHub = () => HUB_ORDER.find((k) => HUBS[k].classList.contains('show'));
   function goTab(name) {
     unlockAudio();
-    const was = Object.values(HUBS).some((el) => el.classList.contains('show'));
-    for (const [k, el] of Object.entries(HUBS)) if (k !== name) el.classList.remove('show');
-    HUBS[name].classList.toggle('no-anim', was);
+    const from = currentHub();
+    for (const [k, el] of Object.entries(HUBS)) if (k !== name) el.classList.remove('show', 'from-left', 'from-right');
+    HUBS[name].classList.toggle('no-anim', !!from);
+    // Slide in from the side the tab sits on, like pages side by side.
+    if (from && !calm()) HUBS[name].classList.add(HUB_ORDER.indexOf(name) > HUB_ORDER.indexOf(from) ? 'from-right' : 'from-left');
     HUB_OPEN[name]();
     HUBS[name].querySelector('.card').scrollTop = 0;
+  }
+  for (const el of Object.values(HUBS)) {
+    el.querySelector('.card').addEventListener('animationend', (e) => {
+      if (e.target === e.currentTarget) el.classList.remove('from-left', 'from-right');
+    });
+    // Swipe left / right on a hub goes to the next / previous tab.
+    onSwipe(el, (d) => {
+      const i = HUB_ORDER.indexOf(currentHub()) + d;
+      if (!HUB_ORDER[i] || !document.body.classList.contains('hub-on')) return;
+      sfx.turn();
+      goTab(HUB_ORDER[i]);
+    });
   }
   for (const b of tabbarEl.querySelectorAll('[data-go]')) {
     b.addEventListener('click', () => {
@@ -3554,6 +3704,29 @@
   const overlayWatch = new MutationObserver(syncTabbar);
   for (const el of document.querySelectorAll('.overlay')) overlayWatch.observe(el, { attributes: true, attributeFilter: ['class'] });
 
+  // ---------- button text fit ----------
+  // Button labels stay on one line: a label too long for its button (narrow phone, 3 buttons in a row,
+  // long word like "Recommencer") shrinks its font until it fits. Runs after any screen shows or changes.
+  const FIT = '.btn, .tab, .ptab, .seg button, .hero-go';
+  function fitText(root = document) {
+    for (const el of root.querySelectorAll(FIT)) {
+      if (el.style.fontSize) el.style.fontSize = '';
+      if (!el.clientWidth || el.scrollWidth <= el.clientWidth + 1) continue;
+      let size = parseFloat(getComputedStyle(el).fontSize);
+      while (size > 11 && el.scrollWidth > el.clientWidth + 1) el.style.fontSize = --size + 'px';
+    }
+  }
+  let fitQueued = false;
+  const queueFit = () => {
+    if (fitQueued) return;
+    fitQueued = true;
+    requestAnimationFrame(() => { fitQueued = false; for (const el of document.querySelectorAll('.overlay.show')) fitText(el); });
+  };
+  const fitWatch = new MutationObserver(queueFit);
+  for (const el of document.querySelectorAll('.overlay')) fitWatch.observe(el, { attributes: true, attributeFilter: ['class'], childList: true, subtree: true, characterData: true });
+  addEventListener('resize', queueFit);
+  document.fonts.ready.then(queueFit);
+
   // ---------- tutorial ----------
   // Guided first game: scripted steps from tutorial.js. The HUD makes room for the coach card,
   // a hand shows the drag, target cells glow. Nothing here is saved or counted.
@@ -3565,6 +3738,7 @@
 
   function startTutorial() {
     closeMenu();
+    profileEl.classList.remove('show');
     settingsEl.classList.remove('show');
     hideTips();
     tut = { step: 0, saved: inProgress() ? state : null, t0: 0, doneAt: 0 };
