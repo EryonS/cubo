@@ -770,6 +770,17 @@
   // Old saves: retired road themes and the 'candy' blocks are refunded (announced once the game shows).
   const migrated = M.migrate(storedProfile.owned ? storedProfile : M.createProfile(today()));
   let profile = M.ensureDay(migrated.profile, today());
+  // The app can stay open (or asleep in the background) past midnight: roll the day over when it
+  // comes back, when a menu opens, and once a minute, so today's missions always show.
+  function rollDay() {
+    const rolled = M.ensureDay(profile, today());
+    if (rolled === profile) return false;
+    profile = rolled;
+    saveProfile();
+    resetAnnounced();
+    for (const [el, render] of [[menuEl, renderMenu], [defisEl, renderDefis]]) if (el.classList.contains('show')) render();
+    return true;
+  }
   saveProfile();
   let bestAtStart = best;
   let recordAnnounced = false;
@@ -1792,6 +1803,7 @@
     document.getElementById('menu-missions-pips').innerHTML = status.map((m) => `<i class="${m.done ? 'done' : ''}"><b style="width:${(m.current / m.target) * 100}%"></b></i>`).join('');
   }
   function openMissions() {
+    rollDay();
     unlockAudio();
     missionsFromMenu = menuEl.classList.contains('show');
     menuEl.classList.remove('show');
@@ -2209,6 +2221,7 @@
 
   function openMenu() {
     unlockAudio();
+    rollDay();
     hideTips();
     drag = null;
     showTrash(false);
@@ -2236,7 +2249,6 @@
     goTab('defis');
     document.getElementById('defis-missions').scrollIntoView({ block: 'start', behavior: calm() ? 'auto' : 'smooth' });
   });
-  document.getElementById('menu-settings').addEventListener('click', () => { sfx.turn(); openSettings('menu'); });
 
   // Free play: the picked mode and level show on the home row; the sheet changes them.
   const playFree = () => guardRun(inProgress() || parked, () => {
@@ -3089,6 +3101,7 @@
 
   function openDefis(day) {
     unlockAudio();
+    rollDay();
     defisDay = day || defisDay || today();
     if (defisDay > today()) defisDay = today();
     calMonth = defisDay.slice(0, 7);
@@ -3378,6 +3391,8 @@
     renderUndo();
   }
   document.addEventListener('visibilitychange', save);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) rollDay(); });
+  setInterval(rollDay, 60000);
 
   // ---------- wallet & shop ----------
   const walletEl = document.getElementById('wallet');
@@ -3710,7 +3725,7 @@
     const from = currentHub();
     const dir = from ? Math.sign(HUB_ORDER.indexOf(name) - HUB_ORDER.indexOf(from)) : 0;
     for (const [k, el] of Object.entries(HUBS)) {
-      if (k === name) { el.classList.remove(...SLIDE_CLASSES); continue; }
+      if (k === name) { el.classList.remove(...SLIDE_CLASSES); void el.offsetWidth; continue; }
       // Pages side by side: the old one slides out under the new one, then hides.
       if (k === from && dir && !calm()) el.classList.add(dir > 0 ? 'out-left' : 'out-right');
       else el.classList.remove('show', ...SLIDE_CLASSES);
@@ -3725,10 +3740,11 @@
     HUBS[name].querySelector('.card').scrollTop = 0;
   }
   for (const el of Object.values(HUBS)) {
+    // The incoming page keeps its from-* class while shown: removing it would replay the card's
+    // default entrance animation (a visible flicker). It goes when the page hides (syncTabbar).
     const done = (e) => {
       if (e.target !== e.currentTarget && !e.target.classList.contains('card')) return;
       if (leaving(el)) el.classList.remove('show', ...SLIDE_CLASSES);
-      else el.classList.remove('from-left', 'from-right');
     };
     el.addEventListener('animationend', done);
     // Swipe left / right on a hub goes to the next / previous tab.
@@ -3758,7 +3774,10 @@
       if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     }
     // Only touch the class when needed: every class write would call this observer again.
-    for (const el of Object.values(HUBS)) if (!el.classList.contains('show') && el.classList.contains('no-anim')) el.classList.remove('no-anim');
+    for (const el of Object.values(HUBS)) {
+      if (el.classList.contains('show')) continue;
+      for (const c of ['no-anim', 'from-left', 'from-right']) if (el.classList.contains(c)) el.classList.remove(c);
+    }
     // A dot on Défis while today's level can still be won.
     const t = today();
     tabbarEl.querySelector('.dot').hidden = !(M.dailyOf(profile, t).stars === undefined && M.dailyAttemptsLeft(profile, t, t) > 0);

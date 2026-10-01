@@ -210,7 +210,6 @@
     .seg button.on { box-shadow: inset 0 0 0 2.5px var(--accent); }
     #menu-play { margin-top: 14px; }
     /* Home menu: Aventure, a week of daily levels, free play, then icon shortcuts. */
-    #menu .brand { margin-bottom: 16px; }
     .menu-adv { flex-direction: row !important; justify-content: space-between; padding-inline: 20px; }
     .menu-adv small { display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px 4px; border-radius: 999px; background: rgba(255,255,255,.2); opacity: 1; font-size: 14px; }
     .menu-adv small .star { fill: #ffd23f; }
@@ -658,7 +657,7 @@
 
     /* Home (Jouer tab) */
     .home-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-    .home-head .brand { flex: 1; min-width: 0; margin: 0; text-align: left; font-size: 34px; white-space: nowrap; overflow: hidden; }
+    .home-head .brand { flex: 1; min-width: 0; margin: 0; padding-top: .07em; text-align: left; font-size: 34px; white-space: nowrap; overflow: hidden; }
     .shop-head h2 { white-space: nowrap; min-width: 0; overflow: hidden; }
     .home-head .coins { font-size: 19px; padding: 7px 10px 5px; }
     #menu-continue { margin-bottom: 12px; }
@@ -888,7 +887,6 @@
       <div class="home-head">
         <div class="brand">Gridlock</div>
         <span class="coins"><i class="coin"></i> <span id="menu-coins">0</span></span>
-        <button class="close" id="menu-settings" aria-label="Réglages"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></button>
       </div>
       <button class="btn primary wide" id="menu-continue">Continuer<small id="menu-continue-sub"></small></button>
       <div class="hero" id="menu-hero">
