@@ -6,7 +6,7 @@ Cubo, a mint jelly with a sprout, sits on the top-right corner of the board fram
 
 - Base mood (from the game): watches the dragged piece, worried when 70% of the board is full or the run is stuck (not in puzzles), asleep behind any menu, sad at a lost end, partying (hops) at a won level or puzzle.
 - Event moods (short): happy jump on a clear (higher for more lines), star eyes on a big combo / empty grid / new record, "oops" when a combo breaks, wide eyes on a bonus.
-- Tap: bounce + hearts; 5 taps in a row make it dizzy for 2 s.
+- Tap: bounce + a burst; 5 taps in a row make it dizzy for 2 s. Faces and burst follow the theme (`taps` / `burst` in `CUBO_LOOKS`): Jouet hearts and heart eyes, Plaine petals and a wink, Sous-marin bubbles and puffed cheeks, Espace stars, Glace snowflakes and shivers, Forêt leaves, Rétro pixel hearts, Arcade notes and shades, Volcan sparks and steam.
 - Looks per theme played (`CUBO_LOOKS`, the world's theme in Aventure): colors plus a head piece (sprout, daisy, starfish, astronaut helmet, beanie, mushroom cap, pixel sprout, neon headphones, flame), drawn by `drawCuboHat` behind or over the body.
 - Setting "Mascotte" turns it off.
 

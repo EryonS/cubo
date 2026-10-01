@@ -393,7 +393,7 @@
     state.clock = mode === 'chrono' ? LEVELS[level].clock : clock ? clock.clockMax : 0;
     const rules = rulesOf(state);
     if (stage && stage.goal.type === 'boss') placeBoss(state);
-    if (stage && stage.fill) prefill(state, stage.fill);
+    if (stage && stage.fill) prefill(state, stage.fill, stage.goal.target + stage.fill);
     if (stage && rules.setup) rules.setup(state, WORLD_API);
     if (world && rules.free && rules.free.setup) scatterKind(state, rules.free.setup.kind, rules.free.setup.count);
     if (puzzle) setupPuzzle(state, puzzle);
@@ -752,13 +752,34 @@
     return out;
   }
 
-  // Crate levels start with stage.fill bottom rows of crates, each with one gap of 2-4 cells.
-  function prefill(state, rows) {
-    for (let k = 0; k < rows; k++) {
-      const r = SIZE - 1 - k;
-      const gap = 2 + Math.floor(nextRandom(state) * 3);
-      const at = Math.floor(nextRandom(state) * (SIZE - gap + 1));
-      for (let c = 0; c < SIZE; c++) if (c < at || c >= at + gap) WORLD_API.addSpecial(state, r * SIZE + c, 'crate');
+  // Crate levels start with crates scattered over the bottom of the board (two rows per stage.fill):
+  // stage.goal.target crates plus a few, at most half a row each and never two side by side, so
+  // no single straight piece finishes a row and clearing them takes rows and columns.
+  function prefill(state, fill, count) {
+    const rows = Math.min(SIZE - 3, fill * 2);
+    const cells = [];
+    for (let r = SIZE - rows; r < SIZE; r++) for (let c = 0; c < SIZE; c++) cells.push(r * SIZE + c);
+    const perRow = new Array(SIZE).fill(0);
+    const skipped = [];
+    let placed = 0;
+    while (placed < count && cells.length) {
+      const i = cells.splice(Math.floor(nextRandom(state) * cells.length), 1)[0];
+      const r = Math.floor(i / SIZE), c = i % SIZE;
+      const side = (c > 0 && state.special[i - 1]) || (c < SIZE - 1 && state.special[i + 1]);
+      if (perRow[r] >= SIZE / 2 || side) { skipped.push(i); continue; }
+      WORLD_API.addSpecial(state, i, 'crate');
+      perRow[r]++;
+      placed++;
+    }
+    // Big fills can run out of room under those rules: the goal must stay reachable, so the
+    // remaining crates go anywhere left in the area (rows still never full).
+    for (const i of skipped) {
+      if (placed >= count) break;
+      const r = Math.floor(i / SIZE);
+      if (perRow[r] >= SIZE - 2) continue;
+      WORLD_API.addSpecial(state, i, 'crate');
+      perRow[r]++;
+      placed++;
     }
   }
 

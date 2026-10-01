@@ -60,7 +60,7 @@
   const MOVES_PER_CLEAR = { bubble: 5.9, asteroid: 6.5, ice: 8, mushroom: 3.9, ember: 10.5 };
   const MOVES_PER_COIN = { plain: 6.5, forest: 3.8 }; // others: 7.5
   const comboMoves = (target) => 4 + target * target * 0.9;
-  const MOVES_PER_CRATE = 3.5;
+  const MOVES_PER_CRATE = 4.5;
   const SECONDS_PER_MOVE = 3.5; // arcade: a human's pace, to size score goals to the clock
 
   function level(world, n) {
@@ -105,9 +105,9 @@
       stage.goal = { type, target };
       expected = comboMoves(target);
     } else if (type === 'crates') {
-      stage.fill = 1 + Math.round(d * 2) + (m > 5 ? 1 : 0); // bottom rows, each with a 2-4 gap
-      stage.goal = { type: 'clear', kind: 'crate', target: stage.fill * 4 }; // 4-6 crates per row
-      expected = stage.goal.target * MOVES_PER_CRATE;
+      stage.fill = 1 + Math.round(d * 2) + (m > 5 ? 1 : 0); // crates spread over 2 rows per fill (see prefill in logic.js)
+      stage.goal = { type: 'clear', kind: 'crate', target: stage.fill * 4 }; // plus stage.fill spare crates
+      expected = stage.goal.target * MOVES_PER_CRATE + 12; // scattered crates need a few setup moves first
     } else {
       const target = cfg.kind === 'ember' ? 2 + Math.round(d * 3) : 3 + Math.round(d * 4) + Math.floor(m / 4);
       stage.goal = { type, kind: cfg.kind, target };

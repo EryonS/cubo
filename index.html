@@ -32,7 +32,7 @@
       --hairline: rgba(74,58,102,0.14);
       --sunken: rgba(74,58,102,0.1);
       --scrim: rgba(74,58,102,0.45);
-      --card-edge: inset 0 -6px 0 var(--edge);
+      --card-bw: 0px; --card-bb: 6px; --card-glow: 0 0 0 transparent;
       --plate-edge: inset 0 -3px 0 var(--edge);
       --font-display: "Baloo 2", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
       --display-style: normal;
@@ -66,7 +66,7 @@
     #undo .badge {
       position: absolute; top: -6px; right: -8px; display: inline-flex; align-items: center; gap: 2px;
       padding: 0 5px; height: 19px; border-radius: 6px; background: var(--accent); color: var(--on-accent);
-      font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 13px; line-height: 1;
+      font-family: var(--font-ui); font-weight: 800; font-size: 13px; line-height: 1;
       box-shadow: 0 2px 6px rgba(0,0,0,0.35);
     }
     #undo .badge:empty, #undo:disabled .badge { display: none; }
@@ -250,7 +250,7 @@
     #missions-open { right: 116px; padding: 0; overflow: visible; }
     #missions-open .badge {
       position: absolute; top: -6px; right: -8px; padding: 0 5px; height: 19px; border-radius: 6px; background: var(--accent); color: var(--on-accent);
-      font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 13px; line-height: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      font-family: var(--font-ui); font-weight: 800; font-size: 13px; line-height: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.35);
     }
     #missions-open .badge:empty { display: none; }
     #missions-open .badge { background: var(--good); }
@@ -280,14 +280,16 @@
     .card { max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
     .card {
       width: min(360px, 100%); overflow-y: auto; overscroll-behavior: contain;
-      padding: 28px 24px 24px; border-radius: calc(var(--radius) + 8px);
+      padding: 24px; border-radius: calc(var(--radius) + 8px);
       background: var(--panel); text-align: center;
-      box-shadow: var(--card-edge), 0 24px 60px rgba(0,0,0,0.3);
+      border: solid var(--edge); border-width: var(--card-bw) var(--card-bw) var(--card-bb);
+      box-shadow: var(--card-glow), 0 24px 60px rgba(0,0,0,0.3);
       animation: rise 420ms cubic-bezier(.2,1.3,.4,1);
     }
     .card h2 {
       margin: 0 0 2px; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
       font-size: 30px; line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--text);
+      text-wrap: balance;
     }
     .score {
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
@@ -318,7 +320,7 @@
 
     .actions { display: flex; gap: 10px; margin-top: 20px; }
     .btn {
-      flex: 1; padding: 15px 12px 13px; border: 0; border-radius: calc(var(--radius) - 2px); cursor: pointer;
+      flex: 1; padding: 15px 16px 13px; border: 0; border-radius: calc(var(--radius) - 2px); cursor: pointer;
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
       font-size: 22px; line-height: 1; letter-spacing: .03em; text-transform: uppercase;
       transition: transform 120ms cubic-bezier(.2,.8,.2,1);
@@ -501,9 +503,6 @@
     .lvl small { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: -2px; }
     .stage-goal { margin: 6px 0 4px; font-size: 18px; font-weight: 800; }
     .stage-sub { color: var(--muted); font-size: 14px; font-weight: 700; }
-    .day-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0 2px; }
-    .day-nav .close { width: 32px; height: 32px; }
-    .day-nav .close:disabled { opacity: .35; cursor: default; }
     .stage-stars { display: flex; justify-content: center; gap: 6px; margin: 14px 0 6px; }
     .stage-stars .star { animation: star-in 420ms cubic-bezier(.2,1.6,.4,1) both; }
     .stage-stars .star:nth-child(2) { animation-delay: 180ms; }
@@ -717,9 +716,11 @@
     .today .btn:disabled { opacity: .5; cursor: default; }
     .today .opt { background: var(--panel); }
     .today .opt:first-of-type { margin-top: 12px; }
-    .cal-toggle { justify-content: space-between; }
-    .cal-toggle svg { transition: transform 200ms; }
-    .cal-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+    .cal-title { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; border-radius: 999px; background: transparent; color: var(--text); cursor: pointer;
+      font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 20px; text-transform: capitalize; }
+    .cal-title svg { transition: transform 200ms; }
+    .cal-title[aria-expanded="true"] svg { transform: rotate(180deg); }
+    #defis-body > .cal { margin-bottom: 14px; }
     #defis-cal { margin-top: 12px; }
 
     /* Confirmation dialog (replaces the browser's confirm) */
@@ -731,7 +732,7 @@
 
     /* Result cards: actions stay reachable at the bottom while the rest scrolls. */
     .card.sticky-foot { padding-bottom: 0; }
-    .card.sticky-foot > .actions { position: sticky; bottom: 0; z-index: 1; margin-top: 16px; padding: 12px 0 20px; background: var(--panel); }
+    .card.sticky-foot > .actions { position: sticky; bottom: 0; z-index: 1; margin-top: 16px; padding: 12px 0 24px; background: var(--panel); }
     .over-missions { margin-top: 12px; }
     .over-missions .mission { margin-bottom: 6px; }
     .missions-line { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 10px 12px; border-radius: calc(var(--radius) - 6px);
@@ -784,7 +785,7 @@
     @media (max-width: 600px) {
       .overlay.screen { padding: 0; place-items: stretch; background: var(--panel); backdrop-filter: none; -webkit-backdrop-filter: none; }
       .overlay.screen .card {
-        width: 100%; height: 100%; max-height: none; border-radius: 0; box-shadow: none;
+        width: 100%; height: 100%; max-height: none; border-radius: 0; box-shadow: none; border: 0;
         padding: max(16px, calc(env(safe-area-inset-top) + 10px)) max(16px, calc((100% - 480px) / 2)) 24px;
         animation: screen-in 240ms cubic-bezier(.2,.8,.2,1);
       }
@@ -831,7 +832,7 @@
       --text: #f1ecff; --muted: #a99dc6; --good: #5ee08a; --edge: #3b3155;
       --accent: var(--menu-accent); --on-accent: var(--menu-on-accent);
       --hairline: rgba(255,255,255,0.12); --sunken: rgba(0,0,0,0.3); --scrim: rgba(10,7,18,0.74);
-      --card-edge: inset 0 -6px 0 var(--edge); --plate-edge: inset 0 -3px 0 var(--edge);
+      --card-bw: 0px; --card-bb: 6px; --card-glow: 0 0 0 transparent; --plate-edge: inset 0 -3px 0 var(--edge);
       color: var(--text); color-scheme: dark;
     }
     body.dark-menus .overlay.ui .sticker .badge { box-shadow: 0 0 0 3px #3b3155, 0 4px 10px rgba(0,0,0,.3); }
@@ -1062,6 +1063,7 @@
       <div class="shop-head">
         <h2>Défis</h2>
         <span class="star-pill flame" id="defis-flame"></span>
+        <span class="coins"><i class="coin"></i> <span id="defis-coins">0</span></span>
       </div>
       <div id="defis-body"></div>
     </div>

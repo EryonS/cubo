@@ -24,3 +24,6 @@ Optional: `animate(g, w, h, t)`, `palette` (14 block colors + leading null), `sc
 - Use `seeded(n)` for decoration so nothing jumps on resize.
 - A new world theme also needs its Aventure world entry once Aventure ships (see worlds.md).
 - Retired ids (`night`, `sunset`, `desert`, `mountain`, `dash`) are refunded by `M.migrate`; never reuse them.
+
+## Music
+Each theme has its own generative song (`SONGS` in `src/main.js`, section audio): bpm, chords, bass, bell arpeggio and optional drums. The song follows `themeId()` (a world's in Aventure and dailies) and switches with a short fade when a run starts in another world. A new theme needs a `SONGS` entry, else it plays the Jouet song.

@@ -92,16 +92,22 @@ test('coins and combo goals track the run', () => {
   assert.equal(combo.stage.won, true);
 });
 
-test('crate levels stack crates at the bottom with one gap per row, two hits each', () => {
-  const stage = LV.level('plain', 5);
-  assert.equal(stage.goal.kind, 'crate');
-  const state = L.createGame(9, { mode: 'adventure', stage });
-  for (let k = 0; k < stage.fill; k++) {
-    const row = state.special.slice((7 - k) * SIZE, (8 - k) * SIZE);
-    const crates = row.filter((sp) => sp && sp.kind === 'crate').length;
-    assert.ok(crates >= 4 && crates <= 6, `row ${7 - k}: ${crates} crates`);
+test('crate levels scatter crates at the bottom: no row half full, none side by side, two hits each', () => {
+  for (const n of [5, 11, 16]) {
+    const stage = LV.level('plain', n);
+    assert.equal(stage.goal.kind, 'crate');
+    for (let seed = 1; seed <= 20; seed++) {
+      const state = L.createGame(seed, { mode: 'adventure', stage });
+      const isCrate = (i) => !!(state.special[i] && state.special[i].kind === 'crate');
+      const crates = state.special.map((_, i) => i).filter(isCrate);
+      assert.equal(crates.length, stage.goal.target + stage.fill);
+      for (const i of crates) {
+        assert.ok(Math.floor(i / SIZE) >= SIZE - stage.fill * 2, `crate ${i} too high`);
+        if (i % SIZE < SIZE - 1) assert.ok(!isCrate(i + 1), `crates ${i} and ${i + 1} side by side`);
+      }
+      for (let r = 0; r < SIZE; r++) assert.ok(crates.filter((i) => Math.floor(i / SIZE) === r).length <= SIZE / 2);
+    }
   }
-  assert.ok(state.special.filter((sp) => sp && sp.kind === 'crate').length >= stage.goal.target);
   assert.equal(L.KINDS.crate.hp, 2);
 });
 
