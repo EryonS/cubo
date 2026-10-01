@@ -376,6 +376,7 @@
   }
 
   function refillAll(state) {
+    if (state.puzzle && state.puzzle.free) return; // the whole quota is already in the tray
     state.tray = new Array(TRAY_SIZE).fill(null);
     for (let i = 0; i < TRAY_SIZE; i++) refillSlot(state, i);
   }
@@ -459,6 +460,13 @@
     });
     state.puzzle = { n: pz.n, name: pz.name, total: queue.length, placed: 0, hints: 0, won: false, stars: 0, queue,
       sol: pz.pieces.map((p) => p.sol) };
+    // Puzzle surprise: every piece in the tray at once, and placed pieces can be picked up again
+    // (liftPuzzle). at: { [piece id]: { slot, cells, piece } } for the pieces on the board.
+    if (pz.free) {
+      state.tray = queue;
+      state.next = null;
+      Object.assign(state.puzzle, { free: true, seed: pz.seed, queue: [], at: {} });
+    }
   }
 
   // Stars: 3 without hints, one less per hint, at least 1.
@@ -472,8 +480,9 @@
     state.moves += 1;
     state.stats.pieces += 1;
     state.tray[trayIndex] = null;
-    refillSlot(state, trayIndex);
+    if (!state.puzzle.free) refillSlot(state, trayIndex); // replaces state.puzzle (its queue)
     const pz = (state.puzzle = { ...state.puzzle, placed: state.puzzle.placed + 1 });
+    if (pz.free) pz.at = { ...pz.at, [piece.id]: { slot: trayIndex, cells: placed.map(([r, c]) => r * SIZE + c), piece } };
     if (state.board.every((v) => v)) { pz.won = true; pz.stars = puzzleStars(pz.hints); }
     settle(state);
     return {
@@ -482,6 +491,26 @@
         cleared: [], collected: [], points: 0, combo: 0, perfect: false, refilled: state.tray[trayIndex] ? [trayIndex] : [], timeGain: 0,
         over: state.over, stuck: state.stuck, won: pz.won },
     };
+  }
+
+  // Puzzle surprise: the player's piece covering cell (r, c) goes back to its tray slot (fixed
+  // pieces stay). Undo puts it back on the board. Returns { state, slot } or null.
+  function liftPuzzle(prev, r, c) {
+    if (prev.mode !== 'puzzle' || !prev.puzzle.free || prev.over) return null;
+    const i = r * SIZE + c;
+    const id = Object.keys(prev.puzzle.at).find((k) => prev.puzzle.at[k].cells.includes(i));
+    if (id === undefined) return null;
+    const { slot, cells, piece } = prev.puzzle.at[id];
+    const state = { ...prev, board: prev.board.slice(), tray: prev.tray.slice(), undo: prev };
+    for (const j of cells) state.board[j] = 0;
+    const at = { ...prev.puzzle.at };
+    delete at[id];
+    state.puzzle = { ...prev.puzzle, at, placed: prev.puzzle.placed - 1 };
+    const to = state.tray[slot] ? state.tray.indexOf(null) : slot;
+    const back = to < 0 ? state.tray.length : to;
+    state.tray[back] = piece;
+    settle(state);
+    return { state, slot: back };
   }
 
   // Puzzle hint: puts a tray piece on a solution spot of the same shape that is still empty.
@@ -1181,6 +1210,7 @@
     clockOf,
     defineWorlds,
     puzzleHint,
+    liftPuzzle,
     createGame,
     addMoves,
     place,

@@ -23,3 +23,6 @@ Each of the three tray slots and the Ensuite column sits on a pad in the theme's
 - `index.html`: `#pause`, settings rows, `.ui` classes.
 - `src/main.js`: sections `pause` and `settings`, `MARKS` / `drawMark`, `applyThemeCss`.
 - iPhone status bar: `syncStatusBar` sets `theme-color` to the shown menu screen's card color, else to the played world's `base`. Called from `applyThemeCss` and on every overlay change (`syncTabbar`).
+
+## Vibrations
+Réglages > Vibrations (`settings.vibrate`). Every vibration goes through `haptic(kind)` and the `HAPTICS` table in `src/main.js`: light ticks for pick / turn / place / coin, a double tick on a refused move (`nope()` plays the sound and the tick), longer rolls for line clears (more lines = longer, one more pulse from combo tier 2), bomb, boss hit, mission, record, win and game over. Coin ticks are throttled (90 ms) so a shower of coins stays a patter. iOS Safari has no `navigator.vibrate`: there they only play in the app build.

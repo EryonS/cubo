@@ -26,11 +26,11 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Défis screen, daily level, streak, share | [features/daily.md](features/daily.md) | `daily` in `src/levels.js`, daily/streak in `src/meta.js`, sections `daily level, streak, profile` and `Défis screen` in `src/main.js` |
 | Combo / line clear effects (juice) | [features/combo-feel.md](features/combo-feel.md) | `commit`, `drawBanner`, `drawComboTag` in `src/main.js` |
 | Guided first game, one-time tips | [features/tutorial.md](features/tutorial.md) | `src/tutorial.js`, `tipSeen` / `markTip` in `src/meta.js`, sections `tutorial` and `tips` in `src/main.js` |
-| Sticker album, trophies, profile and stats | [features/album.md](features/album.md) | `STICKERS` / `checkStickers` / `monthTrophy` / `modeStats` in `src/meta.js`, `#profile` screen |
-| Pause, block marks | [features/comfort.md](features/comfort.md) | section `pause` and `MARKS` in `src/main.js` |
+| Sticker album (incl. Maître des mondes), trophies, profile and stats, end-of-run summary | [features/album.md](features/album.md) | `STICKERS` / `checkStickers` / `monthTrophy` / `modeStats` in `src/meta.js`, `#profile` screen |
+| Pause, block marks, vibrations | [features/comfort.md](features/comfort.md) | section `pause`, `MARKS`, `HAPTICS` / `haptic` in `src/main.js` |
 | Bonus upgrades (Boutique tab Bonus) | [features/upgrades.md](features/upgrades.md) | `EFFECT_BY_LEVEL` / `bombArea` / `reroll` in `src/logic.js`, `UPGRADE_PRICES` in `src/meta.js`, `renderUpgrades` in `src/main.js` |
 | Mondes mode (endless world runs, prime) | [features/worlds-mode.md](features/worlds-mode.md) | `free` in `src/worlds.js`, mode `worlds` in `src/logic.js`, `worldPrime` in `src/meta.js`, section `Mondes` in `src/main.js` |
-| Puzzles (fill a drawing with a quota of pieces) | [features/puzzles.md](features/puzzles.md) | `src/puzzles.js`, mode `puzzle` in `src/logic.js`, `applyPuzzle` in `src/meta.js`, section `Puzzles` in `src/main.js` |
+| Puzzles (fill a drawing with a quota of pieces), Puzzle surprise | [features/puzzles.md](features/puzzles.md) | `src/puzzles.js`, mode `puzzle` in `src/logic.js`, `applyPuzzle` in `src/meta.js`, section `Puzzles` in `src/main.js` |
 | Mascot Cubo (moods, tap, setting) | [features/mascot.md](features/mascot.md) | section `mascot` in `src/main.js` |
 | Second obstacles of levels 11-19 (taupe, méduse, trou noir...) | [features/twists.md](features/twists.md) | `TWISTS` in `src/levels.js`, `KINDS` / `kindMoves` in `src/logic.js`, `twist` in `src/worlds.js` |
 | Cubo's wardrobe (Boutique tab Cubo) | [features/wardrobe.md](features/wardrobe.md) | `SKINS.cubo` in `src/meta.js`, `drawWardrobeHat` / `cuboLookFor` in `src/main.js` |

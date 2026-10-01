@@ -417,6 +417,7 @@
     .world-strip .world-tile .name { display: block; margin-top: 4px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .world-strip .world-tile .meta { margin-top: 1px; font-size: 12px; }
     .world-strip .world-tile .meta svg { width: 12px; height: 12px; }
+    .world-tile .crown { position: absolute; top: 2px; right: 2px; line-height: 0; color: #f5b700; filter: drop-shadow(0 1px 1px rgba(0,0,0,.3)); pointer-events: none; }
     .world-strip .world-tile.pick { background: var(--panel); box-shadow: inset 0 0 0 3px var(--accent); }
     .world-title { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
     .world-title h3 { flex: 1; min-width: 0; margin: 0; text-align: left; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
@@ -756,6 +757,16 @@
     /* Result cards: actions stay reachable at the bottom while the rest scrolls. */
     .card.sticky-foot { padding-bottom: 0; }
     .card.sticky-foot > .actions { position: sticky; bottom: 0; z-index: 1; margin-top: 16px; padding: 12px 0 24px; background: var(--panel); }
+    .run-sum { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0 4px; }
+    .run-sum div { min-width: 0; padding: 7px 4px 6px; border-radius: calc(var(--radius) - 8px); background: var(--panel-2); text-align: center; }
+    .run-sum b { display: block; font-family: var(--font-display); font-style: var(--display-style); font-size: 17px; line-height: 1.15; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+    .run-sum span { display: block; font-size: 11px; font-weight: 800; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .run-sum .pb { box-shadow: inset 0 0 0 2px var(--accent); }
+    .run-sum .pb span { color: var(--accent); }
+    .share-btn { display: inline-flex; align-items: center; gap: 6px; margin: 4px auto 6px; padding: 6px 12px; border: 0; border-radius: 999px;
+      background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+    .share-btn:active { transform: scale(.96); }
     .over-missions { margin-top: 12px; }
     .over-missions .mission { margin-bottom: 6px; }
     .missions-line { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 10px 12px; border-radius: calc(var(--radius) - 6px);
@@ -791,6 +802,17 @@
     .pz-locked { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2);
       font-size: 13px; font-weight: 700; color: var(--muted); text-align: left; }
     .pz-locked svg { flex: none; }
+    .pz-surprise { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 18px; padding: 12px 14px; border: var(--card-bw, 0) solid var(--card-bb, transparent);
+      border-radius: calc(var(--radius) - 6px); background: var(--panel-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+    .pz-surprise:active { transform: scale(.98); }
+    .pz-surprise.locked { cursor: default; color: var(--muted); }
+    .pz-surprise .ico { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; background: var(--accent); color: #fff; }
+    .pz-surprise.locked .ico { background: var(--panel); color: var(--muted); }
+    .pz-surprise .txt { flex: 1; min-width: 0; }
+    .pz-surprise .txt b { display: block; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 19px; line-height: 1.15; }
+    .pz-surprise .txt span { display: block; margin-top: 2px; font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.3; }
+    .pz-surprise .meta { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-size: 12px; font-weight: 800; color: var(--muted); }
+    .pz-surprise .meta b { display: inline-flex; align-items: center; color: var(--text); font-size: 14px; }
     .lvl .num canvas { width: 32px; height: 32px; }
     .skin .via { margin: -4px 0 7px; font-size: 12px; font-weight: 700; color: var(--muted); }
     .setting { cursor: pointer; }
@@ -1011,6 +1033,8 @@
       <div class="score" id="over-score">0</div>
       <div class="best" id="over-best">Record : 0</div>
       <div class="record">NOUVEAU RECORD</div>
+      <div class="run-sum" id="over-stats"></div>
+      <button class="share-btn" id="over-share"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Partager le résumé</button>
       <div class="earn" id="over-earn"></div>
       <div class="coins-total"><span>Pièces</span><span class="v"><i class="coin"></i> <span id="over-coins">0</span></span></div>
       <button class="btn ad" id="over-ad"></button>

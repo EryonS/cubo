@@ -301,6 +301,8 @@
     for (let i = 1; i <= LEVELS_PER_WORLD; i++) n += levelStars(profile, world, i) || 0;
     return n;
   };
+  // Every level of the world with 3 stars (sticker "<world> maîtrisé", gold mark on the world strip).
+  const worldMastered = (profile, world) => worldStars(profile, world) >= LEVELS_PER_WORLD * 3;
   const worldGate = (world) => WORLD_ORDER.indexOf(world) * STARS_PER_GATE;
   const bossBeaten = (profile, world) => levelCleared(profile, world, LEVELS_PER_WORLD);
 
@@ -412,6 +414,20 @@
     if (before === undefined && packDone(p, pack)) earned.push({ label: 'Pack terminé', coins: PUZZLE_PACK });
     const total = earned.reduce((a, l) => a + l.coins, 0);
     p = earn(p, total);
+    return { profile: p, report: { earned, total } };
+  }
+
+  // Puzzle surprise: opens once pack Maître (puzzles 31-40) is done. profile.surprises counts the ones
+  // solved (optional, absent = 0). Each pays SURPRISE_COINS, SURPRISE_HINTED when a hint was used.
+  const SURPRISE_PACK = 3;
+  const SURPRISE_COINS = 25;
+  const SURPRISE_HINTED = 10;
+  const surpriseOpen = (profile) => packDone(profile, SURPRISE_PACK);
+  const surprisesSolved = (profile) => profile.surprises || 0;
+  function applySurprise(prev, hints) {
+    const earned = [{ label: 'Puzzle surprise', coins: hints ? SURPRISE_HINTED : SURPRISE_COINS }];
+    const total = earned[0].coins;
+    const p = earn({ ...prev, surprises: surprisesSolved(prev) + 1 }, total);
     return { profile: p, report: { earned, total } };
   }
 
@@ -675,6 +691,7 @@
     { id: 'explorer', name: 'Explorateur' },
     { id: 'faithful', name: 'Fidèle' },
     { id: 'collector', name: 'Collectionneur' },
+    { id: 'master', name: 'Maître des mondes' },
     { id: 'secret', name: 'Secrets' },
   ];
   const STICKERS = [
@@ -700,6 +717,11 @@
     { id: 'themes3', page: 'collector', name: 'Décorateur', hint: 'Possède 3 thèmes en plus du Jouet', test: (p) => p.owned.boards.length >= 4 },
     { id: 'lines1000', page: 'collector', name: '1 000 lignes', hint: 'Efface 1 000 lignes au total', test: (p) => lt(p, 'lines') >= 1000 },
     { id: 'games100', page: 'collector', name: '100 parties', hint: 'Joue 100 parties', test: (p) => lt(p, 'games') >= 100 },
+    ...WORLD_ORDER.map((w) => ({
+      id: 'master-' + w, page: 'master', world: w, reward: 60,
+      name: WORLD_NAMES[w] + ' maîtrisé',
+      hint: `Gagne les ${LEVELS_PER_WORLD * 3} étoiles de ce monde`, test: (p) => worldMastered(p, w),
+    })),
     { id: 'stars120', page: 'collector', name: '120 étoiles', hint: "Gagne 120 étoiles en Aventure", test: (p) => totalStars(p) >= 120 },
     // Secret: name and hint stay hidden in the album until earned.
     { id: 'bomb21', page: 'secret', secret: true, reward: 40, name: 'Boum parfait', hint: 'Une Bombe fait sauter 21 blocs', test: (p) => lt(p, 'bestBomb') >= 21 },
@@ -767,8 +789,9 @@
     DAILY_ATTEMPTS, FREEZE_COST, FREEZE_MAX, STREAK_SKIN, dailyOf, streakOf, dailyAttemptsLeft, countDaily, canRefillDaily, dailyTryCost, dailyAdReady, buyDailyTry, adDailyRefill, streakNow,
     applyDaily, buyFreeze, monthTrophy, STICKER_PAGES, STICKERS, STICKER_REWARD, checkStickers,
     PUZZLE_FIRST, PUZZLE_PACK, PUZZLE_HINT, puzzleStarsOf, puzzleOpen, puzzlesSolved, applyPuzzle,
+    SURPRISE_COINS, SURPRISE_HINTED, surpriseOpen, surprisesSolved, applySurprise,
     WORLD_NAMES, worldFreeOpen, worldPrimeRate, worldPrime, UPGRADE_PRICES, upgradeLevel, upgradePrice, buyUpgrade,
     WORLD_ORDER, LEVELS_PER_WORLD, TRIAL_LEVEL, CHESTS, chestState, openChest, freeBombs, useFreeBomb, bossBeaten, EXTRA_MOVES, START_BONUS_COST, SKIP_COST, SKIP_AFTER, levelFails, recordFail, canSkip, extraMovesCost,
-    levelStars, levelCleared, totalStars, worldStars, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,
+    levelStars, levelCleared, totalStars, worldStars, worldMastered, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,
     SKINS, MISSIONS, createProfile, migrate, ensureDay, missionStatus, missionText, runCoins, applyRun, doubleRun, spend, buy, equip, nextGoal };
 });

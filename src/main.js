@@ -81,6 +81,9 @@
   }
 
   // ---------- icons ----------
+  // Puzzle surprise: a gift box.
+  const SURPRISE_SVG = '<rect x="3.5" y="9" width="17" height="11.5" rx="2" fill="currentColor"/><rect x="2.5" y="6.5" width="19" height="4" rx="1.4" fill="currentColor" opacity=".8"/><path d="M12 6.5v14" stroke="#fff" stroke-width="2.4"/><path d="M12 6.3C10.5 3 7 2.8 7.2 5c.2 1.6 3 1.5 4.8 1.3M12 6.3c1.5-3.3 5-3.5 4.8-1.3-.2 1.6-3 1.5-4.8 1.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>';
+  const CROWN_PATH = '<path d="M3.5 18.5 2.5 7l5.2 4.3L12 4l4.3 7.3L21.5 7l-1 11.5z" fill="currentColor" stroke="rgba(0,0,0,.25)" stroke-width="1" stroke-linejoin="round"/><rect x="3.5" y="19.3" width="17" height="2.2" rx="1" fill="currentColor"/>';
   // Vector icons drawn in a 100-unit box centered on (0, 0). Bonuses sit on a white badge
   // ringed with their color; coins are drawn as gold objects.
   const ICON_COLORS = { rotate: '#ff5d8f', nitro: '#f5a300', shield: '#1fa9e0', bomb: '#ef4444', reroll: '#8b5cf6' };
@@ -1217,8 +1220,10 @@
   let floaters = [];      // "+120" texts
   let banners = [];       // queue of big center texts, shown one after another
   let shake = 0;
-  let slotIn = [now(), now(), now()]; // per-slot slide-in timestamps
-  let slotSpin = [0, 0, 0];           // per-slot rotate animation timestamps
+  // Per-slot timestamps, sized for the Puzzle surprise tray (up to 12 slots).
+  const MAX_SLOTS = 12;
+  let slotIn = new Array(MAX_SLOTS).fill(now()); // slide-in
+  let slotSpin = new Array(MAX_SLOTS).fill(0);   // rotate animation
   let nextIn = now();                 // "next" preview slide-in timestamp
   let overAt = 0;
   let aiming = null;      // bomb targeting: { cell: [r, c] | null, pid }
@@ -1635,6 +1640,29 @@
   document.addEventListener('visibilitychange', () => music.sync());
 
   const buzz = (p) => { if (settings.vibrate && navigator.vibrate) navigator.vibrate(p); };
+  // One vibration per kind of moment, from a light tick (pick, coin) to long rolls (win, game over).
+  // Patterns are [on, off, on...] in ms. iOS Safari has no vibration API: they play in the app build.
+  const HAPTICS = {
+    pick: 5, lift: 7, turn: 6, place: 9, nope: [8, 45, 8], arm: 8, toss: 12, undo: 10, tap: 8,
+    bonus: 15, hint: 12, bomb: [30, 20, 60], boss: [25, 15, 25], coin: 4, star: 14,
+    mission: [12, 30, 12], record: [15, 30, 15, 30, 30], buy: [20, 40, 20],
+    win: [20, 40, 20, 40, 50], lose: [50, 70, 90],
+  };
+  let coinBuzzAt = 0;
+  // haptic('lines', lines, combo): longer for more lines at once, one more pulse for a big combo.
+  function haptic(kind, lines = 0, combo = 0) {
+    if (kind === 'coin') {
+      const t = now();
+      if (t - coinBuzzAt < 90) return; // a shower of coins stays a light patter
+      coinBuzzAt = t;
+    }
+    if (kind !== 'lines') { buzz(HAPTICS[kind]); return; }
+    const p = lines >= 4 ? [25, 20, 25, 20, 25, 20, 60] : lines === 3 ? [25, 25, 25, 25, 40] : lines === 2 ? [20, 30, 30] : [18];
+    const tier = comboTier(combo);
+    buzz(tier >= 2 ? [...p, 40, 20 + tier * 15] : p.length === 1 ? p[0] : p);
+  }
+  // Refused move: the sound and a double tick.
+  const nope = () => { sfx.nope(); haptic('nope'); };
 
   // ---------- drawing helpers ----------
   // fam: the shape family (palette index); with the "Motifs" setting on, it adds that family's mark.
@@ -1686,10 +1714,25 @@
   const comboTier = (combo, lines = 0) => (combo >= 6 ? 3 : combo >= 4 || lines >= 3 ? 2 : combo >= 2 || lines >= 2 ? 1 : 0);
   const tierColor = (tier, t) => (tier >= 3 ? `hsl(${Math.round(t / 4) % 360} 92% 58%)` : tier === 2 ? '#ff8a1f' : theme().accent);
 
-  function slotCenter(i) {
-    return [lay.bx + lay.slotW * (i + 0.5), lay.ty + lay.trayH / 2];
+  // Puzzle surprise: the whole quota sits in the tray, on two rows over the full board width.
+  const freeTray = () => !!(state.puzzle && state.puzzle.free);
+  function slotBox(i) {
+    if (!freeTray()) return { x: lay.bx + lay.slotW * i, y: lay.ty, w: lay.slotW, h: lay.trayH };
+    const cols = Math.max(3, Math.ceil(state.tray.length / 2));
+    const w = lay.board / cols;
+    const h = lay.trayH / 2;
+    return { x: lay.bx + w * (i % cols), y: lay.ty + h * Math.floor(i / cols), w, h };
   }
-  const miniCell = () => Math.min(lay.cell * 0.5, lay.slotW / 5.8); // a 5-long piece stays inside its tray pad
+  function slotCenter(i) {
+    const b = slotBox(i);
+    return [b.x + b.w / 2, b.y + b.h / 2];
+  }
+  // A 5-long piece stays inside its tray pad.
+  function miniCell() {
+    if (!freeTray()) return Math.min(lay.cell * 0.5, lay.slotW / 5.8);
+    const b = slotBox(0);
+    return Math.min(lay.cell * 0.4, b.w / 5.6, (b.h - 8) / 3.4);
+  }
 
   function drawPiece(piece, cx, cy, cellSize, alpha = 1) {
     const ox = cx - (piece.w * cellSize) / 2;
@@ -2235,7 +2278,7 @@
       floaters.push({ text: '-' + hits, x: cx, y: cy - lay.cell, t0: t, big: true, scale: 1.2, tier: 2 });
       for (const b of ev.bossHits) burst({ r: b.r, c: b.c, kind: 'boss' }, t, 5, 90, BOSS_LOOK[stage.world]);
       sfx.thunk();
-      buzz(25);
+      haptic('boss');
       if (stage.won) {
         banners.length = 0;
         banners.push({ text: 'Boss vaincu !', sub: stage.goal.name, tier: 3 });
@@ -2254,8 +2297,8 @@
     const piece = state.tray[d.idx];
     const k = easeOut((t - d.t0) / 110);
     const size = miniCell() + (lay.cell - miniCell()) * k;
-    const cx = d.x;
-    const cy = d.y - d.lift * k;
+    const cx = d.x + (d.ox || 0);
+    const cy = d.y - d.lift * k + (d.oy || 0);
     const tlx = cx - (piece.w * lay.cell) / 2;
     const tly = cy - (piece.h * lay.cell) / 2;
     const col = Math.round((tlx - lay.bx) / lay.cell);
@@ -2266,6 +2309,12 @@
 
   function slotAt(x, y) {
     if (y < lay.ty - lay.cell * 0.4 || y > lay.ty + lay.trayH + lay.cell * 0.2) return -1;
+    if (freeTray()) {
+      if (x < lay.bx || x > lay.bx + lay.board) return -1;
+      const b = slotBox(0);
+      const i = Math.min(1, Math.max(0, Math.floor((y - lay.ty) / b.h))) * Math.round(lay.board / b.w) + Math.floor((x - lay.bx) / b.w);
+      return i < state.tray.length ? i : -1;
+    }
     if (x > lay.nextX) return -1;
     return Math.max(0, Math.floor((x - lay.bx) / lay.slotW));
   }
@@ -2289,6 +2338,7 @@
     }
     if (cuboHit(e.clientX, e.clientY) && !drag) { cuboTap(); return; }
     if (state.over || drag) return;
+    if (freeTray() && liftFromBoard(e)) return;
     const idx = slotAt(e.clientX, e.clientY);
     if (idx < 0 || !state.tray[idx] || returning.some((p) => p.idx === idx)) return;
     canvas.setPointerCapture(e.pointerId);
@@ -2296,7 +2346,29 @@
     drag = { idx, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, lift, t0: now(), pid: e.pointerId };
     showTrash(true);
     if (!L.canTurn(state)) sfx.pick();
+    haptic('pick');
   });
+  // Puzzle surprise: grabbing a placed piece picks it up where the finger holds it.
+  function liftFromBoard(e) {
+    const cell = boardCellAt(e.clientX, e.clientY);
+    if (!cell) return false;
+    const i = cell[0] * SIZE + cell[1];
+    const spot = Object.values(state.puzzle.at || {}).find((a) => a.cells.includes(i));
+    const res = spot && L.liftPuzzle(state, cell[0], cell[1]);
+    if (!res) return false;
+    const row = Math.min(...spot.cells.map((j) => Math.floor(j / SIZE)));
+    const col = Math.min(...spot.cells.map((j) => j % SIZE));
+    state = res.state;
+    canvas.setPointerCapture(e.pointerId);
+    // Starts full size (t0 in the past) and keeps the grabbed cell under the finger.
+    drag = { idx: res.slot, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, lift: 0, t0: now() - 200, pid: e.pointerId, fromBoard: true,
+      ox: lay.bx + (col + spot.piece.w / 2) * lay.cell - e.clientX, oy: lay.by + (row + spot.piece.h / 2) * lay.cell - e.clientY };
+    sfx.pick();
+    haptic('lift');
+    renderUndo();
+    return true;
+  }
+
   canvas.addEventListener('pointermove', (e) => {
     if (aiming && (aiming.pid === e.pointerId || e.pointerType === 'mouse')) {
       aiming.cell = boardCellAt(e.clientX, e.clientY);
@@ -2315,7 +2387,7 @@
       aiming.pid = null;
       if (e.type === 'pointerup' && cell) {
         if (useBonus('bomb', { r: cell[0], c: cell[1] })) setAiming(false);
-        else sfx.nope();
+        else nope();
       }
       return;
     }
@@ -2326,13 +2398,19 @@
     const isTap = t - drag.t0 < 280 && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 12;
     // Only a piece held over the bin until it armed gets thrown: a quick slip below the tray doesn't count.
     const toss = drag.overTrash && drag.trashArmed && e.type === 'pointerup';
+    const drag0 = drag;
     drag = null;
     showTrash(false);
     if (toss) {
       if (!discardPiece(idx, e.clientX, e.clientY)) {
         returning.push({ idx, x: g.cx, y: g.cy, size: g.size, t0: t });
-        sfx.nope();
+        nope();
       }
+      return;
+    }
+    if (isTap && drag0.fromBoard) {
+      returning.push({ idx, x: g.cx, y: g.cy, size: g.size, t0: t });
+      save();
       return;
     }
     if (isTap && e.type === 'pointerup' && L.canTurn(state)) {
@@ -2341,14 +2419,14 @@
         state = next;
         slotSpin[idx] = t;
         sfx.turn();
-        buzz(6);
+        haptic('turn');
         save();
       }
       return;
     }
     if (g.valid && e.type === 'pointerup' && commit(idx, g.row, g.col) !== false) return;
     returning.push({ idx, x: g.cx, y: g.cy, size: g.size, t0: t });
-    if (e.type === 'pointerup') sfx.nope();
+    if (e.type === 'pointerup') nope();
   };
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
@@ -2370,7 +2448,7 @@
       d.trashArmed = true;
       trashEl.classList.add('armed');
       trashEl.querySelector('.label').textContent = 'Lâcher pour jeter';
-      buzz(8);
+      haptic('arm');
     }, TRASH_ARM_MS);
   }
 
@@ -2446,10 +2524,10 @@
 
       shake = Math.min(16, 3 + ev.lines * 3 + ev.combo * 1.5);
       sfx.clear(ev.lines, ev.combo);
-      buzz(ev.lines >= 2 ? [20, 30, 30] : 18);
+      haptic('lines', ev.lines, ev.combo);
     } else {
       sfx.place();
-      buzz(8);
+      haptic('place');
     }
 
     if (ev.timeGain > 0) {
@@ -2590,14 +2668,14 @@
     }
     refilled(res.events.refilled, t);
     sfx.toss();
-    buzz(12);
+    haptic('toss');
     afterChange(t, res.events.over);
     return true;
   }
 
   function undoMove() {
     const res = L.undo(state);
-    if (!res) { sfx.nope(); return; }
+    if (!res) { nope(); return; }
     const t = now();
     state = res.state;
     best = Math.max(bestAtStart, state.score); // an undone move doesn't keep its record
@@ -2605,7 +2683,7 @@
     refilled([0, 1, 2], t);
     pops = []; fades = []; flyers = [];
     sfx.undo();
-    buzz(10);
+    haptic('undo');
     afterChange(t, res.events.over);
   }
 
@@ -2644,6 +2722,7 @@
       if (!recordAnnounced && bestAtStart > 0) {
         recordAnnounced = true;
         banners.push({ text: 'Nouveau record !', sub: '', gold: true });
+        haptic('record');
         cuboReact('star', 1500, 1);
         flagDownAt = t;
         if (!calm()) confetti(t, 36);
@@ -2667,6 +2746,7 @@
       announced.add(m.id);
       banners.push({ text: 'Mission réussie', sub: m.text + ' · +' + m.reward, subIcon: 'coin', gold: true });
       sfx.mission();
+      haptic('mission');
     }
     renderMissionBadges();
   }
@@ -2735,14 +2815,14 @@
       bossEffects(ev, t);
       shake = 18;
       sfx.bomb();
-      buzz([30, 20, 50]);
+      haptic('bomb');
     } else {
       const ui = BONUS_UI[type];
       banners.length = 0;
       banners.push({ icon: type, text: ui.name, sub: ui.hint(bonusLv(type)), gold: true });
       refilled(ev.refilled, t);
       sfx.bonus();
-      buzz(15);
+      haptic('bonus');
     }
 
     afterChange(t, ev.over);
@@ -2776,9 +2856,10 @@
     overAt = t;
     if (state.stage) { endLevel(); return; }
     best = Math.max(best, state.score);
+    const lifeBefore = { ...(profile.lifetime || {}) }; // personal bests before this run, for the summary
     const report = settleRun();
-    setTimeout(() => { sfx.over(); buzz([40, 60, 80]); }, 350);
-    setTimeout(() => showGameOver(report), 1300);
+    setTimeout(() => { sfx.over(); haptic('lose'); }, 350);
+    setTimeout(() => showGameOver(report, lifeBefore), 1300);
     save();
   }
 
@@ -2786,11 +2867,13 @@
   const overEl = document.getElementById('over');
   const overCard = document.getElementById('over-card');
 
-  function showGameOver(report) {
+  function showGameOver(report, lifeBefore = {}) {
     document.getElementById('over-title').textContent = state.timeUp ? 'Temps écoulé !' : 'Plus de place !';
     document.getElementById('over-score').textContent = fmt(state.score);
     document.getElementById('over-best').textContent = 'Record : ' + fmt(best);
-    overCard.classList.toggle('is-record', state.score >= best && state.score > bestAtStart && bestAtStart > 0);
+    const isRecord = state.score >= best && state.score > bestAtStart && bestAtStart > 0;
+    overCard.classList.toggle('is-record', isRecord);
+    renderRunSummary(lifeBefore, isRecord);
 
     const earnEl = document.getElementById('over-earn');
     const coinsEl = document.getElementById('over-coins');
@@ -2823,6 +2906,49 @@
     }
     renderRunMissions(document.getElementById('over-missions'));
     overEl.classList.add('show');
+  }
+
+  // End-of-run summary: four numbers of the run, a personal best flagged, and a share button.
+  function runSummary(lifeBefore) {
+    const st = state.stats || {};
+    const best = (k) => (lifeBefore[k] || 0) > 0 && (st[k] || 0) > (lifeBefore[k] || 0);
+    return [
+      { label: 'Lignes', value: fmt(st.lines || 0) },
+      { label: 'Combo max', value: st.bestCombo >= 2 ? times(st.bestCombo) : '–', best: st.bestCombo >= 2 && best('bestCombo') },
+      { label: 'D’un coup', value: st.bestMulti >= 2 ? st.bestMulti + ' lignes' : st.bestMulti === 1 ? '1 ligne' : '–', best: st.bestMulti >= 2 && best('bestMulti') },
+      { label: 'Formes', value: fmt(st.pieces || 0) },
+    ];
+  }
+  function renderRunSummary(lifeBefore, isRecord) {
+    const tiles = runSummary(lifeBefore);
+    document.getElementById('over-stats').innerHTML = tiles.map((x) =>
+      `<div${x.best ? ' class="pb"' : ''}><b>${x.value}</b><span>${x.best ? 'Record !' : x.label}</span></div>`).join('');
+    const share = document.getElementById('over-share');
+    share.onclick = () => shareRun(tiles, isRecord);
+  }
+  async function shareRun(tiles, isRecord) {
+    unlockAudio();
+    sfx.turn();
+    const text = [
+      `Gridlock · ${modeLabel()}`,
+      `${fmt(state.score)} points${isRecord ? ' · nouveau record' : ''}`,
+      tiles.filter((x) => x.value !== '–').map((x) => `${x.label} : ${x.value}`).join(' · '),
+    ].join('\n');
+    try {
+      if (navigator.share) { await navigator.share({ text }); return; }
+      await navigator.clipboard.writeText(text);
+      flashShare('Résumé copié');
+    } catch (err) {
+      if (err && err.name !== 'AbortError') flashShare('Partage impossible ici'); // AbortError: the share sheet was closed
+    }
+  }
+  // No toast in the app: the button says what happened for a moment.
+  function flashShare(text) {
+    const btn = document.getElementById('over-share');
+    const label = btn.lastChild;
+    const before = label.textContent;
+    label.textContent = text;
+    setTimeout(() => { label.textContent = before; }, 1800);
   }
 
   const adBtn = document.getElementById('over-ad');
@@ -2936,7 +3062,7 @@
     displayScore = state.score;
     drag = null;
     returning = []; pops = []; fades = []; particles = []; floaters = [];
-    banners = []; overAt = 0; slotIn = [now(), now(), now()]; slotSpin = [0, 0, 0]; nextIn = now();
+    banners = []; overAt = 0; slotIn = new Array(MAX_SLOTS).fill(now()); slotSpin = new Array(MAX_SLOTS).fill(0); nextIn = now();
     aiming = null; flyers = [];
     tracks = new Map(); shifts = []; drops = new Map();
     sweeps = []; punch = null; comboAt = 0; comboBreak = null;
@@ -3057,7 +3183,7 @@
     chill: 'Touche une forme pour la tourner. Pas de bonus, pas de pression.',
   };
   // "Classique · Normal", or "Mondes · Glace".
-  const modeLabel = (st = state) => (st.puzzle ? `Puzzle ${st.puzzle.n} · ${st.puzzle.name}` : st.mode === 'worlds' ? 'Mondes · ' + WD.WORLDS[st.world].name : `${MODE_NAMES[st.mode]} · ${LEVEL_NAMES[st.level]}`);
+  const modeLabel = (st = state) => (st.puzzle ? `${puzzleTitle(st.puzzle)} · ${st.puzzle.name}` : st.mode === 'worlds' ? 'Mondes · ' + WD.WORLDS[st.world].name : `${MODE_NAMES[st.mode]} · ${LEVEL_NAMES[st.level]}`);
   const heroArt = document.getElementById('menu-adventure-art');
 
   // Next Aventure level to play: the first open level not cleared yet, in map order.
@@ -3094,7 +3220,7 @@
     renderDailyButton();
     renderEventRow();
     renderMissionBadges();
-    document.getElementById('menu-puzzles-sub').textContent = puzzleInProgress() ? `Puzzle ${state.puzzle.n} en cours`
+    document.getElementById('menu-puzzles-sub').textContent = puzzleInProgress() ? `${puzzleTitle(state.puzzle)} en cours`
       : `${M.puzzlesSolved(profile)} / ${PZ.COUNT} résolus`;
     // A parked free run shows here, ready to resume; the chevron still picks a new one.
     document.getElementById('menu-free-tag').textContent = parked ? 'Partie en cours' : 'Partie libre';
@@ -3231,12 +3357,28 @@
         // Solved: the drawing itself replaces the number.
         if (stars !== undefined) b.querySelector('.num').replaceChildren(puzzleThumb(n));
         b.setAttribute('aria-label', `Puzzle ${n}` + (stars !== undefined ? ', ' + pzOf(n).name : '') + (open ? '' : ', verrouillé'));
-        b.addEventListener('click', () => { if (open) { sfx.turn(); startPuzzle(n); } else sfx.nope(); });
+        b.addEventListener('click', () => { if (open) { sfx.turn(); startPuzzle(n); } else nope(); });
         grid.appendChild(b);
       }
       list.appendChild(grid);
     });
+    list.appendChild(surpriseCard());
     puzzlesEl.classList.add('show');
+  }
+
+  // Last row of the list: Puzzle surprise, a random drawing with every piece shown at once.
+  function surpriseCard() {
+    const open = M.surpriseOpen(profile);
+    const solved = M.surprisesSolved(profile);
+    const el = document.createElement(open ? 'button' : 'div');
+    el.className = 'pz-surprise' + (open ? '' : ' locked');
+    el.innerHTML = `<span class="ico">${open ? `<svg width="30" height="30" viewBox="0 0 24 24">${SURPRISE_SVG}</svg>` : LOCK_SVG}</span>
+      <span class="txt"><b>Puzzle surprise</b><span>${open
+        ? `Un dessin au hasard, ${PZ.SURPRISE_MIN} à ${PZ.SURPRISE_MAX} formes à placer toutes ensemble. Tu peux déplacer celles déjà posées.`
+        : `Finis le pack ${PZ.PACKS[3].name} pour l’ouvrir : un dessin au hasard, toutes les formes d’un coup.`}</span></span>
+      ${open ? `<span class="meta">${solved ? `${fmt(solved)} réussi${solved > 1 ? 's' : ''}` : 'Nouveau'}<b>+${M.SURPRISE_COINS}${COIN}</b></span>` : ''}`;
+    if (open) el.addEventListener('click', () => { sfx.turn(); unlockAudio(); launchSurprise(); });
+    return el;
   }
   // Building a puzzle tiles its drawing: keep the ones the list needs.
   const pzCache = {};
@@ -3276,6 +3418,15 @@
     banners.push({ text: 'Puzzle ' + n, sub: state.puzzle.name + ' · ' + state.puzzle.total + ' formes', gold: true });
   }
 
+  const puzzleTitle = (pz) => (pz.free ? 'Puzzle surprise' : 'Puzzle ' + pz.n);
+  function launchSurprise(seed = Date.now()) {
+    puzzlesEl.classList.remove('show');
+    levelEndEl.classList.remove('show');
+    menuEl.classList.remove('show');
+    restartRun({ mode: 'puzzle', puzzle: PZ.surprise(seed) });
+    banners.push({ text: 'Puzzle surprise', sub: state.puzzle.name + ' · ' + state.puzzle.total + ' formes', gold: true });
+  }
+
   // Hint button (puzzle only): places one piece on a right spot for a few coins.
   const hintBtn = document.createElement('button');
   hintBtn.className = 'hint-btn';
@@ -3288,11 +3439,11 @@
   hintBtn.addEventListener('click', () => {
     unlockAudio();
     if (state.mode !== 'puzzle' || state.over) return;
-    if (profile.coins < M.PUZZLE_HINT) { sfx.nope(); banners.push({ text: 'Pas assez de pièces', sub: `Un indice coûte ${M.PUZZLE_HINT}` }); return; }
+    if (profile.coins < M.PUZZLE_HINT) { nope(); banners.push({ text: 'Pas assez de pièces', sub: `Un indice coûte ${M.PUZZLE_HINT}` }); return; }
     const res = L.puzzleHint(state);
     if (!res) {
-      sfx.nope();
-      banners.push({ text: 'Pas de place juste', sub: 'Annule quelques coups, puis réessaie' });
+      nope();
+      banners.push({ text: 'Pas de place juste', sub: state.puzzle.free ? 'Retire une forme mal placée, puis réessaie' : 'Annule quelques coups, puis réessaie' });
       return;
     }
     payCoins(M.PUZZLE_HINT);
@@ -3304,7 +3455,7 @@
     }
     refilled(res.events.refilled, t);
     sfx.bonus();
-    buzz(12);
+    haptic('hint');
     renderUndo();
     renderHint();
     afterChange(t, res.events.over);
@@ -3317,7 +3468,7 @@
     let report = null;
     if (!levelSettled) {
       levelSettled = true;
-      const res = M.applyPuzzle(profile, pz.n, pz.stars);
+      const res = pz.free ? M.applySurprise(profile, pz.hints) : M.applyPuzzle(profile, pz.n, pz.stars);
       profile = res.profile;
       report = res.report;
       report.earned.push(...stickerLines());
@@ -3327,7 +3478,7 @@
     banners.length = 0;
     banners.push({ text: 'Bravo !', sub: pz.name + ' complété', tier: 3 });
     if (!calm()) { confetti(t, 70); shake = 10; }
-    setTimeout(() => { sfx.mission(); buzz([20, 40, 20]); }, 350);
+    setTimeout(() => { sfx.mission(); haptic('win'); }, 350);
     setTimeout(() => showPuzzleEnd(runReport, report), 1300);
     save();
   }
@@ -3337,25 +3488,28 @@
     const card = document.getElementById('level-end-card');
     const lines = [...(runReport ? runReport.earned : []), ...(report ? report.earned : [])];
     const total = lines.reduce((a, l) => a + l.coins, 0);
-    const next = pz.n < PZ.COUNT ? pz.n + 1 : null;
+    const next = !pz.free && pz.n < PZ.COUNT ? pz.n + 1 : null;
     card.innerHTML = `
       <h2>Puzzle réussi !</h2>
-      <div class="stage-sub">Puzzle ${pz.n} · ${pz.name}</div>
-      <div class="stage-stars">${starsRow(pz.stars, 44)}</div>
+      <div class="stage-sub">${puzzleTitle(pz)} · ${pz.name}</div>
+      ${pz.free ? `<div class="stage-sub">${fmt(M.surprisesSolved(profile))} puzzle${M.surprisesSolved(profile) > 1 ? 's' : ''} surprise réussi${M.surprisesSolved(profile) > 1 ? 's' : ''}</div>` : `<div class="stage-stars">${starsRow(pz.stars, 44)}</div>`}
       <div class="stage-sub">${pz.hints ? `${pz.hints} indice${pz.hints > 1 ? 's' : ''} utilisé${pz.hints > 1 ? 's' : ''}` : 'Sans indice'}</div>
       <div class="earn">${lines.map((l) => `<div class="earn-line in"><span>${l.label}</span><b>+${l.coins}${COIN}</b></div>`).join('')}</div>
       ${total ? `<div class="coins-total"><span>Pièces</span><span class="v">+${fmt(total)} ${COIN}</span></div>` : ''}
       <div class="actions">
         <button class="btn ghost" data-act="list">Puzzles</button>
-        ${pz.stars >= 3 ? '' : `<button class="btn ${next ? 'ghost' : 'primary'}" data-act="again">Rejouer</button>`}
+        ${pz.free ? '<button class="btn primary" data-act="more">Un autre</button>' : ''}
+        ${pz.free || pz.stars >= 3 ? '' : `<button class="btn ${next ? 'ghost' : 'primary'}" data-act="again">Rejouer</button>`}
         ${next ? '<button class="btn primary" data-act="next">Suivant</button>' : ''}
       </div>`;
     card.querySelector('[data-act="list"]').addEventListener('click', openPuzzles);
+    const more = card.querySelector('[data-act="more"]');
+    if (more) more.addEventListener('click', () => launchSurprise());
     const again = card.querySelector('[data-act="again"]');
     if (again) again.addEventListener('click', () => startPuzzle(pz.n));
     if (next) card.querySelector('[data-act="next"]').addEventListener('click', () => startPuzzle(next));
     levelEndEl.classList.add('show');
-    starChimes(pz.stars);
+    if (!pz.free) starChimes(pz.stars);
   }
 
   // ---------- aventure ----------
@@ -3408,10 +3562,12 @@
     for (const tile of list.children) {
       const w = tile.dataset.w;
       const open = M.worldOpen(profile, w);
-      tile.className = 'world-tile' + (open ? '' : ' locked') + (w === openWorldId ? ' pick' : '');
+      tile.className = 'world-tile' + (open ? '' : ' locked') + (w === openWorldId ? ' pick' : '') + (M.worldMastered(profile, w) ? ' mastered' : '');
       tile.setAttribute('aria-selected', w === openWorldId);
       drawPreview(tile.querySelector('canvas'), profile.equipped.blocks, w);
       tile.querySelector('.meta').innerHTML = open ? starSvg(true, 11) + M.worldStars(profile, w) : LOCK_SVG;
+      // Every star won: a gold crown on the tile (and the "<world> maîtrisé" sticker).
+      if (M.worldMastered(profile, w) && !tile.querySelector('.crown')) tile.insertAdjacentHTML('beforeend', `<span class="crown" aria-label="Monde maîtrisé"><svg width="18" height="18" viewBox="0 0 24 24">${CROWN_PATH}</svg></span>`);
     }
   }
 
@@ -3471,7 +3627,7 @@
       b.style.gridRow = row + 1;
       b.style.gridColumn = (row % 2 ? 4 - ((n - 1) % 5) : (n - 1) % 5) + 1;
       b.setAttribute('aria-label', levelName(n) + (trial || boss ? ` (niveau ${n})` : '') + (open ? '' : ', verrouillé'));
-      b.addEventListener('click', () => { if (open) { sfx.turn(); openStage(w, n); } else sfx.nope(); });
+      b.addEventListener('click', () => { if (open) { sfx.turn(); openStage(w, n); } else nope(); });
       grid.appendChild(b);
     }
     if (open) renderEndless(w); else document.getElementById('world-endless').innerHTML = '';
@@ -3492,7 +3648,7 @@
     return true;
   };
   for (const b of document.querySelectorAll('#world-page [data-step]')) b.addEventListener('click', () => stepWorld(+b.dataset.step));
-  onSwipe(document.getElementById('world-page'), (d) => { if (!stepWorld(d)) sfx.nope(); });
+  onSwipe(document.getElementById('world-page'), (d) => { if (!stepWorld(d)) nope(); });
   document.getElementById('world-page').addEventListener('animationend', (e) => {
     if (e.target.id === 'world-page') e.target.classList.remove('from-left', 'from-right');
   });
@@ -3555,7 +3711,7 @@
         const i = +btn.dataset.i;
         const res = M.openChest(profile, w, i);
         if (!res) {
-          sfx.nope();
+          nope();
           const c = M.CHESTS[i];
           if (M.chestState(profile, w, i) === 'locked') btn.querySelector('small').innerHTML = label(c);
           return;
@@ -3564,7 +3720,7 @@
         saveProfile();
         renderWallet();
         sfx.buy();
-        buzz([15, 30, 15]);
+        haptic('buy');
         renderChests(w);
         const opened = el.querySelector(`.chest[data-i="${i}"]`);
         opened.classList.add('burst');
@@ -3610,7 +3766,7 @@
       skipBtn.addEventListener('click', async () => {
         if (!await ask({ title: 'Passer le niveau ?', text: `Il coûte ${M.SKIP_COST} pièces et ne rapporte aucune étoile.`, ok: 'Passer' })) return;
         const next = M.skipLevel(profile, w, n);
-        if (!next) { sfx.nope(); return; }
+        if (!next) { nope(); return; }
         profile = next;
         saveProfile();
         renderWallet();
@@ -3673,7 +3829,7 @@
       profile = M.recordFail(profile, stage.world, stage.n);
       saveProfile();
     }
-    setTimeout(() => { if (stage.won) { sfx.mission(); buzz([20, 40, 20]); } else { sfx.over(); buzz([40, 60, 80]); } }, 350);
+    setTimeout(() => { if (stage.won) { sfx.mission(); haptic('win'); } else { sfx.over(); haptic('lose'); } }, 350);
     setTimeout(() => showLevelEnd(runReport, levelReport), stage.won ? 900 : 1300);
     save();
   }
@@ -3720,7 +3876,7 @@
     const equip = card.querySelector('[data-act="equip"]');
     if (equip) equip.addEventListener('click', () => {
       const next = M.equip(profile, 'boards', levelReport.themeUnlocked);
-      if (!next) { sfx.nope(); return; }
+      if (!next) { nope(); return; }
       profile = next;
       saveProfile();
       paintBackground();
@@ -3734,7 +3890,7 @@
 
   // One chime per star, in step with the stars' CSS entrance (0, 180, 360 ms).
   function starChimes(n) {
-    for (let k = 0; k < n; k++) setTimeout(() => sfx.star(k), 60 + k * 180);
+    for (let k = 0; k < n; k++) setTimeout(() => { sfx.star(k); haptic('star'); }, 60 + k * 180);
   }
 
   function bindMoreMoves(card, cost) {
@@ -3743,7 +3899,7 @@
     more.disabled = profile.coins < cost;
     more.addEventListener('click', () => {
       const revived = L.addMoves(state, M.EXTRA_MOVES);
-      if (!revived || profile.coins < cost) { sfx.nope(); return; }
+      if (!revived || profile.coins < cost) { nope(); return; }
       payCoins(cost);
       state = revived;
       overAt = 0;
@@ -3850,7 +4006,7 @@
       b.style.gridRow = row + 1;
       b.style.gridColumn = (row % 2 ? 4 - ((n - 1) % 5) : (n - 1) % 5) + 1;
       b.setAttribute('aria-label', eventLevelName(n) + (open ? '' : ', verrouillé'));
-      b.addEventListener('click', () => { if (open) { sfx.turn(); openEventStage(ev.id, n); } else sfx.nope(); });
+      b.addEventListener('click', () => { if (open) { sfx.turn(); openEventStage(ev.id, n); } else nope(); });
       grid.appendChild(b);
     }
   }
@@ -3944,6 +4100,7 @@
   };
   // One glyph per album page, white on the sticker's colored badge.
   const STICKER_GLYPHS = {
+    master: CROWN_PATH,
     combo: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" fill="currentColor"/>',
     explorer: '<path d="M6 21V4M6 4h11l-2.5 4L17 12H6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>',
     faithful: '<path d="M12 2.5c1 3.6 5.5 5.6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.4 1.1-4 2.4-5.3.2 1.7 1 2.8 2.1 3.3-.4-3.3.3-6.3 1-9z" fill="currentColor"/>',
@@ -3952,7 +4109,7 @@
   };
   // Unearned secret stickers show a question mark instead of their glyph, name and hint.
   const SECRET_GLYPH = '<path d="M9 9.2a3 3 0 1 1 4.2 2.8c-.8.4-1.2 1-1.2 1.8v.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="18.3" r="1.5" fill="currentColor"/>';
-  const PAGE_COLORS = { combo: '#ff8fab', explorer: '#6fd6a0', faithful: '#ff9f43', collector: '#8b7cf6', secret: '#3fc1b0' };
+  const PAGE_COLORS = { combo: '#ff8fab', explorer: '#6fd6a0', faithful: '#ff9f43', collector: '#8b7cf6', master: '#f5b700', secret: '#3fc1b0' };
   const WORLD_COLORS = { plain: '#5cc64a', sea: '#1a6aa8', space: '#6a3fd0', ice: '#5ccfe6', forest: '#2f7a4a', retro: '#306230', arcade: '#ff3fd0', volcano: '#e8501a' };
   let freshStickers = new Set();
 
@@ -3995,7 +4152,7 @@
       buy.disabled = profile.coins < M.dailyTryCost(profile, day);
       buy.addEventListener('click', () => {
         const next = M.buyDailyTry(profile, day, today());
-        if (!next) { sfx.nope(); return; }
+        if (!next) { nope(); return; }
         profile = next; saveProfile(); renderWallet(); sfx.buy(); after();
       });
     }
@@ -4022,7 +4179,7 @@
   function launchDaily(day) {
     // The same daily already going on will count as an attempt when it gets dropped.
     const going = state.stage && state.stage.daily === day && inProgress() ? 1 : 0;
-    if (M.dailyAttemptsLeft(profile, day, today()) - going <= 0) { sfx.nope(); return; }
+    if (M.dailyAttemptsLeft(profile, day, today()) - going <= 0) { nope(); return; }
     hideAdventure();
     menuEl.classList.remove('show');
     const stage = LV.daily(day);
@@ -4233,7 +4390,7 @@
     const freeze = body.querySelector('[data-act="freeze"]');
     freeze.addEventListener('click', () => {
       const next = M.buyFreeze(profile);
-      if (!next) { sfx.nope(); return; }
+      if (!next) { nope(); return; }
       profile = next; saveProfile(); renderWallet(); sfx.buy(); renderDefis();
     });
   }
@@ -4258,7 +4415,7 @@
   // Previous / next week (or month when unfolded): arrows, or a swipe on the calendar.
   function stepCal(d) {
     const arrow = document.querySelector(`#defis-body [data-cal="${d}"]`);
-    if (!arrow || arrow.disabled) { sfx.nope(); return; }
+    if (!arrow || arrow.disabled) { nope(); return; }
     if (calOpen) calMonth = M.addDays(calMonth + '-15', d * 30).slice(0, 7);
     else pickDay(M.addDays(defisDay, d * 7)); // same weekday, the week before / after
     sfx.turn();
@@ -4473,6 +4630,7 @@
     if (daily) launchDaily(daily);
     else if (state.stage && state.stage.event) launchEventLevel(state.stage.event, state.stage.n);
     else if (state.stage) startLevel(state.stage.world, state.stage.n);
+    else if (state.puzzle && state.puzzle.free) launchSurprise(state.puzzle.seed);
     else if (state.puzzle) startPuzzle(state.puzzle.n);
     else restartRun({ mode: state.mode, level: state.level });
   });
@@ -4581,14 +4739,14 @@
       btn.addEventListener('click', () => {
         if (equipped) return;
         const next = owned ? M.equip(profile, kind, skin.id) : M.buy(profile, kind, skin.id);
-        if (!next) { sfx.nope(); return; }
+        if (!next) { nope(); return; }
         profile = next;
         if (!owned) {
           for (const line of stickerLines()) banners.push({ text: 'Autocollant !', sub: line.label.replace('Autocollant : ', '') + ' · +' + line.coins, subIcon: 'coin', gold: true });
         }
         saveProfile();
         if (kind === 'boards') paintBackground();
-        if (owned) sfx.turn(); else { sfx.buy(); buzz([20, 40, 20]); }
+        if (owned) sfx.turn(); else { sfx.buy(); haptic('buy'); }
         renderShop(owned ? null : skin.id);
       });
       card.append(cv, name);
@@ -4635,13 +4793,13 @@
       }
       btn.addEventListener('click', () => {
         const next = M.buyUpgrade(profile, type);
-        if (!next) { sfx.nope(); return; }
+        if (!next) { nope(); return; }
         profile = next;
         state = { ...state, upgrades: { ...profile.upgrades } };
         saveProfile();
         save();
         refreshBonusTexts();
-        sfx.buy(); buzz([20, 40, 20]);
+        sfx.buy(); haptic('buy');
         renderShop(type);
       });
       row.append(cv, txt, btn);
@@ -4762,7 +4920,7 @@
       const cell = aiming.cell;
       setAiming(false);
       if (e.type !== 'pointerup' || !cell) return;
-      if (!useBonus('bomb', { r: cell[0], c: cell[1] })) sfx.nope();
+      if (!useBonus('bomb', { r: cell[0], c: cell[1] })) nope();
     };
     btn.addEventListener('pointerup', release);
     btn.addEventListener('pointercancel', release);
@@ -4981,7 +5139,7 @@
     returning = []; pops = []; fades = []; particles = []; floaters = []; banners = []; flyers = [];
     tracks = new Map(); shifts = []; drops = new Map();
     sweeps = []; punch = null; comboAt = 0; comboBreak = null;
-    slotIn = [t, t, t]; slotSpin = [0, 0, 0]; nextIn = t;
+    slotIn = new Array(MAX_SLOTS).fill(t); slotSpin = new Array(MAX_SLOTS).fill(0); nextIn = t;
     showTrash(false);
   }
 
@@ -5009,7 +5167,7 @@
 
   function tutorialNope() {
     renderCoach('nope');
-    buzz(20);
+    haptic('nope');
   }
 
   function tutorialMoved(slot, t) {
@@ -5180,6 +5338,8 @@
       });
     } else if (state.mode === 'chill') {
       tip('chill', 'Chill', 'Touche une forme pour la tourner. Pas de bonus, pas de pression.', () => rectOf(lay.bx, lay.ty, lay.nextX - lay.bx, lay.trayH));
+    } else if (state.puzzle && state.puzzle.free) {
+      tip('surprise', 'Puzzle surprise', 'Toutes les formes sont là. Touche une forme pour la tourner, et reprends une forme déjà posée pour la déplacer.', () => rectOf(lay.bx, lay.ty, lay.board, lay.trayH));
     } else if (state.mode === 'puzzle') {
       tip('puzzle', 'Puzzle', 'Remplis tout le dessin avec les formes données. Touche une forme pour la tourner.', () => rectOf(lay.bx, lay.ty, lay.nextX - lay.bx, lay.trayH));
     } else if (state.mode === 'worlds') {
@@ -5272,7 +5432,7 @@
       sfx.pop();
     }
     for (let k = 0; k < 3; k++) cubo.hearts.push({ x: m.x + (k - 1) * m.s * 0.3, y: m.y - m.s, t0: t + k * 90, dx: (k - 1) * 18, spin: (k - 1) * 0.6 });
-    buzz(8);
+    haptic('tap');
   }
 
   // Base mood when no event mood is playing.
@@ -5982,7 +6142,7 @@
     let lowMoves = false;
     if (state.puzzle) {
       main = `${state.puzzle.placed} / ${state.puzzle.total}`;
-      sub = `PUZZLE ${state.puzzle.n} · ${state.puzzle.name.toUpperCase()}`;
+      sub = `${puzzleTitle(state.puzzle).toUpperCase()} · ${state.puzzle.name.toUpperCase()}`;
     } else if (stage) {
       const progress = stage.goal.type === 'score' ? Math.round(displayScore) : stage.progress;
       main = fmt(Math.min(progress, stage.goal.target)) + ' / ' + fmt(stage.goal.target);
@@ -6322,7 +6482,7 @@
       if (k > 0.95 && !f.landed) {
         f.landed = true;
         target.classList.add('bump');
-        if (f.coins) { runCoinsShown += f.coins; renderWallet(); sfx.coin(2); }
+        if (f.coins) { runCoinsShown += f.coins; renderWallet(); sfx.coin(2); haptic('coin'); }
         if (f.overflow) floaters.push({ text: '+50', x: tx, y: ty - 30, t0: t });
       }
     }
@@ -6345,25 +6505,30 @@
     const m = miniCell();
     // Chill turns pieces all the time: no need to flag the slots.
     const canTurn = state.effects.rotate > 0 && !state.over;
-    drawNext(t);
+    const free = freeTray();
+    if (!free) drawNext(t);
+    const n = free ? state.tray.length : 3;
     // Each slot sits on a pad in the board's color, so pieces read on any background.
-    for (let i = 0; i < 3; i++) {
-      const [cx] = slotCenter(i);
-      drawTrayPad(cx - lay.slotW / 2 + 4, lay.ty + 6, lay.slotW - 8, lay.trayH - 12);
+    // Puzzle surprise: smaller pads on two rows, one per piece of the quota.
+    const gap = free ? 3 : 6;
+    for (let i = 0; i < n; i++) {
+      const b = slotBox(i);
+      drawTrayPad(b.x + 4, b.y + gap, b.w - 8, b.h - gap * 2);
     }
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < n; i++) {
       const piece = state.tray[i];
       if (!piece || returning.some((p) => p.idx === i)) continue;
       const [cx, cy] = slotCenter(i);
       if (canTurn) {
+        const b = slotBox(i);
         ctx.fillStyle = withAlpha(theme().accent, 0.06 + 0.04 * Math.sin(t / 250 + i));
         ctx.beginPath();
-        ctx.roundRect(cx - lay.slotW / 2 + 6, lay.ty + 4, lay.slotW - 12, lay.trayH - 8, 16);
+        ctx.roundRect(b.x + 6, b.y + 4, b.w - 12, b.h - 8, 16);
         ctx.fill();
       }
       if (drag && drag.idx === i) continue;
       const k = easeBack((t - slotIn[i]) / 380);
-      const offset = (1 - k) * (lay.nextX + lay.nextW / 2 - cx);
+      const offset = free ? 0 : (1 - k) * (lay.nextX + lay.nextW / 2 - cx);
       const fits = L.pieceFits(state, piece);
       const spin = slotSpin[i] ? 1 - easeBack((t - slotSpin[i]) / 260) : 0;
       ctx.save();

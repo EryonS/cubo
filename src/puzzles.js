@@ -30,7 +30,22 @@
     { name: 'Tasse', rows: ['........', '######..', '########', '######.#', '######.#', '########', '######..', '.####...'] },
     { name: 'Fantôme', rows: ['..####..', '.######.', '########', '#..##..#', '########', '########', '########', '#.##.##.'] },
     { name: 'Carré', rows: ['########', '########', '########', '########', '########', '########', '########', '########'] },
+    // Added 2026-10-01 for packs 5-6 and Puzzle surprise. Append only: the first 12 build puzzles 1-40.
+    { name: 'Étoile', rows: ['...##...', '...##...', '########', '.######.', '..####..', '.######.', '.##..##.', '.#....#.'] },
+    { name: 'Lune', rows: ['..####..', '.####...', '####....', '###.....', '###.....', '####....', '.####...', '..####..'] },
+    { name: 'Bateau', rows: ['...#....', '...##...', '...###..', '...####.', '...#....', '########', '.######.', '..####..'] },
+    { name: 'Papillon', rows: ['##....##', '###..###', '########', '.######.', '.######.', '########', '###..###', '##....##'] },
+    { name: 'Robot', rows: ['.######.', '.#.##.#.', '.######.', '...##...', '########', '#.####.#', '..####..', '..#..#..'] },
+    { name: 'Ballon', rows: ['..####..', '.######.', '.######.', '.######.', '..####..', '...##...', '...#....', '...#....'] },
+    { name: 'Lapin', rows: ['.##..##.', '.##..##.', '.##..##.', '.######.', '########', '########', '.######.', '..####..'] },
+    { name: 'Glace', rows: ['..####..', '.######.', '.######.', '########', '.######.', '..####..', '...##...', '...##...'] },
+    { name: 'Parapluie', rows: ['..####..', '.######.', '########', '########', '...##...', '...##...', '...##.#.', '....##..'] },
+    { name: 'Pomme', rows: ['....#...', '...#....', '.##.###.', '########', '########', '########', '.######.', '..#..#..'] },
+    { name: 'Éclair', rows: ['....###.', '...###..', '..###...', '.######.', '...###..', '..###...', '.###....', '.##.....'] },
+    { name: 'Diamant', rows: ['.######.', '########', '########', '.######.', '..####..', '...##...', '........', '........'] },
+    { name: 'Avion', rows: ['...##...', '...##...', '.######.', '########', '...##...', '...##...', '..####..', '........'] },
   ];
+  const FIRST_DRAWINGS = 12; // puzzles 1-40 only pick among these (they must never change)
 
   const PER_PACK = 10;
   const PACKS = [
@@ -38,10 +53,13 @@
     { name: 'Malin' },
     { name: 'Expert' },
     { name: 'Maître' },
+    { name: 'Virtuose' },
+    { name: 'Légende' },
   ];
   const COUNT = PER_PACK * PACKS.length;
-  // Pieces to place, by puzzle number: 3 at the start, 8 at the end.
-  const quotaOf = (n) => [3, 3, 4, 4, 5, 5, 6, 6, 7, 8][Math.min(9, Math.floor(((n - 1) * 10) / COUNT))];
+  // Pieces to place, by puzzle number: 3 at the start, 8 at puzzle 40 (the first 4 packs keep their
+  // original quotas), then 8 to 10.
+  const quotaOf = (n) => (n <= 40 ? [3, 3, 4, 4, 5, 5, 6, 6, 7, 8][Math.floor(((n - 1) * 10) / 40)] : [8, 9, 9, 10][Math.min(3, Math.floor(((n - 41) * 4) / (COUNT - 40)))]);
 
   // mulberry32 seeded from the puzzle number.
   function rng(seed) {
@@ -113,16 +131,58 @@
     return out;
   }
 
+  function drawingOf(n) {
+    if (n <= 40) return DRAWINGS[(n * 5 + Math.floor((n - 1) / FIRST_DRAWINGS)) % FIRST_DRAWINGS];
+    // Packs 5-6: the new drawings first, then the old ones mixed in.
+    const fresh = DRAWINGS.length - FIRST_DRAWINGS;
+    const k = n - 41;
+    return k < fresh ? DRAWINGS[FIRST_DRAWINGS + ((k * 5) % fresh)] : DRAWINGS[(k * 7) % DRAWINGS.length];
+  }
+
   // Puzzle n: { n, pack, name, mask: [bool], fixed: [{ cells: [index], color }],
   //             pieces: [{ cells, color, sol: [index] }] } — pieces in the order they are dealt,
   //             cells turned from the solution, sol = the solution cells on the board.
   function puzzle(n) {
     if (!(n >= 1 && n <= COUNT)) return null;
     const rnd = rng(0x9e3779b1 ^ (n * 2654435761));
-    const drawing = DRAWINGS[(n * 5 + Math.floor((n - 1) / DRAWINGS.length)) % DRAWINGS.length];
+    return build(rnd, drawingOf(n), quotaOf(n), { n, pack: Math.floor((n - 1) / PER_PACK) });
+  }
+
+  // Puzzle surprise (opens once pack Maître is done): any drawing, turned or mirrored, with 8 to 10
+  // pieces all shown at once (free: true). Placed pieces can be picked up and moved again.
+  const SURPRISE_MIN = 8;
+  const SURPRISE_MAX = 10;
+  function surprise(seed) {
+    const rnd = rng((seed | 0) ^ 0x5bd1e995);
+    const drawing = DRAWINGS[Math.floor(rnd() * DRAWINGS.length)];
+    const view = Math.floor(rnd() * 8); // 4 turns x mirror
+    const rows = viewRows(maskOf(drawing), view);
+    const quota = SURPRISE_MIN + Math.floor(rnd() * (SURPRISE_MAX - SURPRISE_MIN + 1));
+    return { ...build(rnd, { name: drawing.name, rows }, quota, { n: 0, pack: -1 }), free: true, seed: seed | 0 };
+  }
+
+  // The mask seen turned a quarter `view & 3` times, mirrored when view >= 4.
+  function viewRows(mask, view) {
+    let at = (r, c) => mask[r * SIZE + c];
+    for (let k = 0; k < (view & 3); k++) { const f = at; at = (r, c) => f(SIZE - 1 - c, r); }
+    if (view >= 4) { const f = at; at = (r, c) => f(r, SIZE - 1 - c); }
+    const rows = [];
+    for (let r = 0; r < SIZE; r++) {
+      let row = '';
+      for (let c = 0; c < SIZE; c++) row += at(r, c) ? '#' : '.';
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function build(rnd, drawing, wanted, extra) {
     const mask = maskOf(drawing);
-    const tiles = tile(mask, rnd);
-    const quota = Math.min(quotaOf(n), tiles.length - 1);
+    let tiles = tile(mask, rnd);
+    // Puzzles 1-40 keep their first tiling. Later ones retile a small drawing until it has
+    // enough pieces for the quota (and one left in place).
+    const firstTiling = extra.n >= 1 && extra.n <= 40;
+    for (let k = 0; !firstTiling && tiles.length <= wanted && k < 30; k++) tiles = tile(mask, rnd);
+    const quota = Math.min(wanted, tiles.length - 1);
 
     // A contiguous group of pieces of 3+ blocks, grown from a random one.
     const big = (t) => t.cells.length >= 3;
@@ -138,8 +198,7 @@
       [taken[i], taken[j]] = [taken[j], taken[i]];
     }
     return {
-      n,
-      pack: Math.floor((n - 1) / PER_PACK),
+      ...extra,
       name: drawing.name,
       mask,
       fixed: tiles.filter((t) => !taken.includes(t)).map((t) => ({ cells: t.cells, color: t.shape.color })),
@@ -147,5 +206,5 @@
     };
   }
 
-  return { DRAWINGS, PACKS, PER_PACK, COUNT, quotaOf, puzzle, tile };
+  return { DRAWINGS, PACKS, PER_PACK, COUNT, quotaOf, puzzle, surprise, SURPRISE_MIN, SURPRISE_MAX, tile };
 });

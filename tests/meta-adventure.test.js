@@ -88,3 +88,16 @@ test('the paid skip shows up only after two failed attempts', () => {
   for (let k = 0; k < 3; k++) q = M.recordFail(q, 'plain', M.LEVELS_PER_WORLD);
   assert.equal(M.canSkip(q, 'plain', M.LEVELS_PER_WORLD), false);
 });
+
+test('a world with every star is mastered and earns its sticker once', () => {
+  const two = clearWorld(fresh(), 'plain', 2);
+  assert.equal(M.worldMastered(two, 'plain'), false);
+  assert.ok(!M.checkStickers(two, '2026-10-01').fresh.some((s) => s.id === 'master-plain'));
+  const all = clearWorld(two, 'plain', 3);
+  assert.equal(M.worldMastered(all, 'plain'), true);
+  const res = M.checkStickers(all, '2026-10-01');
+  const st = res.fresh.find((s) => s.id === 'master-plain');
+  assert.ok(st);
+  assert.equal(st.page, 'master');
+  assert.ok(!M.checkStickers(res.profile, '2026-10-02').fresh.some((s) => s.id === 'master-plain'));
+});
