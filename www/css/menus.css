@@ -20,7 +20,6 @@
 }
 .seg button small { display: block; margin-top: 3px; font-family: system-ui, sans-serif; font-style: normal; font-size: 12px; text-wrap: balance; font-weight: 600; color: var(--muted); }
 .seg button.on { box-shadow: inset 0 0 0 2.5px var(--accent); }
-#menu-play { margin-top: 14px; }
 /* Home menu: Aventure, a week of daily levels, free play, then icon shortcuts. */
 .menu-adv { flex-direction: row !important; justify-content: space-between; padding-inline: 20px; }
 .menu-adv small { display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px 4px; border-radius: 999px; background: rgba(255,255,255,.2); opacity: 1; font-size: 14px; }

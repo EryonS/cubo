@@ -34,6 +34,16 @@ function frame() {
   }
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const decor = menuDecorShown();
+  // Only write the class when it changes (overlay observers watch class writes).
+  if (document.body.classList.contains('menu-decor') !== decor) document.body.classList.toggle('menu-decor', decor);
+  if (decor) {
+    const th = menuTheme();
+    ctx.drawImage(menuBackground(), 0, 0, W, H);
+    if (th.animate) th.animate(ctx, W, H, t);
+    requestAnimationFrame(frame);
+    return;
+  }
   ctx.drawImage(bgCanvas, 0, 0, W, H);
   if (theme().animate) theme().animate(ctx, W, H, t);
 

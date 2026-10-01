@@ -79,7 +79,7 @@ body.hub-on #tabbar { display: grid; }
 .free-pick b { font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 18px; line-height: 1.1; }
 .free-pick small { font-size: 13px; font-weight: 700; color: var(--muted); }
 .free-pick .chev { position: absolute; right: 12px; top: 50%; margin-top: -8px; color: var(--muted); }
-#menu-play { flex: none; width: 104px; background: var(--panel); color: var(--accent); box-shadow: inset 0 0 0 2.5px var(--accent); }
+#menu-play { flex: none; width: 104px; background: var(--panel-2); color: var(--accent); box-shadow: inset 0 0 0 2px var(--hairline), inset 0 -4px 0 var(--hairline); }
 #menu-play.primary { background: var(--accent); color: var(--on-accent); box-shadow: 0 4px 0 rgba(0,0,0,.22); }
 #menu-missions { margin-top: 0; }
 #free .menu-label:first-of-type { margin-top: 4px; }

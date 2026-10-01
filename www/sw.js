@@ -2,7 +2,7 @@
  * Cubo Blocks — offline support. Caches every file on install and serves from cache first,
  * so the game runs in airplane mode. Bump CACHE on each release to ship an update.
  */
-const CACHE = 'cuboblocks-v6';
+const CACHE = 'cuboblocks-v9';
 const ASSETS = [
   './',
   './index.html',

@@ -238,17 +238,38 @@ function drawTrayPad(x, y, w, h) {
 }
 
 // Narrow column right of the tray: the piece that fills the next emptied slot.
+// Drawn as a preview, not a slot: shorter dashed box in the accent color with a label chip
+// on its top edge, so it never reads as a 4th playable pad.
 function drawNext(t) {
   const { nextX, nextW, ty, trayH } = lay;
   if (tut) return;
   const th = theme();
-  drawTrayPad(nextX + 4, ty + 6, nextW - 6, trayH - 12);
-  ctx.fillStyle = withAlpha(th.ink, 0.72);
+  // The menu accent pair (--accent / --on-accent) always reads together; th.accent may not.
+  const acc = (th.css && th.css['--accent']) || th.accent;
+  const onAcc = (th.css && th.css['--on-accent']) || '#fff';
+  const x = nextX + 6, w = nextW - 8;
+  const h = Math.min(trayH - 28, w * 1.35);
+  const y = ty + (trayH - h) / 2 + 6;
+  const r = Math.min(14, th.frame.r);
+  ctx.save();
+  ctx.fillStyle = withAlpha(acc, 0.08);
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = withAlpha(acc, 0.55);
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.stroke();
+  ctx.restore();
+  // Label chip astride the top edge.
   if ('letterSpacing' in ctx) ctx.letterSpacing = '1px'; // before measuring: the spacing counts in the width
-  fitFont(th, 11, tr('ENSUITE'), nextW - 20); // narrow phones: stays inside its pad
+  fitFont(th, 10, tr('ENSUITE'), w - 6);
+  const cw = Math.min(w + 4, ctx.measureText(tr('ENSUITE')).width + 14);
+  const cx = x + w / 2;
+  ctx.fillStyle = acc;
+  ctx.beginPath(); ctx.roundRect(cx - cw / 2, y - 9, cw, 18, 9); ctx.fill();
+  ctx.fillStyle = onAcc;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(tr('ENSUITE'), nextX + nextW / 2 + 1, ty + 20);
+  ctx.fillText(tr('ENSUITE'), cx + 0.5, y + 0.5);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   ctx.textBaseline = 'alphabetic';
   const piece = state.next;
@@ -258,11 +279,11 @@ function drawNext(t) {
     ctx.fillStyle = withAlpha(th.ink, 0.75);
     ctx.font = themeFont(th, 15);
     ctx.textAlign = 'center';
-    ctx.fillText('+' + more, nextX + nextW / 2 + 1, ty + trayH - 16);
+    ctx.fillText('+' + more, cx, y + h + 18);
   }
-  const size = Math.min(miniCell() * 0.62, (nextW - 16) / Math.max(piece.w, piece.h, 3));
+  const size = Math.min(miniCell() * 0.62, (w - 12) / Math.max(piece.w, piece.h, 3));
   const k = easeOut((t - nextIn) / 320);
-  drawPiece(piece, nextX + nextW / 2 + 2, ty + trayH / 2 + 6 + (1 - k) * 20, size, 0.9 * k);
+  drawPiece(piece, cx, y + h / 2 + 4 + (1 - k) * 20, size, 0.9 * k);
 }
 
 // Chrono mode: time bar in the gap between the board and the tray.

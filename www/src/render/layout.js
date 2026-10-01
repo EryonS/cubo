@@ -16,6 +16,25 @@ function paintBackground() {
   applyThemeCss();
 }
 
+// Wide screens: menu screens float as cards, so the canvas behind them shows the equipped
+// theme's decor instead of the run in progress (phones fill the screen with the menu).
+const menuBgCanvas = document.createElement('canvas');
+let menuBgKey = '';
+const menuTheme = () => THEMES[profile.equipped.boards] || THEMES.toy;
+const menuDecorShown = () => W > 600 && document.querySelector('.overlay.screen.show') !== null;
+function menuBackground() {
+  const key = `${profile.equipped.boards}|${W}x${H}@${dpr}`;
+  if (key !== menuBgKey) {
+    menuBgKey = key;
+    menuBgCanvas.width = Math.round(W * dpr);
+    menuBgCanvas.height = Math.round(H * dpr);
+    const g = menuBgCanvas.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    menuTheme().paint(g, W, H);
+  }
+  return menuBgCanvas;
+}
+
 // HUD buttons, inventory and in-game cards follow the theme played (a world's in Aventure).
 // Menu screens and the tab bar always wear the equipped theme, so they look the same everywhere.
 const fontVar = (th) => (th.font === PIXEL_FONT ? '"Press Start 2P UI", ui-monospace, monospace' : th.font); // narrower pixel face, as th.scale on canvas
