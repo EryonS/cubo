@@ -3041,8 +3041,7 @@
     sfx.turn();
     closeMenu();
     if (levelInProgress()) return; // back to the level in progress
-    const next = nextAdventure();
-    if (next) openStage(next[0], next[1]); else openAdventure();
+    openAdventure(); // the world of the next level, its path and its rules
   });
   document.getElementById('menu-map').addEventListener('click', () => { sfx.turn(); openAdventure(); });
   document.getElementById('menu-defis').addEventListener('click', () => { sfx.turn(); goTab('defis'); });
@@ -6261,10 +6260,10 @@
     const th = theme();
     drawTrayPad(nextX + 4, ty + 6, nextW - 6, trayH - 12);
     ctx.fillStyle = withAlpha(th.ink, 0.72);
-    fitFont(th, 11, 'ENSUITE', nextW - 18); // narrow phones: stays inside its pad
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '1px'; // before measuring: the spacing counts in the width
+    fitFont(th, 11, 'ENSUITE', nextW - 20); // narrow phones: stays inside its pad
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '1px';
     ctx.fillText('ENSUITE', nextX + nextW / 2 + 1, ty + 20);
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
     ctx.textBaseline = 'alphabetic';
