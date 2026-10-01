@@ -132,6 +132,8 @@
     water: { hp: 1, ttl: 6 },
     crab: { hp: 1, sidestep: true, loot: 'coin' },
     rocket: { hp: 1, burst: true },
+    lantern: { hp: 1, rise: true, loot: 'coin' }, // rise: goes up one row a move while the cell above is empty
+    firecracker: { hp: 1, fuse: 6, hardens: 'rock' },
   };
   const BOSS_AT = [3, 3]; // top-left cell of the 2x2 boss: the center of the board
 
@@ -384,8 +386,12 @@
   });
 
   // Run stats for missions / coins (see meta.js).
-  const runStats = (state) => ({ ...(state.stats || emptyStats()), score: state.score, mode: state.mode, ...(state.world ? { world: state.world } : {}) });
+  // obstacles: how many obstacle kinds a free run had (its difficulty bonus, meta.js runCoins).
+  const runStats = (state) => ({ ...(state.stats || emptyStats()), score: state.score, mode: state.mode, ...(state.world ? { world: state.world } : {}),
+    ...(state.obstacles && state.obstacles.length ? { obstacles: state.obstacles.length } : {}) });
 
+  // opts.obstacles (Classique, Chrono, Chill): [{ kind, every, top? }] from worlds.js freeObstacles;
+  // one cell of each kind every `every` moves.
   // opts: { mode, level, budget, stage, world, upgrades } — budget mirrors the wallet so the logic knows whether a
   // discard can still rescue the player (see withBudget). stage (adventure only) comes from
   // levels.js: { world, n, goal: { type: 'lines' | 'score' | 'clear', target, kind? }, maxMoves,
@@ -407,6 +413,7 @@
       level,
       world,
       upgrades,
+      ...(['classic', 'chrono', 'chill'].includes(mode) && opts.obstacles && opts.obstacles.length ? { obstacles: opts.obstacles.map((o) => ({ ...o })) } : {}),
       stage: stage && { ...stage, movesLeft: stage.maxMoves, progress: 0, won: false, stars: 0, extra: 0 },
       special: new Array(SIZE * SIZE).fill(null),
       clock: 0,
@@ -599,7 +606,8 @@
     state.tray[trayIndex] = null;
     refillSlot(state, trayIndex);
     const spawned = state.stage ? stageMove(state, rules, hit, allLines, true)
-      : state.mode === 'worlds' ? worldMove(state, rules).concat(freeSpawn(state, rules)) : [];
+      : state.mode === 'worlds' ? worldMove(state, rules).concat(freeSpawn(state, rules))
+        : state.obstacles ? worldMove(state, rules).concat(obstacleSpawn(state)) : [];
     if (!state.over) settle(state);
 
     return {
@@ -777,14 +785,18 @@
     const cells = [];
     for (let i = 0; i < SIZE * SIZE; i++) if (state.special[i] && KINDS[state.special[i].kind]) cells.push(i);
     if (!cells.length) return out;
-    // Bottom rows first, so a column of lava falls together.
+    // Bottom rows first, so a column of lava falls together; lanterns go up, top rows first.
     cells.sort((a, b) => b - a);
+    for (const i of cells.filter((j) => KINDS[state.special[j].kind].rise).reverse()) {
+      if (i >= SIZE && !state.board[i - SIZE]) out.push(moveSpecial(state, i, i - SIZE));
+    }
     const empty = (i) => !state.board[i];
     const spreaders = {};
     for (const i of cells) {
       const sp = state.special[i];
       if (!sp || sp.kind === 'boss') continue;
       const kind = KINDS[sp.kind];
+      if (kind.rise) continue; // moved above
       if (kind.ttl && sp.age >= kind.ttl) {
         state.board[i] = 0; state.special[i] = null;
         out.push({ ...at(i), kind: sp.kind, gone: true });
@@ -845,6 +857,17 @@
     if (!free || !free.every || state.moves % free.every) return [];
     const i = WORLD_API.pick(state, WORLD_API.emptyCells(state));
     return i >= 0 ? [WORLD_API.addSpecial(state, i, free.kind)] : [];
+  }
+
+  // Free play difficulty: each obstacle kind lands every `every` moves.
+  function obstacleSpawn(state) {
+    const out = [];
+    for (const o of state.obstacles) {
+      if (state.moves % o.every) continue;
+      const i = WORLD_API.pick(state, spawnCells(state, o.top));
+      if (i >= 0) out.push(WORLD_API.addSpecial(state, i, o.kind));
+    }
+    return out;
   }
 
   function scatterKind(state, kind, count, top) {

@@ -34,6 +34,7 @@
       { id: 'volcano', name: 'Volcan', price: 1500 },
       // Not sold: season event rewards (EVENTS).
       { id: 'newyear', name: 'Nouvel An', price: null, exclusive: 'Nouvel An' },
+      { id: 'lunar', name: 'Nouvel An chinois', price: null, exclusive: 'Nouvel An chinois' },
       { id: 'valentine', name: 'Saint-Valentin', price: null, exclusive: 'Saint-Valentin' },
       { id: 'easter', name: 'Pâques', price: null, exclusive: 'Pâques' },
       { id: 'beach', name: 'Plage', price: null, exclusive: 'Plage' },
@@ -52,6 +53,7 @@
       { id: 'crown', name: 'Couronne', price: 500 },
       // Not sold: season event rewards (EVENTS).
       { id: 'sequin', name: 'Chapeau pailleté', price: null, exclusive: 'Nouvel An' },
+      { id: 'dragon', name: 'Cornes de dragon', price: null, exclusive: 'Nouvel An chinois' },
       { id: 'hearts', name: 'Serre-tête cœurs', price: null, exclusive: 'Saint-Valentin' },
       { id: 'bunny', name: 'Oreilles de lapin', price: null, exclusive: 'Pâques' },
       { id: 'straw', name: 'Chapeau de paille', price: null, exclusive: 'Plage' },
@@ -198,6 +200,10 @@
     });
   }
 
+  // Free play difficulty bonus on the run's coins, by number of obstacle kinds (Normal 1, Difficile 2).
+  const DIFFICULTY_BONUS = [0, 0.2, 0.5];
+  const DIFFICULTY_NAMES = ['Facile', 'Normal', 'Difficile'];
+
   // Coins earned by a run, as display lines.
   function runCoins(run) {
     const lines = [];
@@ -207,6 +213,9 @@
     if (run.perfects) lines.push({ label: `Grille vide ×${run.perfects}`, coins: run.perfects * 10 });
     if (run.bestCombo >= 5) lines.push({ label: `Combo ×${run.bestCombo}`, coins: 5 });
     if (run.bestBomb >= 15) lines.push({ label: 'Méga explosion', coins: 5 });
+    const n = Math.min(2, run.obstacles || 0);
+    const bonus = Math.round(lines.reduce((a, l) => a + l.coins, 0) * DIFFICULTY_BONUS[n]);
+    if (bonus) lines.push({ label: `Bonus ${DIFFICULTY_NAMES[n]} +${Math.round(DIFFICULTY_BONUS[n] * 100)} %`, coins: bonus });
     return lines;
   }
 
@@ -438,27 +447,47 @@
   // when the event comes back the next year. Clearing the 10 levels gives the event's theme and
   // Cubo head piece the first time (coins once both are owned) and the year's trophy: silver, gold
   // with every star. profile.trophies: { '<id>-<year>': 'silver' | 'gold' }.
+  // window(year) -> ['YYYY-MM-DD' first day, last day] or null. Several events can overlap (the
+  // Chinese New Year falls in January or February): each gets its own home row.
+  const months = (first, last = first) => (y) => [`${y}-${first}-01`, monthDays(`${y}-${last}`).slice(-1)[0]];
+  // Easter Sunday (Gregorian, anonymous algorithm), as 'YYYY-MM-DD'.
+  function easterSunday(y) {
+    const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+    const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
+    return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+  // Chinese New Year (lunisolar, no simple formula): first day of the year, by Gregorian year.
+  const LUNAR_NEW_YEAR = {
+    2026: '2026-02-17', 2027: '2027-02-06', 2028: '2028-01-26', 2029: '2029-02-13', 2030: '2030-02-03',
+    2031: '2031-01-23', 2032: '2032-02-11', 2033: '2033-01-31', 2034: '2034-02-19', 2035: '2035-02-08',
+    2036: '2036-01-28', 2037: '2037-02-15', 2038: '2038-02-04', 2039: '2039-01-24', 2040: '2040-02-12',
+  };
   const EVENTS = [
-    { id: 'newyear', name: 'Nouvel An', months: ['01'], hat: 'sequin', icon: 'rocket', blurb: 'une nuit de fusées contre la montre' },
-    { id: 'valentine', name: 'Saint-Valentin', months: ['02'], hat: 'hearts', icon: 'heart', blurb: 'des cœurs jumeaux et des roses épineuses' },
-    { id: 'easter', name: 'Pâques', months: ['04'], hat: 'bunny', icon: 'egg', blurb: 'une chasse aux œufs dans les buissons' },
-    { id: 'beach', name: 'Plage', months: ['07', '08'], hat: 'straw', icon: 'crab', blurb: 'des crabes et la marée qui monte' },
-    { id: 'halloween', name: 'Halloween', months: ['10'], hat: 'witch', icon: 'pumpkin', blurb: 'des citrouilles et des fantômes' },
-    { id: 'xmas', name: 'Noël', months: ['12'], hat: 'santa', icon: 'present', blurb: 'des cadeaux sous la neige' },
+    { id: 'newyear', name: 'Nouvel An', window: months('01'), hat: 'sequin', icon: 'rocket', blurb: 'une nuit de fusées contre la montre' },
+    // From 3 days before the new year to the Lantern Festival (day 15).
+    { id: 'lunar', name: 'Nouvel An chinois', window: (y) => (LUNAR_NEW_YEAR[y] ? [addDays(LUNAR_NEW_YEAR[y], -3), addDays(LUNAR_NEW_YEAR[y], 14)] : null),
+      hat: 'dragon', icon: 'lantern', blurb: 'des lanternes qui s’envolent et des pétards' },
+    { id: 'valentine', name: 'Saint-Valentin', window: months('02'), hat: 'hearts', icon: 'heart', blurb: 'des cœurs jumeaux et des roses épineuses' },
+    // Two weeks before Easter Sunday to the Sunday after.
+    { id: 'easter', name: 'Pâques', window: (y) => [addDays(easterSunday(y), -14), addDays(easterSunday(y), 7)], hat: 'bunny', icon: 'egg', blurb: 'une chasse aux œufs dans les buissons' },
+    { id: 'beach', name: 'Plage', window: months('07', '08'), hat: 'straw', icon: 'crab', blurb: 'des crabes et la marée qui monte' },
+    { id: 'halloween', name: 'Halloween', window: months('10'), hat: 'witch', icon: 'pumpkin', blurb: 'des citrouilles et des fantômes' },
+    { id: 'xmas', name: 'Noël', window: months('12'), hat: 'santa', icon: 'present', blurb: 'des cadeaux sous la neige' },
   ].map((e) => ({ ...e, theme: e.id, levels: 10 }));
   const EVENT_FIRST = 15;
   const EVENT_BOSS = 50;
   const EVENT_DONE_COINS = 200; // the rewards are already owned (a later year)
   const eventById = (id) => EVENTS.find((e) => e.id === id) || null;
-  // The event open on `day`, or null.
-  const eventFor = (day) => EVENTS.find((e) => e.months.includes(day.slice(5, 7))) || null;
-  const eventActive = (day, id) => { const e = eventFor(day); return !!e && (!id || e.id === id); };
   const eventYear = (day) => day.slice(0, 4);
-  // Last day the event is open, as 'YYYY-MM-DD'.
-  function eventEnd(id, day) {
-    const last = eventById(id).months.slice(-1)[0];
-    return monthDays(`${eventYear(day)}-${last}`).slice(-1)[0];
-  }
+  const windowOf = (ev, day) => ev.window(+eventYear(day));
+  // The events open on `day` (usually none or one), and the first of them.
+  const eventsFor = (day) => EVENTS.filter((e) => { const w = windowOf(e, day); return !!w && day >= w[0] && day <= w[1]; });
+  const eventFor = (day) => eventsFor(day)[0] || null;
+  const eventActive = (day, id) => eventsFor(day).some((e) => !id || e.id === id);
+  // Last day the event is open this year, as 'YYYY-MM-DD'.
+  const eventEnd = (id, day) => windowOf(eventById(id), day)[1];
   const eventOf = (profile, id, day) => {
     const ev = (profile.seasons || {})[id];
     return ev && ev.year === eventYear(day) ? ev : { year: eventYear(day), stars: {} };
@@ -731,7 +760,7 @@
   const needsTutorial = (profile) => !tipSeen(profile, 'tutorial') && !profile.games && !totalStars(profile);
 
   return {
-    EVENTS, eventById, eventFor, eventActive, eventYear, eventEnd, eventOf, eventStars, eventCleared, eventTotalStars, eventLevelOpen, seasonTrophy, applyEvent,
+    DIFFICULTY_BONUS, EVENTS, easterSunday, eventById, eventsFor, eventFor, eventActive, eventYear, eventEnd, eventOf, eventStars, eventCleared, eventTotalStars, eventLevelOpen, seasonTrophy, applyEvent,
     tipSeen, markTip, needsTutorial,
     HISTORY, modeStats, recentScores,
     addDays, dayDiff, monthDays,

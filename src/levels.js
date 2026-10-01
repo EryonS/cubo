@@ -168,6 +168,18 @@
       { goal: G('score', 1000), setup: { kind: 'rocket', count: 3 }, clock: 80000 },
       { boss: boss('Horloge de minuit', 12, 'rock'), setup: { kind: 'rocket', count: 2 }, clock: 90000 },
     ],
+    lunar: [
+      { goal: C('lantern', 6), setup: { kind: 'lantern', count: 4 }, maxMoves: 36 },
+      { goal: G('lines', 8), setup: { kind: 'lantern', count: 2 }, maxMoves: 33 },
+      { goal: G('score', 800), setup: { kind: 'lantern', count: 2 }, maxMoves: 57 },
+      { goal: C('firecracker', 3), setup: { kind: 'lantern', count: 2 }, maxMoves: 72 },
+      { goal: G('coins', 12), setup: { kind: 'lantern', count: 4 }, maxMoves: 37 },
+      { goal: G('combo', 4), setup: { kind: 'lantern', count: 2 }, maxMoves: 30 },
+      { goal: C('lantern', 12), setup: { kind: 'lantern', count: 6 }, maxMoves: 53 },
+      { goal: G('lines', 14), setup: { kind: 'lantern', count: 3 }, maxMoves: 48 },
+      { goal: G('score', 1500), setup: { kind: 'lantern', count: 3 }, maxMoves: 72 },
+      { boss: boss('Dragon de papier', 14, 'firecracker'), setup: { kind: 'lantern', count: 3 }, maxMoves: 49 },
+    ],
     valentine: [
       { goal: C('heart', 6), setup: { count: 4 }, maxMoves: 24 },
       { goal: G('lines', 8), setup: { count: 2 }, maxMoves: 33 },
@@ -263,7 +275,7 @@
   // French goal text for the HUD and level cards.
   const KIND_NAMES = { bubble: 'bulles', asteroid: 'astéroïdes', ice: 'blocs de glace', mushroom: 'champignons', ember: 'braises', crate: 'caisses', rock: 'rochers',
     pumpkin: 'citrouilles', ghost: 'fantômes', present: 'cadeaux', snowpile: 'tas de neige', heart: 'cœurs', rose: 'roses',
-    bush: 'buissons', egg: 'œufs', water: 'vagues', crab: 'crabes', rocket: 'fusées', mole: 'taupes', jelly: 'méduses', hole: 'trous noirs', snowman: 'bonshommes de neige', vine: 'lianes', glitch: 'bugs', token: 'jetons', lava: 'coulées de lave' };
+    bush: 'buissons', egg: 'œufs', water: 'vagues', crab: 'crabes', rocket: 'fusées', lantern: 'lanternes', firecracker: 'pétards', mole: 'taupes', jelly: 'méduses', hole: 'trous noirs', snowman: 'bonshommes de neige', vine: 'lianes', glitch: 'bugs', token: 'jetons', lava: 'coulées de lave' };
   function goalText(goal) {
     if (goal.type === 'lines') return `Efface ${goal.target} lignes`;
     if (goal.type === 'score') return `Fais ${goal.target.toLocaleString('fr-FR')} points`;

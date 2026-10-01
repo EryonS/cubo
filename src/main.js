@@ -669,6 +669,69 @@
         }
       },
     },
+    // Nouvel An chinois: a red night, a golden moon, rows of lanterns swaying, sky lanterns rising.
+    lunar: {
+      base: '#3a0a10', board: 'rgba(48,8,14,0.9)', empty: 'rgba(255,190,90,0.1)', cellR: 0.2,
+      font: FONT, weight: 800,
+      ink: '#fff1d6', accent: '#ffc94a', danger: '#ff6b5a',
+      frame: { r: 20, line: '#ffc94a', lw: 2.5, inset: 3, glow: '#ff9a1a' },
+      plate: { fill: '#b8141f', line: '#ffc94a', lw: 2.5, inset: 4, r: 22, ink: '#ffe9a8', sub: '#ffd0b0', glow: '#ff9a1a' },
+      tag: { fill: '#ffc94a', line: null, ink: '#5a0a10', glow: '#ff9a1a' },
+      css: css({
+        '--bg': '#3a0a10', '--panel': '#4f1018', '--panel-2': '#651820', '--slot': 'rgba(48,8,14,0.9)',
+        '--text': '#fff1d6', '--muted': '#f0bfa0', '--accent': '#ffc94a', '--on-accent': '#5a0a10',
+        '--edge': '#ffc94a', '--radius': '20px', '--card-glow': '0 0 36px rgba(255,180,60,0.3)',
+      }),
+      paint(g, w, h) {
+        g.fillStyle = vGradient(g, h, ['#1e0408', '#4a0a12', '#7a1418']); g.fillRect(0, 0, w, h);
+        const r = Math.min(w, h) * 0.12;
+        const halo = g.createRadialGradient(w * 0.78, h * 0.16, r * 0.6, w * 0.78, h * 0.16, r * 2.4);
+        halo.addColorStop(0, 'rgba(255,200,90,0.35)'); halo.addColorStop(1, 'rgba(255,200,90,0)');
+        g.fillStyle = halo; g.fillRect(0, 0, w, h);
+        g.fillStyle = '#ffd88a';
+        g.beginPath(); g.arc(w * 0.78, h * 0.16, r, 0, Math.PI * 2); g.fill();
+        // Golden cloud swirls.
+        g.strokeStyle = 'rgba(255,201,74,0.35)'; g.lineWidth = 2.5; g.lineCap = 'round';
+        for (const [xf, yf, sc] of [[0.15, 0.3, 1], [0.6, 0.42, 0.8], [0.88, 0.62, 0.9], [0.1, 0.7, 0.7]]) {
+          const cx = w * xf, cy = h * yf, R = 14 * sc;
+          for (let k = 0; k < 3; k++) { g.beginPath(); g.arc(cx + k * R * 1.4, cy, R, Math.PI, Math.PI * 2.4); g.stroke(); }
+        }
+        // Plum blossom branch from the left edge.
+        g.strokeStyle = '#2a0a08'; g.lineWidth = 5;
+        g.beginPath(); g.moveTo(-5, h * 0.9); g.quadraticCurveTo(w * 0.18, h * 0.84, w * 0.3, h * 0.88); g.moveTo(w * 0.14, h * 0.86); g.lineTo(w * 0.2, h * 0.8); g.stroke();
+        g.fillStyle = '#ffb3c7';
+        for (const [x, y] of [[0.08, 0.875], [0.2, 0.8], [0.26, 0.875], [0.16, 0.85], [0.3, 0.885]]) {
+          for (let k = 0; k < 5; k++) { g.beginPath(); g.arc(w * x + Math.cos(k * 1.26) * 3.5, h * y + Math.sin(k * 1.26) * 3.5, 2.8, 0, Math.PI * 2); g.fill(); }
+        }
+      },
+      animate(g, w, h, t) {
+        // A string of lanterns across the top, swaying.
+        g.strokeStyle = 'rgba(255,201,74,0.6)'; g.lineWidth = 1.5;
+        g.beginPath(); g.moveTo(0, h * 0.05); g.quadraticCurveTo(w / 2, h * 0.11, w, h * 0.05); g.stroke();
+        for (let i = 0; i < 6; i++) {
+          const x = w * (0.08 + i * 0.168);
+          const top = h * 0.05 + Math.sin((x / w) * Math.PI) * h * 0.045;
+          const sw = Math.sin(t / 700 + i) * 0.08;
+          g.save(); g.translate(x, top); g.rotate(sw);
+          g.fillStyle = '#e8364a';
+          g.beginPath(); g.ellipse(0, 16, 11, 10, 0, 0, Math.PI * 2); g.fill();
+          g.fillStyle = '#ffc94a'; g.fillRect(-6, 4, 12, 3); g.fillRect(-6, 25, 12, 3);
+          g.strokeStyle = '#ffc94a'; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, 4); g.moveTo(0, 28); g.lineTo(0, 34); g.stroke();
+          g.restore();
+        }
+        // Sky lanterns drifting up.
+        for (let i = 0; i < 5; i++) {
+          const rnd = seeded(88 + i);
+          const x = w * (0.1 + rnd() * 0.8) + Math.sin(t / 1200 + i) * 10;
+          const y = h - loop(t * (0.012 + rnd() * 0.01) + rnd() * h, h + 40, 20);
+          g.globalAlpha = 0.55 * Math.min(1, y / (h * 0.3));
+          g.fillStyle = '#ffb347';
+          g.beginPath(); g.moveTo(x - 5, y - 6); g.lineTo(x + 5, y - 6); g.lineTo(x + 4, y + 6); g.lineTo(x - 4, y + 6); g.fill();
+          g.fillStyle = 'rgba(255,240,180,0.9)'; g.beginPath(); g.arc(x, y + 4, 1.6, 0, Math.PI * 2); g.fill();
+        }
+        g.globalAlpha = 1;
+      },
+    },
     // Saint-Valentin: a pink dusk, soft clouds, hearts floating up.
     valentine: {
       base: '#ffc2d4', board: '#ffffff', empty: '#ffe4ec', cellR: 0.24,
@@ -1430,6 +1493,10 @@
     newyear: { bpm: 116, chords: [[41, [57, 60, 64, 69]], [38, [57, 62, 65, 69]], [43, [59, 62, 67, 71]], [36, [60, 64, 67, 72]]],
       arp: [0, 2, 1, 3, 2, 1, 3, 2], pad: { type: 'triangle', vol: 0.04, cut: 1400 }, bass: { type: 'triangle', vol: 0.14, cut: 500, steps: [0, 2, 4, 6] },
       bell: { type: 'sine', vol: 0.035, cut: 9000, oct: 24, len: 1.4 }, drums: { kick: [0, 4], snare: [2, 6], hat: [1, 3, 5, 7] } },
+    // Nouvel An chinois: a major pentatonic tune with woodblock and gong-like kicks.
+    lunar: { bpm: 100, chords: [[38, [62, 64, 67, 69]], [45, [64, 67, 69, 74]], [43, [62, 67, 69, 71]], [38, [62, 64, 69, 74]]],
+      arp: [0, 1, 2, 3, 2, -1, 1, -1], pad: { type: 'triangle', vol: 0.035, cut: 1300 }, bass: { type: 'triangle', vol: 0.14, cut: 450, steps: [0, 4] },
+      bell: { type: 'square', vol: 0.02, cut: 3000, oct: 12, len: 0.7 }, drums: { kick: [0], hat: [2, 3, 6] } },
     valentine: { bpm: 80, chords: [[41, [57, 60, 64, 69]], [43, [59, 62, 65, 71]], [40, [55, 59, 64, 67]], [45, [57, 60, 64, 67]]],
       arp: [0, 1, 2, 3, 2, 1, -1, -1], pad: { type: 'sine', vol: 0.06, cut: 1200 }, bass: { type: 'sine', vol: 0.13, cut: 350, steps: [0, 4] },
       bell: { type: 'sine', vol: 0.03, cut: 6000, oct: 12, len: 2.5 } },
@@ -1637,7 +1704,8 @@
   // ---------- special cells (Aventure) ----------
   const SPECIAL_COLORS = { ice: '#9fdcf7', asteroid: '#8a8fa3', rock: '#6b5a52', mushroom: '#e84a4a', ember: '#ff6a1a', bubble: '#7fd8ff', crate: '#c98b4a', boss: '#ffffff',
     pumpkin: '#ff8a1a', ghost: '#f4f0ff', present: '#e8364a', snowpile: '#ffffff', heart: '#ff4d6d', rose: '#d6204a',
-    bush: '#4fae4a', egg: '#ffd23f', water: '#4fc3f7', crab: '#ff6a4a', rocket: '#ffd23f', mole: '#9a6a48', jelly: '#ff8fd0', hole: '#8a5cff', snowman: '#ffffff', vine: '#4fb33f', glitch: '#ff3fd0', token: '#ffd23f', lava: '#ff5a1a' };
+    bush: '#4fae4a', egg: '#ffd23f', water: '#4fc3f7', crab: '#ff6a4a', rocket: '#ffd23f',
+    lantern: '#e8364a', firecracker: '#ff4d3d', mole: '#9a6a48', jelly: '#ff8fd0', hole: '#8a5cff', snowman: '#ffffff', vine: '#4fb33f', glitch: '#ff3fd0', token: '#ffd23f', lava: '#ff5a1a' };
 
   // Moves left before a cell with a ttl leaves (mole, hole): small dots around it.
   function ttlDots(sp, cx, cy, s, color) {
@@ -1870,6 +1938,39 @@
       for (const d of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + d * s * 0.1, cy - s * 0.18, s * 0.055, 0, Math.PI * 2); ctx.fill(); }
       ctx.fillStyle = '#1a1a2a';
       for (const d of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + d * s * 0.1, cy - s * 0.18, s * 0.028, 0, Math.PI * 2); ctx.fill(); }
+    } else if (kind === 'lantern') {
+      const glow = 0.8 + 0.2 * Math.sin(t / 260 + cx);
+      ctx.shadowColor = '#ffb000'; ctx.shadowBlur = s * 0.35 * glow;
+      ctx.fillStyle = '#e8364a';
+      ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.02, s * 0.38, s * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(120,10,20,0.45)'; ctx.lineWidth = s * 0.03;
+      for (const k of [-0.18, 0, 0.18]) { ctx.beginPath(); ctx.ellipse(cx + k * s * 0.3, cy + s * 0.02, s * Math.max(0.04, 0.3 - Math.abs(k) * 0.8), s * 0.3, 0, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillRect(cx - s * 0.18, cy - s * 0.34, s * 0.36, s * 0.08);
+      ctx.fillRect(cx - s * 0.18, cy + s * 0.3, s * 0.36, s * 0.08);
+      ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = s * 0.03;
+      for (const k of [-0.08, 0, 0.08]) { ctx.beginPath(); ctx.moveTo(cx + k * s, cy + s * 0.38); ctx.lineTo(cx + k * s * 1.3, cy + s * 0.48); ctx.stroke(); }
+      ctx.fillStyle = `rgba(255,220,120,${0.35 * glow})`;
+      ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.02, s * 0.16, s * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === 'firecracker') {
+      const fuse = L.KINDS.firecracker.fuse;
+      const left = Math.max(0, fuse - (sp.age || 0));
+      ctx.translate(cx, cy); ctx.rotate(-0.35);
+      ctx.fillStyle = '#ff4d3d';
+      ctx.beginPath(); ctx.roundRect(-s * 0.15, -s * 0.3, s * 0.3, s * 0.62, s * 0.06); ctx.fill();
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillRect(-s * 0.15, -s * 0.22, s * 0.3, s * 0.06); ctx.fillRect(-s * 0.15, s * 0.18, s * 0.3, s * 0.06);
+      ctx.strokeStyle = '#6b3a1a'; ctx.lineWidth = s * 0.035; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, -s * 0.3); ctx.quadraticCurveTo(s * 0.08, -s * 0.4, s * 0.02, -s * 0.46); ctx.stroke();
+      if (left <= 2) {
+        // About to harden: the fuse sparks.
+        ctx.fillStyle = Math.floor(t / 120) % 2 ? '#ffe066' : '#ffffff';
+        ctx.beginPath(); ctx.arc(s * 0.02, -s * 0.47, s * 0.06, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.rotate(0.35);
+      ctx.fillStyle = left <= 2 ? '#ffffff' : 'rgba(255,255,255,0.75)';
+      for (let k = 0; k < left; k++) { ctx.beginPath(); ctx.arc(-s * 0.3 + k * s * 0.11, s * 0.42, s * 0.035, 0, Math.PI * 2); ctx.fill(); }
     } else if (kind === 'rocket') {
       const wob = Math.sin(t / 140 + cx) * 0.06;
       ctx.translate(cx, cy); ctx.rotate(wob);
@@ -2024,7 +2125,7 @@
   const BOSS_LOOK = {
     plain: '#6cc94f', sea: '#9b6bff', space: '#62d6b4', ice: '#dff2ff',
     forest: '#a2703c', retro: '#306230', arcade: '#ff4fb8', volcano: '#ff5a2a', halloween: '#ff8a1a',
-    newyear: '#5c6bff', valentine: '#ff4d8f', easter: '#9b7bff', beach: '#ff6a4a', xmas: '#c8a27a',
+    newyear: '#5c6bff', lunar: '#d9262f', valentine: '#ff4d8f', easter: '#9b7bff', beach: '#ff6a4a', xmas: '#c8a27a',
   };
   let bossHitAt = 0;
   let bossAttackAt = 0;
@@ -2356,7 +2457,7 @@
       floaters.push({ text: '+' + Math.round(ev.timeGain / 1000) + ' s', x: bx + lay.board - 30, y: by - 10, t0: t });
       sfx.time();
     }
-    if (state.stage || state.world) stageEffects(ev, t);
+    if (state.stage || state.world || state.obstacles) stageEffects(ev, t);
     if (state.stage) bossEffects(ev, t);
     if (tut) { tutorialMoved(idx, t); return; }
     refilled(ev.refilled, t);
@@ -2812,8 +2913,11 @@
     if (keepsBest()) bests[recordKey()] = best;
     const mode = opts.mode || (state.mode === 'adventure' ? prefs.mode : state.mode);
     const world = opts.world || (mode === 'worlds' ? state.world : null);
-    state = L.createGame(opts.seed ?? Date.now(), { mode, level: opts.level || state.level, budget: profile.coins, stage: opts.stage,
-      world, upgrades: profile.upgrades, puzzle: opts.puzzle });
+    const level = opts.level || state.level;
+    // Free play difficulty: obstacles from the equipped theme (worlds.js freeObstacles).
+    const obstacles = ['classic', 'chrono', 'chill'].includes(mode) && !opts.stage && !opts.puzzle ? WD.freeObstacles(profile.equipped.boards, level) : undefined;
+    state = L.createGame(opts.seed ?? Date.now(), { mode, level, budget: profile.coins, stage: opts.stage,
+      world, upgrades: profile.upgrades, puzzle: opts.puzzle, obstacles });
     enterRun();
   }
   // Shows `state` as a fresh or resumed run: run flags, wallet, effects, HUD.
@@ -3008,6 +3112,13 @@
     for (const b of document.querySelectorAll('#menu-mode button')) b.classList.toggle('on', b.dataset.mode === prefs.mode);
     for (const b of document.querySelectorAll('#menu-level button')) b.classList.toggle('on', b.dataset.level === prefs.level);
     document.getElementById('free-note').textContent = MODE_NOTES[prefs.mode];
+    // What the difficulty adds: the equipped theme's obstacles and the coin bonus.
+    const obs = WD.freeObstacles(profile.equipped.boards, prefs.level);
+    const pct = Math.round(M.DIFFICULTY_BONUS[obs.length] * 100);
+    const names = obs.map((o) => LV.KIND_NAMES[o.kind]);
+    document.getElementById('free-level').innerHTML = obs.length
+      ? `<span class="icons">${obs.map((o) => kindIcon(o.kind, 26)).join('')}</span><span>${names.join(' et ').replace(/^./, (c) => c.toUpperCase())} sur la grille (selon ton thème). <b>+${pct} % de pièces</b> en fin de partie.</span>`
+      : '<span>Aucun obstacle sur la grille. Normal en ajoute un (+20 % de pièces), Difficile deux (+50 %).</span>';
     document.getElementById('free-play').textContent = parked ? 'Nouvelle partie' : 'Jouer';
   }
 
@@ -3656,36 +3767,45 @@
   const eventEl = document.getElementById('event');
   const eventLevelName = (n) => (n === 10 ? 'Boss' : 'Niveau ' + n);
   const eventInProgress = () => inProgress() && !!(state.stage && state.stage.event);
-  // The event shown: the one of the level in progress, else the one open today.
-  const shownEvent = () => (eventInProgress() ? M.eventById(state.stage.event) : M.eventFor(today()));
+  const eventShown = { id: null }; // the event screen's event
   const eventDayNow = () => (eventInProgress() && state.stage.eventDay) || today();
   const FR_MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
   const frDay = (day) => `${+day.slice(8, 10)}${day.slice(8, 10) === '01' ? 'er' : ''} ${FR_MONTHS[+day.slice(5, 7) - 1]}`;
   const hatName = (id) => (M.SKINS.cubo.find((x) => x.id === id) || {}).name || '';
+  const CHEV_SVG = '<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
 
+  // One home row per open event (two can overlap), plus the event of a level in progress.
   function renderEventRow() {
-    const row = document.getElementById('menu-event');
-    const ev = shownEvent();
-    row.hidden = !ev;
-    if (!ev) return;
-    document.getElementById('menu-event-ico').innerHTML = kindIcon(ev.icon, 30);
-    document.getElementById('menu-event-name').textContent = ev.name;
+    const box = document.getElementById('menu-events');
     const day = today();
-    const done = M.eventCleared(profile, ev.id, day);
-    const trophy = M.seasonTrophy(profile, ev.id, M.eventYear(day));
-    document.getElementById('menu-event-sub').textContent = eventInProgress() ? `${eventLevelName(state.stage.n)} en cours`
-      : done >= ev.levels ? `Terminé · trophée ${trophy === 'gold' ? 'en or' : 'en argent'}`
-        : `${done} / ${ev.levels} niveaux · jusqu’au ${frDay(M.eventEnd(ev.id, day))}`;
+    const list = M.eventsFor(day);
+    const playing = eventInProgress() ? M.eventById(state.stage.event) : null;
+    if (playing && !list.some((e) => e.id === playing.id)) list.unshift(playing);
+    box.innerHTML = '';
+    for (const ev of list) {
+      const row = document.createElement('button');
+      row.className = 'menu-defis event-row';
+      const done = M.eventCleared(profile, ev.id, day);
+      const trophy = M.seasonTrophy(profile, ev.id, M.eventYear(day));
+      const sub = playing && playing.id === ev.id ? `${eventLevelName(state.stage.n)} en cours`
+        : done >= ev.levels ? `Terminé · trophée ${trophy === 'gold' ? 'en or' : 'en argent'}`
+          : `${done} / ${ev.levels} niveaux · jusqu’au ${frDay(M.eventEnd(ev.id, day))}`;
+      row.innerHTML = `<span class="ico">${kindIcon(ev.icon, 30)}</span><span class="txt"><b></b><small></small></span>${CHEV_SVG}`;
+      row.querySelector('b').textContent = ev.name;
+      row.querySelector('small').textContent = sub;
+      row.addEventListener('click', () => {
+        unlockAudio();
+        sfx.turn();
+        if (playing && playing.id === ev.id) { closeMenu(); return; } // back to the level in progress
+        openEvent(ev.id);
+      });
+      box.appendChild(row);
+    }
   }
-  document.getElementById('menu-event').addEventListener('click', () => {
-    unlockAudio();
-    sfx.turn();
-    if (eventInProgress()) { closeMenu(); return; } // back to the level in progress
-    openEvent();
-  });
 
-  function openEvent() {
-    if (!M.eventFor(today())) { openMenu(); return; }
+  function openEvent(id = eventShown.id) {
+    if (!id || !M.eventActive(today(), id)) { openMenu(); return; }
+    eventShown.id = id;
     menuEl.classList.remove('show');
     overEl.classList.remove('show');
     hideAdventure();
@@ -3698,7 +3818,7 @@
 
   function renderEvent() {
     const day = today();
-    const ev = M.eventFor(day);
+    const ev = M.eventById(eventShown.id);
     const year = M.eventYear(day);
     const rules = WD.WORLDS[ev.id];
     document.getElementById('event-title').textContent = ev.name;
@@ -3754,7 +3874,7 @@
       <div class="stage-stars">${starsRow(best || 0, 34)}</div>
       <div class="stage-note">1 étoile en réussissant, 2 s'il te reste ${keep(0.15)}, 3 s'il t'en reste ${keep(0.3)}.</div>
       <div class="actions"><button class="btn primary" data-act="play">Jouer</button></div>`;
-    card.querySelector('[data-act="back"]').addEventListener('click', () => { stageEl.classList.remove('show'); openEvent(); });
+    card.querySelector('[data-act="back"]').addEventListener('click', () => { stageEl.classList.remove('show'); openEvent(id); });
     card.querySelector('[data-act="play"]').addEventListener('click', () => { unlockAudio(); launchEventLevel(id, n); });
     eventEl.classList.remove('show');
     stageEl.classList.add('show');
@@ -3794,7 +3914,7 @@
         ${stage.won && stage.stars >= 3 ? '' : `<button class="btn ${next ? 'ghost' : 'primary'}" data-act="again">${stage.won ? 'Rejouer' : 'Réessayer'}</button>`}
         ${next ? '<button class="btn primary" data-act="next">Suivant</button>' : ''}
       </div>`;
-    card.querySelector('[data-act="map"]').addEventListener('click', () => { levelEndEl.classList.remove('show'); openEvent(); });
+    card.querySelector('[data-act="map"]').addEventListener('click', () => { levelEndEl.classList.remove('show'); openEvent(ev.id); });
     const again = card.querySelector('[data-act="again"]');
     if (again) again.addEventListener('click', () => { levelEndEl.classList.remove('show'); launchEventLevel(ev.id, n); });
     if (next) card.querySelector('[data-act="next"]').addEventListener('click', () => { levelEndEl.classList.remove('show'); openEventStage(ev.id, next); });
@@ -4035,12 +4155,12 @@
       <div class="section-title" style="margin-top:0">Trophées du mois</div>
       <div class="shelf">${monthsSinceStart().map((m) => `<div class="trophy">${TROPHY_SVG(M.monthTrophy(profile, m))}${frMonthShort(m)}</div>`).join('')}</div>`;
     // Season trophies: every one won, plus the event open now (still to win), in calendar order.
-    const now = M.eventFor(today());
+    const now = M.eventsFor(today()).map((e) => e.id);
     const shelf = [];
     for (let y = 2026; y <= +today().slice(0, 4); y++) {
       for (const ev of M.EVENTS) {
         const won = M.seasonTrophy(profile, ev.id, String(y));
-        if (won || (now && now.id === ev.id && String(y) === M.eventYear(today()))) shelf.push(`<div class="trophy">${TROPHY_SVG(won)}${ev.name} ${y}</div>`);
+        if (won || (now.includes(ev.id) && String(y) === M.eventYear(today()))) shelf.push(`<div class="trophy">${TROPHY_SVG(won)}${ev.name} ${y}</div>`);
       }
     }
     if (shelf.length) html += `<div class="section-title">Trophées de saison</div><div class="shelf">${shelf.join('')}</div>`;
@@ -5091,6 +5211,7 @@
     arcade: { base: '#ff5fd0', dark: '#b02a92', light: '#ffc4ef', cheek: '#36f9ff', hat: 'headphones', taps: ['cool', 'happy', 'cool', 'star'], burst: 'note' },
     volcano: { base: '#ff9a4d', dark: '#d1562a', light: '#ffd6b0', cheek: '#ff5a5a', hat: 'flame', taps: ['hot', 'wow', 'hot', 'happy'], burst: 'spark' },
     newyear: { base: '#ffd86b', dark: '#d9a520', light: '#fff4c4', cheek: '#ff8fa8', hat: 'sequin', taps: ['star', 'wow', 'happy', 'star'], burst: 'star' },
+    lunar: { base: '#ff6b5a', dark: '#c73a2e', light: '#ffd6c4', cheek: '#ffc94a', hat: 'dragon', taps: ['happy', 'wow', 'star', 'happy'], burst: 'spark' },
     valentine: { base: '#ff9ec0', dark: '#e0608f', light: '#ffe0ec', cheek: '#ff4d6d', hat: 'hearts', taps: ['love', 'happy', 'love', 'wink'], burst: 'heart' },
     easter: { base: '#c7b3ff', dark: '#8f74e0', light: '#efe8ff', cheek: '#ff8fb8', hat: 'bunny', taps: ['happy', 'wink', 'wow', 'love'], burst: 'petal' },
     beach: { base: '#5cd6e0', dark: '#2a9fb0', light: '#d4fbff', cheek: '#ff8f6a', hat: 'straw', taps: ['cool', 'happy', 'cool', 'wow'], burst: 'bubble' },
@@ -5580,6 +5701,21 @@
       ctx.fillRect(-sw * 0.25, -sh * 0.16, sw * 0.5, sh * 0.1);
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
       ctx.fillRect(-sw * 0.18, -sh * 0.48, sw * 0.06, sh * 0.3);
+    } else if (hat === 'dragon') {
+      // Golden dragon horns with a red mane between them.
+      ctx.fillStyle = '#e8364a';
+      for (let k = -2; k <= 2; k++) {
+        ctx.beginPath(); ctx.ellipse(cx + k * sw * 0.08, top + sh * 0.02, s * 0.05, s * 0.12, k * 0.25 + sway * 0.3, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = '#ffc94a'; ctx.strokeStyle = '#c98a0a'; ctx.lineWidth = s * 0.02;
+      for (const d of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(cx + d * sw * 0.2, top + sh * 0.08);
+        ctx.quadraticCurveTo(cx + d * sw * 0.26, top - sh * 0.2, cx + d * sw * 0.4, top - sh * 0.34);
+        ctx.quadraticCurveTo(cx + d * sw * 0.3, top - sh * 0.12, cx + d * sw * 0.32, top + sh * 0.08);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + d * sw * 0.27, top - sh * 0.14); ctx.lineTo(cx + d * sw * 0.36, top - sh * 0.18); ctx.lineTo(cx + d * sw * 0.29, top - sh * 0.06); ctx.fill();
+      }
     } else if (hat === 'santa') {
       const y0 = top + sh * 0.16;
       ctx.fillStyle = '#e8364a';

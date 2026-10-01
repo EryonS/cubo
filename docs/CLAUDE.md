@@ -18,7 +18,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 |---|---|---|
 | Add or change a visual theme / world look | [features/themes.md](features/themes.md) | `THEMES` in `src/main.js`, `SKINS.boards` in `src/meta.js`, `DESIGN.md` |
 | Add or change a bonus | [features/bonus.md](features/bonus.md) | `BONUSES` in `src/logic.js`, `BONUS_UI` + `GLYPHS` in `src/main.js` |
-| Change modes (Classique, Chrono, Chill) or difficulty | [features/modes.md](features/modes.md) | `MODES` / `LEVELS` in `src/logic.js`, home menu in `index.html` + `src/main.js` |
+| Change modes (Classique, Chrono, Chill) or difficulty (obstacles, coin bonus) | [features/modes.md](features/modes.md) | `MODES` / `LEVELS` in `src/logic.js`, home menu in `index.html` + `src/main.js` |
 | Coins, missions, Boutique, rewarded ad | [features/economy.md](features/economy.md) | `src/meta.js`, `src/ads.js`, shop in `src/main.js` |
 | Saves and migrations | [features/persistence.md](features/persistence.md) | `M.migrate`, `save()` / `saveProfile()` in `src/main.js` |
 | Aventure mode (map, levels, stars, rewards) | [features/aventure.md](features/aventure.md) | `src/levels.js`, `src/meta.js`, section `aventure` in `src/main.js` |
@@ -34,7 +34,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Mascot Cubo (moods, tap, setting) | [features/mascot.md](features/mascot.md) | section `mascot` in `src/main.js` |
 | Second obstacles of levels 11-19 (taupe, méduse, trou noir...) | [features/twists.md](features/twists.md) | `TWISTS` in `src/levels.js`, `KINDS` / `kindMoves` in `src/logic.js`, `twist` in `src/worlds.js` |
 | Cubo's wardrobe (Boutique tab Cubo) | [features/wardrobe.md](features/wardrobe.md) | `SKINS.cubo` in `src/meta.js`, `drawWardrobeHat` / `cuboLookFor` in `src/main.js` |
-| Season events (Nouvel An, Saint-Valentin, Pâques, Plage, Halloween, Noël), season trophies | [features/seasons.md](features/seasons.md) | `EVENTS` / `applyEvent` in `src/meta.js`, `EVENT_LEVELS` in `src/levels.js`, event worlds in `src/worlds.js`, section `season events` in `src/main.js` |
+| Season events (Nouvel An, Nouvel An chinois, Saint-Valentin, Pâques, Plage, Halloween, Noël), their dates, season trophies | [features/seasons.md](features/seasons.md) | `EVENTS` / `applyEvent` in `src/meta.js`, `EVENT_LEVELS` in `src/levels.js`, event worlds in `src/worlds.js`, section `season events` in `src/main.js` |
 | Record flag on the board frame (free runs) | [features/comfort.md](features/comfort.md) | `drawRecordFlag` in `src/main.js` |
 | Tab bar, home screen, dialogs, screen layout | [features/navigation.md](features/navigation.md) | `#tabbar` / `#menu` / `#ask` in `index.html`, sections `home menu`, `tab bar`, `confirmation dialog` in `src/main.js` |
 

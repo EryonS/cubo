@@ -721,6 +721,10 @@
     #menu-missions { margin-top: 0; }
     #free .menu-label:first-of-type { margin-top: 4px; }
     #free-note { margin-top: 12px; }
+    .free-level { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 9px 11px; border-radius: calc(var(--radius) - 6px);
+      background: var(--panel-2); font-size: 13px; font-weight: 700; line-height: 1.35; color: var(--muted); text-align: left; }
+    .free-level .icons { flex: none; display: flex; gap: 2px; }
+    .free-level b { color: var(--accent); }
 
     /* Défis tab */
     .today { padding: 14px; border-radius: var(--radius); background: var(--panel-2); text-align: left; }
@@ -913,11 +917,7 @@
         </button>
         <button class="hero-map" id="menu-map"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3.5 6v14L9 18l6 2 5.5-2V4L15 6z"/><path d="M9 4v14M15 6v14"/></svg>Carte</button>
       </div>
-      <button class="menu-defis event-row" id="menu-event" hidden>
-        <span class="ico" id="menu-event-ico"></span>
-        <span class="txt"><b id="menu-event-name"></b><small id="menu-event-sub"></small></span>
-        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
-      </button>
+      <div id="menu-events"></div>
       <div class="home-tiles">
         <button class="tile" id="menu-defis">
           <span class="tile-top"><svg class="ico" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg><span class="flame" id="menu-flame"></span></span>
@@ -964,6 +964,7 @@
         <button data-level="normal">Normal</button>
         <button data-level="hard">Difficile</button>
       </div>
+      <div class="free-level" id="free-level"></div>
       <p class="defis-note" id="free-note"></p>
       <div class="actions"><button class="btn primary" id="free-play">Jouer</button></div>
     </div>

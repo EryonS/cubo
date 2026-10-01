@@ -210,6 +210,22 @@
       setup: scatter,
       afterMove: tide,
     },
+    lunar: {
+      name: 'Nouvel An chinois',
+      plus: 'Les lanternes montent d’une case à chaque coup ; attrapée, une lanterne lâche une pièce',
+      minus: 'Tous les 6 coups, un pétard tombe ; pas effacé en 6 coups, il durcit en rocher',
+      setup: scatter,
+      afterMove(state, api) {
+        const out = dropEvery(6, 'firecracker')(state, api);
+        // A new lantern takes off from the bottom row every 4 moves.
+        if (state.moves % 4 === 0) {
+          const bottom = api.emptyCells(state).filter((i) => i >= api.SIZE * (api.SIZE - 1));
+          const i = api.pick(state, bottom);
+          if (i >= 0) out.push(api.addSpecial(state, i, 'lantern'));
+        }
+        return out;
+      },
+    },
     xmas: {
       name: 'Noël',
       plus: 'Un cadeau ouvert (2 lignes) donne un bonus au hasard',
@@ -219,9 +235,23 @@
     },
   });
 
+  // Free play (Classique, Chrono, Chill): Normal drops one obstacle, Difficile two, like Aventure
+  // levels 1-10 and 11-19. Obstacles come from the equipped theme's world (its cell, then its
+  // level 11-19 twist); themes without one (Jouet, season themes) use Plaine's.
+  const FREE_OBSTACLES = {
+    plain: ['crate', 'mole'], sea: ['bubble', 'jelly'], space: ['asteroid', 'hole'], ice: ['ice', 'snowman'],
+    forest: ['mushroom', 'vine'], retro: ['crate', 'glitch'], arcade: ['crate', 'token'], volcano: ['ember', 'lava'],
+  };
+  const FREE_EVERY = { normal: [8], hard: [7, 10] };
+  // [{ kind, every, top? }] for logic.createGame({ obstacles }); empty on Facile.
+  function freeObstacles(theme, level) {
+    const kinds = FREE_OBSTACLES[theme] || FREE_OBSTACLES.plain;
+    return (FREE_EVERY[level] || []).map((every, k) => ({ kind: kinds[k], every, ...(kinds[k] === 'lava' ? { top: true } : {}) }));
+  }
+
   // Map order: the Aventure path and the Boutique theme order.
   const ORDER = ['plain', 'sea', 'space', 'ice', 'forest', 'retro', 'arcade', 'volcano'];
 
   L.defineWorlds(WORLDS);
-  return { WORLDS, ORDER };
+  return { WORLDS, ORDER, FREE_OBSTACLES, freeObstacles };
 });

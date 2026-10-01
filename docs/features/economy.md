@@ -9,7 +9,7 @@ Status: shipped
 - **Rewarded ad** (stub): doubles a run's coins once.
 
 ## Files
-- `src/meta.js`: `SKINS`, `MISSIONS`, `dailyMissions`, `applyRun`, `runCoins`, `buy`, `equip`, `spend`, `nextGoal`.
+- `src/meta.js`: `SKINS`, `MISSIONS`, `dailyMissions`, `applyRun`, `runCoins` (adds the free play difficulty bonus, modes.md), `buy`, `equip`, `spend`, `nextGoal`.
 - `src/ads.js`: `showRewarded()` stub (AdMob in React Native).
 - `src/main.js`: wallet, shop, game-over report.
 

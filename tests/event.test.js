@@ -14,12 +14,21 @@ function clearAll(p, day, stars = 2, id = H) {
   return { profile: p, report };
 }
 
-test('one event per season, on its months', () => {
-  const at = (day) => (M.eventFor(day) || {}).id || null;
+test('events open on their dates, and can overlap', () => {
+  const at = (day) => M.eventsFor(day).map((e) => e.id).join(',') || null;
   assert.equal(at('2027-01-15'), 'newyear');
-  assert.equal(at('2027-02-14'), 'valentine');
+  assert.equal(at('2027-02-14'), 'lunar,valentine'); // Chinese New Year 2027: Feb 6, open Feb 3 to Feb 20
+  assert.equal(at('2027-02-21'), 'valentine');
+  assert.equal(at('2028-01-25'), 'newyear,lunar'); // Chinese New Year 2028: Jan 26
   assert.equal(at('2027-03-10'), null);
-  assert.equal(at('2027-04-01'), 'easter');
+  // Easter follows Easter Sunday: two weeks before to the Sunday after.
+  assert.equal(M.easterSunday(2026), '2026-04-05');
+  assert.equal(M.easterSunday(2027), '2027-03-28');
+  assert.equal(M.easterSunday(2028), '2028-04-16');
+  assert.equal(at('2027-03-14'), 'easter');
+  assert.equal(at('2027-04-04'), 'easter');
+  assert.equal(at('2027-04-05'), null);
+  assert.equal(M.eventEnd('easter', '2027-03-20'), '2027-04-04');
   assert.equal(at('2027-07-01'), 'beach');
   assert.equal(at('2027-08-31'), 'beach');
   assert.equal(at('2026-10-31'), 'halloween');
@@ -29,6 +38,38 @@ test('one event per season, on its months', () => {
   assert.equal(M.eventEnd('valentine', '2028-02-03'), '2028-02-29');
   assert.equal(M.eventLevelOpen(fresh(), H, '2026-11-01', 1), false);
   assert.equal(M.eventLevelOpen(fresh(), 'xmas', OCT, 1), false);
+  // No known date: no Chinese New Year that year.
+  assert.equal(M.eventsFor('2050-02-01').some((e) => e.id === 'lunar'), false);
+});
+
+test('a lantern rises a row a move and pays a coin when caught', () => {
+  const state = eventGame('lunar', 2, [[59, 'lantern']]);
+  const res = L.place(state, 0, 0, 0);
+  assert.equal(res.state.special[51].kind, 'lantern');
+});
+
+test('free play: Normal drops one obstacle kind, Difficile two, each with a coin bonus', () => {
+  const W = require('../src/worlds.js');
+  assert.deepEqual(W.freeObstacles('volcano', 'easy'), []);
+  assert.deepEqual(W.freeObstacles('volcano', 'normal').map((o) => o.kind), ['ember']);
+  assert.deepEqual(W.freeObstacles('volcano', 'hard').map((o) => o.kind), ['ember', 'lava']);
+  assert.deepEqual(W.freeObstacles('toy', 'hard').map((o) => o.kind), ['crate', 'mole']);
+  let state = L.createGame(5, { mode: 'classic', level: 'hard', obstacles: W.freeObstacles('ice', 'hard') });
+  let spawned = [];
+  for (let k = 0; k < 10 && !state.over; k++) {
+    const i = state.board.findIndex((v, j) => !v && j >= 56);
+    state = { ...state, tray: [dot(800 + k), ...state.tray.slice(1)] };
+    const res = L.place(state, 0, Math.floor(i / 8), i % 8);
+    state = res.state;
+    spawned = spawned.concat(res.events.spawned);
+  }
+  assert.ok(spawned.some((s) => s.kind === 'ice'));
+  assert.ok(spawned.some((s) => s.kind === 'snowman'));
+  assert.equal(L.createGame(5, { mode: 'classic', obstacles: [] }).obstacles, undefined);
+  const lines = M.runCoins({ coins: 20, obstacles: 2 });
+  assert.equal(lines.find((l) => l.label.startsWith('Bonus')).coins, 10);
+  assert.equal(M.runCoins({ coins: 20, obstacles: 1 }).find((l) => l.label.startsWith('Bonus')).coins, 4);
+  assert.equal(M.runCoins({ coins: 20 }).length, 1);
 });
 
 test('every event has 10 levels, a world, a theme and a Cubo piece that are not sold', () => {
