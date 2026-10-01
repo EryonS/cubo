@@ -36,3 +36,4 @@ Default reward 20 coins. Checked after every run, level, daily and Boutique purc
 ## Gotchas
 - Adding a sticker: append to `STICKERS` with a pure `test(profile)`; players who already qualify get it at their next check.
 - Lifetime stats started on 2026-09-30; older games are not counted.
+- Earned stickers are buttons: a tap opens `#sticker-info` (`openSticker`) with the badge, name, album page, what earned it ("Pour l'avoir"), the full date and the coins it paid. Stickers saved before dates were kept say so instead of a date.

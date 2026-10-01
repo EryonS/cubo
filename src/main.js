@@ -242,7 +242,6 @@
     '#d49cff', '#ff8fb8', '#b6e36b', '#ff7a8a', '#3fc1b0', '#a3b1c9', '#e0b07a',
   ];
   // Menu tokens: dark worlds share these defaults, light worlds override the translucent ones.
-  // --scheme: light themes get the dark menu palette when "Menus sombres" is on (dark ones keep theirs).
   const css = (o) => ({
     '--scheme': 'dark', '--good': '#5ee08a', '--hairline': 'rgba(255,255,255,0.12)', '--sunken': 'rgba(0,0,0,0.3)',
     '--scrim': 'rgba(6,7,10,0.72)', '--card-bw': '2px', '--card-bb': '2px', '--card-glow': '0 0 0 transparent', '--plate-edge': 'inset 0 0 0 1.5px var(--edge)',
@@ -510,7 +509,6 @@
         '--good': '#0f380f', '--edge': '#306230', '--radius': '6px',
         '--hairline': 'rgba(15,56,15,0.3)', '--sunken': 'rgba(15,56,15,0.18)', '--scrim': 'rgba(15,56,15,0.6)',
         '--card-bw': '4px', '--card-bb': '4px', '--plate-edge': 'inset 0 0 0 2px var(--edge)',
-        '--accent-dark': '#9bbc0f', '--on-accent-dark': '#0f380f',
       }),
       paint(g, w, h) {
         g.fillStyle = this.base; g.fillRect(0, 0, w, h);
@@ -757,9 +755,10 @@
   // Records are kept per mode; old saves only had the classic one.
   const bests = saved.bests || { classic: saved.best || loadJSON(LEGACY_KEY).best || 0 };
   let best = bests[recordKey()] || 0;
-  // patterns: a symbol per block color. darkMenus: dark menu screens, following the system at first.
+  // patterns: a symbol per block color. (Menus sombres was removed on 2026-10-01: too many color changes.)
   const settings = { sfx: !saved.muted, music: true, vibrate: true, patterns: false, mascot: true,
-    darkMenus: matchMedia('(prefers-color-scheme: dark)').matches, ...saved.settings };
+    ...saved.settings };
+  delete settings.darkMenus;
   const prefs = { mode: 'classic', level: 'normal', ...saved.prefs }; // last menu choice
   const storedProfile = loadJSON(PROFILE_KEY);
   // Local calendar day; daily missions roll over at local midnight.
@@ -851,8 +850,7 @@
   // Menu screens and the tab bar always wear the equipped theme, so they look the same everywhere.
   const fontVar = (th) => (th.font === PIXEL_FONT ? '"Press Start 2P UI", ui-monospace, monospace' : th.font); // narrower pixel face, as th.scale on canvas
   function themeVars(th) {
-    return { ...th.css, '--font-display': fontVar(th), '--display-style': th.italic ? 'italic' : 'normal',
-      '--menu-accent': th.css['--accent-dark'] || th.css['--accent'], '--menu-on-accent': th.css['--on-accent-dark'] || th.css['--on-accent'] };
+    return { ...th.css, '--font-display': fontVar(th), '--display-style': th.italic ? 'italic' : 'normal' };
   }
   const menuThemeEl = document.head.appendChild(document.createElement('style'));
   function applyThemeCss() {
@@ -861,9 +859,8 @@
     for (const [k, v] of Object.entries(themeVars(th))) root.setProperty(k, v);
     const menu = THEMES[profile.equipped.boards] || THEMES.toy;
     menuThemeEl.textContent = `.overlay.ui, #tabbar { ${Object.entries(themeVars(menu)).map(([k, v]) => `${k}: ${v};`).join(' ')} color: var(--text); }`;
-    document.body.classList.toggle('dark-menus', !!settings.darkMenus && menu.css['--scheme'] === 'light');
     document.body.dataset.theme = themeId();
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', th.base);
+    syncStatusBar();
   }
 
   // env(safe-area-inset-top) is only readable through CSS.
@@ -2958,6 +2955,8 @@
   // ---------- daily level, streak, profile ----------
   const profileEl = document.getElementById('profile');
   const FLAME_SVG = (size = 18, on = true) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c1 3.6 5.5 5.6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.4 1.1-4 2.4-5.3.2 1.7 1 2.8 2.1 3.3-.4-3.3.3-6.3 1-9z" fill="${on ? '#ff7a1a' : 'currentColor'}" opacity="${on ? 1 : 0.35}"/><path d="M12 13.5c.9 1.4 2.6 2.2 2.6 4.2a2.6 2.6 0 0 1-5.2 0c0-1.5.9-2.6 2.6-4.2z" fill="${on ? '#ffd23f' : 'transparent'}"/></svg>`;
+  // Streak freeze: an ice-blue snowflake, faded when the slot is empty.
+  const SNOW_SVG = (size = 22, on = true) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="${on ? '#3fb7e8' : 'currentColor'}" stroke-width="2.4" stroke-linecap="round" opacity="${on ? 1 : 0.3}"><path d="M12 2.5v19M3.8 7.25l16.4 9.5M3.8 16.75l16.4-9.5M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5"/></svg>`;
   const TROPHY_SVG = (kind, size = 44) => {
     const fill = kind === 'gold' ? '#f5c542' : kind === 'silver' ? '#c9d2de' : 'none';
     const stroke = kind ? (kind === 'gold' ? '#b07a12' : '#8a96a8') : 'currentColor';
@@ -3111,6 +3110,7 @@
     }
     if (profileTab === 'album') body.innerHTML = albumHtml();
     else body.innerHTML = statsHtml();
+    for (const b of body.querySelectorAll('[data-sticker]')) b.addEventListener('click', () => { sfx.turn(); openSticker(b.dataset.sticker); });
     freshStickers.clear();
     for (const b of body.querySelectorAll('[data-smode]')) {
       b.addEventListener('click', () => { statsMode = b.dataset.smode; sfx.turn(); renderProfile(); });
@@ -3144,6 +3144,30 @@
     ? `Obtenu le ${new Date(day + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`
     : 'Obtenu';
 
+  // Sticker card: badge, name, album page, what earned it, the day, the coins it paid.
+  const stickerEl = document.getElementById('sticker-info');
+  function openSticker(id) {
+    const sk = M.STICKERS.find((x) => x.id === id);
+    const day = (profile.stickers || {})[id];
+    if (!sk || !day) return;
+    const page = M.STICKER_PAGES.find((p) => p.id === sk.page);
+    const color = sk.world ? WORLD_COLORS[sk.world] : PAGE_COLORS[sk.page];
+    const when = typeof day === 'string'
+      ? 'Obtenu le ' + new Date(day + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      : 'Obtenu avant que le jeu note la date';
+    document.getElementById('sticker-card').innerHTML = `
+      <div class="sticker big" style="--c:${color}"><span class="badge"><svg width="44" height="44" viewBox="0 0 24 24">${STICKER_GLYPHS[sk.page]}</svg></span></div>
+      <h2>${sk.name}</h2>
+      <div class="stage-sub">${page ? page.name : ''}${sk.secret ? ' · secret' : ''}</div>
+      <div class="sticker-how"><small>Pour l’avoir</small>${sk.hint}</div>
+      <div class="sticker-when">${when}</div>
+      <div class="coins-total"><span>Récompense</span><span class="v">+${sk.reward || M.STICKER_REWARD} ${COIN}</span></div>
+      <div class="actions"><button class="btn primary" data-act="ok">OK</button></div>`;
+    stickerEl.querySelector('[data-act="ok"]').addEventListener('click', () => { sfx.turn(); stickerEl.classList.remove('show'); });
+    stickerEl.classList.add('show');
+  }
+  stickerEl.addEventListener('click', (e) => { if (e.target === stickerEl) stickerEl.classList.remove('show'); });
+
   function albumHtml() {
     const got = profile.stickers || {};
     const count = M.STICKERS.filter((s) => got[s.id]).length; // ignores retired stickers
@@ -3157,9 +3181,11 @@
         const on = !!got[sk.id];
         const hidden = sk.secret && !on;
         const color = sk.world ? WORLD_COLORS[sk.world] : PAGE_COLORS[page.id];
-        html += `<div class="sticker${on ? '' : ' off'}${freshStickers.has(sk.id) ? ' fresh' : ''}" style="--c:${color}">
+        // Earned stickers are buttons: a tap shows what it was for and the day it was won.
+        const tag = on ? 'button' : 'div';
+        html += `<${tag} class="sticker${on ? '' : ' off'}${freshStickers.has(sk.id) ? ' fresh' : ''}" style="--c:${color}"${on ? ` data-sticker="${sk.id}"` : ''}>
           <span class="badge"><svg width="28" height="28" viewBox="0 0 24 24">${hidden ? SECRET_GLYPH : STICKER_GLYPHS[page.id]}</svg></span>
-          <b>${hidden ? 'Secret' : sk.name}</b><span>${on ? (sk.secret ? sk.hint : gotOn(got[sk.id])) : hidden ? 'À découvrir' : sk.hint}</span>${on && sk.secret ? `<span class="when">${gotOn(got[sk.id])}</span>` : ''}</div>`;
+          <b>${hidden ? 'Secret' : sk.name}</b><span>${on ? (sk.secret ? sk.hint : gotOn(got[sk.id])) : hidden ? 'À découvrir' : sk.hint}</span>${on && sk.secret ? `<span class="when">${gotOn(got[sk.id])}</span>` : ''}</${tag}>`;
       }
       html += '</div>';
     }
@@ -3230,7 +3256,11 @@
       <div class="section-title">Série</div>
       <div class="streak-card">
         ${FLAME_SVG(38, now > 0)}<span class="big">${now}</span>
-        <div class="txt"><b>jour${now > 1 ? 's' : ''} d'affilée</b><br>Record : ${st.best} · Gels : ${st.freezes}/${M.FREEZE_MAX}</div>
+        <div class="txt"><b>jour${now > 1 ? 's' : ''} d'affilée</b><br>Record : ${st.best}</div>
+        <div class="freezes" aria-label="Gels de série : ${st.freezes} sur ${M.FREEZE_MAX}">
+          <span class="slots">${Array.from({ length: M.FREEZE_MAX }, (_, i) => SNOW_SVG(22, i < st.freezes)).join('')}</span>
+          <small>Gels ${st.freezes}/${M.FREEZE_MAX}</small>
+        </div>
       </div>
       <button class="opt" data-act="freeze" ${st.freezes >= M.FREEZE_MAX || profile.coins < M.FREEZE_COST ? 'disabled' : ''}><span>Gel de série : protège un jour manqué</span><span class="price">${M.FREEZE_COST}${COIN}</span></button>`;
   }
@@ -3389,8 +3419,7 @@
       renderSettings();
       if (key === 'sfx' && settings.sfx) sfx.turn();
       if (key === 'vibrate') buzz(20);
-      if (key === 'darkMenus') applyThemeCss();
-      save();
+        save();
     });
   }
   // The whole row flips its switch, not just the small toggle.
@@ -3504,6 +3533,15 @@
     renderHint();
   }
   walletEl.addEventListener('animationend', () => walletEl.classList.remove('bump'));
+  // Tapping the coins (HUD wallet, menu headers) opens the Boutique; a run in progress waits behind.
+  function coinsToShop() {
+    if (tut) return;
+    sfx.turn();
+    leaveBoard();
+    goTab('shop');
+  }
+  walletEl.addEventListener('click', coinsToShop);
+  for (const b of document.querySelectorAll('[data-shop]')) b.addEventListener('click', coinsToShop);
   renderWallet();
 
   const shopEl = document.getElementById('shop');
@@ -3845,8 +3883,19 @@
     });
   }
 
+  // iPhone status bar (theme-color): a menu screen's own color,
+  // else the background of the world played.
+  // Hoisted: applyThemeCss calls it before this section runs, so no consts from here.
+  function syncStatusBar() {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const screen = [...document.querySelectorAll('.overlay.screen.show')].find((el) => !/\bout-(left|right)\b/.test(el.className));
+    const color = screen ? getComputedStyle(screen.querySelector('.card')).backgroundColor : theme().base;
+    if (meta.getAttribute('content') !== color) meta.setAttribute('content', color);
+  }
+
   function syncTabbar() {
     music.sync(); // leaving the run for a menu (or back) switches the song
+    syncStatusBar();
     const shown = [...document.querySelectorAll('.overlay.show')];
     const hub = currentHub();
     const on = !!hub && shown.every((el) => el.classList.contains('hub'));

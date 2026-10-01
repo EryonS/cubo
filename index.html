@@ -82,8 +82,6 @@
     .hint-btn:active { transform: scale(0.95); }
     .hint-btn:disabled { opacity: .45; cursor: default; }
     body.puzzle .hint-btn { display: inline-flex; }
-    #wallet { cursor: default; }
-    #wallet:active { transform: none; }
     #wallet {
       left: 16px; display: flex; gap: 7px; align-items: center;
       font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 21px;
@@ -357,6 +355,8 @@
       display: inline-flex; align-items: center; gap: 5px; padding: 8px 10px 6px; border-radius: 8px; background: var(--panel-2);
     }
     .shop-head .coins .coin, .home-head .coins .coin { margin: 0 0 2px; }
+    button.coins { border: 0; color: inherit; cursor: pointer; transition: transform 120ms cubic-bezier(.2,.8,.2,1); }
+    button.coins:active { transform: scale(0.94); }
     .close { width: 38px; height: 38px; border: 0; border-radius: 10px; background: var(--panel-2); color: var(--text); cursor: pointer; display: grid; place-items: center; }
     .tabs { display: flex; gap: 4px; padding: 4px; border-radius: calc(var(--radius) - 2px); background: var(--panel-2); margin-bottom: 14px; }
     .tab, .ptab {
@@ -526,6 +526,9 @@
     .streak-card .big { font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 34px; line-height: 1; }
     .streak-card .txt { flex: 1; font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.35; }
     .streak-card .txt b { color: var(--text); font-size: 15px; }
+    .streak-card .freezes { flex: none; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); }
+    .streak-card .freezes .slots { display: flex; gap: 4px; }
+    .streak-card .freezes small { font-size: 12px; font-weight: 800; }
     .section-title { margin: 16px 2px 8px; text-align: left; font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
     .shelf { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; }
     .trophy { flex: none; width: 70px; text-align: center; font-size: 12px; font-weight: 800; color: var(--muted); }
@@ -535,6 +538,16 @@
     .sticker .badge { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; background: var(--c, var(--accent)); color: #fff;
       box-shadow: 0 0 0 3px #fff, 0 4px 10px rgba(0,0,0,.2); }
     .sticker b { font-size: 13px; line-height: 1.15; }
+    button.sticker { width: 100%; border: 0; font: inherit; color: inherit; cursor: pointer; transition: transform 120ms cubic-bezier(.2,.8,.2,1); }
+    button.sticker:active { transform: scale(0.95); }
+    /* Sticker card (tap an earned sticker) */
+    #sticker-info .card { width: min(320px, 100%); }
+    .sticker.big { background: none; padding: 4px 0 14px; }
+    .sticker.big .badge { width: 84px; height: 84px; box-shadow: 0 0 0 4px #fff, 0 6px 16px rgba(0,0,0,.22); }
+    .sticker-how { margin-top: 16px; padding: 12px 14px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); font-weight: 800; line-height: 1.3; }
+    .sticker-how small { display: block; margin-bottom: 2px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .sticker-when { margin-top: 12px; font-size: 14px; font-weight: 700; color: var(--muted); }
+    .sticker-when::first-letter { text-transform: uppercase; }
     .sticker span { font-size: 12px; line-height: 1.25; color: var(--muted); font-weight: 700; }
     .sticker .when { font-size: 11px; font-weight: 600; opacity: .8; }
     .sticker.off .badge { background: var(--sunken); color: var(--muted); box-shadow: none; }
@@ -725,6 +738,7 @@
 
     /* Confirmation dialog (replaces the browser's confirm) */
     #ask { z-index: 30; }
+    #sticker-info { z-index: 25; } /* over the Profil hub, which sits at 2 while it slides in */
     #ask .card { width: min(320px, 100%); }
     #ask h2 { font-size: 24px; }
     .ask-text { margin: 10px 0 0; font-weight: 700; color: var(--muted); line-height: 1.35; }
@@ -824,18 +838,6 @@
       .overlay.screen .card, .overlay.hub.from-right .card, .overlay.hub.from-left .card { animation: none; }
     }
 
-    /* ---------- dark menus ---------- */
-    /* Screens outside the game (.overlay.ui) switch to a night palette when a light theme is on.
-       The accent stays the theme's (--menu-accent, lightened for Rétro); the game itself is untouched. */
-    body.dark-menus .overlay.ui, body.dark-menus #tabbar {
-      --panel: #211a2e; --panel-2: #2c2440; --slot: #211a2e;
-      --text: #f1ecff; --muted: #a99dc6; --good: #5ee08a; --edge: #3b3155;
-      --accent: var(--menu-accent); --on-accent: var(--menu-on-accent);
-      --hairline: rgba(255,255,255,0.12); --sunken: rgba(0,0,0,0.3); --scrim: rgba(10,7,18,0.74);
-      --card-bw: 0px; --card-bb: 6px; --card-glow: 0 0 0 transparent; --plate-edge: inset 0 -3px 0 var(--edge);
-      color: var(--text); color-scheme: dark;
-    }
-    body.dark-menus .overlay.ui .sticker .badge { box-shadow: 0 0 0 3px #3b3155, 0 4px 10px rgba(0,0,0,.3); }
 
     @keyframes fade { from { opacity: 0; } }
     @keyframes rise { from { transform: translateY(24px) scale(.96); opacity: 0; } }
@@ -857,7 +859,7 @@
 </head>
 <body>
   <canvas id="game"></canvas>
-  <div id="wallet" class="hud-btn" role="status" aria-label="Pièces"><i class="coin"></i><span id="wallet-coins">0</span><span id="wallet-pending"></span></div>
+  <div id="wallet" class="hud-btn" role="button" tabindex="0" aria-label="Pièces : ouvrir la Boutique"><i class="coin"></i><span id="wallet-coins">0</span><span id="wallet-pending"></span></div>
   <button id="undo" class="hud-btn" aria-label="Annuler le dernier coup"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span class="badge"></span></button>
   <button id="menu-open" class="hud-btn" aria-label="Pause"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4.5" width="4.2" height="15" rx="1.6"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.6"/></svg></button>
   <button id="missions-open" class="hud-btn" aria-label="Missions du jour"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span class="badge"></span></button>
@@ -887,7 +889,7 @@
     <div class="card">
       <div class="home-head">
         <div class="brand">Gridlock</div>
-        <span class="coins"><i class="coin"></i> <span id="menu-coins">0</span></span>
+        <button class="coins" data-shop aria-label="Pièces : ouvrir la Boutique"><i class="coin"></i> <span id="menu-coins">0</span></button>
       </div>
       <button class="btn primary wide" id="menu-continue">Continuer<small id="menu-continue-sub"></small></button>
       <div class="hero" id="menu-hero">
@@ -963,7 +965,6 @@
       <div class="section-title">Affichage</div>
       <div class="setting"><div>Motifs sur les blocs<small>Un symbole par couleur, pour mieux les distinguer</small></div><button class="toggle" role="switch" data-setting="patterns" aria-label="Motifs sur les blocs"></button></div>
       <div class="setting"><div>Mascotte<small>Cubo, perché sur le plateau, réagit à ta partie</small></div><button class="toggle" role="switch" data-setting="mascot" aria-label="Mascotte"></button></div>
-      <div class="setting"><div>Menus sombres<small>Écrans hors jeu en sombre avec les thèmes clairs</small></div><button class="toggle" role="switch" data-setting="darkMenus" aria-label="Menus sombres"></button></div>
       <div class="section-title">Aide</div>
       <button class="setting link" id="setting-tutorial"><div>Revoir le tutoriel<small>Une partie guidée en 3 étapes</small></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
       </div>
@@ -1063,7 +1064,7 @@
       <div class="shop-head">
         <h2>Défis</h2>
         <span class="star-pill flame" id="defis-flame"></span>
-        <span class="coins"><i class="coin"></i> <span id="defis-coins">0</span></span>
+        <button class="coins" data-shop aria-label="Pièces : ouvrir la Boutique"><i class="coin"></i> <span id="defis-coins">0</span></button>
       </div>
       <div id="defis-body"></div>
     </div>
@@ -1115,6 +1116,10 @@
     <button data-go="shop"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span>Boutique</span></button>
     <button data-go="profile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg><span>Profil</span></button>
   </nav>
+
+  <div id="sticker-info" class="overlay ui" role="dialog" aria-modal="true">
+    <div class="card" id="sticker-card"></div>
+  </div>
 
   <div id="ask" class="overlay ui" role="alertdialog" aria-modal="true" aria-labelledby="ask-title">
     <div class="card">

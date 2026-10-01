@@ -27,7 +27,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Combo / line clear effects (juice) | [features/combo-feel.md](features/combo-feel.md) | `commit`, `drawBanner`, `drawComboTag` in `src/main.js` |
 | Guided first game, one-time tips | [features/tutorial.md](features/tutorial.md) | `src/tutorial.js`, `tipSeen` / `markTip` in `src/meta.js`, sections `tutorial` and `tips` in `src/main.js` |
 | Sticker album, trophies, profile and stats | [features/album.md](features/album.md) | `STICKERS` / `checkStickers` / `monthTrophy` / `modeStats` in `src/meta.js`, `#profile` screen |
-| Pause, block marks, dark menus | [features/comfort.md](features/comfort.md) | section `pause` and `MARKS` in `src/main.js`, `.dark-menus` in `index.html` |
+| Pause, block marks | [features/comfort.md](features/comfort.md) | section `pause` and `MARKS` in `src/main.js` |
 | Bonus upgrades (Boutique tab Bonus) | [features/upgrades.md](features/upgrades.md) | `EFFECT_BY_LEVEL` / `bombArea` / `reroll` in `src/logic.js`, `UPGRADE_PRICES` in `src/meta.js`, `renderUpgrades` in `src/main.js` |
 | Mondes mode (endless world runs, prime) | [features/worlds-mode.md](features/worlds-mode.md) | `free` in `src/worlds.js`, mode `worlds` in `src/logic.js`, `worldPrime` in `src/meta.js`, section `Mondes` in `src/main.js` |
 | Puzzles (fill a drawing with a quota of pieces) | [features/puzzles.md](features/puzzles.md) | `src/puzzles.js`, mode `puzzle` in `src/logic.js`, `applyPuzzle` in `src/meta.js`, section `Puzzles` in `src/main.js` |
@@ -55,7 +55,7 @@ Status: shipped | planned
 3. Retention (**done**, v1): daily level + share text, day streak with freezes, sticker album with monthly trophies, profile and stats.
 4. Onboarding (**done**): guided first game + one-time tips.
 5. Combo feel (**done**): tiered clear effects.
-6. Comfort and retention (**done**, v1): pause, color-blind block marks, dark menus, per-mode stats, secret stickers. A weekend event shipped then was removed on 2026-09-30 (overlapped the daily level, nothing to chase once its tiers were paid).
+6. Comfort and retention (**done**, v1): pause, color-blind block marks, dark menus (removed 2026-10-01), per-mode stats, secret stickers. A weekend event shipped then was removed on 2026-09-30 (overlapped the daily level, nothing to chase once its tiers were paid).
 7. Aventure v2 (**done**): 20 levels a world, boss fights, coins / combo / crate goals, star chests.
 8. Bonus upgrades + Mondes mode (**done**).
 9. Puzzles (**done**): 40 drawings to fill with a quota of pieces.

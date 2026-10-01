@@ -22,7 +22,9 @@
   const INVENTORY_MAX = 2; // per bonus type
   const OVERFLOW_POINTS = 50; // collected with a full stack
   const COIN_CHANCE = 0.12; // per new piece without a bonus
-  const BAG_SHARE = 0.1; // of coin cells
+  const BAG_SHARE = 0.1; // of coin cells (never in coin goals: a bag would pay 5 of the goal at once)
+  const COIN_DRY_STEP = 0.06; // coin goals: extra coin chance per piece since the last coin piece
+  const COIN_DRY_MAX = 5; // coin goals: at most 4 pieces in a row without a coin
   // Coin cells ride on the same `bonus` slot as bonuses but pay coins instead of filling the inventory.
   const COIN_VALUES = { coin: 1, bag: 5 };
   // Throwing a tray piece away costs wallet coins, more each time within a run.
@@ -193,13 +195,20 @@
     const onCell = () => shape.cells[Math.floor(nextRandom(state) * shape.cells.length)];
     const rules = rulesOf(state);
     const bonusWeight = (k) => BONUSES[k].weight * ((rules.bonusWeights && rules.bonusWeights[k]) || 1);
-    if (state.mode !== 'chill' && nextRandom(state) < BONUS_CHANCE) {
+    // Coin goals: bad-luck protection. Each piece without a coin raises the odds of the next one,
+    // and the COIN_DRY_MAX-th dry piece always carries one, so the goal never hangs on luck.
+    const stage = state.stage;
+    const coinGoal = stage && stage.goal.type === 'coins' && !stage.won;
+    const dry = coinGoal ? stage.dry || 0 : 0;
+    const forced = coinGoal && dry >= COIN_DRY_MAX - 1;
+    if (!forced && state.mode !== 'chill' && nextRandom(state) < BONUS_CHANCE) {
       const [r, c] = onCell();
       piece.bonus = { r, c, type: weightedPick(state, Object.keys(BONUSES), bonusWeight) };
-    } else if (nextRandom(state) < COIN_CHANCE * (rules.coinMul || 1)) {
+    } else if (forced || nextRandom(state) < COIN_CHANCE * (rules.coinMul || 1) + dry * COIN_DRY_STEP) {
       const [r, c] = onCell();
-      piece.bonus = { r, c, type: nextRandom(state) < BAG_SHARE ? 'bag' : 'coin' };
+      piece.bonus = { r, c, type: !coinGoal && nextRandom(state) < BAG_SHARE ? 'bag' : 'coin' };
     }
+    if (coinGoal) stage.dry = piece.bonus && COIN_VALUES[piece.bonus.type] ? 0 : dry + 1;
     return piece;
   }
 

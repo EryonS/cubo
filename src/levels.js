@@ -58,7 +58,7 @@
   const MOVES_PER_LINE = 2.7;
   const POINTS_PER_MOVE = 20;
   const MOVES_PER_CLEAR = { bubble: 5.9, asteroid: 6.5, ice: 8, mushroom: 3.9, ember: 10.5 };
-  const MOVES_PER_COIN = { plain: 6.5, forest: 3.8 }; // others: 7.5
+  const MOVES_PER_COIN = { plain: 4, forest: 2.3 }; // others: 4.6
   const comboMoves = (target) => 4 + target * target * 0.9;
   const MOVES_PER_CRATE = 4.5;
   const SECONDS_PER_MOVE = 3.5; // arcade: a human's pace, to size score goals to the clock
@@ -99,7 +99,7 @@
     } else if (type === 'coins') {
       const target = 3 + Math.round(d * 5) + Math.floor(m / 4);
       stage.goal = { type, target };
-      expected = target * (MOVES_PER_COIN[world] || 7.5);
+      expected = target * (MOVES_PER_COIN[world] || 4.6);
     } else if (type === 'combo') {
       const target = Math.min(cfg.clock ? 5 : 6, 3 + Math.round(d * 2) + (m > 6 ? 1 : 0));
       stage.goal = { type, target };

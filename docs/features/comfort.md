@@ -10,11 +10,10 @@ The home menu is reached from the pause; its "Continuer" resumes.
 Réglages > Motifs sur les blocs (`settings.patterns`, off by default). `MARKS` in `src/main.js`: one small symbol per shape family (index = palette index), drawn by `drawBlock(..., fam)` over the skin, dark translucent (the block color on the Néon skin). Blocks carrying a bonus or coin icon show the icon instead.
 Every `drawBlock` call that knows the family passes it; a new caller should too.
 
-## Dark menus
-Réglages > Menus sombres (`settings.darkMenus`, defaults to the system dark mode). Off-game screens carry `.overlay.ui` (menu, settings, adventure, world, stage, défis, missions, profile, shop); `body.dark-menus .overlay.ui` swaps their neutrals for a night palette.
-It only applies when the current theme is light (`--scheme: 'light'` from `lightCss`); dark worlds keep their own menus. The accent stays the theme's through `--menu-accent` (a theme can set `--accent-dark` / `--on-accent-dark`, as Rétro does).
-In-game popups (pause, game over, level end, legend, tutorial end) keep the theme.
+## Dark menus (removed)
+Réglages > Menus sombres was removed on 2026-10-01 at the user's request: with the world themes it made too many color changes. Menus always wear the equipped theme. Don't bring it back.
 
 ## Files
-- `index.html`: `#pause`, settings rows, `.dark-menus` rules, `.ui` classes.
+- `index.html`: `#pause`, settings rows, `.ui` classes.
 - `src/main.js`: sections `pause` and `settings`, `MARKS` / `drawMark`, `applyThemeCss`.
+- iPhone status bar: `syncStatusBar` sets `theme-color` to the shown menu screen's card color, else to the played world's `base`. Called from `applyThemeCss` and on every overlay change (`syncTabbar`).
