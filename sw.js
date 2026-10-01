@@ -2,7 +2,7 @@
  * Gridlock — offline support. Caches every file on install and serves from cache first,
  * so the game runs in airplane mode. Bump CACHE on each release to ship an update.
  */
-const CACHE = 'gridlock-v32';
+const CACHE = 'gridlock-v33';
 const ASSETS = [
   './',
   './index.html',

@@ -6238,17 +6238,17 @@
     }
   }
 
-  // A tray pad: the board slab's color with a soft shadow and a hairline edge.
+  // A tray pad: the board slab's color, half see-through, with a hairline edge.
   function drawTrayPad(x, y, w, h) {
     const th = theme();
     const r = Math.min(16, th.frame.r);
     ctx.save();
-    ctx.shadowColor = th.shadow || 'rgba(0,0,0,0.22)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
-    ctx.globalAlpha = 0.88;
+    // Half see-through and no shadow: it must not read as a second board.
+    ctx.globalAlpha = 0.5;
     ctx.fillStyle = th.board;
     ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
     ctx.restore();
-    ctx.strokeStyle = withAlpha(th.ink, 0.12);
+    ctx.strokeStyle = withAlpha(th.ink, 0.1);
     ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.stroke();
   }
