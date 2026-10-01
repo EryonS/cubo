@@ -26,4 +26,4 @@ Optional: `animate(g, w, h, t)`, `palette` (14 block colors + leading null), `sc
 - Retired ids (`night`, `sunset`, `desert`, `mountain`, `dash`) are refunded by `M.migrate`; never reuse them.
 
 ## Music
-Each theme has its own generative song (`SONGS` in `src/main.js`, section audio): bpm, chords, bass, bell arpeggio and optional drums. The song follows `themeId()` (a world's in Aventure and dailies) and switches with a short fade when a run starts in another world. A new theme needs a `SONGS` entry, else it plays the Jouet song.
+Each theme has its own generative song (`SONGS` in `src/main.js`, section audio): bpm, chords, bass, bell arpeggio and optional drums. In a run the song follows `themeId()` (a world's in Aventure and dailies); on menu screens (hubs, Aventure, Puzzles, level sheet, free-play sheet) it is the equipped theme's song, like the menus' look. It switches with a short fade (`music.sync`, called from `syncTabbar` on every overlay change). Pause and settings keep the run's song. A new theme needs a `SONGS` entry, else it plays the Jouet song.

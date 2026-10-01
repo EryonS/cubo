@@ -1181,8 +1181,10 @@
       switching = setTimeout(() => { switching = 0; sync(); }, 400);
     }
 
+    // Menus play the equipped theme's song, like they wear its look; a run plays its world's.
+    const MENUS = '.overlay.hub.show, #adventure.show, #puzzles.show, #stage.show, #free.show';
     function sync() {
-      pick(themeId());
+      pick(document.querySelector(MENUS) ? profile.equipped.boards : themeId());
       if (switching) return;
       if (settings.music && ac && !document.hidden) start(); else stop();
     }
@@ -2199,10 +2201,12 @@
   // ---------- swipe ----------
   // Calls cb(1) on a quick swipe to the left (next), cb(-1) to the right (previous). Vertical scrolls,
   // slow drags, and gestures that start on a horizontal scroller (.no-swipe) are ignored.
-  function onSwipe(el, cb) {
+  // only: a selector the gesture must start in (the calendar inside the Défis page).
+  function onSwipe(el, cb, only) {
     let start = null;
     el.addEventListener('pointerdown', (e) => {
-      start = e.pointerType === 'mouse' || e.target.closest('.no-swipe') ? null : { x: e.clientX, y: e.clientY, t: performance.now() };
+      const off = e.pointerType === 'mouse' || e.target.closest('.no-swipe') || (only && !e.target.closest(only));
+      start = off ? null : { x: e.clientX, y: e.clientY, t: performance.now() };
     });
     el.addEventListener('pointercancel', () => { start = null; });
     el.addEventListener('pointerup', (e) => {
@@ -3201,15 +3205,7 @@
       + '<div class="defis-note">Elles avancent dans tous les modes. Trois nouvelles chaque jour.</div>';
     renderMissionList(document.getElementById('defis-missions'), [], liveRun());
     body.querySelector('[data-act="cal"]').addEventListener('click', () => { calOpen = !calOpen; sfx.turn(); renderDefis(); });
-    for (const b of body.querySelectorAll('[data-cal]')) {
-      b.addEventListener('click', () => {
-        const d = +b.dataset.cal;
-        if (calOpen) calMonth = M.addDays(calMonth + '-15', d * 30).slice(0, 7);
-        else pickDay(M.addDays(defisDay, d * 7)); // same weekday, the week before / after
-        sfx.turn();
-        renderDefis();
-      });
-    }
+    for (const b of body.querySelectorAll('[data-cal]')) b.addEventListener('click', () => stepCal(+b.dataset.cal));
     for (const b of body.querySelectorAll('[data-day]')) b.addEventListener('click', () => { pickDay(b.dataset.day); sfx.turn(); renderDefis(); });
     const play = body.querySelector('[data-act="play"]');
     play.addEventListener('click', () => {
@@ -3238,6 +3234,17 @@
       </div>
       <button class="opt" data-act="freeze" ${st.freezes >= M.FREEZE_MAX || profile.coins < M.FREEZE_COST ? 'disabled' : ''}><span>Gel de série : protège un jour manqué</span><span class="price">${M.FREEZE_COST}${COIN}</span></button>`;
   }
+
+  // Previous / next week (or month when unfolded): arrows, or a swipe on the calendar.
+  function stepCal(d) {
+    const arrow = document.querySelector(`#defis-body [data-cal="${d}"]`);
+    if (!arrow || arrow.disabled) { sfx.nope(); return; }
+    if (calOpen) calMonth = M.addDays(calMonth + '-15', d * 30).slice(0, 7);
+    else pickDay(M.addDays(defisDay, d * 7)); // same weekday, the week before / after
+    sfx.turn();
+    renderDefis();
+  }
+  onSwipe(document.getElementById('defis-body'), stepCal, '.cal, .cal-head');
 
   function dayCell(day) {
     const t = today();
@@ -3829,13 +3836,6 @@
       if (leaving(el)) el.classList.remove('show', ...SLIDE_CLASSES);
     };
     el.addEventListener('animationend', done);
-    // Swipe left / right on a hub goes to the next / previous tab.
-    onSwipe(el, (d) => {
-      const i = HUB_ORDER.indexOf(currentHub()) + d;
-      if (!HUB_ORDER[i] || !document.body.classList.contains('hub-on')) return;
-      sfx.turn();
-      goTab(HUB_ORDER[i]);
-    });
   }
   for (const b of tabbarEl.querySelectorAll('[data-go]')) {
     b.addEventListener('click', () => {
@@ -3846,6 +3846,7 @@
   }
 
   function syncTabbar() {
+    music.sync(); // leaving the run for a menu (or back) switches the song
     const shown = [...document.querySelectorAll('.overlay.show')];
     const hub = currentHub();
     const on = !!hub && shown.every((el) => el.classList.contains('hub'));
