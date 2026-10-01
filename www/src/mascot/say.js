@@ -43,7 +43,8 @@ function paintSay(mood = sayMood) {
   g.clearRect(0, 0, sayCv.width, sayCv.height);
   const prev = ctx;
   ctx = g;
-  drawCubo(0, { x: sayCv.width / 2, y: sayCv.height - 10, s: 128, C: cuboLookFor(profile.equipped.boards), mood });
+  // The tallest head pieces (bunny ears, witch hat) reach 1.42 s above the feet, 0.71 s each side.
+  drawCubo(0, { x: sayCv.width / 2, y: sayCv.height - 9, s: 100, C: cuboLookFor(profile.equipped.boards), mood });
   ctx = prev;
 }
 function renderCuboSay() {
@@ -77,7 +78,7 @@ function endCubo(card, mood) {
     cv = document.createElement('canvas');
     cv.className = 'end-cubo';
     cv.width = 224;
-    cv.height = 180;
+    cv.height = 236;
     cv.setAttribute('aria-hidden', 'true');
     card.prepend(cv);
   }
@@ -87,7 +88,7 @@ function endCubo(card, mood) {
   g.clearRect(0, 0, cv.width, cv.height);
   const prev = ctx;
   ctx = g;
-  drawCubo(0, { x: cv.width / 2, y: cv.height - 12, s: 168, C: cuboLookFor(themeId()), mood });
+  drawCubo(0, { x: cv.width / 2, y: cv.height - 13, s: 150, C: cuboLookFor(themeId()), mood });
   ctx = prev;
   cv.classList.remove('pop');
   void cv.offsetWidth; // restart the animation

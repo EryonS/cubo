@@ -7,13 +7,13 @@
  * so every puzzle is solvable. The same n always gives the same puzzle.
  */
 (function (root, factory) {
-  const L = typeof module === 'object' && module.exports ? require('./logic.js') : root.GridlockLogic;
+  const L = typeof module === 'object' && module.exports ? require('./logic.js') : root.CuboBlocksLogic;
   const api = factory(L);
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.GridlockPuzzles = api;
+  else root.CuboBlocksPuzzles = api;
 })(typeof self !== 'undefined' ? self : this, function (L) {
   'use strict';
-  const I18N = typeof module === 'object' && module.exports ? require('./i18n.js') : self.GridlockI18n;
+  const I18N = typeof module === 'object' && module.exports ? require('./i18n.js') : self.CuboBlocksI18n;
   const tr = I18N.tr;
 
   const SIZE = L.SIZE;

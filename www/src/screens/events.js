@@ -12,7 +12,7 @@ const eventDayNow = () => (eventInProgress() && state.stage.eventDay) || today()
 // "31 octobre" / "1er novembre" in French, "October 31" in English.
 const frDay = (day) => {
   const date = new Date(day + 'T12:00:00').toLocaleDateString(locale(), { day: 'numeric', month: 'long' });
-  return GridlockI18n.lang() === 'fr' && day.slice(8, 10) === '01' ? date.replace(/^1 /, '1er ') : date;
+  return CuboBlocksI18n.lang() === 'fr' && day.slice(8, 10) === '01' ? date.replace(/^1 /, '1er ') : date;
 };
 const hatName = (id) => (M.SKINS.cubo.find((x) => x.id === id) || {}).name || '';
 const CHEV_SVG = '<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';

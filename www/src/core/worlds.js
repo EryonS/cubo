@@ -17,13 +17,13 @@
  * The world also fixes the level's clock (levels.js) and the renderer's palette (main.js).
  */
 (function (root, factory) {
-  const L = typeof module === 'object' && module.exports ? require('./logic.js') : root.GridlockLogic;
+  const L = typeof module === 'object' && module.exports ? require('./logic.js') : root.CuboBlocksLogic;
   const api = factory(L);
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.GridlockWorlds = api;
+  else root.CuboBlocksWorlds = api;
 })(typeof self !== 'undefined' ? self : this, function (L) {
   'use strict';
-  const I18N = typeof module === 'object' && module.exports ? require('./i18n.js') : self.GridlockI18n;
+  const I18N = typeof module === 'object' && module.exports ? require('./i18n.js') : self.CuboBlocksI18n;
   const tr = I18N.tr;
 
   // Scatters setup.count cells of setup.kind on empty cells (setup from the stage).

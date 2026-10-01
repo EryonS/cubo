@@ -2,6 +2,15 @@
 'use strict';
 
 // ---------- persistence ----------
+// The game was called Gridlock: saves from before the rename move to the new keys, once.
+for (const [from, to] of [['gridlock.v2', STORE_KEY], ['gridlock.profile.v1', PROFILE_KEY]]) {
+  try {
+    if (localStorage.getItem(to) === null && localStorage.getItem(from) !== null) {
+      localStorage.setItem(to, localStorage.getItem(from));
+      localStorage.removeItem(from);
+    }
+  } catch { /* private mode */ }
+}
 function loadJSON(key) {
   try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; }
 }

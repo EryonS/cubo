@@ -3,8 +3,8 @@
 Puzzle de blocs 8×8 : pose les pièces, remplis lignes/colonnes, enchaîne les combos.
 
 Nom : **Cubo Blocks** (stores), **Cubo** sous l'icône, d'après la mascotte. appId `com.slapps.cubo`, domaine `cuboblocks.app`.
-Les clés de sauvegarde (`gridlock.v2`, `gridlock.profile.v1`) gardent l'ancien nom : les changer ferait perdre leur
-progression aux joueurs. Le dépôt et les globals internes (`GridlockLogic`...) aussi, ils ne sont jamais montrés.
+Ancien nom : Gridlock. Les sauvegardes `gridlock.*` passent une fois sur les clés `cuboblocks.*` au lancement
+(`www/src/platform/storage.js`), sans perte de progression.
 
 ## Jouer
 

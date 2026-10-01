@@ -3,12 +3,12 @@
  * logic.js states; main.js draws the hand, the glowing target cells and the step text.
  */
 (function (root, factory) {
-  const api = factory(typeof module === 'object' && module.exports ? require('./logic.js') : root.GridlockLogic);
+  const api = factory(typeof module === 'object' && module.exports ? require('./logic.js') : root.CuboBlocksLogic);
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.GridlockTutorial = api;
+  else root.CuboBlocksTutorial = api;
 })(typeof self !== 'undefined' ? self : this, function (L) {
   'use strict';
-  const I18N = typeof module === 'object' && module.exports ? require('./i18n.js') : self.GridlockI18n;
+  const I18N = typeof module === 'object' && module.exports ? require('./i18n.js') : self.CuboBlocksI18n;
   const tr = I18N.tr;
 
   const SIZE = L.SIZE;

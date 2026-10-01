@@ -2,7 +2,7 @@
 'use strict';
 
 // ----- stats: one mode at a time (tiles + last scores), then lifetime counters -----
-const STAT_MODES = [['classic', tr('Classique')], ['chrono', tr('Chrono')], ['chill', tr('Chill')], ['worlds', tr('Mondes')]];
+const STAT_MODES = () => [['classic', tr('Classique')], ['chrono', tr('Chrono')], ['chill', tr('Chill')], ['worlds', tr('Mondes')]];
 const CHART_RUNS = 20;
 let statsMode = 'classic';
 
@@ -16,7 +16,7 @@ function modeStatsHtml() {
     [tr('Meilleur combo'), ms.bestCombo ? '×' + ms.bestCombo : '–'],
   ];
   return `
-      <div class="seg pills stat-modes no-swipe">${STAT_MODES.map(([id, name]) => `<button data-smode="${id}" class="${id === statsMode ? 'on' : ''}">${name}</button>`).join('')}</div>
+      <div class="seg pills stat-modes no-swipe">${STAT_MODES().map(([id, name]) => `<button data-smode="${id}" class="${id === statsMode ? 'on' : ''}">${name}</button>`).join('')}</div>
       <div class="stat-tiles">${tiles.map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
       ${scoreChart(M.recentScores(profile, statsMode, CHART_RUNS))}`;
 }

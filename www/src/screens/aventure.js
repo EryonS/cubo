@@ -336,7 +336,7 @@ function showLevelEnd(runReport, levelReport) {
   const outOfMoves = !stage.won && !state.timeUp && stage.movesLeft <= 0;
   const title = stage.won
     ? (n === M.LEVELS_PER_WORLD ? tr('Boss vaincu !') : n === M.TRIAL_LEVEL ? tr('Épreuve réussie !') : tr('Niveau réussi !'))
-    : state.timeUp ? tr('Temps écoulé !') : outOfMoves ? tr('Plus de coups !') : tr('Plus de place !');
+    : state.timeUp ? tr('Temps écoulé !') : state.quit ? tr('Niveau abandonné') : outOfMoves ? tr('Plus de coups !') : tr('Plus de place !');
   const lines = [...(runReport ? runReport.earned : []), ...(levelReport ? levelReport.earned : [])];
   const total = lines.reduce((a, l) => a + l.coins, 0);
   if (stage.daily) { showDailyEnd(title, lines, total, outOfMoves, levelReport); return; }

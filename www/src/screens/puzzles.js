@@ -107,8 +107,11 @@ function launchSurprise(seed = Date.now()) {
 // Hint button (puzzle only): places one piece on a right spot for a few coins.
 const hintBtn = document.createElement('button');
 hintBtn.className = 'hint-btn';
-hintBtn.innerHTML = tr`Indice <span class="price">${M.PUZZLE_HINT}${COIN}</span>`;
-hintBtn.setAttribute('aria-label', tr`Indice pour ${M.PUZZLE_HINT} pièces`);
+function labelHint() {
+  hintBtn.innerHTML = tr`Indice <span class="price">${M.PUZZLE_HINT}${COIN}</span>`;
+  hintBtn.setAttribute('aria-label', tr`Indice pour ${M.PUZZLE_HINT} pièces`);
+}
+labelHint();
 invEl.appendChild(hintBtn);
 function renderHint() {
   hintBtn.disabled = state.mode !== 'puzzle' || state.over || profile.coins < M.PUZZLE_HINT;

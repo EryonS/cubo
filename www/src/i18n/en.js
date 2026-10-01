@@ -3,7 +3,7 @@
 (function (root) {
   const plural = (n, one, many) => (Number(String(n).replace(/\D/g, '')) === 1 ? one : many);
 
-  root.GridlockI18n.add('en', {
+  root.CuboBlocksI18n.add('en', {
     // ----- bonuses and coins (app/base.js)
     'Toupie': 'Spin',
     'Touche une forme pour la tourner': 'Tap a shape to turn it',
@@ -544,6 +544,15 @@
     'La partie reprend depuis le début. Les pièces gagnées sont gardées.': 'The game starts over. Coins earned are kept.',
     'Recommencer ?': 'Start over?',
     'Recommencer': 'Start over',
+    'Quitter la partie': 'Quit the game',
+    'Quitter la partie ?': 'Quit the game?',
+    'Quitter': 'Quit',
+    'Tu retournes aux puzzles. Ta progression sur ce dessin est perdue.': 'Back to the puzzles. Your progress on this drawing is lost.',
+    'Le niveau compte comme raté et cet essai est utilisé. Les pièces gagnées sont gardées.': 'The level counts as failed and this try is used. Coins earned are kept.',
+    'Le niveau compte comme raté. Les pièces gagnées sont gardées.': 'The level counts as failed. Coins earned are kept.',
+    'La partie s’arrête ici : ton score compte. Les pièces gagnées sont gardées.': 'The game ends here: your score counts. Coins earned are kept.',
+    'Partie terminée': 'Game over',
+    'Niveau abandonné': 'Level abandoned',
     'Ta partie libre en cours': 'Your free play game',
     'La partie en cours': 'The current game',
     'Abandonner ?': 'Give up?',

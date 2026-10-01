@@ -5,10 +5,10 @@
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.GridlockMeta = api;
+  else root.CuboBlocksMeta = api;
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
-  const I18N = typeof module === 'object' && module.exports ? require('./i18n.js') : self.GridlockI18n;
+  const I18N = typeof module === 'object' && module.exports ? require('./i18n.js') : self.CuboBlocksI18n;
   const tr = I18N.tr;
 
   const DAILY_MISSIONS = 3;

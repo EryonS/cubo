@@ -10,7 +10,7 @@
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.GridlockI18n = api;
+  else root.CuboBlocksI18n = api;
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 

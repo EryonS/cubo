@@ -2,7 +2,7 @@
 'use strict';
 
 // ---------- game flow ----------
-const LINE_WORDS = ['', '', tr('Double !'), tr('Triple !'), tr('Quadruple !'), tr('Énorme !'), tr('Délirant !')];
+const LINE_WORDS = () => ['', '', tr('Double !'), tr('Triple !'), tr('Quadruple !'), tr('Énorme !'), tr('Délirant !')];
 
 // Returns false when the tutorial refuses the move (the piece flies back).
 function commit(idx, row, col) {
@@ -48,7 +48,8 @@ function commit(idx, row, col) {
     else cuboReact('happy', 900, 0.45 + 0.2 * Math.min(3, ev.lines));
     if (ev.combo >= 2 && comboTier(ev.combo) > comboTier(ev.combo - 1)) sfx.sparkle(comboTier(ev.combo));
 
-    let text = LINE_WORDS[Math.min(ev.lines, LINE_WORDS.length - 1)];
+    const words = LINE_WORDS();
+    let text = words[Math.min(ev.lines, words.length - 1)];
     let sub = ev.combo >= 2 ? tr('COMBO ×') + ev.combo : '';
     if (!text && ev.combo >= 2) { text = tr('Combo ×') + ev.combo; sub = ''; }
     if (ev.perfect) { text = tr('Grille vide !'); sub = '+300'; }

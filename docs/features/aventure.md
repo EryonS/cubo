@@ -24,7 +24,7 @@ A fourth mode next to Classique / Chrono / Chill: short levels (1-3 min) with a 
 - Tests: `tests/adventure.test.js`, `tests/meta-adventure.test.js`, `tests/adventure-v2.test.js`.
 
 ## Saved state
-- Run (`gridlock.v2`): `state.stage = { world, n, goal, maxMoves, movesLeft, progress, won, stars, extra, clock?, setup?, ramp }`, `state.special[64]`.
+- Run (`cuboblocks.v2`): `state.stage = { world, n, goal, maxMoves, movesLeft, progress, won, stars, extra, clock?, setup?, ramp }`, `state.special[64]`.
 - Profile (version 3): `profile.adventure = { stars: { "<world>-<n>": 0..3 } (key present = cleared, 0 = skipped), opened?: [world], chests?: { "<world>-<i>": true }, bombs?: n, fails?: { "<world>-<n>": count } }` (fails optional, read with a default).
 
 ## Gotchas

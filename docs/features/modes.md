@@ -17,7 +17,7 @@ Each has Facile / Normal / Difficile, and its own record.
 - `www/src/screens/home.js`, `www/src/game/undo.js`, `www/src/platform/storage.js`: `MODE_NAMES`, `LEVEL_NAMES`, `syncMode`, `renderMenu`, `bests`.
 
 ## Saved state
-`gridlock.v2`: `{ state, bests: { [mode]: n }, settings, prefs: { mode, level } }`. An unfinished run is saved on `visibilitychange` and resumed at launch.
+`cuboblocks.v2`: `{ state, bests: { [mode]: n }, settings, prefs: { mode, level } }`. An unfinished run is saved on `visibilitychange` and resumed at launch.
 
 ## Gotchas
 - World rules never apply in these modes: only the obstacle cells (their KINDS behaviors: embers harden, vines spread...).

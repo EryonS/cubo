@@ -32,7 +32,7 @@ body.hub-on #tabbar { display: grid; }
 .shop-head h2 { white-space: nowrap; min-width: 0; overflow: hidden; }
 .cubo-say { width: 100%; display: flex; align-items: center; gap: 4px; margin: -6px 0 12px; padding: 0; border: 0; background: none;
   color: var(--text); text-align: left; cursor: pointer; }
-.cubo-say canvas { flex: none; width: 76px; height: 70px; transform-origin: 50% 100%; }
+.cubo-say canvas { flex: none; width: 76px; height: 80px; transform-origin: 50% 100%; }
 .cubo-say canvas.hop { animation: cubo-hop 420ms cubic-bezier(.3,.7,.4,1.4); }
 @keyframes cubo-hop { 35% { transform: translateY(-10px) scale(1.04, .96); } 100% { transform: none; } }
 .cubo-say .bubble { position: relative; flex: 1; min-width: 0; margin-left: 6px; padding: 10px 13px; border-radius: 16px; background: var(--panel-2);
@@ -188,7 +188,7 @@ body.hub-on #tabbar { display: grid; }
 @media (max-height: 700px) {
   .home-head { margin-bottom: 10px; }
   .cubo-say { margin-bottom: 8px; }
-  .cubo-say canvas { width: 60px; height: 55px; }
+  .cubo-say canvas { width: 60px; height: 63px; }
   .cubo-say .bubble { font-size: 14px; padding: 8px 11px; }
   .home-head .brand { font-size: 28px; }
   .hero-main { padding: 12px; }
@@ -198,9 +198,9 @@ body.hub-on #tabbar { display: grid; }
 }
 
 /* Result cards: Cubo pops up above the title in a pose that matches the result. */
-.end-cubo { display: block; width: 112px; height: 90px; margin: -8px auto -2px; transform-origin: 50% 100%; }
+.end-cubo { display: block; width: 112px; height: 118px; margin: -12px auto -4px; transform-origin: 50% 100%; }
 .end-cubo[hidden] { display: none; }
 .end-cubo.pop { animation: cubo-pop 560ms cubic-bezier(.3,.7,.4,1.4) both; }
 @keyframes cubo-pop { 0% { transform: translateY(16px) scale(.5); opacity: 0; } 60% { transform: translateY(-6px) scale(1.06, .94); opacity: 1; } 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .end-cubo.pop { animation: none; } }
-@media (max-height: 700px) { .end-cubo { width: 80px; height: 64px; margin-top: -4px; } }
+@media (max-height: 700px) { .end-cubo { width: 76px; height: 80px; margin-top: -6px; } }

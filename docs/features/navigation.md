@@ -23,7 +23,7 @@ Status: shipped (2026-09-30, UI/UX audit)
 - `www/src/ui/dialog.js`, `www/src/screens/home.js`, `www/src/ui/tabbar.js`, `www/src/screens/defis.js`: sections `confirmation dialog`, `home menu (Jouer tab)`, `tab bar`; `renderDefis` / `todayHtml` / `streakHtml`.
 
 ## Saved state
-`gridlock.v2` gained `parked` (a run state, optional, no migration). `profile.adventure.fails` (see aventure.md) drives the paid skip on the level sheet.
+`cuboblocks.v2` gained `parked` (a run state, optional, no migration). `profile.adventure.fails` (see aventure.md) drives the paid skip on the level sheet.
 
 ## Gotchas
 - `syncTabbar` must only write a class when it changes: every class write re-triggers the observer.

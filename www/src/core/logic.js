@@ -6,7 +6,7 @@
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.GridlockLogic = api;
+  else root.CuboBlocksLogic = api;
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
@@ -1161,6 +1161,12 @@
   }
 
   // Player chooses to stop instead of spending a rescue bonus.
+  // The player quits from the pause menu: the run ends now, as if nothing fit anymore.
+  function quit(prev) {
+    if (prev.over) return null;
+    return { ...prev, over: true, stuck: false, quit: true };
+  }
+
   function giveUp(prev) {
     if (prev.over || !prev.stuck) return null;
     return { ...prev, over: true, stuck: false };
@@ -1217,6 +1223,7 @@
     rotate,
     use,
     giveUp,
+    quit,
     discard,
     discardCost,
     undo,

@@ -6,7 +6,6 @@ const invButtons = {};
 for (const type of Object.keys(BONUS_UI)) {
   const btn = document.createElement('button');
   btn.className = 'inv-btn';
-  btn.setAttribute('aria-label', BONUS_UI[type].name);
   btn.innerHTML = '<canvas class="icon"></canvas><span class="count"></span>';
   const cv = btn.querySelector('canvas');
   const px = Math.round(32 * Math.min(window.devicePixelRatio || 1, 3));
@@ -68,10 +67,11 @@ const legendEl = document.getElementById('legend');
 const legendBtn = document.createElement('button');
 legendBtn.className = 'inv-btn legend-btn';
 legendBtn.textContent = '?';
-legendBtn.setAttribute('aria-label', tr('Légende des bonus'));
 invEl.appendChild(legendBtn);
 const legendList = document.getElementById('legend-list');
 const legendTexts = {};
+const legendNames = {};
+const coinTexts = {};
 for (const [type, ui] of [...Object.entries(BONUS_UI), ...Object.entries(COIN_UI)]) {
   const row = document.createElement('div');
   row.className = 'legend-row';
@@ -81,18 +81,25 @@ for (const [type, ui] of [...Object.entries(BONUS_UI), ...Object.entries(COIN_UI
   drawIcon(type, px / 2, px / 2, px * 0.94, cv.getContext('2d'));
   const text = document.createElement('div');
   text.innerHTML = '<b></b><span></span>';
-  text.firstChild.textContent = ui.name;
-  text.lastChild.textContent = typeof ui.desc === 'function' ? '' : ui.desc;
+  legendNames[type] = text.firstChild;
   if (BONUS_UI[type]) legendTexts[type] = text.lastChild;
+  else coinTexts[type] = text.lastChild;
   row.append(cv, text);
   legendList.appendChild(row);
 }
-// Bonus texts follow the upgrade levels: tooltips and legend lines.
+// Bonus texts follow the upgrade levels and the language: labels, tooltips and legend lines.
 function refreshBonusTexts() {
+  legendBtn.setAttribute('aria-label', tr('Légende des bonus'));
   for (const [type, ui] of Object.entries(BONUS_UI)) {
     const d = ui.desc(bonusLv(type));
+    invButtons[type].setAttribute('aria-label', ui.name);
     invButtons[type].dataset.tip = ui.name + ' — ' + d;
+    legendNames[type].textContent = ui.name;
     legendTexts[type].textContent = d;
+  }
+  for (const [type, ui] of Object.entries(COIN_UI)) {
+    legendNames[type].textContent = ui.name;
+    coinTexts[type].textContent = ui.desc;
   }
 }
 refreshBonusTexts();

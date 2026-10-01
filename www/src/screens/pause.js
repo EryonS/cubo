@@ -43,6 +43,30 @@ document.getElementById('pause-restart').addEventListener('click', async () => {
   else if (state.puzzle) startPuzzle(state.puzzle.n);
   else restartRun({ mode: state.mode, level: state.level });
 });
+// Quit: a free run ends now (its score, coins and missions count), a level is lost (a daily
+// attempt is used), a puzzle is dropped without a result.
+document.getElementById('pause-quit').addEventListener('click', async () => {
+  unlockAudio();
+  const st = state.stage;
+  const text = state.puzzle ? tr('Tu retournes aux puzzles. Ta progression sur ce dessin est perdue.')
+    : st && st.daily ? tr('Le niveau compte comme raté et cet essai est utilisé. Les pièces gagnées sont gardées.')
+      : st ? tr('Le niveau compte comme raté. Les pièces gagnées sont gardées.')
+        : tr('La partie s’arrête ici : ton score compte. Les pièces gagnées sont gardées.');
+  if (!await ask({ title: tr('Quitter la partie ?'), text, ok: tr('Quitter'), danger: true })) return;
+  closePause();
+  if (state.puzzle) {
+    state = { ...state, over: true, quit: true };
+    save();
+    leaveBoard();
+    openPuzzles();
+    return;
+  }
+  const next = L.quit(state);
+  if (!next) return;
+  state = next;
+  endGame(now());
+  renderInventory();
+});
 document.getElementById('pause-settings').addEventListener('click', () => { closePause(); openSettings('pause'); });
 document.getElementById('pause-menu').addEventListener('click', () => { closePause(); backToMenu(); });
 document.addEventListener('visibilitychange', () => {

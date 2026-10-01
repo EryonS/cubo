@@ -7,7 +7,7 @@
 (function (root) {
   'use strict';
 
-  const tr = root.GridlockI18n.tr;
+  const tr = root.CuboBlocksI18n.tr;
 
   // Google's test ad units until the AdMob account exists. Before release, replace them, the app
   // ids (ios/App/App/Info.plist GADApplicationIdentifier, android strings.xml admob_app_id) and
@@ -119,5 +119,5 @@
     return AdMob ? nativeRewarded() : webRewarded();
   }
 
-  root.GridlockAds = api;
+  root.CuboBlocksAds = api;
 })(window);

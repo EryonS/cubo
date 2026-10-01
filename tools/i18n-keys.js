@@ -67,7 +67,7 @@ function allKeys() {
 
 function loadDict(code) {
   const I = require(path.join(WWW, 'src/core/i18n.js'));
-  global.self = { GridlockI18n: I };
+  global.self = { CuboBlocksI18n: I };
   require(path.join(WWW, 'src/i18n', code + '.js'));
   delete global.self;
   return I.dict(code) || {};

@@ -73,7 +73,7 @@ function bindRefill(root, day, after) {
   if (ad) {
     ad.addEventListener('click', async () => {
       ad.disabled = true;
-      const ok = await window.GridlockAds.showRewarded();
+      const ok = await window.CuboBlocksAds.showRewarded();
       const next = ok && M.adDailyRefill(profile, day, today());
       if (!next) { ad.disabled = false; return; }
       profile = next; saveProfile(); sfx.buy(); after();

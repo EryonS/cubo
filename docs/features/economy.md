@@ -14,7 +14,7 @@ Status: shipped
 - `www/src/screens/shop.js` (wallet, Boutique), `www/src/screens/gameover.js` (game-over report).
 
 ## Saved state
-`gridlock.profile.v1`: `{ version, coins, owned, equipped, day, missions, missionsDone, games }`.
+`cuboblocks.profile.v1`: `{ version, coins, owned, equipped, day, missions, missionsDone, games }`.
 
 ## Gotchas
 - Aventure: a world theme comes free with its boss, or is bought; beating the boss after buying it pays the price back (line "Thème X déjà à toi"). Coins buy +5 moves (20, 40, 80... per attempt), a starting Bombe (30) and level skips (250). Level rewards: first clear 10 (boss 50), +5 per new star. Dailies: first clear 20 (past day 10); streak 5 + 5 × days (max 40), weekly chest 50, freeze 100 (max 2). Stickers: 20 (world stickers 30). Block skin "Or" is a 30-day streak reward, never sold (`price: null`).

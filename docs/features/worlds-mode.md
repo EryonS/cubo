@@ -16,7 +16,7 @@ Worlds whose special cells only came from level setups get `free` settings in `w
 
 ## Saved state
 - Run: `state.mode = 'worlds'`, `state.world`.
-- Records: `bests['worlds-<world>']` in `gridlock.v2`. Profile stats: `modes.worlds` (all worlds together).
+- Records: `bests['worlds-<world>']` in `cuboblocks.v2`. Profile stats: `modes.worlds` (all worlds together).
 
 ## Gotchas
 - Classique / Chrono / Chill records stay free of world rules; this mode has its own records.

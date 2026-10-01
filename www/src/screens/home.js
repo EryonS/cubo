@@ -5,12 +5,13 @@
 // Continue, the next Aventure level, the daily level and Puzzles, free play, missions.
 const menuEl = document.getElementById('menu');
 const freePickEl = document.getElementById('free');
-const MODE_NAMES = { classic: tr('Classique'), chrono: tr('Chrono'), chill: tr('Chill') };
-const LEVEL_NAMES = { easy: tr('Facile'), normal: tr('Normal'), hard: tr('Difficile') };
+// Getters: read in the current language (Réglages > Langue switches without a reload).
+const MODE_NAMES = { get classic() { return tr('Classique'); }, get chrono() { return tr('Chrono'); }, get chill() { return tr('Chill'); } };
+const LEVEL_NAMES = { get easy() { return tr('Facile'); }, get normal() { return tr('Normal'); }, get hard() { return tr('Difficile'); } };
 const MODE_NOTES = {
-  classic: tr('Pose des formes sans limite de temps, jusqu’à ce que plus rien ne rentre.'),
-  chrono: tr('La partie tourne contre la montre : chaque ligne effacée rajoute du temps.'),
-  chill: tr('Touche une forme pour la tourner. Pas de bonus, pas de pression.'),
+  get classic() { return tr('Pose des formes sans limite de temps, jusqu’à ce que plus rien ne rentre.'); },
+  get chrono() { return tr('La partie tourne contre la montre : chaque ligne effacée rajoute du temps.'); },
+  get chill() { return tr('Touche une forme pour la tourner. Pas de bonus, pas de pression.'); },
 };
 // "Classique · Normal", or "Mondes · Glace".
 const modeLabel = (st = state) => (st.puzzle ? `${puzzleTitle(st.puzzle)} · ${st.puzzle.name}` : st.mode === 'worlds' ? tr('Mondes · ') + WD.WORLDS[st.world].name : `${MODE_NAMES[st.mode]} · ${LEVEL_NAMES[st.level]}`);

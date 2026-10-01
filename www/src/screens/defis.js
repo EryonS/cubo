@@ -65,7 +65,7 @@ function streakHtml() {
       <div class="section-title">${tr('Série')}</div>
       <div class="streak-card">
         ${FLAME_SVG(38, now > 0)}<span class="big">${now}</span>
-        <div class="txt"><b>${GridlockI18n.many(now) ? tr("jours d'affilée") : tr("jour d'affilée")}</b><br>${tr`Record : ${st.best}`}</div>
+        <div class="txt"><b>${CuboBlocksI18n.many(now) ? tr("jours d'affilée") : tr("jour d'affilée")}</b><br>${tr`Record : ${st.best}`}</div>
         <div class="freezes" aria-label="${tr`Gels de série : ${st.freezes} sur ${M.FREEZE_MAX}`}">
           <span class="slots">${Array.from({ length: M.FREEZE_MAX }, (_, i) => SNOW_SVG(22, i < st.freezes)).join('')}</span>
           <small>${tr`Gels ${st.freezes}/${M.FREEZE_MAX}`}</small>

@@ -6,7 +6,7 @@ const overEl = document.getElementById('over');
 const overCard = document.getElementById('over-card');
 
 function showGameOver(report, lifeBefore = {}) {
-  document.getElementById('over-title').textContent = state.timeUp ? tr('Temps écoulé !') : tr('Plus de place !');
+  document.getElementById('over-title').textContent = state.timeUp ? tr('Temps écoulé !') : state.quit ? tr('Partie terminée') : tr('Plus de place !');
   document.getElementById('over-score').textContent = fmt(state.score);
   document.getElementById('over-best').textContent = tr('Record : ') + fmt(best);
   const isRecord = state.score >= best && state.score > bestAtStart && bestAtStart > 0;
@@ -95,7 +95,7 @@ let lastReport = null;
 adBtn.addEventListener('click', async () => {
   if (!lastReport || adBtn.disabled) return;
   adBtn.disabled = true;
-  const ok = await window.GridlockAds.showRewarded();
+  const ok = await window.CuboBlocksAds.showRewarded();
   if (!ok) { adBtn.disabled = false; return; }
   const report = lastReport;
   lastReport = null;

@@ -49,3 +49,5 @@ body.tutorial #hand.on { display: block; }
 .pause-sub { margin-top: 6px; }
 .pause-actions { display: grid; gap: 10px; margin-top: 20px; }
 .pause-actions .actions { margin-top: 0; }
+.pause-quit { justify-self: center; margin-top: 2px; padding: 8px 14px; border: 0; background: none; color: #e5484d; font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; }
+.pause-quit:active { opacity: .6; }

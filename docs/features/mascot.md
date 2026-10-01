@@ -16,7 +16,7 @@ Cubo, a mint jelly with a sprout, sits on the top-right corner of the board fram
 - `www/index.html`: settings toggle `data-setting="mascot"`.
 
 ## Saved state
-`settings.mascot` in `gridlock.v2` (default true, merged at load).
+`settings.mascot` in `cuboblocks.v2` (default true, merged at load).
 
 ## Gotchas
 - Mood is recomputed every frame; events only override it until `cubo.until`.

@@ -48,3 +48,11 @@ test('secret stickers unlock from lifetime records and modes', () => {
   assert.ok(ids({ ...fresh(), coins: 2000 }).includes('hoard'));
   assert.ok(M.STICKERS.filter((s) => s.secret).every((s) => s.page === 'secret' && s.reward === 40));
 });
+
+test('quit ends a run in progress and marks it, but not a finished one', () => {
+  const s = L.createGame(7);
+  const q = L.quit(s);
+  assert.equal(q.over, true);
+  assert.equal(q.quit, true);
+  assert.equal(L.quit(q), null);
+});

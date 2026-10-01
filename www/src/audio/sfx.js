@@ -11,7 +11,7 @@ function unlockAudio() {
   music.sync();
 }
 // The game goes quiet while a native ad plays its own sound.
-GridlockAds.onShow = (showing) => { if (ac) (showing ? ac.suspend() : ac.resume()); };
+CuboBlocksAds.onShow = (showing) => { if (ac) (showing ? ac.suspend() : ac.resume()); };
 const semis = (base, n) => base * Math.pow(2, n / 12);
 const live = () => settings.sfx && ac;
 
