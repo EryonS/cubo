@@ -32,6 +32,10 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Mondes mode (endless world runs, prime) | [features/worlds-mode.md](features/worlds-mode.md) | `free` in `src/worlds.js`, mode `worlds` in `src/logic.js`, `worldPrime` in `src/meta.js`, section `Mondes` in `src/main.js` |
 | Puzzles (fill a drawing with a quota of pieces) | [features/puzzles.md](features/puzzles.md) | `src/puzzles.js`, mode `puzzle` in `src/logic.js`, `applyPuzzle` in `src/meta.js`, section `Puzzles` in `src/main.js` |
 | Mascot Cubo (moods, tap, setting) | [features/mascot.md](features/mascot.md) | section `mascot` in `src/main.js` |
+| Second obstacles of levels 11-19 (taupe, méduse, trou noir...) | [features/twists.md](features/twists.md) | `TWISTS` in `src/levels.js`, `KINDS` / `kindMoves` in `src/logic.js`, `twist` in `src/worlds.js` |
+| Cubo's wardrobe (Boutique tab Cubo) | [features/wardrobe.md](features/wardrobe.md) | `SKINS.cubo` in `src/meta.js`, `drawWardrobeHat` / `cuboLookFor` in `src/main.js` |
+| Halloween event (October), season trophies | [features/halloween.md](features/halloween.md) | `EVENT` / `applyEvent` in `src/meta.js`, `EVENT_LEVELS` in `src/levels.js`, section `Halloween event` in `src/main.js` |
+| Record flag on the board frame (free runs) | [features/comfort.md](features/comfort.md) | `drawRecordFlag` in `src/main.js` |
 | Tab bar, home screen, dialogs, screen layout | [features/navigation.md](features/navigation.md) | `#tabbar` / `#menu` / `#ask` in `index.html`, sections `home menu`, `tab bar`, `confirmation dialog` in `src/main.js` |
 
 ## Adding a new feature
@@ -61,4 +65,5 @@ Status: shipped | planned
 9. Puzzles (**done**): 40 drawings to fill with a quota of pieces.
 10. UI/UX audit (**done**, 2026-09-30): tab bar (Jouer / Défis / Boutique / Profil), new home, Mondes moved into each Aventure world, streak moved to Défis, styled confirm dialogs, boss refunds an already bought theme, paid skip only after 2 failures, "forme" for shapes and "pièce" only for coins.
 10. Mascot Cubo (**done**).
-11. Later: polish, React Native port.
+11. Second obstacles in levels 11-19, Cubo's wardrobe, Halloween event, record flag (**done**, 2026-10-01).
+12. Later: polish, React Native port.

@@ -443,6 +443,11 @@
     .rules .plus b { background: var(--good); }
     .rules .minus b { background: #ff5d7a; }
     .rules .info b { background: var(--accent); color: var(--on-accent); font-size: 14px; font-style: normal; }
+    .rules .twist { align-items: center; }
+    .rules .twist .kind-icon, .stage-twist .kind-icon { flex: none; }
+    .rules .twist em, .stage-twist b { display: block; font-style: normal; font-weight: 800; color: var(--accent); }
+    .stage-twist { display: flex; gap: 10px; align-items: center; margin: 10px auto 2px; max-width: 300px; padding: 9px 11px; border-radius: calc(var(--radius) - 6px);
+      background: var(--panel-2); text-align: left; font-size: 13px; font-weight: 700; line-height: 1.35; }
     .pz-pack { margin: 16px 2px 10px; display: flex; align-items: baseline; justify-content: space-between; }
     .pz-pack h3 { margin: 0; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 20px; }
     .pz-pack span { font-size: 13px; font-weight: 800; color: var(--muted); }
@@ -757,6 +762,14 @@
 
     /* Aventure: levels on a winding path, endless run under the grid */
     .path-wrap { position: relative; }
+    .event-row { margin: 0 0 10px; }
+    .event-row .ico { display: grid; place-items: center; }
+    .event-rewards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .event-rewards > div { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px; border-radius: calc(var(--radius) - 6px);
+      background: var(--panel-2); text-align: center; font-size: 12px; font-weight: 800; line-height: 1.2; color: var(--muted); }
+    .event-rewards canvas { width: 72px; height: 54px; border-radius: 10px; }
+    .event-rewards .got { color: var(--good); }
+    .unlock + .unlock { margin-top: 6px; }
     .path { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
     .path path { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 7; }
     .path .todo { stroke: var(--hairline); stroke-dasharray: 0.1 13; stroke-width: 6; }
@@ -900,6 +913,11 @@
         </button>
         <button class="hero-map" id="menu-map"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3.5 6v14L9 18l6 2 5.5-2V4L15 6z"/><path d="M9 4v14M15 6v14"/></svg>Carte</button>
       </div>
+      <button class="menu-defis event-row" id="menu-event" hidden>
+        <span class="ico" id="menu-event-ico"></span>
+        <span class="txt"><b>Halloween</b><small id="menu-event-sub"></small></span>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
       <div class="home-tiles">
         <button class="tile" id="menu-defis">
           <span class="tile-top"><svg class="ico" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg><span class="flame" id="menu-flame"></span></span>
@@ -1039,6 +1057,20 @@
     </div>
   </div>
 
+  <div id="event" class="overlay ui screen">
+    <div class="card">
+      <div class="shop-head">
+        <button class="close" id="event-close" aria-label="Retour"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h2>Halloween</h2>
+        <span class="star-pill" id="event-stars"></span>
+      </div>
+      <p class="defis-note fw-intro" id="event-intro"></p>
+      <div class="rules" id="event-rules"></div>
+      <div class="event-rewards" id="event-rewards"></div>
+      <div class="path-wrap"><svg class="path" id="event-path" aria-hidden="true"></svg><div class="levels" id="event-levels"></div></div>
+    </div>
+  </div>
+
   <div id="puzzles" class="overlay ui screen">
     <div class="card">
       <div class="shop-head">
@@ -1104,6 +1136,7 @@
       <div class="tabs">
         <button class="tab on" data-tab="boards">Thèmes</button>
         <button class="tab" data-tab="blocks">Blocs</button>
+        <button class="tab" data-tab="cubo">Cubo</button>
         <button class="tab" data-tab="bonus">Bonus</button>
       </div>
       <div id="shop-body"></div>

@@ -40,6 +40,20 @@
     volcano: { goal: { type: 'clear', kind: 'ember', target: 6 }, setup: { kind: 'ember', count: 3 }, maxMoves: 70 },
   };
 
+  // Second half of each world (levels 11-19): a second obstacle with a mind of its own (KINDS in
+  // logic.js). count cells at the start, one more every `every` moves (top: in the highest free row).
+  // Budgets stay as they are: with these the bot still wins 88-98 % of levels 11-19 (tools/balance.js).
+  const TWISTS = {
+    plain: { kind: 'mole', count: 1, every: 5 },
+    sea: { kind: 'jelly', count: 2, every: 9 },
+    space: { kind: 'hole', count: 1, every: 7 },
+    ice: { kind: 'snowman', count: 2, every: 10 },
+    forest: { kind: 'vine', count: 2, every: 12 },
+    retro: { kind: 'glitch', count: 2, every: 8 },
+    arcade: { kind: 'token', count: 3, every: 5 },
+    volcano: { kind: 'lava', count: 1, every: 5, top: true },
+  };
+
   // Level 20: a 2x2 boss in the center (logic.placeBoss). hp = boss cells caught in cleared lines
   // (a line through it takes 2). Every `every` moves it drops `count` cells of `kind`.
   const BOSSES = {
@@ -120,6 +134,11 @@
       stage.setup = { kind: cfg.kind, count };
       if (type !== 'clear') expected += count * 1.5;
     }
+    const tw = n > TRIAL && TWISTS[world];
+    if (tw) {
+      stage.twist = { kind: tw.kind, count: tw.count, every: tw.every };
+      if (tw.top) stage.twist.top = true;
+    }
     if (cfg.clock) {
       stage.clock = cfg.clock;
       stage.maxMoves = 99;
@@ -127,6 +146,31 @@
       stage.maxMoves = Math.max(10, Math.ceil(expected * slack));
     }
     return stage;
+  }
+
+  // ---------- Halloween event (October) ----------
+  // 10 hand-made levels in the 'halloween' world (worlds.js): pumpkins to break, ghosts that jump
+  // around, a giant pumpkin boss at the end. Budgets balanced with the greedy bot (tools/bot.js).
+  const EVENT_LEVELS = [
+    { goal: { type: 'clear', kind: 'pumpkin', target: 4 }, setup: { kind: 'pumpkin', count: 6 }, maxMoves: 48 },
+    { goal: { type: 'lines', target: 8 }, setup: { kind: 'pumpkin', count: 2 }, maxMoves: 34 },
+    { goal: { type: 'score', target: 700 }, setup: { kind: 'pumpkin', count: 3 }, maxMoves: 50 },
+    { goal: { type: 'clear', kind: 'ghost', target: 3 }, setup: { kind: 'pumpkin', count: 2 }, maxMoves: 50 },
+    { goal: { type: 'coins', target: 20 }, setup: { kind: 'pumpkin', count: 6 }, maxMoves: 44 },
+    { goal: { type: 'combo', target: 4 }, setup: { kind: 'pumpkin', count: 2 }, maxMoves: 40 },
+    { goal: { type: 'clear', kind: 'pumpkin', target: 8 }, setup: { kind: 'pumpkin', count: 10 }, maxMoves: 70 },
+    { goal: { type: 'lines', target: 14 }, setup: { kind: 'pumpkin', count: 4 }, maxMoves: 52 },
+    { goal: { type: 'score', target: 1500 }, setup: { kind: 'pumpkin', count: 4 }, maxMoves: 84 },
+    { boss: { name: 'Citrouille géante', hp: 14, every: 5, count: 1, kind: 'ghost' }, setup: { kind: 'pumpkin', count: 4 }, maxMoves: 70 },
+  ];
+  const EVENT_WORLD = 'halloween';
+  function eventLevel(n) {
+    const def = EVENT_LEVELS[n - 1];
+    if (!def) return null;
+    const base = { world: EVENT_WORLD, n, event: EVENT_WORLD, boss: !!def.boss, ramp: 0.6 + n * 0.03, setup: def.setup, maxMoves: def.maxMoves };
+    if (!def.boss) return { ...base, goal: def.goal };
+    const { name, hp, ...attack } = def.boss;
+    return { ...base, goal: { type: 'boss', target: hp, name }, boss: { name, ...attack } };
   }
 
   // ---------- daily level ----------
@@ -150,7 +194,8 @@
   const key = (world, n) => `${world}-${n}`;
 
   // French goal text for the HUD and level cards.
-  const KIND_NAMES = { bubble: 'bulles', asteroid: 'astéroïdes', ice: 'blocs de glace', mushroom: 'champignons', ember: 'braises', crate: 'caisses', rock: 'rochers' };
+  const KIND_NAMES = { bubble: 'bulles', asteroid: 'astéroïdes', ice: 'blocs de glace', mushroom: 'champignons', ember: 'braises', crate: 'caisses', rock: 'rochers',
+    pumpkin: 'citrouilles', ghost: 'fantômes', mole: 'taupes', jelly: 'méduses', hole: 'trous noirs', snowman: 'bonshommes de neige', vine: 'lianes', glitch: 'bugs', token: 'jetons', lava: 'coulées de lave' };
   function goalText(goal) {
     if (goal.type === 'lines') return `Efface ${goal.target} lignes`;
     if (goal.type === 'score') return `Fais ${goal.target.toLocaleString('fr-FR')} points`;
@@ -169,5 +214,5 @@
     return KIND_NAMES[goal.kind].toUpperCase();
   }
 
-  return { ORDER, PER_WORLD, TRIAL, BOSSES, DAILY_START, level, daily, dayNumber, key, goalText, goalLabel, KIND_NAMES };
+  return { ORDER, PER_WORLD, TRIAL, BOSSES, TWISTS, EVENT_LEVELS, eventLevel, DAILY_START, level, daily, dayNumber, key, goalText, goalLabel, KIND_NAMES };
 });

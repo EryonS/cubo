@@ -583,6 +583,74 @@
         }
       },
     },
+    // October event: moonlit night, a hill with a crooked tree and pumpkins, bats crossing.
+    halloween: {
+      base: '#160c26', board: 'rgba(24,14,40,0.9)', empty: 'rgba(255,150,60,0.09)', cellR: 0.2,
+      font: FONT, weight: 800,
+      ink: '#fff1e0', accent: '#ff8a1a', danger: '#ff4d6a',
+      frame: { r: 20, line: '#ff8a1a', lw: 2, inset: 3, glow: '#ff6a00' },
+      plate: { fill: '#24123a', line: '#ff8a1a', lw: 2.5, inset: 3, r: 22, ink: '#ffb347', sub: '#c9a8f0', glow: '#ff6a00' },
+      tag: { fill: '#ff8a1a', line: null, ink: '#160c26', glow: '#ff6a00' },
+      css: css({
+        '--bg': '#160c26', '--panel': '#24123a', '--panel-2': '#341c50', '--slot': 'rgba(24,14,40,0.9)',
+        '--text': '#fff1e0', '--muted': '#c9b0e0', '--accent': '#ff8a1a', '--on-accent': '#160c26',
+        '--good': '#9be36b', '--edge': '#ff8a1a', '--radius': '20px',
+        '--card-glow': '0 0 36px rgba(255,106,0,0.3)',
+      }),
+      paint(g, w, h) {
+        g.fillStyle = vGradient(g, h, ['#0d0618', '#2a1240', '#4a1f4a']); g.fillRect(0, 0, w, h);
+        const rnd = seeded(31);
+        g.fillStyle = '#fff';
+        for (let i = 0; i < 50; i++) { g.globalAlpha = 0.15 + rnd() * 0.5; g.fillRect(rnd() * w, rnd() * h * 0.6, 1.5, 1.5); }
+        g.globalAlpha = 1;
+        const r = Math.min(w, h) * 0.13;
+        const mx = w * 0.8, my = h * 0.14;
+        const halo = g.createRadialGradient(mx, my, r * 0.8, mx, my, r * 2.6);
+        halo.addColorStop(0, 'rgba(255,220,150,0.35)'); halo.addColorStop(1, 'rgba(255,220,150,0)');
+        g.fillStyle = halo; g.fillRect(0, 0, w, h);
+        g.fillStyle = '#ffe6a8';
+        g.beginPath(); g.arc(mx, my, r, 0, Math.PI * 2); g.fill();
+        g.fillStyle = 'rgba(200,160,90,0.35)';
+        for (const [fx, fy, fr] of [[-0.3, -0.2, 0.2], [0.25, 0.15, 0.15], [-0.1, 0.35, 0.1]]) { g.beginPath(); g.arc(mx + fx * r, my + fy * r, fr * r, 0, Math.PI * 2); g.fill(); }
+        // Hill, crooked tree, pumpkins.
+        g.fillStyle = '#0d0618';
+        g.beginPath(); g.moveTo(-10, h); g.quadraticCurveTo(w * 0.3, h * 0.8, w * 0.62, h * 0.88); g.quadraticCurveTo(w * 0.85, h * 0.93, w + 10, h * 0.86); g.lineTo(w + 10, h); g.fill();
+        g.strokeStyle = '#0d0618'; g.lineCap = 'round';
+        g.lineWidth = 7;
+        g.beginPath(); g.moveTo(w * 0.14, h * 0.86); g.quadraticCurveTo(w * 0.12, h * 0.76, w * 0.17, h * 0.68); g.stroke();
+        g.lineWidth = 3.5;
+        g.beginPath(); g.moveTo(w * 0.165, h * 0.72); g.quadraticCurveTo(w * 0.24, h * 0.69, w * 0.27, h * 0.64);
+        g.moveTo(w * 0.155, h * 0.75); g.quadraticCurveTo(w * 0.09, h * 0.72, w * 0.06, h * 0.67);
+        g.moveTo(w * 0.17, h * 0.68); g.lineTo(w * 0.2, h * 0.63); g.stroke();
+        for (const [px, py, pr] of [[w * 0.5, h * 0.86, 13], [w * 0.57, h * 0.875, 9], [w * 0.88, h * 0.885, 11]]) {
+          g.fillStyle = '#ff8a1a';
+          g.beginPath(); g.ellipse(px, py, pr * 1.2, pr, 0, 0, Math.PI * 2); g.fill();
+          g.fillStyle = '#3a8a2a'; g.fillRect(px - 1.5, py - pr - 4, 3, 5);
+          g.fillStyle = '#ffe066';
+          g.beginPath(); g.moveTo(px - pr * 0.5, py - pr * 0.2); g.lineTo(px - pr * 0.25, py - pr * 0.45); g.lineTo(px - pr * 0.05, py - pr * 0.2); g.fill();
+          g.beginPath(); g.moveTo(px + pr * 0.05, py - pr * 0.2); g.lineTo(px + pr * 0.25, py - pr * 0.45); g.lineTo(px + pr * 0.5, py - pr * 0.2); g.fill();
+          g.beginPath(); g.moveTo(px - pr * 0.5, py + pr * 0.15); g.quadraticCurveTo(px, py + pr * 0.6, px + pr * 0.5, py + pr * 0.15); g.quadraticCurveTo(px, py + pr * 0.35, px - pr * 0.5, py + pr * 0.15); g.fill();
+        }
+      },
+      animate(g, w, h, t) {
+        // Bats flapping across the sky.
+        g.fillStyle = '#0d0618';
+        for (let i = 0; i < 4; i++) {
+          const span = w + 80;
+          const x = ((t * (0.025 + i * 0.006) + i * 211) % span) - 40;
+          const y = h * (0.12 + i * 0.09) + Math.sin(t / 500 + i * 2) * 14;
+          const flap = Math.sin(t / 70 + i) * 0.8;
+          const sz = 9 + i * 1.5;
+          g.beginPath();
+          g.moveTo(x, y);
+          g.quadraticCurveTo(x - sz * 0.6, y - sz * flap, x - sz * 1.4, y - sz * 0.2 * flap);
+          g.quadraticCurveTo(x - sz * 0.8, y + sz * 0.2, x, y + sz * 0.25);
+          g.quadraticCurveTo(x + sz * 0.8, y + sz * 0.2, x + sz * 1.4, y - sz * 0.2 * flap);
+          g.quadraticCurveTo(x + sz * 0.6, y - sz * flap, x, y);
+          g.fill();
+        }
+      },
+    },
   };
   const themeFont = (th, size, weight = th.weight) =>
     `${th.italic ? 'italic ' : ''}${weight} ${Math.round(size * (th.scale || 1))}px ${th.font}`;
@@ -1065,6 +1133,9 @@
       arp: [0, -1, 1, 2, -1, 1, 3, -1], pad: { type: 'sawtooth', vol: 0.03, cut: 500 }, bass: { type: 'sawtooth', vol: 0.09, cut: 350, steps: [0, 2, 3, 6] },
       bell: { type: 'triangle', vol: 0.03, cut: 2500, oct: 12, len: 1.6 }, drums: { kick: [0, 3, 4], snare: [6] } },
   };
+  SONGS.halloween = { bpm: 92, chords: [[45, [57, 60, 64, 68]], [41, [57, 60, 65, 69]], [44, [56, 59, 62, 65]], [45, [57, 60, 64, 67]]],
+    arp: [0, 2, 3, 2, 1, -1, 3, -1], pad: { type: 'sawtooth', vol: 0.025, cut: 600 }, bass: { type: 'triangle', vol: 0.14, cut: 380, steps: [0, 3, 4, 6] },
+    bell: { type: 'sine', vol: 0.035, cut: 6000, oct: 24, len: 2.5 }, drums: { kick: [0, 4], hat: [2, 6] } }; // Halloween: A minor with a creepy diminished turn
   const music = (() => {
     const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
     let bus = null;
@@ -1179,7 +1250,7 @@
     }
 
     // Menus play the equipped theme's song, like they wear its look; a run plays its world's.
-    const MENUS = '.overlay.hub.show, #adventure.show, #puzzles.show, #stage.show, #free.show';
+    const MENUS = '.overlay.hub.show, #adventure.show, #event.show, #puzzles.show, #stage.show, #free.show';
     function sync() {
       pick(document.querySelector(MENUS) ? profile.equipped.boards : themeId());
       if (switching) return;
@@ -1257,7 +1328,23 @@
   }
 
   // ---------- special cells (Aventure) ----------
-  const SPECIAL_COLORS = { ice: '#9fdcf7', asteroid: '#8a8fa3', rock: '#6b5a52', mushroom: '#e84a4a', ember: '#ff6a1a', bubble: '#7fd8ff', crate: '#c98b4a', boss: '#ffffff' };
+  const SPECIAL_COLORS = { ice: '#9fdcf7', asteroid: '#8a8fa3', rock: '#6b5a52', mushroom: '#e84a4a', ember: '#ff6a1a', bubble: '#7fd8ff', crate: '#c98b4a', boss: '#ffffff',
+    pumpkin: '#ff8a1a', ghost: '#f4f0ff', mole: '#9a6a48', jelly: '#ff8fd0', hole: '#8a5cff', snowman: '#ffffff', vine: '#4fb33f', glitch: '#ff3fd0', token: '#ffd23f', lava: '#ff5a1a' };
+
+  // Moves left before a cell with a ttl leaves (mole, hole): small dots around it.
+  function ttlDots(sp, cx, cy, s, color) {
+    const ttl = L.KINDS[sp.kind].ttl;
+    const left = Math.max(0, ttl - (sp.age || 0));
+    ctx.fillStyle = color;
+    for (let k = 0; k < left; k++) {
+      const a = Math.PI * 0.75 - (k / (ttl - 1 || 1)) * Math.PI * 0.5;
+      ctx.beginPath(); ctx.arc(cx + Math.cos(a) * s * 0.46, cy + Math.sin(a) * s * 0.46, s * 0.045, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  const eyes = (cx, cy, s, gap, r, color = '#2a1a12') => {
+    ctx.fillStyle = color;
+    for (const d of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + d * gap * s, cy, r * s, 0, Math.PI * 2); ctx.fill(); }
+  };
 
   function crack(x, y, s) {
     ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = Math.max(1.2, s * 0.05); ctx.lineCap = 'round';
@@ -1347,16 +1434,173 @@
       ctx.beginPath(); ctx.arc(cx, cy, s * 0.28, Math.PI * 1.05, Math.PI * 1.45); ctx.stroke();
       ctx.fillStyle = '#ffffff';
       ctx.beginPath(); ctx.arc(cx + s * 0.16, cy - s * 0.18, s * 0.05, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === 'pumpkin') {
+      ctx.fillStyle = '#e8701a';
+      ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.06, s * 0.44, s * 0.36, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff8a1a';
+      ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.06, s * 0.2, s * 0.36, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#4f9e33';
+      ctx.beginPath(); ctx.roundRect(cx - s * 0.04, cy - s * 0.4, s * 0.08, s * 0.14, s * 0.03); ctx.fill();
+      // Carved face, lit from inside.
+      ctx.fillStyle = '#ffe066';
+      ctx.shadowColor = '#ffb000'; ctx.shadowBlur = s * 0.15;
+      for (const d of [-1, 1]) { ctx.beginPath(); ctx.moveTo(cx + d * s * 0.22, cy); ctx.lineTo(cx + d * s * 0.12, cy - s * 0.12); ctx.lineTo(cx + d * s * 0.04, cy); ctx.fill(); }
+      ctx.beginPath(); ctx.moveTo(cx - s * 0.24, cy + s * 0.12); ctx.lineTo(cx - s * 0.12, cy + s * 0.2); ctx.lineTo(cx - s * 0.04, cy + s * 0.13); ctx.lineTo(cx + s * 0.04, cy + s * 0.2);
+      ctx.lineTo(cx + s * 0.12, cy + s * 0.13); ctx.lineTo(cx + s * 0.24, cy + s * 0.12); ctx.quadraticCurveTo(cx, cy + s * 0.34, cx - s * 0.24, cy + s * 0.12); ctx.fill();
+      ctx.shadowBlur = 0;
+      if (cracked) crack(cx, cy, s);
+    } else if (kind === 'ghost') {
+      const bob = Math.sin(t / 300 + cx * 0.07) * s * 0.04;
+      ctx.translate(0, bob);
+      ctx.fillStyle = 'rgba(244,240,255,0.95)';
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.34, cy + s * 0.36);
+      ctx.lineTo(cx - s * 0.34, cy - s * 0.04);
+      ctx.arc(cx, cy - s * 0.04, s * 0.34, Math.PI, 0);
+      ctx.lineTo(cx + s * 0.34, cy + s * 0.36);
+      for (let k = 1; k <= 4; k++) ctx.lineTo(cx + s * 0.34 - k * s * 0.17, cy + s * (k % 2 ? 0.26 : 0.36));
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#2a1a40';
+      for (const d of [-1, 1]) { ctx.beginPath(); ctx.ellipse(cx + d * s * 0.12, cy - s * 0.06, s * 0.05, s * 0.08, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.1, s * 0.05, s * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === 'mole') {
+      // Dirt mound with the mole peeking out.
+      ctx.fillStyle = '#7a4e2c';
+      ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.3, s * 0.46, s * 0.18, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#9a6a48';
+      ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.04, s * 0.3, s * 0.32, 0, Math.PI, 0); ctx.lineTo(cx + s * 0.3, cy + s * 0.3); ctx.lineTo(cx - s * 0.3, cy + s * 0.3); ctx.fill();
+      ctx.fillStyle = '#c99a78';
+      ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.12, s * 0.16, s * 0.12, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff8fa8';
+      ctx.beginPath(); ctx.arc(cx, cy + s * 0.06, s * 0.065, 0, Math.PI * 2); ctx.fill();
+      eyes(cx, cy - s * 0.1, s, 0.12, 0.045);
+      ctx.fillStyle = '#5a3a20';
+      for (const [fx, fy] of [[-0.3, 0.32], [0.08, 0.38], [0.34, 0.28]]) { ctx.beginPath(); ctx.arc(cx + fx * s, cy + fy * s, s * 0.05, 0, Math.PI * 2); ctx.fill(); }
+      ttlDots(sp, cx, cy, s, '#ffffff');
+    } else if (kind === 'jelly') {
+      const sway = Math.sin(t / 260 + cx * 0.05);
+      ctx.strokeStyle = 'rgba(255,143,208,0.85)'; ctx.lineWidth = s * 0.06; ctx.lineCap = 'round';
+      for (const fx of [-0.2, -0.07, 0.07, 0.2]) {
+        ctx.beginPath(); ctx.moveTo(cx + fx * s, cy);
+        ctx.quadraticCurveTo(cx + fx * s + sway * s * 0.1, cy + s * 0.22, cx + fx * s - sway * s * 0.06, cy + s * 0.42); ctx.stroke();
+      }
+      const g = ctx.createLinearGradient(cx, cy - s * 0.4, cx, cy + s * 0.05);
+      g.addColorStop(0, '#ffc2e6'); g.addColorStop(1, '#ff7cc4');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(cx, cy + s * 0.04, s * 0.4, s * 0.42, 0, Math.PI, 0);
+      for (let k = 0; k <= 4; k++) ctx.lineTo(cx + s * 0.4 - (k * s * 0.8) / 4, cy + s * (k % 2 ? 0.1 : 0.04));
+      ctx.fill();
+      eyes(cx, cy - s * 0.1, s, 0.12, 0.045, '#7a1a50');
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.beginPath(); ctx.ellipse(cx - s * 0.18, cy - s * 0.24, s * 0.08, s * 0.05, -0.6, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === 'hole') {
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, s * 0.5);
+      g.addColorStop(0, '#000000'); g.addColorStop(0.55, '#1a0a3a'); g.addColorStop(1, '#8a5cff');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(cx, cy, s * 0.48, 0, Math.PI * 2); ctx.fill();
+      // Swirl arms turning in.
+      ctx.strokeStyle = 'rgba(200,170,255,0.75)'; ctx.lineWidth = s * 0.05; ctx.lineCap = 'round';
+      const spin = t / 500;
+      for (let k = 0; k < 3; k++) {
+        const a = spin + (k * Math.PI * 2) / 3;
+        ctx.beginPath(); ctx.arc(cx, cy, s * 0.3, a, a + 1.3); ctx.stroke();
+      }
+      ttlDots(sp, cx, cy, s, '#e0d0ff');
+    } else if (kind === 'snowman') {
+      // One snowball per hp left: 3 stacked, melting down.
+      const balls = [[0.26, 0.2], [0.04, 0.15], [-0.18, 0.12]].slice(0, Math.max(1, sp.hp));
+      const top = balls[balls.length - 1];
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#b8dcf0'; ctx.lineWidth = s * 0.04;
+      for (const [fy, fr] of balls) { ctx.beginPath(); ctx.arc(cx, cy + fy * s, fr * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+      eyes(cx, cy + top[0] * s - s * 0.03, s, 0.05, 0.025, '#1a1a2a');
+      ctx.fillStyle = '#ff8a1a';
+      ctx.beginPath(); ctx.moveTo(cx, cy + top[0] * s + s * 0.01); ctx.lineTo(cx + s * 0.14, cy + top[0] * s + s * 0.035); ctx.lineTo(cx, cy + top[0] * s + s * 0.06); ctx.fill();
+      if (sp.hp >= 2) {
+        ctx.fillStyle = '#1a1a2a';
+        for (const fy of [0.0, 0.08]) { ctx.beginPath(); ctx.arc(cx, cy + (balls[1][0] + fy - 0.04) * s, s * 0.02, 0, Math.PI * 2); ctx.fill(); }
+      }
+    } else if (kind === 'vine') {
+      ctx.fillStyle = '#2f7a2a';
+      ctx.beginPath(); ctx.roundRect(x + s * 0.04, y + s * 0.04, s * 0.92, s * 0.92, s * 0.3); ctx.fill();
+      ctx.strokeStyle = '#8fd65a'; ctx.lineWidth = s * 0.07; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(cx - s * 0.32, cy + s * 0.3); ctx.bezierCurveTo(cx - s * 0.1, cy - s * 0.1, cx + s * 0.25, cy + s * 0.15, cx + s * 0.28, cy - s * 0.3); ctx.stroke();
+      ctx.fillStyle = '#6fc14a';
+      for (const [fx, fy, a] of [[-0.18, 0.02, -0.8], [0.12, 0.06, 0.6], [0.2, -0.18, -0.4]]) {
+        ctx.save(); ctx.translate(cx + fx * s, cy + fy * s); ctx.rotate(a);
+        ctx.beginPath(); ctx.ellipse(0, 0, s * 0.12, s * 0.06, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      }
+    } else if (kind === 'glitch') {
+      // Offset color channels that jitter now and then.
+      const jit = Math.floor(t / 90 + cx) % 7 === 0 ? s * 0.06 : s * 0.025;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = 'rgba(0,240,255,0.85)';
+      ctx.fillRect(x + s * 0.1 - jit, y + s * 0.1, s * 0.8, s * 0.8);
+      ctx.fillStyle = 'rgba(255,40,200,0.85)';
+      ctx.fillRect(x + s * 0.1 + jit, y + s * 0.1, s * 0.8, s * 0.8);
+      ctx.fillStyle = '#1a1030';
+      ctx.fillRect(x + s * 0.14, y + s * 0.14, s * 0.72, s * 0.72);
+      ctx.fillStyle = '#ffffff';
+      const px = s * 0.12;
+      for (const [gx, gy] of [[1, 1], [4, 1], [2, 3], [3, 3], [1, 4], [4, 4]]) ctx.fillRect(x + s * 0.14 + gx * px - px * 0.5, y + s * 0.14 + gy * px - px * 0.3, px, px * 0.6);
+    } else if (kind === 'token') {
+      const g = ctx.createRadialGradient(cx - s * 0.12, cy - s * 0.12, 0, cx, cy, s * 0.5);
+      g.addColorStop(0, '#fff3a0'); g.addColorStop(0.6, '#ffd23f'); g.addColorStop(1, '#d99a10');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(cx, cy, s * 0.44, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#b07a08'; ctx.lineWidth = s * 0.05;
+      ctx.beginPath(); ctx.arc(cx, cy, s * 0.32, 0, Math.PI * 2); ctx.stroke();
+      // Clock hands: a token buys time.
+      ctx.lineCap = 'round'; ctx.lineWidth = s * 0.06;
+      ctx.beginPath(); ctx.moveTo(cx, cy - s * 0.18); ctx.lineTo(cx, cy); ctx.lineTo(cx + s * 0.13, cy + s * 0.07); ctx.stroke();
+      if (cracked) crack(cx, cy, s);
+    } else if (kind === 'lava') {
+      const pulse = 0.85 + 0.15 * Math.sin(t / 200 + cy);
+      ctx.shadowColor = '#ff4a00'; ctx.shadowBlur = s * 0.35 * pulse;
+      const g = ctx.createLinearGradient(cx, y, cx, y + s);
+      g.addColorStop(0, '#ffd24a'); g.addColorStop(0.5, '#ff6a1a'); g.addColorStop(1, '#c2280a');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(x + s * 0.1, y + s * 0.2);
+      ctx.quadraticCurveTo(cx, y - s * 0.04, x + s * 0.9, y + s * 0.2);
+      ctx.lineTo(x + s * 0.92, y + s * 0.78);
+      ctx.quadraticCurveTo(x + s * 0.8, y + s * 0.98, x + s * 0.68, y + s * 0.8);
+      ctx.quadraticCurveTo(x + s * 0.55, y + s * 1.04, x + s * 0.4, y + s * 0.82);
+      ctx.quadraticCurveTo(x + s * 0.24, y + s * 0.96, x + s * 0.08, y + s * 0.78);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,240,180,0.7)';
+      ctx.beginPath(); ctx.arc(cx - s * 0.16, cy - s * 0.12, s * 0.07, 0, Math.PI * 2); ctx.arc(cx + s * 0.14, cy + s * 0.06, s * 0.05, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
   }
+
+  // A special cell as an image, for the world screen and level sheets (cached per kind).
+  const kindIcons = {};
+  function kindIcon(kind, px = 22) {
+    if (!kindIcons[kind]) {
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 88;
+      const prev = ctx;
+      ctx = cv.getContext('2d');
+      drawSpecial({ kind, hp: L.KINDS[kind].hp, age: 0 }, 44, 44, 92, 0);
+      ctx = prev;
+      kindIcons[kind] = cv.toDataURL();
+    }
+    return `<img class="kind-icon" src="${kindIcons[kind]}" width="${px}" height="${px}" alt="">`;
+  }
+  // "Dès le niveau 11" row: the world's second obstacle (levels 11-19).
+  const twistRow = (w) => {
+    const tw = WD.WORLDS[w].twist;
+    return `<div class="twist">${kindIcon(LV.TWISTS[w].kind)}<span><em>Dès le niveau ${M.TRIAL_LEVEL + 1} : ${tw.name}</em>${tw.text}</span></div>`;
+  };
 
   // ---------- boss (Aventure level 20) ----------
   // One 2x2 creature in the center: body in the world's tint, a face whose eyes follow the dragged
   // piece, a white flash when hit, a squash when it strikes back, sweat under 30% hp.
   const BOSS_LOOK = {
     plain: '#6cc94f', sea: '#9b6bff', space: '#62d6b4', ice: '#dff2ff',
-    forest: '#a2703c', retro: '#306230', arcade: '#ff4fb8', volcano: '#ff5a2a',
+    forest: '#a2703c', retro: '#306230', arcade: '#ff4fb8', volcano: '#ff5a2a', halloween: '#ff8a1a',
   };
   let bossHitAt = 0;
   let bossAttackAt = 0;
@@ -1767,11 +2011,22 @@
         setTimeout(() => sfx.coin(3), 250);
         continue;
       }
-      const land = sp.kind === 'mushroom' ? 320 : 420;
-      if (!calm()) drops.set(sp.r * SIZE + sp.c, { t0: at, kind: sp.kind, dur: land });
+      if (sp.gone) {
+        // Left by itself (mole back underground, hole closing).
+        fades.push({ r: sp.r, c: sp.c, kind: sp.kind, t0: t, delay: 250 });
+        setTimeout(() => sfx.swoosh(), 250);
+        continue;
+      }
+      if (sp.from) {
+        if (!calm()) drops.set(sp.r * SIZE + sp.c, { t0: at, kind: sp.kind, dur: sp.hop ? 360 : 260, from: sp.from, hop: sp.hop });
+        if (sp.hop) setTimeout(() => sfx.swoosh(), 250);
+        continue;
+      }
+      const land = sp.kind === 'mushroom' || sp.grow ? 320 : 420;
+      if (!calm()) drops.set(sp.r * SIZE + sp.c, { t0: at, kind: sp.kind, dur: land, grow: sp.grow });
       setTimeout(() => {
         burst({ r: sp.r, c: sp.c, kind: sp.kind }, now(), 6, 70);
-        if (sp.kind === 'mushroom') sfx.grow(); else if (sp.kind === 'ember') sfx.sizzle(); else sfx.thunk();
+        if (sp.kind === 'mushroom' || sp.grow) sfx.grow(); else if (sp.kind === 'ember' || sp.kind === 'lava') sfx.sizzle(); else sfx.thunk();
       }, 250 + (calm() ? 0 : land));
     }
   }
@@ -1861,6 +2116,9 @@
         recordAnnounced = true;
         banners.push({ text: 'Nouveau record !', sub: '', gold: true });
         cuboReact('star', 1500, 1);
+        flagDownAt = t;
+        if (!calm()) confetti(t, 36);
+        sfx.sparkle(3);
       }
     }
     checkMissions();
@@ -2078,7 +2336,7 @@
     el.classList.remove('ready');
     if (!goal) { el.textContent = 'Toute la boutique est débloquée'; return; }
     const ready = profile.coins >= goal.price;
-    const kind = goal.kind === 'blocks' ? 'les blocs' : 'le thème';
+    const kind = goal.kind === 'blocks' ? 'les blocs' : goal.kind === 'cubo' ? 'l’accessoire de Cubo' : 'le thème';
     el.innerHTML = '<span></span><div class="bar"><i></i></div>';
     el.firstChild.textContent = ready
       ? `« ${goal.name} » est disponible en boutique`
@@ -2139,6 +2397,7 @@
     best = bests[recordKey()] || 0;
     bestAtStart = best;
     recordAnnounced = false;
+    flagDownAt = 0;
     runSettled = false;
     runCoinsShown = (state.stats && state.stats.coins) || 0;
     renderWallet();
@@ -2281,7 +2540,7 @@
 
   // What is in progress, so each home entry offers to resume its own run: the Continuer button is
   // for a free run only; a level resumes from the Aventure card, a daily from Défis, a puzzle from its tile.
-  const levelInProgress = () => inProgress() && state.stage && !state.stage.daily;
+  const levelInProgress = () => inProgress() && state.stage && !state.stage.daily && !state.stage.event;
   const dailyInProgress = () => inProgress() && !!(state.stage && state.stage.daily);
   const puzzleInProgress = () => inProgress() && !!state.puzzle;
 
@@ -2301,6 +2560,7 @@
     document.getElementById('menu-adventure').setAttribute('aria-label', level ? `Aventure : reprendre ${worldName(level[0])}, ${levelName(level[1])}`
       : next ? `Aventure : jouer ${worldName(next[0])}, ${levelName(next[1])}` : 'Aventure : carte des mondes');
     renderDailyButton();
+    renderEventRow();
     renderMissionBadges();
     document.getElementById('menu-puzzles-sub').textContent = puzzleInProgress() ? `Puzzle ${state.puzzle.n} en cours`
       : `${M.puzzlesSolved(profile)} / ${PZ.COUNT} résolus`;
@@ -2656,7 +2916,7 @@
     if (open) renderChests(w); else document.getElementById('world-chests').innerHTML = '';
     const rules = WD.WORLDS[w];
     document.getElementById('world-rules').innerHTML =
-      `<div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div>`;
+      `<div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div>${twistRow(w)}`;
     const grid = document.getElementById('levels');
     grid.innerHTML = '';
     for (let n = 1; n <= M.LEVELS_PER_WORLD; n++) {
@@ -2701,15 +2961,16 @@
 
   // Line joining the level buttons in order: solid up to the last cleared level, dotted after.
   function drawLevelPath() {
-    const svg = document.getElementById('levels-path');
-    if (!adventureEl.classList.contains('show')) return;
+    if (adventureEl.classList.contains('show')) drawPath(document.getElementById('levels-path'), '#levels');
+  }
+  function drawPath(svg, grid) {
     const box = svg.getBoundingClientRect();
-    const pts = [...document.querySelectorAll('#levels .num')].map((el) => {
+    const pts = [...document.querySelectorAll(grid + ' .num')].map((el) => {
       const r = el.getBoundingClientRect();
       return [Math.round(r.left + r.width / 2 - box.left), Math.round(r.top + r.height / 2 - box.top)];
     });
     if (!pts.length || !box.width) return;
-    const cleared = [...document.querySelectorAll('#levels .lvl')].filter((b) => b.classList.contains('done')).length;
+    const cleared = [...document.querySelectorAll(grid + ' .lvl')].filter((b) => b.classList.contains('done')).length;
     const line = (a) => a.map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join('');
     svg.setAttribute('viewBox', `0 0 ${Math.round(box.width)} ${Math.round(box.height)}`);
     svg.innerHTML = `<path class="todo" d="${line(pts.slice(Math.max(0, cleared - 1)))}"/>` + (cleared > 1 ? `<path class="done" d="${line(pts.slice(0, cleared))}"/>` : '');
@@ -2793,6 +3054,7 @@
       <div class="stage-goal">${LV.goalText(stage.goal)}</div>
       ${stage.boss ? `<div class="stage-note">Il a ${stage.goal.target} PV : chaque ligne qui le traverse lui en retire 2. Tous les ${stage.boss.every} coups, il riposte en posant ${stage.boss.count > 1 ? stage.boss.count + ' ' + LV.KIND_NAMES[stage.boss.kind] : 'un obstacle'}.</div>` : ''}
       ${n === M.TRIAL_LEVEL ? '<div class="stage-note">Un niveau plus corsé au milieu du monde, mieux payé.</div>' : ''}
+      ${stage.twist ? `<div class="stage-twist">${kindIcon(stage.twist.kind, 28)}<span><b>${WD.WORLDS[w].twist.name}</b> ${WD.WORLDS[w].twist.text}</span></div>` : ''}
       <div class="stage-sub">${budget}</div>
       <div class="stage-stars">${starsRow(best || 0, 34)}</div>
       <div class="stage-note">${starRule}</div>
@@ -2841,6 +3103,13 @@
       save();
     }
     banners.push({ text: n === M.LEVELS_PER_WORLD ? 'Boss !' : levelName(n), sub: LV.goalText(state.stage.goal), gold: true, tier: n === M.LEVELS_PER_WORLD ? 2 : 0 });
+    // First level with the world's second obstacle: introduce it once.
+    const tip = 'twist-' + w;
+    if (state.stage.twist && !M.tipSeen(profile, tip)) {
+      banners.push({ text: 'Nouveau : ' + WD.WORLDS[w].twist.name, sub: LV.KIND_NAMES[state.stage.twist.kind] + ' en vue', gold: true });
+      profile = M.markTip(profile, tip);
+      saveProfile();
+    }
   }
 
   // Level over: pay the run (grid coins, missions), record stars, then show the result.
@@ -2852,7 +3121,8 @@
       levelSettled = true;
       const res = stage.daily
         ? M.applyDaily(profile, stage.daily, today(), stage.stars)
-        : M.applyLevel(profile, stage.world, stage.n, stage.stars);
+        : stage.event ? M.applyEvent(profile, stage.eventDay || today(), stage.n, stage.stars)
+          : M.applyLevel(profile, stage.world, stage.n, stage.stars);
       profile = res.profile;
       levelReport = res.report;
       levelReport.earned.push(...stickerLines());
@@ -2860,7 +3130,7 @@
       renderWallet();
     }
     // One failed attempt per level start, even if bought moves run out again.
-    if (!stage.won && !stage.daily && !failCounted) {
+    if (!stage.won && !stage.daily && !stage.event && !failCounted) {
       failCounted = true;
       profile = M.recordFail(profile, stage.world, stage.n);
       saveProfile();
@@ -2887,6 +3157,7 @@
     const lines = [...(runReport ? runReport.earned : []), ...(levelReport ? levelReport.earned : [])];
     const total = lines.reduce((a, l) => a + l.coins, 0);
     if (stage.daily) { showDailyEnd(title, lines, total, outOfMoves, levelReport); return; }
+    if (stage.event) { showEventEnd(stage.won ? (n === M.EVENT.levels ? 'Boss vaincu !' : 'Niveau réussi !') : title, lines, total, outOfMoves, levelReport); return; }
     const next = stage.won ? nextLevelOf(w, n) : null;
     const moreCost = M.extraMovesCost(stage.extra);
     card.innerHTML = `
@@ -2951,6 +3222,155 @@
     el.addEventListener('click', (e) => { if (e.target === el) { hideAdventure(); openMenu(); } });
   }
 
+
+  // ---------- Halloween event (October) ----------
+  // Home row (October only) -> event screen: rules, the three rewards, 10 levels on a path.
+  // Levels play like Aventure levels in the 'halloween' world; progress is per year (meta.js).
+  const eventEl = document.getElementById('event');
+  const eventLevelName = (n) => (n === M.EVENT.levels ? 'Boss' : 'Niveau ' + n);
+  const eventInProgress = () => inProgress() && !!(state.stage && state.stage.event);
+  const eventDayNow = () => (eventInProgress() && state.stage.eventDay) || today();
+
+  function renderEventRow() {
+    const row = document.getElementById('menu-event');
+    row.hidden = !M.eventActive(today());
+    if (row.hidden) return;
+    document.getElementById('menu-event-ico').innerHTML = kindIcon('pumpkin', 30);
+    const done = M.eventCleared(profile, today());
+    const trophy = M.seasonTrophy(profile, M.eventYear(today()));
+    document.getElementById('menu-event-sub').textContent = eventInProgress() ? `${eventLevelName(state.stage.n)} en cours`
+      : done >= M.EVENT.levels ? `Terminé · trophée ${trophy === 'gold' ? 'en or' : 'en argent'}`
+        : `${done} / ${M.EVENT.levels} niveaux · jusqu’au 31 octobre`;
+  }
+  document.getElementById('menu-event').addEventListener('click', () => {
+    unlockAudio();
+    sfx.turn();
+    if (eventInProgress()) { closeMenu(); return; } // back to the level in progress
+    openEvent();
+  });
+
+  function openEvent() {
+    if (!M.eventActive(today())) { openMenu(); return; }
+    menuEl.classList.remove('show');
+    overEl.classList.remove('show');
+    hideAdventure();
+    renderEvent();
+    eventEl.classList.add('show');
+    requestAnimationFrame(() => drawPath(document.getElementById('event-path'), '#event-levels'));
+  }
+  const closeEvent = () => { eventEl.classList.remove('show'); openMenu(); };
+  document.getElementById('event-close').addEventListener('click', closeEvent);
+
+  function renderEvent() {
+    const day = today();
+    const year = M.eventYear(day);
+    const rules = WD.WORLDS.halloween;
+    document.getElementById('event-stars').innerHTML = starSvg(true, 16) + `${M.eventTotalStars(profile, day)} / ${M.EVENT.levels * 3}`;
+    document.getElementById('event-intro').textContent = `Événement d’octobre : ${M.EVENT.levels} niveaux hantés jusqu’au 31. Finis-les pour gagner le thème Halloween, le chapeau de sorcière de Cubo et le trophée ${year}. Tout repart à zéro l’an prochain.`;
+    document.getElementById('event-rules').innerHTML =
+      `<div class="plus"><b>+</b><span>${rules.plus}</span></div><div class="minus"><b>−</b><span>${rules.minus}</span></div>`;
+    const trophy = M.seasonTrophy(profile, year);
+    const has = (kind, id) => (profile.owned[kind] || []).includes(id);
+    const rewards = document.getElementById('event-rewards');
+    rewards.innerHTML = `
+      <div><canvas width="240" height="180"></canvas><span>Thème Halloween</span>${has('boards', 'halloween') ? '<span class="got">Gagné</span>' : ''}</div>
+      <div><canvas width="240" height="180"></canvas><span>Chapeau de sorcière</span>${has('cubo', 'witch') ? '<span class="got">Gagné</span>' : ''}</div>
+      <div>${TROPHY_SVG(trophy, 54)}<span>Trophée ${year}</span><span class="${trophy ? 'got' : ''}">${trophy === 'gold' ? 'Or' : trophy === 'silver' ? 'Argent · or avec 30 étoiles' : 'Or avec 30 étoiles'}</span></div>`;
+    const [themeCv, hatCv] = rewards.querySelectorAll('canvas');
+    drawPreview(themeCv, profile.equipped.blocks, 'halloween');
+    drawCuboPreview(hatCv, 'witch', 'halloween');
+    const grid = document.getElementById('event-levels');
+    grid.innerHTML = '';
+    for (let n = 1; n <= M.EVENT.levels; n++) {
+      const open = M.eventLevelOpen(profile, day, n);
+      const stars = M.eventStars(profile, day, n);
+      const boss = n === M.EVENT.levels;
+      const b = document.createElement('button');
+      b.className = 'lvl' + (open ? '' : ' locked') + (stars !== undefined ? ' done' : '') + (boss ? ' boss' : '');
+      b.innerHTML = `<span class="num">${open ? n : LOCK_SVG}</span>` +
+        (boss && stars === undefined ? '<small>Boss</small>' : `<span class="stars">${starsRow(stars || 0, 12)}</span>`);
+      const row = Math.floor((n - 1) / 5);
+      b.style.gridRow = row + 1;
+      b.style.gridColumn = (row % 2 ? 4 - ((n - 1) % 5) : (n - 1) % 5) + 1;
+      b.setAttribute('aria-label', eventLevelName(n) + (open ? '' : ', verrouillé'));
+      b.addEventListener('click', () => { if (open) { sfx.turn(); openEventStage(n); } else sfx.nope(); });
+      grid.appendChild(b);
+    }
+  }
+
+  function openEventStage(n) {
+    const stage = LV.eventLevel(n);
+    const best = M.eventStars(profile, today(), n);
+    const card = document.getElementById('stage-card');
+    const keep = (k) => `${Math.ceil(stage.maxMoves * k)} coups`;
+    card.innerHTML = `
+      <div class="shop-head">
+        <button class="close" data-act="back" aria-label="Retour à l’événement"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h2>${eventLevelName(n)}</h2>
+      </div>
+      <div class="stage-sub">Halloween · niveau ${n}</div>
+      <div class="stage-goal">${LV.goalText(stage.goal)}</div>
+      ${stage.boss ? `<div class="stage-note">Elle a ${stage.goal.target} PV : chaque ligne qui la traverse lui en retire 2. Tous les ${stage.boss.every} coups, elle lâche un fantôme.</div>` : ''}
+      <div class="stage-sub">${stage.maxMoves} coups</div>
+      <div class="stage-stars">${starsRow(best || 0, 34)}</div>
+      <div class="stage-note">1 étoile en réussissant, 2 s'il te reste ${keep(0.15)}, 3 s'il t'en reste ${keep(0.3)}.</div>
+      <div class="actions"><button class="btn primary" data-act="play">Jouer</button></div>`;
+    card.querySelector('[data-act="back"]').addEventListener('click', () => { stageEl.classList.remove('show'); openEvent(); });
+    card.querySelector('[data-act="play"]').addEventListener('click', () => { unlockAudio(); launchEventLevel(n); });
+    eventEl.classList.remove('show');
+    stageEl.classList.add('show');
+  }
+
+  function launchEventLevel(n) {
+    const day = eventDayNow();
+    hideAdventure();
+    eventEl.classList.remove('show');
+    menuEl.classList.remove('show');
+    restartRun({ mode: 'adventure', stage: { ...LV.eventLevel(n), eventDay: day } });
+    banners.push({ text: n === M.EVENT.levels ? 'Boss !' : 'Halloween', sub: LV.goalText(state.stage.goal), gold: true, tier: n === M.EVENT.levels ? 2 : 0 });
+  }
+
+  function showEventEnd(title, lines, total, outOfMoves, report) {
+    const stage = state.stage;
+    const n = stage.n;
+    const card = document.getElementById('level-end-card');
+    const next = stage.won && n < M.EVENT.levels && M.eventActive(today()) ? n + 1 : null;
+    const moreCost = M.extraMovesCost(stage.extra);
+    const unlocked = (report && report.unlocked) || [];
+    const names = { boards: 'Thème « Halloween » débloqué !', cubo: 'Chapeau de sorcière pour Cubo !' };
+    card.innerHTML = `
+      <h2>${title}</h2>
+      <div class="stage-sub">Halloween · ${eventLevelName(n)}</div>
+      <div class="stage-stars">${starsRow(stage.stars, 44)}</div>
+      <div class="stage-sub">${LV.goalText(stage.goal)} · ${fmt(Math.min(stage.goal.type === 'score' ? state.score : stage.progress, stage.goal.target))} / ${fmt(stage.goal.target)}</div>
+      ${unlocked.map((u) => `<div class="unlock">${names[u.kind]}</div>`).join('')}
+      ${unlocked.length ? '<button class="opt" data-act="wear"><span>Les mettre maintenant</span><span class="price">Équiper</span></button>' : ''}
+      ${report && report.trophy ? `<div class="unlock">Trophée Halloween ${M.eventYear(stage.eventDay || today())} ${report.trophy === 'gold' ? 'en or' : 'en argent'} !</div>` : ''}
+      <div class="earn">${lines.map((l) => `<div class="earn-line in"><span>${l.label}</span><b>+${l.coins}${COIN}</b></div>`).join('')}</div>
+      ${total ? `<div class="coins-total"><span>Pièces</span><span class="v">+${fmt(total)} ${COIN}</span></div>` : ''}
+      ${outOfMoves ? `<button class="opt" data-act="more"><span>+${M.EXTRA_MOVES} coups pour finir (1 étoile max)</span><span class="price">${moreCost}${COIN}</span></button>` : ''}
+      <div class="actions">
+        <button class="btn ghost" data-act="map">Événement</button>
+        ${stage.won && stage.stars >= 3 ? '' : `<button class="btn ${next ? 'ghost' : 'primary'}" data-act="again">${stage.won ? 'Rejouer' : 'Réessayer'}</button>`}
+        ${next ? '<button class="btn primary" data-act="next">Suivant</button>' : ''}
+      </div>`;
+    card.querySelector('[data-act="map"]').addEventListener('click', () => { levelEndEl.classList.remove('show'); openEvent(); });
+    const again = card.querySelector('[data-act="again"]');
+    if (again) again.addEventListener('click', () => { levelEndEl.classList.remove('show'); launchEventLevel(n); });
+    if (next) card.querySelector('[data-act="next"]').addEventListener('click', () => { levelEndEl.classList.remove('show'); openEventStage(next); });
+    bindMoreMoves(card, moreCost);
+    const wear = card.querySelector('[data-act="wear"]');
+    if (wear) wear.addEventListener('click', () => {
+      for (const u of unlocked) profile = M.equip(profile, u.kind, u.id) || profile;
+      saveProfile();
+      paintBackground();
+      sfx.buy();
+      wear.disabled = true;
+      wear.querySelector('.price').textContent = 'Équipé';
+    });
+    levelEndEl.classList.add('show');
+    starChimes(stage.stars);
+  }
 
   // ---------- daily level, streak, profile ----------
   const profileEl = document.getElementById('profile');
@@ -3174,6 +3594,13 @@
     let html = `
       <div class="section-title" style="margin-top:0">Trophées du mois</div>
       <div class="shelf">${monthsSinceStart().map((m) => `<div class="trophy">${TROPHY_SVG(M.monthTrophy(profile, m))}${frMonthShort(m)}</div>`).join('')}</div>`;
+    // Season trophies: one per Halloween since the first (2026), shown once there is one to chase.
+    const years = [];
+    for (let y = 2026; y <= +today().slice(0, 4); y++) if (y < +today().slice(0, 4) || M.eventActive(today()) || M.seasonTrophy(profile, String(y))) years.push(String(y));
+    if (years.length) {
+      html += `<div class="section-title">Trophées de saison</div>
+        <div class="shelf">${years.map((y) => `<div class="trophy">${TROPHY_SVG(M.seasonTrophy(profile, y))}Halloween ${y}</div>`).join('')}</div>`;
+    }
     html += `<div class="section-title">Autocollants · ${count} / ${M.STICKERS.length}</div>`;
     for (const page of M.STICKER_PAGES) {
       html += `<div class="section-title">${page.name}</div><div class="stickers">`;
@@ -3451,7 +3878,7 @@
   function runLabel() {
     const st = state.stage;
     if (st) {
-      const where = st.daily ? `Niveau du jour #${LV.dayNumber(st.daily)}` : `${worldName(st.world)} · ${levelName(st.n)}`;
+      const where = st.daily ? `Niveau du jour #${LV.dayNumber(st.daily)}` : st.event ? `Halloween · ${eventLevelName(st.n)}` : `${worldName(st.world)} · ${levelName(st.n)}`;
       return `${where} · ${LV.goalText(st.goal)}`;
     }
     if (state.puzzle) return `${modeLabel()} · ${state.puzzle.placed} / ${state.puzzle.total} formes`;
@@ -3481,6 +3908,7 @@
     if (inProgress() && !await ask({ title: 'Recommencer ?', text, ok: 'Recommencer', danger: true })) return;
     closePause();
     if (daily) launchDaily(daily);
+    else if (state.stage && state.stage.event) launchEventLevel(state.stage.n);
     else if (state.stage) startLevel(state.stage.world, state.stage.n);
     else if (state.puzzle) startPuzzle(state.puzzle.n);
     else restartRun({ mode: state.mode, level: state.level });
@@ -3601,7 +4029,7 @@
         renderShop(owned ? null : skin.id);
       });
       card.append(cv, name);
-      if (kind === 'boards' && !owned && WD.WORLDS[skin.id]) {
+      if (kind === 'boards' && !owned && M.WORLD_ORDER.includes(skin.id)) {
         const via = document.createElement('div');
         via.className = 'via';
         via.textContent = 'Ou bats son boss';
@@ -3609,7 +4037,8 @@
       }
       card.appendChild(btn);
       grid.appendChild(card);
-      drawPreview(cv, kind === 'blocks' ? skin.id : profile.equipped.blocks, kind === 'boards' ? skin.id : profile.equipped.boards);
+      if (kind === 'cubo') drawCuboPreview(cv, skin.id);
+      else drawPreview(cv, kind === 'blocks' ? skin.id : profile.equipped.blocks, kind === 'boards' ? skin.id : profile.equipped.boards);
     }
     shopBody.appendChild(grid);
   }
@@ -3660,6 +4089,18 @@
     note.className = 'ups-note';
     note.textContent = 'Les améliorations comptent dans tous les modes, même dans la partie en cours.';
     shopBody.appendChild(note);
+  }
+
+  // Cubo wearing a wardrobe piece, on the equipped theme's background.
+  function drawCuboPreview(cv, wear, themeKey = profile.equipped.boards) {
+    const g = cv.getContext('2d');
+    const th = THEMES[themeKey] || THEMES.toy;
+    th.paint(g, cv.width, cv.height);
+    drawFrame(g, th, 40, cv.height - 34, cv.width - 80, 60);
+    const prev = ctx;
+    ctx = g;
+    drawCubo(0, { x: cv.width / 2, y: cv.height - 34, s: 84, C: cuboLookFor(themeKey, wear), mood: 'happy' });
+    ctx = prev;
   }
 
   // Mini scene rendered with the real theme and skin code: score sign over a patch of board.
@@ -4206,8 +4647,15 @@
       taps: ['happy', 'wow', 'wink', 'happy'], burst: 'pixel' },
     arcade: { base: '#ff5fd0', dark: '#b02a92', light: '#ffc4ef', cheek: '#36f9ff', hat: 'headphones', taps: ['cool', 'happy', 'cool', 'star'], burst: 'note' },
     volcano: { base: '#ff9a4d', dark: '#d1562a', light: '#ffd6b0', cheek: '#ff5a5a', hat: 'flame', taps: ['hot', 'wow', 'hot', 'happy'], burst: 'spark' },
+    halloween: { base: '#ff9a3c', dark: '#cc6514', light: '#ffd9a8', cheek: '#ff5a5a', leaf: '#5fae3a', leafDark: '#3a7a22', hat: 'witch', taps: ['wow', 'happy', 'wink', 'star'], burst: 'bat' },
   };
-  const cuboLook = () => ({ ...CUBO, ...(CUBO_LOOKS[themeId()] || CUBO_LOOKS.toy) });
+  // The theme's look, wearing the wardrobe's head piece when one is equipped (Boutique tab Cubo).
+  const cuboLookFor = (themeKey, wear = profile.equipped.cubo) => {
+    const look = { ...CUBO, ...(CUBO_LOOKS[themeKey] || CUBO_LOOKS.toy) };
+    if (wear && wear !== 'auto') look.hat = wear;
+    return look;
+  };
+  const cuboLook = () => cuboLookFor(themeId());
   const cubo = { mood: null, until: 0, jumpAt: -1e9, jumpH: 0, taps: [], hearts: [], blinkAt: 0, dizzyUntil: 0 };
 
   function cuboReact(mood, ms, jump = 0) {
@@ -4277,19 +4725,20 @@
     return drag ? 'watch' : 'idle';
   }
 
-  function drawCubo(t) {
-    if (!settings.mascot) return;
-    const { x, y, s } = cuboSpot();
-    const C = cuboLook();
-    const mood = t < cubo.until ? cubo.mood : cuboBaseMood();
+  // pose: { x, y, s, C, mood } draws a still Cubo elsewhere (Boutique previews) instead of the board one.
+  function drawCubo(t, pose) {
+    if (!pose && !settings.mascot) return;
+    const { x, y, s } = pose || cuboSpot();
+    const C = pose ? pose.C : cuboLook();
+    const mood = pose ? pose.mood : t < cubo.until ? cubo.mood : cuboBaseMood();
     const still = calm();
     // Jumps: event jumps, plus little hops while partying.
     let lift = 0;
     let squash = 0;
-    const jk = (t - cubo.jumpAt) / 520;
+    const jk = pose ? -1 : (t - cubo.jumpAt) / 520;
     if (jk >= 0 && jk < 1) lift = Math.sin(jk * Math.PI) * s * 0.7 * cubo.jumpH;
     else if (jk >= 1 && jk < 1.35) squash = Math.sin(((jk - 1) / 0.35) * Math.PI) * 0.18;
-    if (mood === 'party' && !still) {
+    if (mood === 'party' && !still && !pose) {
       const pk = (t % 700) / 700;
       lift = Math.max(lift, Math.sin(pk * Math.PI) * s * 0.35);
     }
@@ -4340,7 +4789,7 @@
     const blinking = !still && t > cubo.blinkAt && t < cubo.blinkAt + 140;
     // Pupils look at the dragged piece, else down at the tray.
     let look = [0, 0.4];
-    if (drag) {
+    if (drag && !pose) {
       const dx = drag.x - cx;
       const dy = drag.y - fy;
       const d = Math.hypot(dx, dy) || 1;
@@ -4479,6 +4928,7 @@
     // Head piece over the body (hat, helmet, headphones).
     drawCuboHat(C, 'front', cx, top, sw, sh, s, sway, t, still);
     ctx.restore();
+    if (pose) return;
 
     // What flies out on taps: hearts, or the look's own burst.
     cubo.hearts = cubo.hearts.filter((h) => t - h.t0 < 900);
@@ -4598,8 +5048,106 @@
       ctx.beginPath(); ctx.moveTo(cx + hr * 0.5, hy - hr * 0.85); ctx.lineTo(cx + hr * 0.62, hy - hr * 1.15); ctx.stroke();
       ctx.fillStyle = still || Math.floor(t / 600) % 2 ? '#ff5d73' : '#ffd23f';
       ctx.beginPath(); ctx.arc(cx + hr * 0.62, hy - hr * 1.15, s * 0.04, 0, Math.PI * 2); ctx.fill();
+    } else if (layer === 'front') {
+      drawWardrobeHat(hat, cx, top, sw, sh, s, sway, t, still);
     }
     ctx.restore();
+  }
+
+  // Wardrobe head pieces (Boutique tab Cubo), drawn over the face.
+  function drawWardrobeHat(hat, cx, top, sw, sh, s, sway, t, still) {
+    ctx.lineWidth = s * 0.03;
+    if (hat === 'crown') {
+      const y0 = top + sh * 0.06;
+      const w = sw * 0.66;
+      ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = '#c98a0a';
+      ctx.beginPath();
+      ctx.moveTo(cx - w / 2, y0);
+      ctx.lineTo(cx - w / 2, y0 - sh * 0.3);
+      ctx.lineTo(cx - w / 4, y0 - sh * 0.14);
+      ctx.lineTo(cx, y0 - sh * 0.38);
+      ctx.lineTo(cx + w / 4, y0 - sh * 0.14);
+      ctx.lineTo(cx + w / 2, y0 - sh * 0.3);
+      ctx.lineTo(cx + w / 2, y0);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      for (const [dx, col] of [[-0.25, '#ff5d73'], [0, '#5ccfe6'], [0.25, '#6fd6a0']]) {
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.arc(cx + dx * w, y0 - sh * 0.07, s * 0.035, 0, Math.PI * 2); ctx.fill();
+      }
+      if (!still && Math.floor(t / 900) % 3 === 0) {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(cx, y0 - sh * 0.38, s * 0.03, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (hat === 'cap') {
+      const y0 = top + sh * 0.16;
+      ctx.fillStyle = '#3f7bff';
+      ctx.beginPath(); ctx.ellipse(cx, y0, sw * 0.46, sh * 0.34, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#2a5ad6';
+      ctx.beginPath(); ctx.ellipse(cx + sw * 0.42, y0 - sh * 0.02, sw * 0.26, sh * 0.07, 0.08, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.ellipse(cx - sw * 0.06, y0 - sh * 0.16, sw * 0.12, sh * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2a5ad6';
+      ctx.beginPath(); ctx.arc(cx, y0 - sh * 0.34, s * 0.035, 0, Math.PI * 2); ctx.fill();
+    } else if (hat === 'bow') {
+      ctx.translate(cx + sw * 0.26, top + sh * 0.04);
+      ctx.rotate(0.3 + sway * 0.2);
+      ctx.fillStyle = '#ff5d8f'; ctx.strokeStyle = '#d13a6a';
+      for (const side of [-1, 1]) {
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(side * s * 0.2, -s * 0.14, side * s * 0.2, 0);
+        ctx.quadraticCurveTo(side * s * 0.2, s * 0.14, 0, 0);
+        ctx.fill(); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(0, 0, s * 0.045, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    } else if (hat === 'party') {
+      ctx.translate(cx - sw * 0.08, top + sh * 0.08);
+      ctx.rotate(-0.18 + sway * 0.3);
+      const h = sh * 0.66, w = sw * 0.26;
+      ctx.save();
+      ctx.beginPath(); ctx.moveTo(-w, 0); ctx.lineTo(0, -h); ctx.lineTo(w, 0); ctx.closePath();
+      ctx.fillStyle = '#b8a4f0'; ctx.fill();
+      ctx.clip();
+      ctx.fillStyle = '#ffd23f';
+      for (let k = 0; k < 4; k++) { ctx.save(); ctx.translate(0, -h * (0.12 + k * 0.24)); ctx.rotate(-0.5); ctx.fillRect(-w * 2, -s * 0.025, w * 4, s * 0.05); ctx.restore(); }
+      ctx.restore();
+      ctx.fillStyle = '#ff5d8f';
+      ctx.beginPath(); ctx.arc(0, -h, s * 0.06, 0, Math.PI * 2); ctx.fill();
+    } else if (hat === 'glasses') {
+      const fy = top + sh * 0.45;
+      const ex = sw * 0.2;
+      const r = s * 0.12;
+      ctx.strokeStyle = '#1a1a2a'; ctx.lineWidth = s * 0.035;
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      for (const side of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + side * ex, fy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(cx - ex + r, fy - r * 0.2); ctx.quadraticCurveTo(cx, fy - r * 0.6, cx + ex - r, fy - r * 0.2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = s * 0.02;
+      for (const side of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + side * ex, fy, r * 0.65, Math.PI * 1.15, Math.PI * 1.45); ctx.stroke(); }
+    } else if (hat === 'tophat') {
+      const y0 = top + sh * 0.08;
+      ctx.translate(cx, y0); ctx.rotate(-0.08 + sway * 0.12);
+      ctx.fillStyle = '#23232e';
+      ctx.beginPath(); ctx.ellipse(0, 0, sw * 0.42, sh * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(-sw * 0.25, -sh * 0.52, sw * 0.5, sh * 0.52, s * 0.04); ctx.fill();
+      ctx.fillStyle = '#ff5d73';
+      ctx.fillRect(-sw * 0.25, -sh * 0.16, sw * 0.5, sh * 0.1);
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillRect(-sw * 0.18, -sh * 0.48, sw * 0.06, sh * 0.3);
+    } else if (hat === 'witch') {
+      const y0 = top + sh * 0.1;
+      ctx.translate(cx, y0); ctx.rotate(-0.06 + sway * 0.15);
+      ctx.fillStyle = '#3a2a5a';
+      ctx.beginPath(); ctx.ellipse(0, 0, sw * 0.62, sh * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-sw * 0.3, 0);
+      ctx.quadraticCurveTo(-sw * 0.12, -sh * 0.5, sw * 0.02, -sh * 0.78);
+      ctx.quadraticCurveTo(sw * 0.2, -sh * 0.7, sw * 0.36, -sh * 0.62); // the tip folds over
+      ctx.quadraticCurveTo(sw * 0.16, -sh * 0.5, sw * 0.3, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ff8a1a';
+      ctx.beginPath(); ctx.moveTo(-sw * 0.29, -sh * 0.05); ctx.lineTo(sw * 0.29, -sh * 0.05); ctx.lineTo(sw * 0.26, -sh * 0.17); ctx.lineTo(-sw * 0.25, -sh * 0.17); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = s * 0.025;
+      ctx.strokeRect(-s * 0.05, -sh * 0.165, s * 0.1, sh * 0.11);
+    }
   }
 
   function drawBurst(C, x, y, size, alpha, rot) {
@@ -4649,6 +5197,16 @@
       const u = size * 0.22;
       ctx.fillStyle = C.ink;
       rows.forEach((row, r) => { for (let c = 0; c < 7; c++) if (row[c] === '1') ctx.fillRect((c - 3.5) * u, (r - 3) * u, u, u); });
+    } else if (kind === 'bat') {
+      ctx.fillStyle = '#3a2a5a';
+      const f = Math.sin(rot * 6) * 0.5 + 0.6;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(-size * 0.5, -size * f, -size * 1.1, -size * 0.1);
+      ctx.quadraticCurveTo(-size * 0.6, size * 0.25, 0, size * 0.3);
+      ctx.quadraticCurveTo(size * 0.6, size * 0.25, size * 1.1, -size * 0.1);
+      ctx.quadraticCurveTo(size * 0.5, -size * f, 0, 0);
+      ctx.fill();
     } else if (kind === 'note') {
       ctx.fillStyle = '#36f9ff'; ctx.strokeStyle = '#36f9ff'; ctx.lineWidth = size * 0.13;
       ctx.shadowColor = '#36f9ff'; ctx.shadowBlur = size * 0.6;
@@ -4727,6 +5285,7 @@
     drawSweeps(t);
     if (aiming) drawAim(t);
     ctx.restore();
+    drawRecordFlag(t);
     drawCubo(t);
     drawTray(t);
     drawChrono(t);
@@ -4767,7 +5326,8 @@
     ctx.textBaseline = 'alphabetic';
     // Aventure: the plate shows the goal progress and the moves left instead of score / record.
     const stage = state.stage;
-    let sub = best ? 'RECORD ' + fmt(best) : 'SCORE';
+    // While the record flag stands on the frame, it carries the record.
+    let sub = best && !(bestAtStart > 0 && state.score <= bestAtStart) ? 'RECORD ' + fmt(best) : 'SCORE';
     let main = fmt(Math.round(displayScore));
     let lowMoves = false;
     if (state.puzzle) {
@@ -4808,6 +5368,63 @@
       if (k >= 1) comboBreak = null;
       else drawComboTag(th, comboBreak.n, 0, tagY + k * k * lay.cell * 1.6, 1 - k, 1 - 0.2 * k, 0.3 * k, true, t);
     }
+  }
+
+  // Free runs: a pennant planted on the board frame's top-left corner, carrying the record the run
+  // started with. It waves harder in the last 10 %, and topples over once the record is beaten.
+  let flagDownAt = 0;
+  function drawRecordFlag(t) {
+    if (!keepsBest() || !(bestAtStart > 0) || tut) return;
+    const beaten = state.score > bestAtStart;
+    const fall = beaten ? (flagDownAt ? Math.min(1, (t - flagDownAt) / 700) : 1) : 0;
+    if (fall >= 1) return;
+    const th = theme();
+    const s = Math.max(34, Math.min(58, lay.cell * 1.15));
+    const x = lay.bx + 8;
+    const y = lay.by - 8;
+    const h = s * 0.8; // low enough for the pennant to pass under the score plate
+    const label = fmt(bestAtStart);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(fall * fall * 1.5); // topples toward the board
+    ctx.globalAlpha = 1 - fall;
+    // Pole and its little base.
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    ctx.beginPath(); ctx.ellipse(0, 1, s * 0.16, s * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = th.ink; ctx.globalAlpha *= 0.85; ctx.lineWidth = Math.max(2, s * 0.06); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -h); ctx.stroke();
+    ctx.globalAlpha = 1 - fall;
+    ctx.fillStyle = th.tag.fill;
+    ctx.beginPath(); ctx.arc(0, -h, s * 0.07, 0, Math.PI * 2); ctx.fill();
+    // Pennant: width from the label, a wave running along it.
+    // Never reach the combo tag hung in the middle: the label shrinks to fit the room left of it.
+    const room = W / 2 - 74 - x;
+    fitFont(th, Math.round(s * 0.3), label, room - s * 0.5);
+    const fw = ctx.measureText(label).width + s * 0.36;
+    const fh = s * 0.44;
+    const close = !beaten && state.score >= bestAtStart * 0.9;
+    const amp = calm() ? 0 : s * (close ? 0.07 : 0.035);
+    const speed = close ? 110 : 260;
+    const top = -h + s * 0.06;
+    const wave = (k) => Math.sin(t / speed - k * 3) * amp * k;
+    ctx.save();
+    if (th.tag.glow) { ctx.shadowColor = th.tag.glow; ctx.shadowBlur = 8; }
+    ctx.beginPath();
+    ctx.moveTo(0, top);
+    for (let k = 0; k <= 1; k += 0.1) ctx.lineTo(fw * k, top + wave(k));
+    ctx.lineTo(fw + s * 0.16, top + fh / 2 + wave(1)); // swallowtail point
+    for (let k = 1; k >= 0; k -= 0.1) ctx.lineTo(fw * k, top + fh + wave(k));
+    ctx.closePath();
+    ctx.fillStyle = th.tag.fill;
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = th.tag.ink;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, s * 0.18, top + fh / 2 + wave(0.3) + 1);
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
   }
 
   // Sets ctx.font to the theme font at `size`, smaller if `text` would be wider than maxW
@@ -4906,7 +5523,7 @@
       const g = dragGeometry(drag, t);
       if (g.valid) {
         ghost = g;
-        preview = state.mode === 'puzzle' ? null : L.previewClears(state.board, g.piece, g.row, g.col);
+        preview = state.mode === 'puzzle' ? null : L.previewClears(state.board, g.piece, g.row, g.col, state.special);
       }
     }
 
@@ -4951,8 +5568,16 @@
           if (drop) {
             const k = (t - drop.t0) / drop.dur;
             if (k >= 1.4) drops.delete(i);
+            else if (drop.from && k < 0) [x, y] = cellCenter(drop.from[0], drop.from[1]); // waits on its old cell
             else if (k < 0) continue; // not arrived yet
-            else if (drop.kind === 'mushroom') scale *= k < 1 ? 0.3 + 0.7 * easeBack(k) : 1;
+            else if (drop.from) {
+              // Moving cell: glides (or blinks, for a jump) from its old cell.
+              const [fx, fy] = cellCenter(drop.from[0], drop.from[1]);
+              const e = easeOut(Math.min(1, k));
+              if (drop.hop) scale *= k < 0.5 ? 1 - k * 2 : Math.min(1, (k - 0.5) * 2);
+              if (drop.hop && k < 0.5) { x = fx; y = fy; } else if (!drop.hop) { x = fx + (x - fx) * e; y = fy + (y - fy) * e; }
+            }
+            else if (drop.grow || drop.kind === 'mushroom') scale *= k < 1 ? 0.3 + 0.7 * easeBack(k) : 1;
             else if (k < 1) y = by - cell * 1.5 + (y - by + cell * 1.5) * k * k;
             else scale *= 1 + 0.12 * Math.sin(Math.min(1, (k - 1) / 0.4) * Math.PI);
           }

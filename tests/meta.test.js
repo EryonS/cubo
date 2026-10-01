@@ -13,12 +13,12 @@ test('migrate refunds retired skins at their old price', () => {
   const { profile, refund } = M.migrate(v1());
   assert.equal(refund, 400 + 300 + 1200);
   assert.equal(profile.coins, 50 + refund);
-  assert.deepEqual(profile.owned, { blocks: ['classic', 'neon'], boards: ['toy'] });
+  assert.deepEqual(profile.owned, { blocks: ['classic', 'neon'], boards: ['toy'], cubo: ['auto'] });
 });
 
 test('migrate falls back to the free skin when the equipped one is gone', () => {
   const { profile } = M.migrate(v1());
-  assert.deepEqual(profile.equipped, { blocks: 'classic', boards: 'toy' });
+  assert.deepEqual(profile.equipped, { blocks: 'classic', boards: 'toy', cubo: 'auto' });
 });
 
 test('migrate keeps skins that still exist', () => {

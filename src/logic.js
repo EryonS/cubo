@@ -91,6 +91,12 @@
   // count toward full lines; state.special[i] holds { kind, hp, age }. A line clear takes one hp;
   // at 0 the cell goes away. blast: clears its row and column when destroyed. gift: drops a bonus.
   // fuse: after that many moves the cell turns into `hardens`.
+  // Aventure twists (levels 11-19, stage.twist, see levels.js) add kinds that act on their own:
+  // ttl: leaves by itself after that many moves. loot: drops that coin cell when destroyed.
+  // wander: every n moves, drifts to an empty neighbor. hop: every n moves, jumps to any empty cell.
+  // flow: falls one row each move while the cell below is empty. spread: every n moves, one of them
+  // grows onto an empty neighbor. hole: no line can complete through it. time: ms added to the
+  // clock when destroyed.
   const SPECIAL = 15;
   const KINDS = {
     ice: { hp: 2 },
@@ -104,6 +110,17 @@
     boss: { hp: 1, boss: true },
     crate: { hp: 2 }, // wooden crates stacked at the start of some levels (stage.fill), 2 hits each
     void: { hp: 1 }, // puzzle: outside the drawing (never cleared, puzzles have no line clears)
+    mole: { hp: 1, ttl: 4, loot: 'coin' },
+    jelly: { hp: 1, wander: 2 },
+    hole: { hp: 1, ttl: 8, hole: true },
+    snowman: { hp: 3 },
+    vine: { hp: 1, spread: 4 },
+    glitch: { hp: 1, hop: 3 },
+    token: { hp: 2, time: 4000 },
+    lava: { hp: 1, flow: true },
+    // Halloween event (levels.js EVENT_LEVELS).
+    pumpkin: { hp: 2, loot: 'bag' },
+    ghost: { hp: 1, hop: 2 },
   };
   const BOSS_AT = [3, 3]; // top-left cell of the 2x2 boss: the center of the board
 
@@ -295,15 +312,17 @@
     state.stuck = !fits && !state.over;
   }
 
-  function findClears(board) {
+  // A hole special (KINDS.hole) counts as empty: no line completes through it.
+  function findClears(board, special) {
     const rows = [];
     const cols = [];
+    const filled = (i) => board[i] && !(special && special[i] && KINDS[special[i].kind] && KINDS[special[i].kind].hole);
     for (let i = 0; i < SIZE; i++) {
       let rowFull = true;
       let colFull = true;
       for (let j = 0; j < SIZE; j++) {
-        if (!board[i * SIZE + j]) rowFull = false;
-        if (!board[j * SIZE + i]) colFull = false;
+        if (!filled(i * SIZE + j)) rowFull = false;
+        if (!filled(j * SIZE + i)) colFull = false;
       }
       if (rowFull) rows.push(i);
       if (colFull) cols.push(i);
@@ -319,10 +338,10 @@
   }
 
   // Which cells would vanish (by line clear) if `piece` were dropped at (row, col)?
-  function previewClears(board, piece, row, col) {
+  function previewClears(board, piece, row, col, special) {
     const b = board.slice();
     for (const [r, c] of piece.cells) b[(row + r) * SIZE + (col + c)] = piece.color;
-    const { rows, cols } = findClears(b);
+    const { rows, cols } = findClears(b, special);
     return clearedIndices(rows, cols);
   }
 
@@ -404,6 +423,7 @@
     if (stage && stage.goal.type === 'boss') placeBoss(state);
     if (stage && stage.fill) prefill(state, stage.fill, stage.goal.target + stage.fill);
     if (stage && rules.setup) rules.setup(state, WORLD_API);
+    if (stage && stage.twist) scatterKind(state, stage.twist.kind, stage.twist.count, stage.twist.top);
     if (world && rules.free && rules.free.setup) scatterKind(state, rules.free.setup.kind, rules.free.setup.count);
     if (puzzle) setupPuzzle(state, puzzle);
     refillAll(state);
@@ -504,7 +524,7 @@
 
     const rules = rulesOf(state);
     const nitro = nitroMul(prev);
-    const { rows, cols } = findClears(state.board);
+    const { rows, cols } = findClears(state.board, state.special);
     const lines = rows.length + cols.length;
     const hit = clearCells(state, clearedIndices(rows, cols));
     let points = placed.length;
@@ -526,7 +546,7 @@
       let wave = { cleared: hit.cleared.map(({ r, c }) => r * SIZE + c), moves: fall(state) };
       waves.push(wave);
       for (;;) {
-        const next = findClears(state.board);
+        const next = findClears(state.board, state.special);
         const n = next.rows.length + next.cols.length;
         if (!n) break;
         chain += 1;
@@ -558,8 +578,10 @@
 
     let timeGain = 0;
     const lv = clockOf(state);
-    if (allLines && lv) {
-      timeGain = Math.max(0, Math.min(lv.clockMax - state.clock, lv.perLine * allLines));
+    // Lines add time; so do destroyed cells of a kind with `time` (Arcade tokens).
+    const kindTime = Object.entries(hit.destroyed).reduce((a, [k, n]) => a + ((KINDS[k] && KINDS[k].time) || 0) * n, 0);
+    if ((allLines || kindTime) && lv) {
+      timeGain = Math.max(0, Math.min(lv.clockMax - state.clock, lv.perLine * allLines + kindTime));
       state.clock += timeGain;
     }
 
@@ -625,7 +647,7 @@
           hit.blasts.push({ r, c });
           for (let k = 0; k < SIZE; k++) queue.push(r * SIZE + k, k * SIZE + c);
         }
-        const gift = kind.gift ? weightedPick(state, Object.keys(BONUSES), (k) => BONUSES[k].weight) : null;
+        const gift = kind.gift ? weightedPick(state, Object.keys(BONUSES), (k) => BONUSES[k].weight) : kind.loot || null;
         hit.cleared.push({ r, c, color: SPECIAL, bonus: gift, kind: sp.kind });
       } else {
         hit.cleared.push({ r, c, color: state.board[i], bonus: state.bonus[i] });
@@ -685,7 +707,7 @@
     let spawned = [];
     if (spend) {
       stage.movesLeft -= 1;
-      spawned = worldMove(state, rules);
+      spawned = worldMove(state, rules).concat(twistSpawn(state));
       if (stage.progress < goal.target) spawned = spawned.concat(bossAttack(state));
     }
     if (stage.progress >= goal.target) {
@@ -697,8 +719,8 @@
     return spawned;
   }
 
-  // A placement under world rules: special cells age (embers harden), then the world acts.
-  // Returns the cells it spawned.
+  // A placement under world rules: special cells age (embers harden), twist cells act, then the
+  // world acts. Returns the cells it spawned, moved ({ from: [r, c] }) or removed ({ gone: true }).
   function worldMove(state, rules) {
     for (let i = 0; i < SIZE * SIZE; i++) {
       const sp = state.special[i];
@@ -707,7 +729,78 @@
       const age = (sp.age || 0) + 1;
       state.special[i] = kind.fuse && age >= kind.fuse ? { kind: kind.hardens, hp: KINDS[kind.hardens].hp, age: 0 } : { ...sp, age };
     }
-    return (rules.afterMove && rules.afterMove(state, WORLD_API)) || [];
+    return kindMoves(state).concat((rules.afterMove && rules.afterMove(state, WORLD_API)) || []);
+  }
+
+  const neighbors = (i) => {
+    const r = Math.floor(i / SIZE), c = i % SIZE;
+    return [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]]
+      .filter(([rr, cc]) => rr >= 0 && cc >= 0 && rr < SIZE && cc < SIZE).map(([rr, cc]) => rr * SIZE + cc);
+  };
+  const at = (i) => ({ r: Math.floor(i / SIZE), c: i % SIZE });
+  function moveSpecial(state, from, to) {
+    state.board[to] = SPECIAL; state.special[to] = state.special[from]; state.bonus[to] = null;
+    state.board[from] = 0; state.special[from] = null; state.bonus[from] = null;
+    return { ...at(to), kind: state.special[to].kind, from: [Math.floor(from / SIZE), from % SIZE] };
+  }
+
+  // Twist kinds acting on their own (see KINDS): leaving, drifting, jumping, flowing, spreading.
+  function kindMoves(state) {
+    const out = [];
+    const cells = [];
+    for (let i = 0; i < SIZE * SIZE; i++) if (state.special[i] && KINDS[state.special[i].kind]) cells.push(i);
+    if (!cells.length) return out;
+    // Bottom rows first, so a column of lava falls together.
+    cells.sort((a, b) => b - a);
+    const empty = (i) => !state.board[i];
+    const spreaders = {};
+    for (const i of cells) {
+      const sp = state.special[i];
+      if (!sp || sp.kind === 'boss') continue;
+      const kind = KINDS[sp.kind];
+      if (kind.ttl && sp.age >= kind.ttl) {
+        state.board[i] = 0; state.special[i] = null;
+        out.push({ ...at(i), kind: sp.kind, gone: true });
+      } else if (kind.wander && sp.age % kind.wander === 0) {
+        const to = WORLD_API.pick(state, neighbors(i).filter(empty));
+        if (to >= 0) out.push(moveSpecial(state, i, to));
+      } else if (kind.hop && sp.age % kind.hop === 0) {
+        const to = WORLD_API.pick(state, WORLD_API.emptyCells(state));
+        if (to >= 0) out.push({ ...moveSpecial(state, i, to), hop: true });
+      } else if (kind.flow && i + SIZE < SIZE * SIZE && empty(i + SIZE)) {
+        out.push(moveSpecial(state, i, i + SIZE));
+      } else if (kind.spread) {
+        (spreaders[sp.kind] = spreaders[sp.kind] || []).push(i);
+      }
+    }
+    // One cell of each spreading kind grows every `spread` moves.
+    for (const [k, list] of Object.entries(spreaders)) {
+      if (state.moves % KINDS[k].spread) continue;
+      const from = list.filter((i) => neighbors(i).some(empty));
+      const src = WORLD_API.pick(state, from);
+      if (src < 0) continue;
+      const to = WORLD_API.pick(state, neighbors(src).filter(empty));
+      out.push({ ...WORLD_API.addSpecial(state, to, k), grow: true });
+    }
+    return out;
+  }
+
+  // Aventure twist (stage.twist = { kind, count, every, top? }): one more cell every `every` moves.
+  // top: lands in the highest row with room (lava then flows down).
+  function twistSpawn(state) {
+    const tw = state.stage.twist;
+    if (!tw || !tw.every || state.moves % tw.every) return [];
+    const i = WORLD_API.pick(state, spawnCells(state, tw.top));
+    return i >= 0 ? [WORLD_API.addSpecial(state, i, tw.kind)] : [];
+  }
+  function spawnCells(state, top) {
+    const empty = WORLD_API.emptyCells(state);
+    if (!top) return empty;
+    for (let r = 0; r < SIZE; r++) {
+      const row = empty.filter((i) => Math.floor(i / SIZE) === r);
+      if (row.length) return row;
+    }
+    return [];
   }
 
   // Worlds mode: worlds whose special cells only come from level setups drop them over time
@@ -719,9 +812,9 @@
     return i >= 0 ? [WORLD_API.addSpecial(state, i, free.kind)] : [];
   }
 
-  function scatterKind(state, kind, count) {
+  function scatterKind(state, kind, count, top) {
     for (let k = 0; k < count; k++) {
-      const i = WORLD_API.pick(state, WORLD_API.emptyCells(state));
+      const i = WORLD_API.pick(state, spawnCells(state, top));
       if (i >= 0) WORLD_API.addSpecial(state, i, kind);
     }
   }

@@ -13,6 +13,9 @@ Every `drawBlock` call that knows the family passes it; a new caller should too.
 ## Dark menus (removed)
 Réglages > Menus sombres was removed on 2026-10-01 at the user's request: with the world themes it made too many color changes. Menus always wear the equipped theme. Don't bring it back.
 
+## Record flag
+Free runs with a record (Classique, Chrono, Chill, Mondes): a pennant planted on the board frame's top-left corner carries the record the run started with, in the theme's combo-tag colors; the score plate then reads SCORE. It waves harder in the last 10 %, and topples over when the record falls (with the "Nouveau record" banner, confetti and Cubo's star eyes). `drawRecordFlag`, `flagDownAt`. A bar inside the score plate was tried first and dropped (user didn't like it).
+
 ## Files
 - `index.html`: `#pause`, settings rows, `.ui` classes.
 - `src/main.js`: sections `pause` and `settings`, `MARKS` / `drawMark`, `applyThemeCss`.
