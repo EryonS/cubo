@@ -31,3 +31,8 @@ Status: shipped (v1, 2026-09-30; Défis screen added the same day)
 ## Gotchas
 - Days are local dates but all arithmetic goes through UTC (`addDays`, `dayDiff`) so DST never shifts them.
 - Abandoning a daily run still spends the attempt.
+
+## Attempts and refills (2026-10-01)
+- An attempt counts when the daily run ends (won or lost) or is dropped after at least one move (`settleRun` calls `M.countDaily`). Opening the level or a screen bug never costs one.
+- Out of attempts on today's level, not won yet: a rewarded ad gives the 3 attempts back once a day (`adDailyRefill`), or one attempt costs 30, 60, 120... coins (`buyDailyTry`). Shown on the daily sheet, the Défis today card and the daily end card (`refillHtml` / `bindRefill`).
+- Saved: `daily[day]` gains `bonus` (attempts granted), `paid` (bought) and `ad` (ad used). Profile v4 gave back attempts spent under the old rule on days not won.

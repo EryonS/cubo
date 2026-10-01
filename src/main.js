@@ -836,16 +836,21 @@
     applyThemeCss();
   }
 
-  // Menus, HUD buttons and inventory are DOM: they follow the theme through CSS variables.
+  // HUD buttons, inventory and in-game cards follow the theme played (a world's in Aventure).
+  // Menu screens and the tab bar always wear the equipped theme, so they look the same everywhere.
+  const fontVar = (th) => (th.font === PIXEL_FONT ? '"Press Start 2P UI", ui-monospace, monospace' : th.font); // narrower pixel face, as th.scale on canvas
+  function themeVars(th) {
+    return { ...th.css, '--font-display': fontVar(th), '--display-style': th.italic ? 'italic' : 'normal',
+      '--menu-accent': th.css['--accent-dark'] || th.css['--accent'], '--menu-on-accent': th.css['--on-accent-dark'] || th.css['--on-accent'] };
+  }
+  const menuThemeEl = document.head.appendChild(document.createElement('style'));
   function applyThemeCss() {
     const th = theme();
     const root = document.documentElement.style;
-    for (const [k, v] of Object.entries(th.css)) root.setProperty(k, v);
-    root.setProperty('--font-display', th.font);
-    root.setProperty('--display-style', th.italic ? 'italic' : 'normal');
-    root.setProperty('--menu-accent', th.css['--accent-dark'] || th.css['--accent']);
-    root.setProperty('--menu-on-accent', th.css['--on-accent-dark'] || th.css['--on-accent']);
-    document.body.classList.toggle('dark-menus', !!settings.darkMenus && th.css['--scheme'] === 'light');
+    for (const [k, v] of Object.entries(themeVars(th))) root.setProperty(k, v);
+    const menu = THEMES[profile.equipped.boards] || THEMES.toy;
+    menuThemeEl.textContent = `.overlay.ui, #tabbar { ${Object.entries(themeVars(menu)).map(([k, v]) => `${k}: ${v};`).join(' ')} color: var(--text); }`;
+    document.body.classList.toggle('dark-menus', !!settings.darkMenus && menu.css['--scheme'] === 'light');
     document.body.dataset.theme = themeId();
     document.querySelector('meta[name="theme-color"]').setAttribute('content', th.base);
   }
@@ -1856,6 +1861,11 @@
   function settleRun() {
     if (runSettled) return null;
     runSettled = true;
+    // A daily attempt counts once its run ends or is dropped after a move, never just for opening it.
+    if (state.stage && state.stage.daily && state.moves > 0) {
+      const next = M.countDaily(profile, state.stage.daily, today());
+      if (next) profile = next;
+    }
     const res = M.applyRun(M.ensureDay(profile, today()), L.runStats(state));
     profile = res.profile;
     const report = res.report;
@@ -2036,6 +2046,8 @@
     showTrash(false);
     syncMode();
     overEl.classList.remove('show');
+    // The game shows: no menu screen (Défis, Aventure, sheets...) may stay on top of it.
+    for (const el of document.querySelectorAll('.overlay.ui.show')) el.classList.remove('show');
     resetAnnounced();
     renderInventory();
     refreshBonusTexts();
@@ -2859,6 +2871,37 @@
 
   let dailyBack = 'menu'; // where "Retour" goes from the daily sheet: 'menu' or 'defis'
 
+  // Out of tries on today's level (not won): an ad gives the tries back once, coins buy one more.
+  function refillHtml(day) {
+    const t = today();
+    if (!M.canRefillDaily(profile, day, t)) return '';
+    return (M.dailyAdReady(profile, day, t)
+      ? `<button class="opt" data-act="ad-refill"><span>Regarde une pub : ${M.DAILY_ATTEMPTS} essais de plus</span><span class="price">Pub</span></button>` : '')
+      + `<button class="opt" data-act="buy-try"><span>Un essai de plus pour sauver ta série</span><span class="price">${M.dailyTryCost(profile, day)}${COIN}</span></button>`;
+  }
+  function bindRefill(root, day, after) {
+    const buy = root.querySelector('[data-act="buy-try"]');
+    if (buy) {
+      buy.disabled = profile.coins < M.dailyTryCost(profile, day);
+      buy.addEventListener('click', () => {
+        const next = M.buyDailyTry(profile, day, today());
+        if (!next) { sfx.nope(); return; }
+        profile = next; saveProfile(); renderWallet(); sfx.buy(); after();
+      });
+    }
+    const ad = root.querySelector('[data-act="ad-refill"]');
+    if (ad) {
+      ad.addEventListener('click', async () => {
+        ad.disabled = true;
+        const ok = await window.GridlockAds.showRewarded();
+        const next = ok && M.adDailyRefill(profile, day, today());
+        if (!next) { ad.disabled = false; return; }
+        profile = next; saveProfile(); sfx.buy(); after();
+      });
+    }
+  }
+  const triesText = (left) => `${left} essai${left > 1 ? 's' : ''} restant${left > 1 ? 's' : ''}`;
+
   function openDailySheet(day, from) {
     if (from) dailyBack = from;
     const t = today();
@@ -2868,7 +2911,7 @@
     const st = M.streakOf(profile);
     const card = document.getElementById('stage-card');
     const budget = stage.clock ? `${Math.round(stage.clock / 1000)} secondes` : `${stage.maxMoves} coups`;
-    const tries = day === t ? `${left} essai${left > 1 ? 's' : ''} sur ${M.DAILY_ATTEMPTS} aujourd'hui` : 'Essais illimités, ne compte pas pour la série';
+    const tries = day === t ? triesText(left) : 'Essais illimités, ne compte pas pour la série';
     card.innerHTML = `
       <div class="shop-head"><h2>${dailyWord(day)}</h2><span class="star-pill">#${LV.dayNumber(day)}</span></div>
       <div class="day-nav">
@@ -2879,6 +2922,7 @@
       <div class="stage-goal">${LV.goalText(stage.goal)}</div>
       <div class="stage-sub">${budget} · ${tries}</div>
       <div class="stage-stars">${starsRow(d.stars || 0, 34)}</div>
+      ${refillHtml(day)}
       ${day === t ? `<button class="opt" data-act="freeze"><span>Gel de série (${st.freezes}/${M.FREEZE_MAX}) : protège un jour manqué</span><span class="price">${M.FREEZE_COST}${COIN}</span></button>` : ''}
       <div class="actions"><button class="btn ghost" data-act="back">Retour</button><button class="btn primary" data-act="play">Jouer</button></div>`;
     const play = card.querySelector('[data-act="play"]');
@@ -2890,6 +2934,7 @@
     });
     for (const b of card.querySelectorAll('[data-nav]')) b.addEventListener('click', () => { sfx.turn(); openDailySheet(M.addDays(day, +b.dataset.nav)); });
     play.addEventListener('click', () => startDaily(day));
+    bindRefill(card, day, () => openDailySheet(day));
     const freeze = card.querySelector('[data-act="freeze"]');
     if (freeze) {
       freeze.disabled = st.freezes >= M.FREEZE_MAX || profile.coins < M.FREEZE_COST;
@@ -2911,10 +2956,9 @@
     launchDaily(day); // a free run in progress is parked, not dropped
   }
   function launchDaily(day) {
-    const next = M.startDaily(profile, day, today());
-    if (!next) { sfx.nope(); return; }
-    profile = next;
-    saveProfile();
+    // The same daily already going on will count as an attempt when it gets dropped.
+    const going = state.stage && state.stage.daily === day && inProgress() ? 1 : 0;
+    if (M.dailyAttemptsLeft(profile, day, today()) - going <= 0) { sfx.nope(); return; }
     hideAdventure();
     menuEl.classList.remove('show');
     const stage = LV.daily(day);
@@ -2940,6 +2984,7 @@
       ${report && report.unlocked ? `<div class="unlock">Skin de blocs « Or » débloqué ! Équipe-le dans la Boutique, onglet Blocs.</div>` : ''}
       <div class="earn">${lines.map((l) => `<div class="earn-line in"><span>${l.label}</span><b>+${l.coins}${COIN}</b></div>`).join('')}</div>
       ${total ? `<div class="coins-total"><span>Pièces</span><span class="v">+${fmt(total)} ${COIN}</span></div>` : ''}
+      ${refillHtml(day)}
       ${outOfMoves ? `<button class="opt" data-act="more"><span>+${M.EXTRA_MOVES} coups pour finir (1 étoile max)</span><span class="price">${moreCost}${COIN}</span></button>` : ''}
       <div class="actions">
         <button class="btn ghost" data-act="menu">Menu</button>
@@ -2949,6 +2994,7 @@
     card.querySelector('[data-act="menu"]').addEventListener('click', () => { hideAdventure(); openMenu(); });
     const retry = card.querySelector('[data-act="retry"]');
     if (retry) retry.addEventListener('click', () => startDaily(day));
+    bindRefill(card, day, () => showDailyEnd(title, lines, total, outOfMoves, report));
     bindMoreMoves(card, moreCost);
     levelEndEl.classList.add('show');
     starChimes(stage.stars);
@@ -3066,6 +3112,7 @@
       + (calOpen ? `<div id="defis-cal">${calendarHtml()}${dayHtml(defisDay)}</div>` : '');
     renderMissionList(document.getElementById('defis-missions'), [], liveRun());
     body.querySelector('[data-act="today"]').addEventListener('click', () => { sfx.turn(); startDaily(t); });
+    bindRefill(body, t, renderDefis);
     body.querySelector('[data-act="cal"]').addEventListener('click', () => {
       calOpen = !calOpen;
       sfx.turn();
@@ -3099,13 +3146,14 @@
     const done = d.stars !== undefined;
     const budget = stage.clock ? `${Math.round(stage.clock / 1000)} s` : `${stage.maxMoves} coups`;
     const status = done ? `<span class="stars">${starsRow(d.stars, 18)}</span>`
-      : left ? `${budget} · ${left} essai${left > 1 ? 's' : ''} sur ${M.DAILY_ATTEMPTS}` : 'Plus d’essai aujourd’hui';
+      : left ? `${budget} · ${triesText(left)}` : 'Plus d’essai aujourd’hui';
     return `
       <div class="today${done ? ' done' : ''}">
         <small>Niveau du jour #${LV.dayNumber(t)} · ${worldName(stage.world)}</small>
         <span class="goal-line">${LV.goalText(stage.goal)}</span>
         <div class="row"><span>${status}</span>
           <button class="btn primary" data-act="today" ${left ? '' : 'disabled'}>${!left ? 'Demain' : done ? 'Rejouer' : 'Jouer'}</button></div>
+        ${refillHtml(t)}
       </div>
       <p class="defis-note">Le même niveau pour tout le monde. Réussis-en un chaque jour pour garder ta série.</p>`;
   }
@@ -3179,7 +3227,7 @@
       ['Meilleur combo', ms.bestCombo ? '×' + ms.bestCombo : '–'],
     ];
     return `
-      <div class="seg pills stat-modes">${STAT_MODES.map(([id, name]) => `<button data-smode="${id}" class="${id === statsMode ? 'on' : ''}">${name}</button>`).join('')}</div>
+      <div class="seg pills stat-modes no-swipe">${STAT_MODES.map(([id, name]) => `<button data-smode="${id}" class="${id === statsMode ? 'on' : ''}">${name}</button>`).join('')}</div>
       <div class="stat-tiles">${tiles.map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
       ${scoreChart(M.recentScores(profile, statsMode, CHART_RUNS))}`;
   }
@@ -3292,7 +3340,7 @@
     showTrash(false);
     setAiming(false);
     document.getElementById('pause-sub').textContent = runLabel();
-    // A daily attempt is counted when it starts: no free restart from here.
+    // A daily attempt counts when dropped, so no restart from here: the level end offers Réessayer.
     document.getElementById('pause-restart').style.display = state.stage && state.stage.daily ? 'none' : '';
     pauseEl.classList.add('show');
   }
@@ -3654,21 +3702,35 @@
   const HUB_OPEN = { menu: openMenu, defis: () => openDefis(), shop: openShop, profile: () => openProfile() };
 
   const HUB_ORDER = Object.keys(HUBS);
-  const currentHub = () => HUB_ORDER.find((k) => HUBS[k].classList.contains('show'));
+  const leaving = (el) => el.classList.contains('out-left') || el.classList.contains('out-right');
+  const currentHub = () => HUB_ORDER.find((k) => HUBS[k].classList.contains('show') && !leaving(HUBS[k]));
+  const SLIDE_CLASSES = ['from-left', 'from-right', 'out-left', 'out-right'];
   function goTab(name) {
     unlockAudio();
     const from = currentHub();
-    for (const [k, el] of Object.entries(HUBS)) if (k !== name) el.classList.remove('show', 'from-left', 'from-right');
+    const dir = from ? Math.sign(HUB_ORDER.indexOf(name) - HUB_ORDER.indexOf(from)) : 0;
+    for (const [k, el] of Object.entries(HUBS)) {
+      if (k === name) { el.classList.remove(...SLIDE_CLASSES); continue; }
+      // Pages side by side: the old one slides out under the new one, then hides.
+      if (k === from && dir && !calm()) el.classList.add(dir > 0 ? 'out-left' : 'out-right');
+      else el.classList.remove('show', ...SLIDE_CLASSES);
+    }
+    // Fallback when no slide animation runs (wide screens): the old page goes once the new one is in.
+    setTimeout(() => { for (const el of Object.values(HUBS)) if (leaving(el)) el.classList.remove('show', ...SLIDE_CLASSES); }, 320);
     HUBS[name].classList.toggle('no-anim', !!from);
-    // Slide in from the side the tab sits on, like pages side by side.
-    if (from && !calm()) HUBS[name].classList.add(HUB_ORDER.indexOf(name) > HUB_ORDER.indexOf(from) ? 'from-right' : 'from-left');
+    if (dir && !calm()) HUBS[name].classList.add(dir > 0 ? 'from-right' : 'from-left');
     HUB_OPEN[name]();
+    // Some open functions close the Jouer hub themselves: keep the leaving page up until it has slid out.
+    for (const el of Object.values(HUBS)) if (leaving(el)) el.classList.add('show');
     HUBS[name].querySelector('.card').scrollTop = 0;
   }
   for (const el of Object.values(HUBS)) {
-    el.querySelector('.card').addEventListener('animationend', (e) => {
-      if (e.target === e.currentTarget) el.classList.remove('from-left', 'from-right');
-    });
+    const done = (e) => {
+      if (e.target !== e.currentTarget && !e.target.classList.contains('card')) return;
+      if (leaving(el)) el.classList.remove('show', ...SLIDE_CLASSES);
+      else el.classList.remove('from-left', 'from-right');
+    };
+    el.addEventListener('animationend', done);
     // Swipe left / right on a hub goes to the next / previous tab.
     onSwipe(el, (d) => {
       const i = HUB_ORDER.indexOf(currentHub()) + d;
@@ -3687,7 +3749,7 @@
 
   function syncTabbar() {
     const shown = [...document.querySelectorAll('.overlay.show')];
-    const hub = Object.keys(HUBS).find((k) => HUBS[k].classList.contains('show'));
+    const hub = currentHub();
     const on = !!hub && shown.every((el) => el.classList.contains('hub'));
     document.body.classList.toggle('hub-on', on);
     for (const b of tabbarEl.querySelectorAll('[data-go]')) {
@@ -3707,7 +3769,7 @@
   // ---------- button text fit ----------
   // Button labels stay on one line: a label too long for its button (narrow phone, 3 buttons in a row,
   // long word like "Recommencer") shrinks its font until it fits. Runs after any screen shows or changes.
-  const FIT = '.btn, .tab, .ptab, .seg button, .hero-go';
+  const FIT = '.btn, .tab, .ptab, .seg button, .hero-go, .home-head .brand, .shop-head h2';
   function fitText(root = document) {
     for (const el of root.querySelectorAll(FIT)) {
       if (el.style.fontSize) el.style.fontSize = '';
@@ -3967,6 +4029,19 @@
   // sad or partying at the end); events (clears, combos, bonuses, a broken combo) play short moods
   // over it. Tap it: it bounces and throws hearts; tap it a lot and it gets dizzy.
   const CUBO = { base: '#5ad9a8', dark: '#2f9f78', light: '#b7f5dc', ink: '#23313a', cheek: '#ff8fa8', leaf: '#7bcf52', leafDark: '#4f9e33' };
+  // Cubo dresses for the theme played (a world's in Aventure): colors over CUBO, plus a head piece.
+  const CUBO_LOOKS = {
+    toy: { hat: 'sprout' },
+    plain: { hat: 'flower' },
+    sea: { base: '#5cc8ef', dark: '#2f8fc0', light: '#c9f1ff', hat: 'starfish' },
+    space: { base: '#b9a2ff', dark: '#7a62d6', light: '#e8e0ff', hat: 'helmet' },
+    ice: { base: '#bfeaf7', dark: '#7fc4dc', light: '#ffffff', hat: 'beanie' },
+    forest: { base: '#7ccf7a', dark: '#478f4c', light: '#d4f5c8', hat: 'mushroom' },
+    retro: { base: '#8bac0f', dark: '#306230', light: '#c4d97a', ink: '#0f380f', cheek: '#306230', leaf: '#9bbc0f', leafDark: '#0f380f', hat: 'pixel', flat: true },
+    arcade: { base: '#ff5fd0', dark: '#b02a92', light: '#ffc4ef', cheek: '#36f9ff', hat: 'headphones' },
+    volcano: { base: '#ff9a4d', dark: '#d1562a', light: '#ffd6b0', cheek: '#ff5a5a', hat: 'flame' },
+  };
+  const cuboLook = () => ({ ...CUBO, ...(CUBO_LOOKS[themeId()] || CUBO_LOOKS.toy) });
   const cubo = { mood: null, until: 0, jumpAt: -1e9, jumpH: 0, taps: [], hearts: [], blinkAt: 0, dizzyUntil: 0 };
 
   function cuboReact(mood, ms, jump = 0) {
@@ -4038,6 +4113,7 @@
   function drawCubo(t) {
     if (!settings.mascot) return;
     const { x, y, s } = cuboSpot();
+    const C = cuboLook();
     const mood = t < cubo.until ? cubo.mood : cuboBaseMood();
     const still = calm();
     // Jumps: event jumps, plus little hops while partying.
@@ -4063,40 +4139,33 @@
     ctx.beginPath(); ctx.ellipse(x, y + 1, s * 0.42 * (1 - Math.min(0.5, lift / s)), s * 0.07, 0, 0, Math.PI * 2); ctx.fill();
 
     // Feet.
-    ctx.fillStyle = CUBO.dark;
+    ctx.fillStyle = C.dark;
     for (const side of [-1, 1]) {
       ctx.beginPath(); ctx.ellipse(cx + side * sw * 0.22, bottom - s * 0.02, s * 0.13, s * 0.08, 0, 0, Math.PI * 2); ctx.fill();
     }
-    // Sprout: two leaves swaying on top.
+    // Head piece behind the body (sprout, flower, flame...), swaying on top.
     const sway = still ? 0 : Math.sin(t / 420) * 0.25 + (lift > 1 ? -0.2 : 0);
-    ctx.save();
-    ctx.translate(cx, top + s * 0.04);
-    ctx.rotate(sway);
-    ctx.strokeStyle = CUBO.leafDark; ctx.lineWidth = s * 0.05; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -s * 0.16); ctx.stroke();
-    for (const side of [-1, 1]) {
-      ctx.fillStyle = side < 0 ? CUBO.leaf : CUBO.leafDark;
-      ctx.beginPath(); ctx.ellipse(side * s * 0.1, -s * 0.2, s * 0.12, s * 0.06, side * -0.5, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
+    drawCuboHat(C, 'back', cx, top, sw, sh, s, sway, t, still);
 
     // Body: a soft rounded block with a darker base and a glossy top.
     const bx = cx - sw / 2;
     const r = Math.min(sw, sh) * 0.42;
-    ctx.fillStyle = CUBO.dark;
+    ctx.fillStyle = C.dark;
     ctx.beginPath(); ctx.roundRect(bx, top + sh * 0.1, sw, sh * 0.9, r); ctx.fill();
-    ctx.fillStyle = CUBO.base;
+    ctx.fillStyle = C.base;
     ctx.beginPath(); ctx.roundRect(bx, top, sw, sh * 0.9, r); ctx.fill();
-    ctx.fillStyle = withAlpha(CUBO.light, 0.7);
-    ctx.beginPath(); ctx.ellipse(bx + sw * 0.3, top + sh * 0.2, sw * 0.14, sh * 0.08, -0.5, 0, Math.PI * 2); ctx.fill();
+    if (!C.flat) {
+      ctx.fillStyle = withAlpha(C.light, 0.7);
+      ctx.beginPath(); ctx.ellipse(bx + sw * 0.3, top + sh * 0.2, sw * 0.14, sh * 0.08, -0.5, 0, Math.PI * 2); ctx.fill();
+    }
 
     // Face.
     const fy = top + sh * 0.45;
     const ex = sw * 0.2;
     const er = s * 0.075;
-    ctx.fillStyle = withAlpha(CUBO.cheek, 0.55);
+    ctx.fillStyle = withAlpha(C.cheek, 0.55);
     for (const side of [-1, 1]) { ctx.beginPath(); ctx.ellipse(cx + side * sw * 0.32, fy + s * 0.1, s * 0.08, s * 0.05, 0, 0, Math.PI * 2); ctx.fill(); }
-    ctx.strokeStyle = CUBO.ink; ctx.fillStyle = CUBO.ink; ctx.lineWidth = s * 0.05; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = C.ink; ctx.fillStyle = C.ink; ctx.lineWidth = s * 0.05; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
 
     if (!cubo.blinkAt || t > cubo.blinkAt + 140) cubo.blinkAt = t + 2200 + Math.random() * 2600;
     const blinking = !still && t > cubo.blinkAt && t < cubo.blinkAt + 140;
@@ -4117,7 +4186,7 @@
       } else if (mood === 'oops') {
         ctx.beginPath(); ctx.moveTo(exx - side * er, fy - er); ctx.lineTo(exx + side * er * 0.4, fy); ctx.lineTo(exx - side * er, fy + er); ctx.stroke();
       } else if (mood === 'star') {
-        ctx.save(); ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = CUBO.ink; ctx.lineWidth = s * 0.025;
+        ctx.save(); ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = C.ink; ctx.lineWidth = s * 0.025;
         ctx.beginPath();
         for (let k = 0; k < 10; k++) {
           const a = -Math.PI / 2 + (k * Math.PI) / 5 + (still ? 0 : t / 500);
@@ -4139,7 +4208,7 @@
         const big = mood === 'wow' || mood === 'worried' ? 1.3 : 1;
         ctx.fillStyle = '#ffffff';
         ctx.beginPath(); ctx.ellipse(exx, fy, er * 1.15 * big, er * 1.35 * big, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = CUBO.ink;
+        ctx.fillStyle = C.ink;
         const pr = er * (mood === 'worried' ? 0.55 : 0.8);
         ctx.beginPath(); ctx.arc(exx + look[0] * er * 0.35, fy + look[1] * er * 0.45, pr, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#ffffff';
@@ -4153,11 +4222,11 @@
 
     // Mouth.
     const my = fy + s * 0.14;
-    ctx.fillStyle = CUBO.ink;
+    ctx.fillStyle = C.ink;
     ctx.beginPath();
     if (mood === 'happy' || mood === 'party' || mood === 'star') {
       ctx.moveTo(cx - s * 0.12, my - s * 0.02); ctx.quadraticCurveTo(cx, my + s * 0.2, cx + s * 0.12, my - s * 0.02); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = CUBO.cheek;
+      ctx.fillStyle = C.cheek;
       ctx.beginPath(); ctx.ellipse(cx, my + s * 0.06, s * 0.05, s * 0.03, 0, 0, Math.PI * 2); ctx.fill();
     } else if (mood === 'wow' || mood === 'dizzy') {
       ctx.ellipse(cx, my + s * 0.02, s * 0.05, s * 0.065, 0, 0, Math.PI * 2); ctx.fill();
@@ -4193,6 +4262,8 @@
       }
       ctx.globalAlpha = 1;
     }
+    // Head piece over the body (hat, helmet, headphones).
+    drawCuboHat(C, 'front', cx, top, sw, sh, s, sway, t, still);
     ctx.restore();
 
     // Hearts from taps.
@@ -4202,6 +4273,119 @@
       if (k < 0) continue;
       drawHeart(h.x + h.dx * k, h.y - k * s * 1.1, s * 0.22 * (1 - k * 0.3), 1 - k);
     }
+  }
+
+  // One head piece per look. layer 'back' is drawn before the body, 'front' after the face.
+  function drawCuboHat(C, layer, cx, top, sw, sh, s, sway, t, still) {
+    const hat = C.hat;
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (layer === 'back' && (hat === 'sprout' || hat === 'flower' || hat === 'pixel')) {
+      ctx.translate(cx, top + s * 0.04);
+      ctx.rotate(hat === 'pixel' ? 0 : sway);
+      if (hat === 'pixel') {
+        // Blocky sprout: little squares, like the console's sprites.
+        const u = s * 0.07;
+        ctx.fillStyle = C.leafDark;
+        ctx.fillRect(-u / 2, -u * 2.5, u, u * 2.5);
+        ctx.fillStyle = C.leaf;
+        ctx.fillRect(-u * 2.5, -u * 3.5, u * 2, u); ctx.fillRect(-u * 1.5, -u * 2.5, u, u);
+        ctx.fillStyle = C.leafDark;
+        ctx.fillRect(u * 0.5, -u * 3.5, u * 2, u); ctx.fillRect(u * 0.5, -u * 2.5, u, u);
+      } else {
+        const stem = hat === 'flower' ? 0.24 : 0.16;
+        ctx.strokeStyle = C.leafDark; ctx.lineWidth = s * 0.05;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -s * stem); ctx.stroke();
+        for (const side of [-1, 1]) {
+          ctx.fillStyle = side < 0 ? C.leaf : C.leafDark;
+          ctx.beginPath(); ctx.ellipse(side * s * 0.1, -s * (hat === 'flower' ? 0.12 : 0.2), s * 0.12, s * 0.06, side * -0.5, 0, Math.PI * 2); ctx.fill();
+        }
+        if (hat === 'flower') {
+          // A daisy on the stem.
+          ctx.fillStyle = '#ffffff';
+          for (let k = 0; k < 6; k++) {
+            const a = (k * Math.PI) / 3 + (still ? 0 : t / 2600);
+            ctx.beginPath(); ctx.ellipse(Math.cos(a) * s * 0.07, -s * 0.3 + Math.sin(a) * s * 0.07, s * 0.055, s * 0.035, a, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.fillStyle = '#ffd23f';
+          ctx.beginPath(); ctx.arc(0, -s * 0.3, s * 0.045, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    } else if (layer === 'back' && hat === 'flame') {
+      // A little flame flickering on top.
+      const f = still ? 1 : 1 + Math.sin(t / 110) * 0.08;
+      ctx.translate(cx, top + s * 0.06);
+      for (const [col, k] of [['#ff5a2a', 1], ['#ffd23f', 0.55]]) {
+        const h = s * 0.32 * k * f;
+        const w = s * 0.13 * k;
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(-w * 1.5, -h * 0.35, -w * 0.2 + sway * w, -h);
+        ctx.quadraticCurveTo(w * 1.2, -h * 0.5, w, -h * 0.15);
+        ctx.quadraticCurveTo(w * 0.8, 0, 0, 0);
+        ctx.fill();
+      }
+    } else if (layer === 'front' && hat === 'starfish') {
+      ctx.translate(cx + sw * 0.2, top + sh * 0.04);
+      ctx.rotate(-0.25 + sway * 0.4);
+      ctx.fillStyle = '#ff9f43'; ctx.strokeStyle = '#d9692a'; ctx.lineWidth = s * 0.02;
+      ctx.beginPath();
+      for (let k = 0; k < 10; k++) {
+        const a = -Math.PI / 2 + (k * Math.PI) / 5;
+        const rr = k % 2 ? s * 0.06 : s * 0.15;
+        ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffd6a8';
+      for (const [dx, dy] of [[0, -0.07], [0.05, 0], [-0.05, 0]]) { ctx.beginPath(); ctx.arc(dx * s, dy * s, s * 0.012, 0, Math.PI * 2); ctx.fill(); }
+    } else if (layer === 'front' && hat === 'beanie') {
+      // Knit beanie with a pompom, folded brim.
+      const y0 = top + sh * 0.18;
+      ctx.fillStyle = '#ff5d73';
+      ctx.beginPath(); ctx.moveTo(cx - sw * 0.46, y0); ctx.quadraticCurveTo(cx - sw * 0.4, top - sh * 0.32, cx, top - sh * 0.34);
+      ctx.quadraticCurveTo(cx + sw * 0.4, top - sh * 0.32, cx + sw * 0.46, y0); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = s * 0.025;
+      for (const k of [-0.2, 0, 0.2]) { ctx.beginPath(); ctx.moveTo(cx + k * sw, y0 - sh * 0.05); ctx.lineTo(cx + k * sw * 0.8, top - sh * 0.22); ctx.stroke(); }
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.roundRect(cx - sw * 0.5, y0 - sh * 0.1, sw, sh * 0.15, sh * 0.07); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + sway * s * 0.05, top - sh * 0.38, s * 0.09, 0, Math.PI * 2); ctx.fill();
+    } else if (layer === 'front' && hat === 'mushroom') {
+      // Red mushroom cap with white dots, tilted.
+      ctx.translate(cx, top + sh * 0.08);
+      ctx.rotate(-0.12 + sway * 0.2);
+      ctx.fillStyle = '#e8473f';
+      ctx.beginPath(); ctx.ellipse(0, 0, sw * 0.56, sh * 0.34, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      for (const [dx, dy, r] of [[-0.28, -0.12, 0.07], [0.05, -0.24, 0.08], [0.3, -0.1, 0.06]]) {
+        ctx.beginPath(); ctx.arc(dx * sw, dy * sh, r * s, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (layer === 'front' && hat === 'headphones') {
+      // Neon headphones: band over the head, cups on the sides.
+      ctx.strokeStyle = '#36f9ff'; ctx.lineWidth = s * 0.06;
+      ctx.beginPath(); ctx.ellipse(cx, top + sh * 0.42, sw * 0.52, sh * 0.58, 0, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+      ctx.fillStyle = '#1a0b3d';
+      for (const side of [-1, 1]) {
+        ctx.beginPath(); ctx.roundRect(cx + side * sw * 0.5 - s * 0.07, top + sh * 0.28, s * 0.14, sh * 0.32, s * 0.05); ctx.fill();
+        ctx.fillStyle = '#36f9ff';
+        ctx.beginPath(); ctx.roundRect(cx + side * sw * 0.5 - s * 0.035, top + sh * 0.34, s * 0.07, sh * 0.2, s * 0.03); ctx.fill();
+        ctx.fillStyle = '#1a0b3d';
+      }
+    } else if (layer === 'front' && hat === 'helmet') {
+      // Astronaut bubble helmet with a shine and an antenna light.
+      const hy = top + sh * 0.42;
+      const hr = Math.max(sw, sh) * 0.66;
+      ctx.fillStyle = 'rgba(200,230,255,0.18)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = s * 0.035;
+      ctx.beginPath(); ctx.arc(cx, hy, hr, Math.PI * 0.9, Math.PI * 2.1); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = s * 0.03;
+      ctx.beginPath(); ctx.arc(cx, hy, hr * 0.8, Math.PI * 1.2, Math.PI * 1.45); ctx.stroke();
+      ctx.strokeStyle = '#c9c4e0'; ctx.lineWidth = s * 0.03;
+      ctx.beginPath(); ctx.moveTo(cx + hr * 0.5, hy - hr * 0.85); ctx.lineTo(cx + hr * 0.62, hy - hr * 1.15); ctx.stroke();
+      ctx.fillStyle = still || Math.floor(t / 600) % 2 ? '#ff5d73' : '#ffd23f';
+      ctx.beginPath(); ctx.arc(cx + hr * 0.62, hy - hr * 1.15, s * 0.04, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
   }
 
   function drawHeart(x, y, size, alpha) {

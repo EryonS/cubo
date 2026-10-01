@@ -6,7 +6,7 @@ const LV = require('../src/levels.js');
 
 const fresh = () => ({ ...M.createProfile('2026-10-01'), coins: 500 });
 // Plays and wins `day`'s daily on `today`.
-const win = (p, day, today, stars = 3) => M.applyDaily(M.startDaily(p, day, today), day, today, stars);
+const win = (p, day, today, stars = 3) => M.applyDaily(M.countDaily(p, day, today), day, today, stars);
 
 test('date helpers', () => {
   assert.equal(M.addDays('2026-10-31', 1), '2026-11-01');
@@ -24,10 +24,10 @@ test('the daily level is the same for everyone on a day and changes with the day
 
 test('today has 3 attempts, past days are unlimited, future days are locked', () => {
   let p = fresh();
-  for (let k = 0; k < 3; k++) p = M.startDaily(p, '2026-10-01', '2026-10-01');
-  assert.equal(M.startDaily(p, '2026-10-01', '2026-10-01'), null);
+  for (let k = 0; k < 3; k++) p = M.countDaily(p, '2026-10-01', '2026-10-01');
+  assert.equal(M.countDaily(p, '2026-10-01', '2026-10-01'), null);
   assert.equal(M.dailyAttemptsLeft(p, '2026-09-20', '2026-10-01'), Infinity);
-  assert.equal(M.startDaily(p, '2026-10-02', '2026-10-01'), null);
+  assert.equal(M.countDaily(p, '2026-10-02', '2026-10-01'), null);
 });
 
 test('streak grows day after day and resets after a missed day', () => {
@@ -101,4 +101,33 @@ test('lifetime stats accumulate across runs', () => {
   assert.equal(p.lifetime.bestCombo, 6);
   assert.equal(p.lifetime.score, 900);
   assert.equal(p.lifetime.used.bomb, 2);
+});
+
+test('migrate v3 gives back daily attempts on days not won yet', () => {
+  const v3 = { ...fresh(), version: 3, daily: { '2026-10-01': { attempts: 3 }, '2026-09-30': { attempts: 2, stars: 2 } } };
+  const { profile } = M.migrate(v3);
+  assert.equal(M.dailyAttemptsLeft(profile, '2026-10-01', '2026-10-01'), 3);
+  assert.equal(profile.daily['2026-09-30'].attempts, 2);
+  assert.equal(profile.adventure, v3.adventure);
+});
+
+test('out of daily attempts: an ad gives 3 back once, coins buy single tries at a rising price', () => {
+  const day = '2026-10-01';
+  let p = { ...fresh(), coins: 200 };
+  assert.equal(M.adDailyRefill(p, day, day), null); // attempts left: nothing to refill
+  for (let k = 0; k < 3; k++) p = M.countDaily(p, day, day);
+  assert.equal(M.canRefillDaily(p, day, day), true);
+  p = M.adDailyRefill(p, day, day);
+  assert.equal(M.dailyAttemptsLeft(p, day, day), 3);
+  for (let k = 0; k < 3; k++) p = M.countDaily(p, day, day);
+  assert.equal(M.dailyAdReady(p, day, day), false);
+  assert.equal(M.dailyTryCost(p, day), 30);
+  p = M.buyDailyTry(p, day, day);
+  assert.equal(p.coins, 170);
+  assert.equal(M.dailyAttemptsLeft(p, day, day), 1);
+  p = M.countDaily(p, day, day);
+  assert.equal(M.dailyTryCost(p, day), 60);
+  assert.equal(M.buyDailyTry(p, '2026-09-30', day), null); // only today
+  p = M.applyDaily(p, day, day, 1).profile;
+  assert.equal(M.canRefillDaily(p, day, day), false); // won: streak safe
 });

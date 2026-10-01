@@ -40,7 +40,7 @@
     blocks: { candy: 400 },
     boards: { night: 0, sunset: 300, desert: 500, mountain: 800, dash: 1200 },
   };
-  const PROFILE_VERSION = 3;
+  const PROFILE_VERSION = 4;
 
   // stat: key in the run stats. mode 'best' = within one game, 'total' = accumulates across games.
   // tiers: [target, reward], harder tiers unlock as more missions get completed.
@@ -110,7 +110,17 @@
     const version = prev.version || 1;
     if (version >= PROFILE_VERSION) return { profile: prev, refund: 0 };
     const skins = version < 2 ? migrateSkins(prev) : { profile: prev, refund: 0 };
-    return { profile: { ...migrateAdventure(skins.profile), version: PROFILE_VERSION }, refund: skins.refund };
+    const adventure = version < 3 ? migrateAdventure(skins.profile) : skins.profile;
+    return { profile: { ...refundDailyAttempts(adventure), version: PROFILE_VERSION }, refund: skins.refund };
+  }
+
+  // Version 4 (2026-10-01): daily attempts now count when a run ends, not when it starts. Attempts
+  // spent under the old rule on days not won yet are given back (some were lost to a screen bug).
+  function refundDailyAttempts(prev) {
+    if (!prev.daily) return prev;
+    const daily = {};
+    for (const [day, d] of Object.entries(prev.daily)) daily[day] = d.stars === undefined ? { ...d, attempts: 0 } : d;
+    return { ...prev, daily };
   }
 
   function migrateAdventure(prev) {
@@ -427,11 +437,33 @@
 
   function dailyAttemptsLeft(profile, day, today) {
     if (day > today) return 0;
-    return day === today ? Math.max(0, DAILY_ATTEMPTS - dailyOf(profile, day).attempts) : Infinity;
+    const d = dailyOf(profile, day);
+    return day === today ? Math.max(0, DAILY_ATTEMPTS + (d.bonus || 0) - d.attempts) : Infinity;
   }
 
-  // Counts an attempt when a daily run starts. Null if none left (or a future day).
-  function startDaily(prev, day, today) {
+  // Out of attempts on today's level, not won yet: the streak can still be saved with more tries.
+  // A rewarded ad gives the 3 attempts back once a day; single attempts cost 30, 60, 120... coins.
+  // daily[day] gains bonus (attempts granted), paid (attempts bought) and ad (ad used).
+  const DAILY_TRY_COST = 30;
+  const canRefillDaily = (profile, day, today) =>
+    day === today && dailyOf(profile, day).stars === undefined && dailyAttemptsLeft(profile, day, today) === 0;
+  const dailyTryCost = (profile, day) => DAILY_TRY_COST * 2 ** (dailyOf(profile, day).paid || 0);
+  const dailyAdReady = (profile, day, today) => canRefillDaily(profile, day, today) && !dailyOf(profile, day).ad;
+  function buyDailyTry(prev, day, today) {
+    const cost = dailyTryCost(prev, day);
+    if (!canRefillDaily(prev, day, today) || prev.coins < cost) return null;
+    const d = dailyOf(prev, day);
+    return { ...prev, coins: prev.coins - cost, daily: { ...(prev.daily || {}), [day]: { ...d, bonus: (d.bonus || 0) + 1, paid: (d.paid || 0) + 1 } } };
+  }
+  function adDailyRefill(prev, day, today) {
+    if (!dailyAdReady(prev, day, today)) return null;
+    const d = dailyOf(prev, day);
+    return { ...prev, daily: { ...(prev.daily || {}), [day]: { ...d, bonus: (d.bonus || 0) + DAILY_ATTEMPTS, ad: true } } };
+  }
+
+  // Counts an attempt when a daily run ends (won, lost, or dropped after a move). Null if none left
+  // (or a future day).
+  function countDaily(prev, day, today) {
     if (!dailyAttemptsLeft(prev, day, today)) return null;
     const d = dailyOf(prev, day);
     return { ...prev, daily: { ...(prev.daily || {}), [day]: { ...d, attempts: d.attempts + 1 } } };
@@ -586,7 +618,7 @@
     tipSeen, markTip, needsTutorial,
     HISTORY, modeStats, recentScores,
     addDays, dayDiff, monthDays,
-    DAILY_ATTEMPTS, FREEZE_COST, FREEZE_MAX, STREAK_SKIN, dailyOf, streakOf, dailyAttemptsLeft, startDaily, streakNow,
+    DAILY_ATTEMPTS, FREEZE_COST, FREEZE_MAX, STREAK_SKIN, dailyOf, streakOf, dailyAttemptsLeft, countDaily, canRefillDaily, dailyTryCost, dailyAdReady, buyDailyTry, adDailyRefill, streakNow,
     applyDaily, buyFreeze, monthTrophy, STICKER_PAGES, STICKERS, STICKER_REWARD, checkStickers,
     PUZZLE_FIRST, PUZZLE_PACK, PUZZLE_HINT, puzzleStarsOf, puzzleOpen, puzzlesSolved, applyPuzzle,
     WORLD_NAMES, worldFreeOpen, worldPrimeRate, worldPrime, UPGRADE_PRICES, upgradeLevel, upgradePrice, buyUpgrade,

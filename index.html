@@ -15,6 +15,7 @@
     /* Fonts ship with the game so it looks right offline (SIL Open Font License, see fonts/README.md). */
     @font-face { font-family: "Baloo 2"; font-weight: 600 800; font-display: swap; src: url(fonts/baloo2.woff2) format("woff2"); }
     @font-face { font-family: "Press Start 2P"; font-weight: 400; font-display: swap; src: url(fonts/pressstart2p.woff2) format("woff2"); }
+    @font-face { font-family: "Press Start 2P UI"; font-weight: 400; font-display: swap; size-adjust: 66%; src: url(fonts/pressstart2p.woff2) format("woff2"); }
     /* Defaults = "Jouet" theme; main.js overwrites these variables with the equipped theme. */
     :root {
       --bg: #ffeef4;
@@ -609,8 +610,11 @@
     .pause-actions .actions { margin-top: 0; }
 
     /* ---------- stats: mode pills, tiles, last scores ---------- */
-    .stat-modes { margin: 0 0 12px; }
-    .stat-modes button { font-size: 14px; padding-inline: 2px; white-space: nowrap; }
+    /* Mode pills scroll sideways inside the card when they don't fit (never the page). */
+    .stat-modes { margin: 0 -16px 12px; padding: 2px 16px 4px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+    .stat-modes::-webkit-scrollbar { display: none; }
+    .stat-modes button { flex: none; font-size: 14px; padding-inline: 14px; white-space: nowrap; }
+    .overlay.screen .card { overflow-x: hidden; }
     .stat-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .stat-tiles div { padding: 10px 12px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); text-align: left; }
     .stat-tiles b { display: block; font-family: var(--font-display); font-style: var(--display-style); font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -654,7 +658,8 @@
 
     /* Home (Jouer tab) */
     .home-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-    .home-head .brand { flex: 1; min-width: 0; margin: 0; text-align: left; font-size: 34px; }
+    .home-head .brand { flex: 1; min-width: 0; margin: 0; text-align: left; font-size: 34px; white-space: nowrap; overflow: hidden; }
+    .shop-head h2 { white-space: nowrap; min-width: 0; overflow: hidden; }
     .home-head .coins { font-size: 19px; padding: 7px 10px 5px; }
     #menu-continue { margin-bottom: 12px; }
     .hero { position: relative; margin-bottom: 10px; }
@@ -711,6 +716,8 @@
     .today .row .stars { display: flex; }
     .today .btn { flex: none; padding-inline: 22px; }
     .today .btn:disabled { opacity: .5; cursor: default; }
+    .today .opt { background: var(--panel); }
+    .today .opt:first-of-type { margin-top: 12px; }
     .cal-toggle { justify-content: space-between; }
     .cal-toggle svg { transition: transform 200ms; }
     .cal-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
@@ -795,6 +802,21 @@
     /* Changing tab by swipe or tap: the new hub slides in from the side it lives on. */
     .overlay.hub.from-right .card { animation: slide-r 240ms cubic-bezier(.2,.8,.2,1); }
     .overlay.hub.from-left .card { animation: slide-l 240ms cubic-bezier(.2,.8,.2,1); }
+    @media (max-width: 600px) {
+      /* Full-screen hubs move as whole pages: the new one slides over the old one, no fade. */
+      .overlay.hub.from-right, .overlay.hub.from-left { z-index: 2; }
+      .overlay.hub.from-right { animation: page-r 260ms cubic-bezier(.2,.8,.2,1); }
+      .overlay.hub.from-left { animation: page-l 260ms cubic-bezier(.2,.8,.2,1); }
+      .overlay.hub.from-right .card, .overlay.hub.from-left .card { animation: none; }
+      .overlay.hub.out-left, .overlay.hub.out-right { z-index: 1; pointer-events: none; }
+      .overlay.hub.out-left { animation: page-out-l 260ms cubic-bezier(.2,.8,.2,1) forwards; }
+      .overlay.hub.out-right { animation: page-out-r 260ms cubic-bezier(.2,.8,.2,1) forwards; }
+      .overlay.hub.out-left .card, .overlay.hub.out-right .card { animation: none; }
+    }
+    @keyframes page-r { from { transform: translateX(100%); } }
+    @keyframes page-l { from { transform: translateX(-100%); } }
+    @keyframes page-out-l { to { transform: translateX(-30%); } }
+    @keyframes page-out-r { to { transform: translateX(30%); } }
     @keyframes screen-in { from { opacity: 0; transform: translateY(14px); } }
     @keyframes slide-r { from { opacity: 0; transform: translateX(48px); } }
     @keyframes slide-l { from { opacity: 0; transform: translateX(-48px); } }
