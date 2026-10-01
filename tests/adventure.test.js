@@ -1,8 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const L = require('../src/logic.js');
-require('../src/worlds.js');
-const LV = require('../src/levels.js');
+const L = require('../www/src/core/logic.js');
+require('../www/src/core/worlds.js');
+const LV = require('../www/src/core/levels.js');
 
 const S = L.SIZE;
 const dot = { id: 999, cells: [[0, 0]], w: 1, h: 1, color: 1, bonus: null };

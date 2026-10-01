@@ -1,8 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const L = require('../src/logic.js');
-require('../src/worlds.js');
-const M = require('../src/meta.js');
+const L = require('../www/src/core/logic.js');
+require('../www/src/core/worlds.js');
+const M = require('../www/src/core/meta.js');
 
 // Plays the first legal spot of the first piece that fits, until the run ends or n moves.
 function play(state, n) {

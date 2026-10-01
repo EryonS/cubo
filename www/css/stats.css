@@ -1,0 +1,20 @@
+/* Cubo Blocks — Stats. */
+/* ---------- stats: mode pills, tiles, last scores ---------- */
+/* Mode pills scroll sideways inside the card when they don't fit (never the page). */
+.stat-modes { margin: 0 -16px 12px; padding: 2px 16px 4px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.stat-modes::-webkit-scrollbar { display: none; }
+.stat-modes button { flex: none; font-size: 14px; padding-inline: 14px; white-space: nowrap; }
+.overlay.screen .card { overflow-x: hidden; }
+.stat-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-tiles div { padding: 10px 12px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); text-align: left; }
+.stat-tiles b { display: block; font-family: var(--font-display); font-style: var(--display-style); font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat-tiles span { font-size: 12px; font-weight: 800; color: var(--muted); }
+.chart { margin-top: 12px; padding: 12px 10px 8px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .bar path { fill: var(--accent); opacity: .85; transition: opacity 120ms; }
+.chart .bar.on path, .chart .bar:hover path { opacity: 1; }
+.chart .bar { cursor: pointer; }
+.chart line { stroke: var(--hairline); stroke-width: 1; }
+.chart text { fill: var(--text); font: 800 11px var(--font-ui); font-variant-numeric: tabular-nums; }
+.chart-cap { margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--muted); text-align: left; }
+.chart-empty { margin-top: 12px; padding: 16px 12px; border-radius: calc(var(--radius) - 6px); background: var(--panel-2); font-size: 13px; font-weight: 700; color: var(--muted); }

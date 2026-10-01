@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const M = require('../src/meta.js');
+const M = require('../www/src/core/meta.js');
 
 const fresh = () => ({ ...M.createProfile('2026-09-30'), coins: 1000 });
 function clearWorld(p, world, stars = 3) {

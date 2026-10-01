@@ -11,7 +11,7 @@ Status: shipped (v1, 2026-09-30; Défis screen added the same day)
 - `LV.daily(day)`: world and level (3-7 of that world) drawn from a hash of the local date, plus a fixed `seed`, so every player gets the same board and piece sequence. Numbered from `DAILY_START` (2026-09-01 = #1).
 - Today: 3 attempts (counted when a run starts, `M.startDaily`). Past days (Défis calendar): unlimited, never feed the streak. Future days: locked.
 - Rewards: first clear 20 coins on the day, 10 for a past day; +5 moves can be bought like in Aventure (stars capped at 1).
-- Share (after a win): `Gridlock #31 · Forêt · 3 étoiles · 12 coups en rab`. Phones get the share sheet, otherwise it is copied.
+- Share (after a win): `Cubo Blocks #31 · Forêt · 3 étoiles · 12 coups en rab`. Phones get the share sheet, otherwise it is copied.
 - Uses the phone's date; changing it to cheat is accepted (offline game, no server).
 
 ## Streak
@@ -21,9 +21,9 @@ Status: shipped (v1, 2026-09-30; Défis screen added the same day)
 - `M.streakNow(profile, today)` is what to display (0 once the gap exceeds the freezes).
 
 ## Files
-- `src/levels.js`: `DAILY_START`, `daily`, `dayNumber`.
-- `src/meta.js`: `addDays`, `dayDiff`, `monthDays`, `dailyOf`, `dailyAttemptsLeft`, `startDaily`, `applyDaily`, `streakOf`, `streakNow`, `buyFreeze`.
-- `src/main.js`: section `daily level, streak, profile` (`startDaily`, `dailyTriesAfter`, `showDailyEnd`, `shareText`, `renderDailyButton`) and `Défis screen` (`openDefis`, `pickDay`, `renderDefis`, `calendarHtml`, `dayCell`, `dayHtml`); `endLevel` branches on `stage.daily`.
+- `www/src/core/levels.js`: `DAILY_START`, `daily`, `dayNumber`.
+- `www/src/core/meta.js`: `addDays`, `dayDiff`, `monthDays`, `dailyOf`, `dailyAttemptsLeft`, `startDaily`, `applyDaily`, `streakOf`, `streakNow`, `buyFreeze`.
+- `www/src/screens/daily.js`, `www/src/screens/defis.js`, `www/src/screens/aventure.js`: section `daily level, streak, profile` (`startDaily`, `dailyTriesAfter`, `showDailyEnd`, `shareText`, `renderDailyButton`) and `Défis screen` (`openDefis`, `pickDay`, `renderDefis`, `calendarHtml`, `dayCell`, `dayHtml`); `endLevel` branches on `stage.daily`.
 - Tests: `tests/meta-daily.test.js`.
 
 ## Saved state

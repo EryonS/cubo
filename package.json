@@ -1,0 +1,28 @@
+{
+  "name": "cubo-blocs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cubo Blocks, puzzle de blocs : web (www/) et app native iOS / Android via Capacitor.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "serve": "python3 -m http.server 8000 --directory www",
+    "sync": "cap sync",
+    "ios": "cap sync ios && cap open ios",
+    "android": "cap sync android && cap open android",
+    "assets": "capacitor-assets generate --ios --android --iconBackgroundColor '#ffe3ee' --splashBackgroundColor '#ffeef4'",
+    "balance": "node tools/balance.js 10",
+    "i18n": "node tools/i18n-keys.js"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "^8.1.0",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
+    "acorn": "^8.18.0",
+    "acorn-walk": "^8.3.5"
+  }
+}

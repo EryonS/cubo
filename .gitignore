@@ -1,3 +1,4 @@
 .DS_Store
 .superpowers/
 .impeccable/hook.cache.json
+node_modules/

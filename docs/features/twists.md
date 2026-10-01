@@ -18,10 +18,10 @@ After each world's Épreuve (level 10), levels 11-19 add a second obstacle with 
 The world screen shows a "Dès le niveau 11" row, the level sheet a note with the cell's picture, and the first level with it plays a "Nouveau : <nom>" banner once (`tips['twist-<world>']`).
 
 ## Files
-- `src/logic.js`: `KINDS` flags, `kindMoves` (ttl / wander / hop / flow / spread, called from `worldMove`), `twistSpawn`, `spawnCells`, `findClears(board, special)` (holes), token time in `place`.
-- `src/levels.js`: `TWISTS`, `stage.twist = { kind, count, every, top? }` for n 11-19.
-- `src/worlds.js`: `twist: { name, text }` per world.
-- `src/main.js`: `drawSpecial` branches, `kindIcon` / `twistRow`, moving cells in `stageEffects` (events with `from`, `hop`, `gone`, `grow`) and the `drops` glide in the board render.
+- `www/src/core/logic.js`: `KINDS` flags, `kindMoves` (ttl / wander / hop / flow / spread, called from `worldMove`), `twistSpawn`, `spawnCells`, `findClears(board, special)` (holes), token time in `place`.
+- `www/src/core/levels.js`: `TWISTS`, `stage.twist = { kind, count, every, top? }` for n 11-19.
+- `www/src/core/worlds.js`: `twist: { name, text }` per world.
+- `www/src/game/cells.js`, `www/src/game/flow.js`, `www/src/game/anim-state.js`: `drawSpecial` branches, `kindIcon` / `twistRow`, moving cells in `stageEffects` (events with `from`, `hop`, `gone`, `grow`) and the `drops` glide in the board render.
 - Tests: `tests/twists.test.js`.
 
 ## Gotchas

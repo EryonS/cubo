@@ -15,9 +15,9 @@ Boutique, tab "Bonus": each of the 5 bonuses goes from level 1 to 3. Upgrades co
 A timed bonus stacks up to two uses (2 × its duration).
 
 ## Files
-- `src/logic.js`: `EFFECT_BY_LEVEL`, `NITRO_BY_LEVEL`, `upLevel`, `effectMs`, `nitroMul`, `bombArea(r, c, level)`, `reroll`.
-- `src/meta.js`: `UPGRADE_PRICES`, `upgradeLevel`, `upgradePrice`, `buyUpgrade`.
-- `src/main.js`: `BONUS_UI` (`hint(lv)`, `desc(lv)`, `levels`), `renderUpgrades`, `refreshBonusTexts` (tooltips + legend).
+- `www/src/core/logic.js`: `EFFECT_BY_LEVEL`, `NITRO_BY_LEVEL`, `upLevel`, `effectMs`, `nitroMul`, `bombArea(r, c, level)`, `reroll`.
+- `www/src/core/meta.js`: `UPGRADE_PRICES`, `upgradeLevel`, `upgradePrice`, `buyUpgrade`.
+- `www/src/app/base.js`, `www/src/screens/shop.js`, `www/src/ui/inventory.js`: `BONUS_UI` (`hint(lv)`, `desc(lv)`, `levels`), `renderUpgrades`, `refreshBonusTexts` (tooltips + legend).
 
 ## Saved state
 - Profile: `upgrades: { [bonus]: 2 | 3 }`, optional (absent = level 1).

@@ -1,0 +1,135 @@
+/* Cubo Blocks — In-game HUD: buttons, inventory, bonus timer ring, trash. */
+/* ---------- HUD buttons ---------- */
+.hud-btn {
+  position: fixed; top: calc(env(safe-area-inset-top) + 12px);
+  height: 42px; min-width: 42px; border-radius: calc(var(--radius) - 4px); border: 0; padding: 0 14px;
+  background: var(--panel); color: var(--text); font-size: 18px; cursor: pointer;
+  box-shadow: var(--plate-edge), 0 4px 12px rgba(0,0,0,0.35);
+  display: grid; place-items: center;
+  transition: transform 120ms cubic-bezier(.2,.8,.2,1);
+}
+.hud-btn:active { transform: scale(0.94); }
+#menu-open { right: 16px; padding: 0; }
+#undo { right: 66px; padding: 0; overflow: visible; }
+#undo:disabled { opacity: .35; cursor: default; }
+#undo .badge {
+  position: absolute; top: -6px; right: -8px; display: inline-flex; align-items: center; gap: 2px;
+  padding: 0 5px; height: 19px; border-radius: 6px; background: var(--accent); color: var(--on-accent);
+  font-family: var(--font-ui); font-weight: 800; font-size: 13px; line-height: 1;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+}
+#undo .badge:empty, #undo:disabled .badge { display: none; }
+#undo .badge .coin { margin: 0; font-size: 11px; }
+body.chill #inventory > .inv-btn { display: none; }
+/* Puzzle: no bonuses, no bin; a hint button instead. */
+body.puzzle #inventory > .inv-btn { display: none; }
+.hint-btn { display: none; align-items: center; gap: 8px; height: 52px; padding: 0 18px; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--panel); color: var(--text); box-shadow: var(--plate-edge);
+  font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 19px; }
+.hint-btn .price { display: inline-flex; align-items: center; gap: 3px; font-size: 16px; color: var(--muted); }
+.hint-btn .price .coin { margin: 0 0 2px; }
+.hint-btn:active { transform: scale(0.95); }
+.hint-btn:disabled { opacity: .45; cursor: default; }
+body.puzzle .hint-btn { display: inline-flex; }
+#wallet {
+  left: 16px; display: flex; gap: 7px; align-items: center;
+  font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 21px;
+  line-height: 1; padding-top: 2px; font-variant-numeric: tabular-nums;
+}
+#wallet .coin { margin: 0 0 2px; font-size: 18px; }
+#wallet-pending { color: var(--good); font-size: 16px; }
+#wallet-pending:empty { display: none; }
+#wallet.bump { animation: bump 320ms cubic-bezier(.2,1.6,.4,1); }
+.coin {
+  flex: none; margin-left: 0.18em;
+  display: inline-block; width: 1em; height: 1em; border-radius: 50%; vertical-align: -0.14em;
+  background: radial-gradient(circle at 35% 30%, #fef3c7 0 12%, #facc15 38%, #ca8a04 100%);
+  box-shadow: inset 0 0 0 0.08em #a16207, inset 0 0 0 0.2em rgba(250,204,21,0.9), 0 0.06em 0 #854d0e;
+}
+
+/* ---------- inventory ---------- */
+#inventory {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 8px; justify-content: center;
+}
+.inv-btn {
+  position: relative; width: 52px; height: 52px; border-radius: var(--radius); border: 0; padding: 0;
+  background: var(--slot); font-size: 24px; cursor: pointer; touch-action: none;
+  box-shadow: inset 0 0 0 1.5px var(--hairline), 0 4px 12px rgba(0,0,0,0.18);
+  display: grid; place-items: center; transition: transform 120ms, opacity 200ms, box-shadow 200ms;
+}
+.inv-btn canvas.icon { width: 32px; height: 32px; pointer-events: none; }
+.inv-btn:active { transform: scale(0.92); }
+.inv-btn.empty { background: transparent; box-shadow: inset 0 0 0 1.5px var(--hairline); cursor: default; }
+.inv-btn.empty { opacity: .6; }
+.inv-btn.empty > * { opacity: 0.3; filter: grayscale(1); }
+.inv-btn .count {
+  position: absolute; top: -6px; right: -6px; min-width: 21px; height: 21px; padding: 0 5px;
+  border-radius: 6px; background: var(--accent); color: var(--on-accent);
+  font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
+  font-size: 15px; line-height: 23px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+}
+.inv-btn.empty .count { display: none; }
+.inv-btn.active { box-shadow: inset 0 0 0 1.5px var(--hairline), 0 4px 12px rgba(0,0,0,0.18); }
+/* Bonus timer: an accent ring that drains clockwise around the button. */
+.inv-btn::before {
+  content: ''; position: absolute; inset: -4px; padding: 3px; border-radius: calc(var(--radius) + 4px);
+  background: conic-gradient(var(--accent) calc(var(--left, 0) * 1turn), var(--hairline) 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0; transition: opacity 200ms; pointer-events: none;
+}
+.inv-btn.active::before { opacity: 1; }
+.inv-btn.active.ending::before { animation: blink 300ms ease-in-out infinite alternate; }
+@keyframes blink { to { opacity: 0.3; } }
+.inv-btn.aiming { box-shadow: inset 0 0 0 2.5px #ff5d73; background: #3a1d24; }
+.inv-btn.help { animation: help 700ms ease-in-out infinite; }
+.inv-btn.bump { animation: bump 320ms cubic-bezier(.2,1.6,.4,1); }
+.inv-btn.legend-btn {
+  width: 42px; color: var(--text); font-size: 24px;
+  font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
+  background: var(--panel); box-shadow: var(--plate-edge);
+}
+@keyframes help { 50% { transform: translateY(-4px); box-shadow: 0 0 0 3px var(--accent); } }
+@keyframes bump { 40% { transform: scale(1.25); } }
+@media (hover: hover) {
+  .inv-btn[data-tip]:hover::after {
+    content: attr(data-tip); position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+    width: max-content; max-width: 200px; padding: 8px 10px; border-radius: 10px;
+    background: #0b0c10; color: #fff; font-size: 12px; font-weight: 700; line-height: 1.35;
+    text-align: center; white-space: normal; box-shadow: 0 6px 20px rgba(0,0,0,.4); pointer-events: none;
+  }
+}
+#give-up {
+  position: fixed; left: 50%; transform: translate(-50%, -50%); display: none;
+  padding: 14px 22px 12px; border: 0; border-radius: var(--radius); cursor: pointer;
+  background: var(--panel); color: var(--text);
+  font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 20px; letter-spacing: .03em;
+  box-shadow: var(--plate-edge), 0 8px 24px rgba(0,0,0,.45);
+}
+#give-up.show { display: block; animation: fade 250ms; }
+
+/* ---------- trash: shows up under the tray while a piece is dragged ---------- */
+#trash {
+  position: fixed; left: 50%; transform: translateX(-50%); height: 56px; display: none; pointer-events: none;
+  align-items: center; justify-content: center; gap: 10px; border-radius: var(--radius);
+  background: var(--sunken); color: var(--text); box-shadow: inset 0 0 0 2px var(--hairline);
+  font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 19px; letter-spacing: .03em;
+  transition: background 150ms, box-shadow 150ms, transform 150ms;
+}
+#trash.show { display: flex; animation: fade 150ms; }
+#trash { overflow: hidden; }
+#trash > * { position: relative; }
+#trash::before {
+  content: ''; position: absolute; inset: 0; transform-origin: left; transform: scaleX(0);
+  background: rgba(255,93,115,0.35);
+}
+#trash.hot { box-shadow: inset 0 0 0 2.5px #ff5d73; }
+#trash.hot::before { transform: scaleX(1); transition: transform 600ms linear; }
+#trash.armed { background: #ff5d73; color: #fff; transform: translateX(-50%) scale(1.06); }
+#trash.armed .cost { color: #fff; }
+#trash.broke { opacity: .55; }
+#trash.broke.hot { background: var(--sunken); box-shadow: inset 0 0 0 2px var(--hairline); transform: translateX(-50%); }
+#trash.broke.hot::before { transform: scaleX(0); transition: none; }
+#trash .cost { display: inline-flex; align-items: center; color: var(--accent); }
+body.dragging #inventory { visibility: hidden; }

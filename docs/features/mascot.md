@@ -12,8 +12,8 @@ Cubo, a mint jelly with a sprout, sits on the top-right corner of the board fram
 - Setting "Mascotte" turns it off.
 
 ## Files
-- `src/main.js`: section `mascot` (`CUBO` colors, `cuboReact`, `cuboBaseMood`, `drawCubo`, `cuboHit`, `cuboTap`); hooks in `commit`, `useBonus`, `afterChange` (record), pointerdown; drawn in `frame` after the board.
-- `index.html`: settings toggle `data-setting="mascot"`.
+- `www/src/mascot/`, `www/src/mascot/cubo.js`, `www/src/mascot/body.js`, `www/src/game/flow.js`, `www/src/render/loop.js`: section `mascot` (`CUBO` colors, `cuboReact`, `cuboBaseMood`, `drawCubo`, `cuboHit`, `cuboTap`); hooks in `commit`, `useBonus`, `afterChange` (record), pointerdown; drawn in `frame` after the board.
+- `www/index.html`: settings toggle `data-setting="mascot"`.
 
 ## Saved state
 `settings.mascot` in `gridlock.v2` (default true, merged at load).

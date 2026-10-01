@@ -14,12 +14,12 @@ A fourth mode next to Classique / Chrono / Chill: short levels (1-3 min) with a 
 - **Rewards**: first clear 10 coins (Épreuve 25, boss 60), +5 per new star; beating a boss gives the world's theme (still sold in the Boutique). Grid coins and daily missions count as in any run.
 
 ## Files
-- `src/levels.js` (pure): `level(world, n)` builds the stage from a difficulty curve; `TRIALS` holds the hand-tuned level 10s, `BOSSES` the level 20 fights; `goalText`, `goalLabel`.
-- `src/worlds.js` (pure): world rules, registered into logic with `L.defineWorlds` (see worlds.md).
-- `src/logic.js`: `stage` in the run state, special cells (`SPECIAL`, `KINDS`, `state.special`), `clearCells` (boss hits in `hit.boss`, events `bossHits`), `fall`, `stageMove`, `finishStage`, `addMoves`, `placeBoss`, `bossAttack`, `prefill` (crates).
-- `src/meta.js`: `worldOpen`, `levelOpen`, `applyLevel`, `skipLevel`, `totalStars`, `worldStars`, `CHESTS` / `chestState` / `openChest`, `freeBombs` / `useFreeBomb`, prices, `migrateAdventure`.
-- `src/main.js`: section `aventure` (map, world, `renderChests`, level sheet, level end, `levelName`), section `boss` (`drawBoss`, `drawBossBar`, `bossEffects`), `drawSpecial` (crate), `stageEffects`, HUD branch in `drawHUD`, `RETRO4` palette.
-- `index.html`: overlays `#adventure`, `#world`, `#stage`, `#level-end` and their CSS.
+- `www/src/core/levels.js` (pure): `level(world, n)` builds the stage from a difficulty curve; `TRIALS` holds the hand-tuned level 10s, `BOSSES` the level 20 fights; `goalText`, `goalLabel`.
+- `www/src/core/worlds.js` (pure): world rules, registered into logic with `L.defineWorlds` (see worlds.md).
+- `www/src/core/logic.js`: `stage` in the run state, special cells (`SPECIAL`, `KINDS`, `state.special`), `clearCells` (boss hits in `hit.boss`, events `bossHits`), `fall`, `stageMove`, `finishStage`, `addMoves`, `placeBoss`, `bossAttack`, `prefill` (crates).
+- `www/src/core/meta.js`: `worldOpen`, `levelOpen`, `applyLevel`, `skipLevel`, `totalStars`, `worldStars`, `CHESTS` / `chestState` / `openChest`, `freeBombs` / `useFreeBomb`, prices, `migrateAdventure`.
+- `www/src/screens/aventure.js`, `www/src/game/boss.js`, `www/src/game/cells.js`, `www/src/game/flow.js`, `www/src/render/hud.js`: section `aventure` (map, world, `renderChests`, level sheet, level end, `levelName`), section `boss` (`drawBoss`, `drawBossBar`, `bossEffects`), `drawSpecial` (crate), `stageEffects`, HUD branch in `drawHUD`, `RETRO4` palette.
+- `www/index.html`: overlays `#adventure`, `#world`, `#stage`, `#level-end` and their CSS.
 - `tools/bot.js`, `tools/balance.js`: greedy bot + balance report (`node tools/balance.js 10`). Dev only, not cached by the service worker.
 - Tests: `tests/adventure.test.js`, `tests/meta-adventure.test.js`, `tests/adventure-v2.test.js`.
 

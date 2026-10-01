@@ -7,10 +7,10 @@ Status: shipped
 - **One-time tips**: a dark bubble pointing at the relevant button, shown the first time: a bonus is collected (`bonus`), coins are collected (`coins`), the player is stuck with a rescue available (`stuck`), a Chrono / Chill / Aventure / daily game starts (`chrono`, `chill`, `adventure`, `daily`). Tap it (or the board) to close. Hidden under overlays, dropped on game over or when the menu opens (a dropped tip was never marked seen, so it comes back later).
 
 ## Files
-- `src/tutorial.js` (pure): `STEPS`, `lesson(i)` builds the step state on `logic.createGame`, `accepts`, `afterMove` (empties the used slot, no refill), `done`, `targets`.
-- `src/meta.js`: `tipSeen`, `markTip`, `needsTutorial`.
-- `src/main.js`: sections `tutorial` and `tips`; hooks in `commit`, `save`, `drawHUD`, `frame`, `newGame` (`modeTips`), `afterChange` (stuck tip).
-- `index.html`: `#coach`, `#coach-skip`, `#hand`, `#tip`, `#tutorial-end`, `#setting-tutorial`; `body.tutorial` hides the HUD.
+- `www/src/core/tutorial.js` (pure): `STEPS`, `lesson(i)` builds the step state on `logic.createGame`, `accepts`, `afterMove` (empties the used slot, no refill), `done`, `targets`.
+- `www/src/core/meta.js`: `tipSeen`, `markTip`, `needsTutorial`.
+- `www/src/screens/tutorial.js`, `www/src/ui/tips.js`, `www/src/game/flow.js`, `www/src/platform/storage.js`, `www/src/render/hud.js`, `www/src/render/loop.js`, `www/src/screens/gameover.js`: sections `tutorial` and `tips`; hooks in `commit`, `save`, `drawHUD`, `frame`, `newGame` (`modeTips`), `afterChange` (stuck tip).
+- `www/index.html`: `#coach`, `#coach-skip`, `#hand`, `#tip`, `#tutorial-end`, `#setting-tutorial`; `body.tutorial` hides the HUD.
 - `tests/tutorial.test.js`.
 
 ## Saved state

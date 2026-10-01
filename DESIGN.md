@@ -1,5 +1,5 @@
 ---
-name: Gridlock
+name: Cubo Blocks
 description: Bright, toy-like block puzzle; the default look is a soft plastic toy, every other theme is a world from the Aventure map.
 colors:
   toy-pink: "#ffeef4"
@@ -53,7 +53,7 @@ components:
 ## Overview
 Playful and flashy in the spirit of console party and platform games, without borrowing any character, logo, sound or name from them. The default theme, **Jouet**, looks like a plastic toy: pink polka-dot background, a soft white board, glossy candy blocks, pill-shaped score and combo. Every other theme is one of the eight worlds of the Aventure map (see `docs/features/themes.md`).
 
-Themes are whole worlds (`SKINS.boards` in `src/meta.js`, visuals in `THEMES` in `src/main.js`). Each defines: background `paint` (+ optional `animate`), board slab, empty cell, score plate, combo tag, display font, CSS tokens for every DOM menu, and optionally its own block `palette`, a font `scale` and a drop `shadow` color. A new theme must define all required fields.
+Themes are whole worlds (`SKINS.boards` in `www/src/core/meta.js`, visuals in `THEMES` in `www/src/themes/worlds.js`). Each defines: background `paint` (+ optional `animate`), board slab, empty cell, score plate, combo tag, display font, CSS tokens for every DOM menu, and optionally its own block `palette`, a font `scale` and a drop `shadow` color. A new theme must define all required fields.
 
 | id | Name | Price | Material | Font | Signature |
 |---|---|---|---|---|---|

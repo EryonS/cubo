@@ -1,8 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const L = require('../src/logic.js');
-require('../src/worlds.js');
-const M = require('../src/meta.js');
+const L = require('../www/src/core/logic.js');
+require('../www/src/core/worlds.js');
+const M = require('../www/src/core/meta.js');
 
 const withBonus = (state, type, n = 1) => ({ ...state, inventory: { ...state.inventory, [type]: n } });
 

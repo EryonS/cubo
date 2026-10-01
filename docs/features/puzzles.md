@@ -17,11 +17,11 @@ Last card of the list, opens once pack Maître (puzzles 31-40) is done. Each gam
 - Pays 25 coins, 10 if a hint was used. No stars; `profile.surprises` counts the ones solved. "Un autre" deals a new one; Recommencer replays the same seed.
 
 ## Files
-- `src/puzzles.js`: `DRAWINGS` (hand-made 8x8 silhouettes, 25), `PACKS`, `quotaOf`, `puzzle(n)`, `surprise(seed)` (tiles the drawing with game shapes, takes out a contiguous group of pieces as the quota, turns and shuffles them), `tile`.
-- `src/logic.js`: mode `'puzzle'`, kind `void` (outside the drawing), `setupPuzzle`, `placePuzzle`, `puzzleHint`, `liftPuzzle` (surprise), puzzle branches in `refillSlot`, `settle`, `undo`, `canTurn`, `canDiscard`, `undoCost`.
-- `src/meta.js`: `applyPuzzle`, `puzzleOpen`, `puzzleStarsOf`, `puzzlesSolved`, `PUZZLE_*` constants; `applySurprise`, `surpriseOpen`, `surprisesSolved`, `SURPRISE_*`.
-- `src/main.js` (surprise): `freeTray` / `slotBox` (tray grid), `liftFromBoard`, `surpriseCard`, `launchSurprise`, `puzzleTitle`.
-- `src/main.js`: section `Puzzles` (`openPuzzles`, `startPuzzle`, hint button, `endPuzzle`, `showPuzzleEnd`), `isVoid` in `drawBoard`, puzzle plate in `drawHUD`, count in `drawNext`. `index.html`: `#menu-puzzles`, `#puzzles`, `.hint-btn`, `body.puzzle`.
+- `www/src/core/puzzles.js`: `DRAWINGS` (hand-made 8x8 silhouettes, 25), `PACKS`, `quotaOf`, `puzzle(n)`, `surprise(seed)` (tiles the drawing with game shapes, takes out a contiguous group of pieces as the quota, turns and shuffles them), `tile`.
+- `www/src/core/logic.js`: mode `'puzzle'`, kind `void` (outside the drawing), `setupPuzzle`, `placePuzzle`, `puzzleHint`, `liftPuzzle` (surprise), puzzle branches in `refillSlot`, `settle`, `undo`, `canTurn`, `canDiscard`, `undoCost`.
+- `www/src/core/meta.js`: `applyPuzzle`, `puzzleOpen`, `puzzleStarsOf`, `puzzlesSolved`, `PUZZLE_*` constants; `applySurprise`, `surpriseOpen`, `surprisesSolved`, `SURPRISE_*`.
+- `www/src/render/helpers.js`, `www/src/game/drag.js`, `www/src/screens/puzzles.js` (surprise): `freeTray` / `slotBox` (tray grid), `liftFromBoard`, `surpriseCard`, `launchSurprise`, `puzzleTitle`.
+- `www/src/screens/puzzles.js`, `www/src/render/board.js`, `www/src/render/hud.js`: section `Puzzles` (`openPuzzles`, `startPuzzle`, hint button, `endPuzzle`, `showPuzzleEnd`), `isVoid` in `drawBoard`, puzzle plate in `drawHUD`, count in `drawNext`. `www/index.html`: `#menu-puzzles`, `#puzzles`, `.hint-btn`, `body.puzzle`.
 
 ## Saved state
 - Profile: `puzzles: { [n]: stars }`, optional; `surprises: n` (Puzzle surprise solved), optional.

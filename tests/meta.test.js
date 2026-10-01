@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const M = require('../src/meta.js');
+const M = require('../www/src/core/meta.js');
 
 const v1 = (over) => ({
   coins: 50, day: null, missions: [], missionsDone: 0, games: 3,

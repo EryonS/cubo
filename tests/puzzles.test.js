@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const L = require('../src/logic.js');
-const P = require('../src/puzzles.js');
+const L = require('../www/src/core/logic.js');
+const P = require('../www/src/core/puzzles.js');
 
 const S = L.SIZE;
 const start = (n) => L.createGame(1, { mode: 'puzzle', puzzle: P.puzzle(n) });
@@ -124,7 +124,7 @@ test('a stuck puzzle is not over: undo is the way out', () => {
   }
 });
 
-const M = require('../src/meta.js');
+const M = require('../www/src/core/meta.js');
 test('puzzle progress: open in order, coins once, stars kept, pack bonus', () => {
   let p = M.createProfile('2026-10-01');
   assert.ok(M.puzzleOpen(p, 1));

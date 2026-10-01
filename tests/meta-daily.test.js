@@ -1,8 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const M = require('../src/meta.js');
-const L = require('../src/logic.js');
-const LV = require('../src/levels.js');
+const M = require('../www/src/core/meta.js');
+const L = require('../www/src/core/logic.js');
+const LV = require('../www/src/core/levels.js');
 
 const fresh = () => ({ ...M.createProfile('2026-10-01'), coins: 500 });
 // Plays and wins `day`'s daily on `today`.

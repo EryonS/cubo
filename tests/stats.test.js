@@ -1,8 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const L = require('../src/logic.js');
-require('../src/worlds.js');
-const M = require('../src/meta.js');
+const L = require('../www/src/core/logic.js');
+require('../www/src/core/worlds.js');
+const M = require('../www/src/core/meta.js');
 
 const fresh = () => M.createProfile('2026-10-01');
 const run = (mode, score, extra = {}) => ({ ...L.runStats(L.createGame(1)), mode, score, ...extra });

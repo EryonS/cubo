@@ -1,8 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const L = require('../src/logic.js');
-const T = require('../src/tutorial.js');
-const M = require('../src/meta.js');
+const L = require('../www/src/core/logic.js');
+const T = require('../www/src/core/tutorial.js');
+const M = require('../www/src/core/meta.js');
 
 // Plays every scripted piece of a step on its suggested spot, as the hand shows.
 function playStep(i) {

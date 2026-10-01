@@ -19,19 +19,19 @@ Menu > Profil, three tabs:
 
 Secret stickers show a question mark, "Secret" and "À découvrir" until earned; then their name and what earned them.
 Earned stickers show the day they were earned ("Obtenu le 30 sept. 2026", from `profile.stickers[id]`); secret ones show it under their hint.
-Default reward 20 coins. Checked after every run, level, daily and Boutique purchase (`stickerLines()` in main.js adds them to the end-of-run report).
+Default reward 20 coins. Checked after every run, level, daily and Boutique purchase (`stickerLines()` in `www/src/screens/daily.js` adds them to the end-of-run report).
 
 ## End-of-run summary
-The game over card of a free run shows four tiles under the score: lines, best combo, most lines at once, shapes placed. A tile that beats the lifetime best (read before the run is applied) gets an accent ring and "Record !". "Partager le résumé" uses the share sheet, or copies the text when there is none (`runSummary`, `renderRunSummary`, `shareRun` in main.js; `#over-stats`, `#over-share` in index.html).
+The game over card of a free run shows four tiles under the score: lines, best combo, most lines at once, shapes placed. A tile that beats the lifetime best (read before the run is applied) gets an accent ring and "Record !". "Partager le résumé" uses the share sheet, or copies the text when there is none (`runSummary`, `renderRunSummary`, `shareRun` in `www/src/screens/gameover.js`; `#over-stats`, `#over-share` in `www/index.html`).
 
 ## Month trophies
 `M.monthTrophy(profile, 'YYYY-MM')`: every day of the month cleared (on the day or replayed later) → silver; all with 3 stars → gold. Computed, not stored.
 
 ## Files
-- `src/meta.js`: `STICKER_PAGES`, `STICKERS` (id, page, name, hint, test, reward?), `checkStickers`, `monthTrophy`, lifetime via `addLifetime` in `applyRun` and `earn()` for coins earned outside runs.
-- `src/logic.js`: `stats.used` counts each bonus type per run.
-- `src/main.js`: `openProfile`, `albumHtml`, `statsHtml`, SVG icons (`FLAME_SVG`, `TROPHY_SVG`, `STICKER_GLYPHS`).
-- `index.html`: `#profile` overlay, `.ptab` tabs (not `.tab`: the shop binds every `.tab`).
+- `www/src/core/meta.js`: `STICKER_PAGES`, `STICKERS` (id, page, name, hint, test, reward?), `checkStickers`, `monthTrophy`, lifetime via `addLifetime` in `applyRun` and `earn()` for coins earned outside runs.
+- `www/src/core/logic.js`: `stats.used` counts each bonus type per run.
+- `www/src/screens/profile.js`, `www/src/screens/stats.js`, `www/src/screens/daily.js`: `openProfile`, `albumHtml`, `statsHtml`, SVG icons (`FLAME_SVG`, `TROPHY_SVG`, `STICKER_GLYPHS`).
+- `www/index.html`: `#profile` overlay, `.ptab` tabs (not `.tab`: the shop binds every `.tab`).
 
 ## Saved state
 `profile.stickers: { [id]: dayEarned }`, `profile.lifetime: { games, lines, pieces, perfects, bonusUsed, bombCells, coins, coinsEarned, bestCombo, bestMulti, score, bestBomb, bestPerfects, cleanScore, used: { [bonus]: n } }`.

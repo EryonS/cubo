@@ -1,0 +1,67 @@
+/* Cubo Blocks — Overlays, phone fitting (safe areas), disabled state. */
+/* ---------- overlays ---------- */
+.overlay {
+  position: fixed; inset: 0; display: none; place-items: center; padding: 16px;
+  background: var(--scrim); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  touch-action: pan-y;
+}
+.overlay.show { display: grid; animation: fade 300ms ease-out; }
+/* Fit phones: dynamic viewport (Safari toolbars), notch and home bar. */
+.overlay { padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); }
+.card { max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+.card {
+  width: min(360px, 100%); overflow-y: auto; overscroll-behavior: contain;
+  padding: 24px; border-radius: calc(var(--radius) + 8px);
+  background: var(--panel); text-align: center;
+  border: solid var(--edge); border-width: var(--card-bw) var(--card-bw) var(--card-bb);
+  box-shadow: var(--card-glow), 0 24px 60px rgba(0,0,0,0.3);
+  animation: rise 420ms cubic-bezier(.2,1.3,.4,1);
+}
+.card h2 {
+  margin: 0 0 2px; font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
+  font-size: 30px; line-height: 1; letter-spacing: .02em; text-transform: uppercase; color: var(--text);
+  text-wrap: balance;
+}
+.score {
+  font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
+  font-size: 76px; line-height: 1; margin-top: 10px; font-variant-numeric: tabular-nums;
+}
+.best { color: var(--muted); font-size: 15px; margin-top: 4px; }
+.record {
+  display: none; margin: 12px auto 0; padding: 7px 14px 5px; width: fit-content; border-radius: 999px;
+  background: var(--accent); color: var(--on-accent);
+  font-family: var(--font-display); font-style: var(--display-style); font-weight: 700; font-size: 17px; letter-spacing: .06em;
+}
+.card.is-record .record { display: block; }
+
+.earn { margin: 18px 0 0; text-align: left; font-size: 14px; }
+.earn-line { display: flex; justify-content: space-between; padding: 5px 2px; color: var(--muted);
+  opacity: 0; transform: translateY(6px); transition: opacity 250ms, transform 250ms; }
+.earn-line.in { opacity: 1; transform: none; }
+.earn-line b { color: var(--text); display: inline-flex; align-items: center; }
+.coins-total { margin-top: 10px; padding: 11px 14px; border-radius: calc(var(--radius) - 4px); background: var(--panel-2);
+  display: flex; justify-content: space-between; align-items: center; font-weight: 800; }
+.coins-total .v { font-family: var(--font-display); font-style: var(--display-style); font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
+
+.goal { margin-top: 14px; text-align: left; font-size: 13px; color: var(--muted); }
+.bar { height: 8px; margin-top: 6px; border-radius: 4px; background: var(--sunken); overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--accent); transition: width 700ms cubic-bezier(.2,.8,.2,1); }
+.goal.ready { color: var(--good); font-weight: 800; }
+.goal.ready .bar > i { background: var(--good); }
+
+.actions { display: flex; gap: 10px; margin-top: 20px; }
+.btn {
+  flex: 1; padding: 15px 16px 13px; border: 0; border-radius: calc(var(--radius) - 2px); cursor: pointer;
+  font-family: var(--font-display); font-style: var(--display-style); font-weight: 700;
+  font-size: 22px; line-height: 1; letter-spacing: .03em; text-transform: uppercase;
+  transition: transform 120ms cubic-bezier(.2,.8,.2,1);
+}
+/* Disabled: faded, flat, no press bounce. Specific rules below may tune the opacity. */
+button:disabled { cursor: default; }
+.btn:disabled, .close:disabled, .opt:disabled, .tile:disabled, .seg button:disabled { opacity: .4; box-shadow: none; filter: saturate(.4); }
+button:disabled:active { transform: none; }
+.btn, .tab, .ptab, .seg button, .hero-go { white-space: nowrap; }
+.btn small, .seg button small { white-space: normal; }
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: var(--accent); color: var(--on-accent); flex: 1.4; box-shadow: 0 4px 0 rgba(0,0,0,0.22); }
+.btn.ghost { background: var(--panel-2); color: var(--text); }

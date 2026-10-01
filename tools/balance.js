@@ -1,8 +1,8 @@
 // Plays every Aventure level with the greedy bot and prints win rate, stars and moves used.
 // Usage: node tools/balance.js [runsPerLevel]   (dev only)
-const L = require('../src/logic.js');
-require('../src/worlds.js');
-const LV = require('../src/levels.js');
+const L = require('../www/src/core/logic.js');
+require('../www/src/core/worlds.js');
+const LV = require('../www/src/core/levels.js');
 const { play } = require('./bot.js');
 
 const runs = +process.argv[2] || 12;

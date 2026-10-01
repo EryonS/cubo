@@ -18,9 +18,9 @@ Each Aventure world changes the rules with one advantage and one drawback. Rules
 Levels 11-19 add a second obstacle per world: see twists.md. The season events' worlds (`newyear`, `valentine`, `easter`, `beach`, `halloween`, `xmas`) live here too, off the map (see seasons.md).
 
 ## Files
-- `src/worlds.js`: `WORLDS` (name, plus / minus text for the world screen, hooks), `ORDER`.
-- `src/logic.js`: `KINDS` (hp, fuse, hardens, blast, gift), `WORLD_API` handed to hooks (`rnd`, `emptyCells`, `plainCells`, `pick`, `addSpecial`, `shiftRow`).
-- `src/main.js`: `drawSpecial` (one drawing per kind, cracks at reduced hp, ember fuse dots), `SPECIAL_COLORS`, `RETRO4`; motion in `planFalls` / `segRow` (gravity waves from `events.waves`), `shifts` (current), `drops` (spawns), sounds `crack`, `pop`, `thunk`, `sizzle`, `grow`, `swoosh`, `land`.
+- `www/src/core/worlds.js`: `WORLDS` (name, plus / minus text for the world screen, hooks), `ORDER`.
+- `www/src/core/logic.js`: `KINDS` (hp, fuse, hardens, blast, gift), `WORLD_API` handed to hooks (`rnd`, `emptyCells`, `plainCells`, `pick`, `addSpecial`, `shiftRow`).
+- `www/src/game/cells.js`, `www/src/themes/current.js` (`RETRO4`), `www/src/game/flow.js`: `drawSpecial` (one drawing per kind, cracks at reduced hp, ember fuse dots), `SPECIAL_COLORS`, `RETRO4`; motion in `planFalls` / `segRow` (gravity waves from `events.waves`), `shifts` (current), `drops` (spawns), sounds `crack`, `pop`, `thunk`, `sizzle`, `grow`, `swoosh`, `land`.
 
 ## Hooks
 `setup(state, api)`, `afterMove(state, api)` → spawned cells, `lineMul(hit)`, `scoreMul`, `coinMul`, `bonusWeights`, `gravity`. The clock is set per level in `levels.js`.

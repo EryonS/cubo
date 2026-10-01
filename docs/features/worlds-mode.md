@@ -9,10 +9,10 @@ Coins: on top of normal run coins, a prime on the score: 1 coin per 200 points Ã
 Worlds whose special cells only came from level setups get `free` settings in `worlds.js`: Sous-marin 3 bubbles at start + one every 6 moves, Glace 6 ice + one every 8 moves, Espace / ForÃªt / Volcan a few start cells, Arcade a 60 s clock (lines add 3 s). Each `free.note` is shown on that card.
 
 ## Files
-- `src/logic.js`: mode `'worlds'`, `state.world`, `rulesOf` / `worldId`, `clockOf`, `freeSpawn`, `scatterKind`.
-- `src/worlds.js`: `free` per world.
-- `src/meta.js`: `worldFreeOpen`, `worldPrimeRate`, `worldPrime` (line "Prime <monde>" in `runCoins`), `WORLD_NAMES`.
-- `src/main.js`: `renderEndless` (aventure section), `recordKey`, `modeLabel`; `index.html`: `#world-endless`. The separate Mondes screen and menu row were removed in the 2026-09-30 audit.
+- `www/src/core/logic.js`: mode `'worlds'`, `state.world`, `rulesOf` / `worldId`, `clockOf`, `freeSpawn`, `scatterKind`.
+- `www/src/core/worlds.js`: `free` per world.
+- `www/src/core/meta.js`: `worldFreeOpen`, `worldPrimeRate`, `worldPrime` (line "Prime <monde>" in `runCoins`), `WORLD_NAMES`.
+- `www/src/screens/aventure.js`, `www/src/platform/storage.js`, `www/src/screens/home.js`: `renderEndless` (aventure section), `recordKey`, `modeLabel`; `www/index.html`: `#world-endless`. The separate Mondes screen and menu row were removed in the 2026-09-30 audit.
 
 ## Saved state
 - Run: `state.mode = 'worlds'`, `state.world`.

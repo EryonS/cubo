@@ -1,9 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const L = require('../src/logic.js');
-require('../src/worlds.js');
-const LV = require('../src/levels.js');
-const M = require('../src/meta.js');
+const L = require('../www/src/core/logic.js');
+require('../www/src/core/worlds.js');
+const LV = require('../www/src/core/levels.js');
+const M = require('../www/src/core/meta.js');
 
 const SIZE = L.SIZE;
 const one = L.SHAPES.find((s) => s.cells.length === 1);

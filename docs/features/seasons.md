@@ -21,11 +21,11 @@ Seven events, each open on its dates (local date, `window(year)` in `EVENTS`). T
 - Each event has its own theme (`THEMES[id]`, animated background: fireworks over a city at midnight, floating hearts, butterflies over a meadow, waves and gulls, falling snow and a lit tree, bats under the moon), song (`SONGS[id]`), Cubo look (`CUBO_LOOKS[id]`) and boss tint (`BOSS_LOOK[id]`).
 
 ## Files
-- `src/meta.js`: `EVENTS` (with `window(year)`), `eventsFor(day)` (all open), `eventFor(day)` (first), `easterSunday`, `LUNAR_NEW_YEAR`, `eventById`, `eventEnd`, `eventOf` / `eventStars` / `eventLevelOpen(profile, id, day, n)`, `applyEvent(profile, id, day, n, stars)`, `seasonTrophy(profile, id, year)`.
-- `src/levels.js`: `EVENT_LEVELS`, `eventLevel(id, n)` (stage carries `event: id`; main adds `eventDay`, the day it started, so a level finished after midnight on the last day still counts).
-- `src/worlds.js`: the six event worlds (`pairs`, `hideEggs`, `tide` helpers). `src/logic.js`: kinds `pumpkin`, `ghost`, `present`, `snowpile`, `heart`, `rose`, `bush`, `egg`, `water`, `crab`, `rocket` and flags `link`, `sidestep`, `burst`, `hides`.
-- `src/main.js`: section `season events` (row, screen, sheet, launch, `showEventEnd`), the themes, songs, looks, `drawSpecial` branches, `drawWardrobeHat` (event hats), season shelf in `albumHtml`.
-- `index.html`: `#menu-event`, `#event`.
+- `www/src/core/meta.js`: `EVENTS` (with `window(year)`), `eventsFor(day)` (all open), `eventFor(day)` (first), `easterSunday`, `LUNAR_NEW_YEAR`, `eventById`, `eventEnd`, `eventOf` / `eventStars` / `eventLevelOpen(profile, id, day, n)`, `applyEvent(profile, id, day, n, stars)`, `seasonTrophy(profile, id, year)`.
+- `www/src/core/levels.js`: `EVENT_LEVELS`, `eventLevel(id, n)` (stage carries `event: id`; main adds `eventDay`, the day it started, so a level finished after midnight on the last day still counts).
+- `www/src/core/worlds.js`: the six event worlds (`pairs`, `hideEggs`, `tide` helpers). `www/src/core/logic.js`: kinds `pumpkin`, `ghost`, `present`, `snowpile`, `heart`, `rose`, `bush`, `egg`, `water`, `crab`, `rocket` and flags `link`, `sidestep`, `burst`, `hides`.
+- `www/src/screens/events.js`, `www/src/game/cells.js`, `www/src/mascot/hats.js`, `www/src/screens/profile.js`: section `season events` (row, screen, sheet, launch, `showEventEnd`), the themes, songs, looks, `drawSpecial` branches, `drawWardrobeHat` (event hats), season shelf in `albumHtml`.
+- `www/index.html`: `#menu-event`, `#event`.
 - Tests: `tests/event.test.js`.
 
 ## Saved state

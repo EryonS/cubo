@@ -1,0 +1,12 @@
+{
+  "appId": "com.slapps.cubo",
+  "appName": "Cubo",
+  "webDir": "www",
+  "backgroundColor": "#ffeef4",
+  "ios": {
+    "contentInset": "never"
+  },
+  "android": {
+    "backgroundColor": "#ffeef4"
+  }
+}

@@ -1,7 +1,7 @@
 // Greedy bot used to balance Aventure levels (dev only, not shipped). Plays one move at a time:
 // the placement with the most points, minus a penalty for empty cells it walls in.
-const L = require('../src/logic.js');
-require('../src/worlds.js');
+const L = require('../www/src/core/logic.js');
+require('../www/src/core/worlds.js');
 
 const SIZE = L.SIZE;
 

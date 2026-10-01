@@ -1,13 +1,17 @@
-# Gridlock
+# Cubo Blocks
 
 Puzzle de blocs 8×8 : pose les pièces, remplis lignes/colonnes, enchaîne les combos.
 
+Nom : **Cubo Blocks** (stores), **Cubo** sous l'icône, d'après la mascotte. appId `com.slapps.cubo`, domaine `cuboblocks.app`.
+Les clés de sauvegarde (`gridlock.v2`, `gridlock.profile.v1`) gardent l'ancien nom : les changer ferait perdre leur
+progression aux joueurs. Le dépôt et les globals internes (`GridlockLogic`...) aussi, ils ne sont jamais montrés.
+
 ## Jouer
 
-Ouvrir `index.html` dans un navigateur (aucun build, aucune dépendance, marche hors-ligne).
+Ouvrir `www/index.html` dans un navigateur (aucun build, marche hors-ligne).
 
-Sur téléphone : `python3 -m http.server 8000` puis `http://<ip-du-mac>:8000` sur le même Wi-Fi,
-ou déposer le dossier sur n'importe quel hébergement statique (Netlify Drop, GitHub Pages…).
+Sur téléphone : `npm run serve` puis `http://<ip-du-mac>:8000` sur le même Wi-Fi,
+ou déposer le dossier `www/` sur n'importe quel hébergement statique (GitHub Pages le publie via `.github/workflows/pages.yml`).
 Une fois ouvert sur iOS, « Ajouter à l'écran d'accueil » pour le mode plein écran.
 
 ## Mettre en ligne (GitHub Pages) et jouer hors-ligne
@@ -16,9 +20,9 @@ Une fois ouvert sur iOS, « Ajouter à l'écran d'accueil » pour le mode plein 
 2. Sur iPhone, ouvrir `https://<compte>.github.io/<repo>/` dans Safari, Partager > « Sur l'écran d'accueil ».
 3. Lancer une fois depuis l'icône avec du réseau : tout est mis en cache, ensuite ça marche en mode avion.
 
-- `sw.js` met en cache tous les fichiers (liste `ASSETS`). **À chaque mise à jour, incrémenter `CACHE`**
-  (`gridlock-v2`, …) sinon le téléphone garde l'ancienne version ; ajouter tout nouveau fichier à `ASSETS`.
-- Le service worker ne tourne qu'en http(s) : en ouvrant `index.html` directement, le jeu marche mais sans mode hors-ligne.
+- `www/sw.js` met en cache tous les fichiers (liste `ASSETS`). **À chaque mise à jour, incrémenter `CACHE`**
+  (`cubo-v2`, …) sinon le téléphone garde l'ancienne version ; ajouter tout nouveau fichier à `ASSETS`.
+- Le service worker ne tourne qu'en http(s) : en ouvrant `www/index.html` directement, le jeu marche mais sans mode hors-ligne.
 - Sur iOS, l'app installée a sa propre sauvegarde, séparée de Safari.
 
 ## Règles
@@ -70,7 +74,7 @@ Icônes : `python3 tools/make_icons.py` redessine `icons/*.png` depuis `tools/ic
   En fin de partie s'ajoutent : +10 par grille vide, +5 si combo ×5, +5 si une bombe fait sauter 15 blocs, + missions.
   Recommencer en cours de partie verse aussi les pièces.
 - **Pub récompensée** : bouton « Regarder une pub » en fin de partie, double les gains (une fois par partie).
-  `src/ads.js` simule la pub ; en React Native, remplacer `showRewarded()` par AdMob rewarded (même promesse).
+  Dans l'app native : AdMob (`@capacitor-community/admob`) avec le formulaire de consentement Google ; sur le web, une pub simulée. IDs de test Google pour l'instant, voir `docs/features/economy.md`.
 - **Légende** : bouton « ? » à côté de l'inventaire, et infobulle au survol sur ordinateur.
 - **Missions du jour** : 3 missions différentes par jour (même tirage pour tout le monde ce jour-là), renouvelées à minuit.
   Une mission réussie reste « Terminée » jusqu'au lendemain. Difficulté qui monte toutes les 6 missions réussies.
@@ -82,18 +86,28 @@ Icônes : `python3 tools/make_icons.py` redessine `icons/*.png` depuis `tools/ic
     Les thèmes gardent l'id `boards` dans la sauvegarde. Voir `DESIGN.md`.
   - Les anciens thèmes « route » et les blocs Bonbon ont été retirés : `M.migrate` les rembourse au prix d'achat.
 
+## App native (Capacitor)
+
+`npm install` une fois, puis :
+
+- `npm run ios` / `npm run android` : copie `www/` dans le projet natif et l'ouvre dans Xcode / Android Studio.
+- `npm run sync` : recopie seulement `www/` après une modif du jeu.
+- `npm run assets` : régénère icônes et splash natifs depuis `resources/` (eux-mêmes produits par `tools/make_icons.py`).
+
+iOS : Xcode (les dépendances passent par Swift Package Manager, pas de CocoaPods). Android : Android Studio (JDK 21).
+
 ## Tests
 
-`node --test` depuis la racine (Node 18+, aucune dépendance ; lance `tests/*.test.js`).
+`npm test` depuis la racine (Node 18+ ; lance `tests/*.test.js`).
 
-## Architecture (pour le portage React Native)
+## Architecture
 
 Pour ajouter une fonctionnalité : lire `docs/CLAUDE.md`.
 
-- `src/logic.js` — règles pures, zéro DOM. `createGame(seed)`, `place(state, trayIndex, row, col)` → `{ state, events }`,
+- `www/src/core/logic.js` — règles pures, zéro DOM. `createGame(seed)`, `place(state, trayIndex, row, col)` → `{ state, events }`,
   `rotate(state, trayIndex)`, `use(state, type, target?)` pour l'inventaire, `tick(state, dtMs)` pour les chronos.
   State sérialisable en JSON, RNG seedé dans le state. Réutilisable tel quel dans un `useReducer`.
-- `src/worlds.js` / `src/levels.js` — règles des mondes et génération des niveaux de l'Aventure (purs).
-- `src/meta.js` — progression pure : `migrate`, `applyLevel`, `worldOpen`, `applyRun(profile, runStats)`, `missionStatus`, `buy`, `equip`, `nextGoal`.
-- `src/main.js` — rendu canvas, drag, sons (WebAudio), vibrations, sauvegarde `localStorage`.
-  À remplacer côté RN par Skia / Reanimated + Gesture Handler, `expo-haptics`, `expo-av`, `AsyncStorage`.
+- `www/src/core/worlds.js` / `www/src/core/levels.js` — règles des mondes et génération des niveaux de l'Aventure (purs).
+- `www/src/core/meta.js` — progression pure : `migrate`, `applyLevel`, `worldOpen`, `applyRun(profile, runStats)`, `missionStatus`, `buy`, `equip`, `nextGoal`.
+- `www/src/` (hors `core/`) — l'app : rendu canvas, drag, sons (WebAudio), vibrations, sauvegarde `localStorage`,
+  un fichier par entité (`themes/`, `mascot/`, `screens/`, `render/`, `game/`, `ui/`...). Ordre de chargement dans `docs/CLAUDE.md`.
