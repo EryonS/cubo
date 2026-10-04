@@ -718,6 +718,8 @@ add('en', {
   'Elles avancent dans tous les modes. Trois nouvelles chaque jour.': 'They count in every mode. Three new ones every day.',
   'Profil': 'Profile',
   'Album': 'Album',
+  'Autocollants': 'Stickers',
+  'Tes prochaines parties dans ce mode s’afficheront ici.': 'Your next games in this mode will show up here.',
   'Stats': 'Stats',
   'Boutique': 'Shop',
   'Thèmes': 'Themes',

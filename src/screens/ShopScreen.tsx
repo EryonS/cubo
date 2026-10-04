@@ -16,7 +16,7 @@ import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import { colors, radius, space } from '../theme/tokens';
 import { DrawCanvas } from '../ui/DrawCanvas';
-import { notice } from '../ui/dialog';
+import { showStickers } from '../ui/StickerBanner';
 import { IconCanvas } from '../ui/IconCanvas';
 import { Screen } from '../ui/Screen';
 import { Text } from '../ui/Text';
@@ -52,11 +52,11 @@ function SkinCard({ kind, skin, width }: { kind: SkinKind; skin: ReturnType<type
 
   const act = async () => {
     if (equipped) return;
-    const res = owned ? { profile: M.equip(profile, kind, skin.id), fresh: [] as { name: string; reward?: number }[] } : withStickers(M.buy(profile, kind, skin.id));
+    const res = owned ? { profile: M.equip(profile, kind, skin.id), fresh: [] as { id: string; name: string; page: string; world?: string; reward?: number }[] } : withStickers(M.buy(profile, kind, skin.id));
     if (!res || !res.profile) return;
     setProfile(res.profile);
     if (owned) sfx.turn(); else { sfx.buy(); haptic('buy'); }
-    for (const st of res.fresh) await notice(tr('Autocollant !'), `${st.name} · +${st.reward || M.STICKER_REWARD}`);
+    showStickers(res.fresh);
   };
 
   const via = kind === 'boards' && !owned && M.WORLD_ORDER.includes(skin.id);

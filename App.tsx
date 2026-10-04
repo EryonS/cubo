@@ -11,6 +11,7 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { wireAudio } from './src/audio/engine';
 import { useGame } from './src/state/store';
 import { AskHost } from './src/ui/dialog';
+import { StickerBannerHost } from './src/ui/StickerBanner';
 import { colors } from './src/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -32,6 +33,7 @@ export default function App() {
             <StatusBar style="dark" />
             <RootNavigator />
           </NavigationContainer>
+          <StickerBannerHost />
           <AskHost />
         </BottomSheetModalProvider>
       </SafeAreaProvider>

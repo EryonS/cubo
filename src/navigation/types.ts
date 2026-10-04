@@ -11,6 +11,7 @@ export type RootParams = {
   Tabs: NavigatorScreenParams<TabParams> | undefined;
   Game: undefined;
   Puzzles: undefined;
+  Album: undefined;
   Adventure: { world?: string; level?: number } | undefined;
   Settings: { from?: 'pause' } | undefined;
 };

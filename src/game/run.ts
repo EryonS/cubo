@@ -306,8 +306,16 @@ export function settleRun() {
   const daily = saved.state.stage && saved.state.stage.daily;
   const counted = (daily && saved.state.moves > 0 && M.countDaily(profile, daily, today())) || profile;
   const res = M.applyRun(M.ensureDay(counted, today()), L.runStats(saved.state));
-  setProfile(res.profile);
-  return res.report;
+  // Stickers fallen due with the run are paid and listed in its report (legacy stickerLines in settleRun).
+  const st = M.checkStickers(res.profile, today());
+  setProfile(st.profile);
+  const report = res.report;
+  for (const s of st.fresh) {
+    const coins = s.reward || M.STICKER_REWARD;
+    report.earned.push({ label: tr('Autocollant : ') + s.name, coins });
+    report.total += coins;
+  }
+  return report;
 }
 
 export interface RunEnd {
