@@ -74,8 +74,10 @@ export interface StageDef {
   ramp?: number;
   fill?: number;
   twist?: Twist;
-  boss?: BossAttack;
-  daily?: boolean;
+  boss?: BossAttack | boolean; // a boolean flag on generated levels, the attack on boss fights
+  trial?: boolean;
+  daily?: string; // the date of a daily level
+  seed?: number;
   event?: string;
 }
 // The level once started (createGame) and during play.

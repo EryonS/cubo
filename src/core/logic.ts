@@ -23,6 +23,8 @@ export interface Spawned {
   r: number; c: number; kind: string;
   from?: Cell; gone?: boolean; hop?: boolean; grow?: boolean; attack?: boolean;
 }
+// What a world did after a move: cells spawned / moved, or a row shifted by the sea current.
+export type WorldEvent = Spawned | { row: number; kind: string };
 export interface Collected { type: BonusType | CoinType; r: number; c: number; coins?: number; overflow?: boolean }
 
 // Board helpers handed to world rules (WORLD_API below).
@@ -39,7 +41,7 @@ export interface WorldApi {
 // A world's rules (worlds.ts), see defineWorlds.
 export interface WorldRules {
   setup?(state: RunState, api: WorldApi): void;
-  afterMove?(state: RunState, api: WorldApi): Spawned[] | void;
+  afterMove?(state: RunState, api: WorldApi): WorldEvent[] | void;
   lineMul?(hit: Hit): number;
   scoreMul?: number;
   coinMul?: number;
@@ -72,7 +74,7 @@ export interface MoveEvents {
   damaged?: Hit['damaged'];
   blasts?: Hit['blasts'];
   bossHits?: Hit['boss'];
-  spawned?: Spawned[];
+  spawned?: WorldEvent[];
   cleared?: ClearedCell[];
   collected?: Collected[];
   points?: number;
@@ -844,7 +846,7 @@ function fall(state: RunState) {
 
 // After a move in adventure: goal progress, world events, move budget, win / loss.
 // `spend`: false for bonuses (they don't cost a move). Returns the cells the world spawned.
-function stageMove(state: RunState, rules: WorldRules, hit: Pick<Hit, 'destroyed'> & Partial<Hit>, lines: number, spend: boolean): Spawned[] {
+function stageMove(state: RunState, rules: WorldRules, hit: Pick<Hit, 'destroyed'> & Partial<Hit>, lines: number, spend: boolean): WorldEvent[] {
   const stage = (state.stage = { ...state.stage! });
   const goal = stage.goal;
   if (goal.type === 'lines') stage.progress += lines;
@@ -853,7 +855,7 @@ function stageMove(state: RunState, rules: WorldRules, hit: Pick<Hit, 'destroyed
   else if (goal.type === 'coins') stage.progress = state.stats.coins;
   else if (goal.type === 'combo') stage.progress = Math.max(stage.progress, state.combo);
   else if (goal.type === 'boss') stage.progress += (hit.boss || []).length;
-  let spawned: Spawned[] = [];
+  let spawned: WorldEvent[] = [];
   if (spend) {
     stage.movesLeft -= 1;
     spawned = worldMove(state, rules).concat(twistSpawn(state));
@@ -870,7 +872,7 @@ function stageMove(state: RunState, rules: WorldRules, hit: Pick<Hit, 'destroyed
 
 // A placement under world rules: special cells age (embers harden), twist cells act, then the
 // world acts. Returns the cells it spawned, moved ({ from: [r, c] }) or removed ({ gone: true }).
-function worldMove(state: RunState, rules: WorldRules): Spawned[] {
+function worldMove(state: RunState, rules: WorldRules): WorldEvent[] {
   for (let i = 0; i < SIZE * SIZE; i++) {
     const sp = state.special[i];
     if (!sp || sp.kind === 'boss') continue;
@@ -878,7 +880,7 @@ function worldMove(state: RunState, rules: WorldRules): Spawned[] {
     const age = (sp.age || 0) + 1;
     state.special[i] = kind.fuse && age >= kind.fuse ? { kind: kind.hardens!, hp: KINDS[kind.hardens!].hp, age: 0 } : { ...sp, age };
   }
-  return kindMoves(state).concat((rules.afterMove && rules.afterMove(state, WORLD_API)) || []);
+  return (kindMoves(state) as WorldEvent[]).concat((rules.afterMove && rules.afterMove(state, WORLD_API)) || []);
 }
 
 const neighbors = (i: number) => {
@@ -1018,7 +1020,7 @@ function placeBoss(state: RunState) {
 // Every stage.boss.every moves, the boss drops stage.boss.count cells of its kind on empty spots.
 function bossAttack(state: RunState): Spawned[] {
   const boss = state.stage!.boss;
-  if (!boss || state.moves % boss.every) return [];
+  if (!boss || typeof boss !== 'object' || state.moves % boss.every) return [];
   const out: Spawned[] = [];
   for (let k = 0; k < boss.count; k++) {
     const i = WORLD_API.pick(state, WORLD_API.emptyCells(state));
