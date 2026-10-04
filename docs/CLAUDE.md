@@ -31,6 +31,11 @@ build is dropped. Until the switch-over (milestone 10):
   redrawn at half rate). Haptics: `src/platform/haptic-pattern.ts` (pure) + `haptics.ts` (expo-haptics).
   Sound: `src/audio/sfx.ts` and `songs.ts` (pure scores) played by `engine.ts` on react-native-audio-api;
   `wireAudio()` in App.tsx suspends everything in the background.
+- Boutique and game over (milestone 4): `src/screens/ShopScreen.tsx` (tabs Thèmes / Blocs / Cubo / Bonus; skin previews
+  through `src/ui/DrawCanvas.tsx` + `render/preview.ts`; Cubo cards use the placeholder `render/cubo-preview.ts` until
+  milestone 5; theme previews show board colors from `render/board-themes.ts`). Equipping a block skin applies in game
+  at once (`themeFor`). Game over: `src/screens/GameOver.tsx`, summary tiles in `game/summary.ts`; the rewarded "double
+  coins" button is the `DoubleCoinsAd` hook (milestone 9). `ask()` dialogs render in a native Modal, over bottom sheets.
 - Not ported yet (milestones 4-9): bonus icons on blocks, inventory, undo, trash,
   other modes and themes, every screen beyond the 4 placeholder tabs, Cubo, ads, cloud save. The sections
   below still describe the legacy game.
