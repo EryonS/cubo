@@ -3,27 +3,35 @@
 Puzzle de blocs 8×8 : pose les pièces, remplis lignes/colonnes, enchaîne les combos.
 
 Nom : **Cubo Blocks** (stores), **Cubo** sous l'icône, d'après la mascotte. appId `com.slapps.cubo`, domaine `cuboblocks.app`.
-Ancien nom : Gridlock. Les sauvegardes `gridlock.*` passent une fois sur les clés `cuboblocks.*` au lancement
-(`www/src/platform/storage.js`), sans perte de progression.
 
-## Jouer
+App native iOS / Android en **React Native (Expo SDK 57)**. Le port depuis la version web + Capacitor est en cours,
+jalon par jalon : voir `docs/superpowers/specs/2026-10-04-react-native-port-design.md`. L'ancienne version reste dans
+`legacy/` comme référence (`npm run legacy` puis http://localhost:8000) jusqu'à la fin du port.
 
-Ouvrir `www/index.html` dans un navigateur (aucun build, marche hors-ligne).
+## Lancer
 
-Sur téléphone : `npm run serve` puis `http://<ip-du-mac>:8000` sur le même Wi-Fi,
-ou déposer le dossier `www/` sur n'importe quel hébergement statique (GitHub Pages le publie via `.github/workflows/pages.yml`).
-Une fois ouvert sur iOS, « Ajouter à l'écran d'accueil » pour le mode plein écran.
+```
+npm install
+npm run ios          # build + simulateur iOS (Xcode 26.4+)
+npm run android      # build + émulateur Android
+npm start            # Metro seul, une fois l'app installée
+```
 
-## Mettre en ligne (GitHub Pages) et jouer hors-ligne
+## Publier sur TestFlight
 
-1. Pousser le dossier sur un repo GitHub, puis Settings > Pages > Source : branche `main`, dossier `/ (root)`.
-2. Sur iPhone, ouvrir `https://<compte>.github.io/<repo>/` dans Safari, Partager > « Sur l'écran d'accueil ».
-3. Lancer une fois depuis l'icône avec du réseau : tout est mis en cache, ensuite ça marche en mode avion.
+`npm run prebuild` (régénère `ios/` et `android/` depuis `app.config.ts`, à refaire après tout changement de config ou de
+plugin natif ; ajouter `-- --clean` si un plugin change), puis `npm run xcode` : Product > Archive, puis Distribute App.
+Pas d'EAS. `ios/` et `android/` sont committés mais jamais modifiés à la main.
 
-- `www/sw.js` met en cache tous les fichiers (liste `ASSETS`). **À chaque mise à jour, incrémenter `CACHE`**
-  (`cubo-v2`, …) sinon le téléphone garde l'ancienne version ; ajouter tout nouveau fichier à `ASSETS`.
-- Le service worker ne tourne qu'en http(s) : en ouvrant `www/index.html` directement, le jeu marche mais sans mode hors-ligne.
-- Sur iOS, l'app installée a sa propre sauvegarde, séparée de Safari.
+## Vérifier
+
+```
+npm run check:unit   # règles du jeu, sauvegardes, i18n (Node, sans simulateur)
+npm run check:types
+npm run lint
+npm run i18n         # textes sans traduction anglaise
+npm run balance      # le bot joue chaque niveau d'Aventure (réglage des budgets)
+```
 
 ## Règles
 
