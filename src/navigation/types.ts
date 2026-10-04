@@ -4,3 +4,8 @@ export type TabParams = {
   Shop: undefined;
   Profile: undefined;
 };
+
+export type RootParams = {
+  Tabs: undefined;
+  Game: undefined;
+};
