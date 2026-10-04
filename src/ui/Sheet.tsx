@@ -4,12 +4,14 @@
 import { forwardRef, useCallback, type ReactNode } from 'react';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 
 interface Props { children: ReactNode; onOpen?: () => void; onClose?: () => void; scroll?: boolean }
 
 export const Sheet = forwardRef<BottomSheetModal, Props>(function Sheet({ children, onOpen, onClose }, ref) {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
   const backdrop = useCallback((p: BottomSheetBackdropProps) => (
     <BottomSheetBackdrop {...p} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.45} pressBehavior="close" style={[p.style, { backgroundColor: '#4a3a66' }]} />
   ), []);

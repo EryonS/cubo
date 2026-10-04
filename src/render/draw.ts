@@ -1,7 +1,7 @@
 // Cubo Blocks — Drawing the run: background, board, tray, next piece, score band, clear effects.
 // Ported call for call from legacy render/board.js, render/hud.js, render/effects.js,
 // themes/draw.js and themes/skins.js (classic block skin).
-import { L } from '../core';
+import { L, LV } from '../core';
 import { tr, locale } from '../core/i18n';
 import type { Piece, RunState } from '../core/types';
 import { dragGeometry, easeBack, easeOut, type DragGeometry } from '../game/drag';
@@ -10,7 +10,10 @@ import { bannerHead, bannerLook, comboTagLook, COMBO_BREAK_MS, comboTier, flagFa
 import { drawCubo } from '../mascot/body';
 import { cuboLookFor } from '../mascot/looks';
 import { cuboBaseMood, cuboMoodAt, cuboRoom, cuboSpot } from '../mascot/state';
+import { Ctx } from './ctx2d';
 import { G, withAlpha } from './g';
+import { drawBoss, drawBossBar } from './boss';
+import { segRow, tracksBusy } from '../game/falls';
 import { drawSpecial } from './cells';
 import { drawIcon, drawMark, iconScale } from './icons';
 import { chronoBar, cellCenter, hintY, invBoxes, invCenter, miniCell, slotBox, slotCenter, trashBox, walletTarget, type InvBox, type Layout } from './layout';
@@ -18,12 +21,14 @@ import { blockSkin, isNeon } from './skins';
 import type { Theme } from './theme';
 import { hasClock, hasInventory, hintText, invView, ringEnding, ringFill, trashFill, trashLabel, trashView } from '../game/hud';
 import { TRASH_ARM_MS } from '../game/anim';
+import { keepsBest } from '../game/modes';
 
 const SIZE = L.SIZE;
 const fmt = (n: number) => n.toLocaleString(locale());
 
 // ---------- theme parts (themes/draw.js) ----------
 export function paintBackground(g: G, th: Theme, W: number, H: number) {
+  if (th.paint) { th.paint(new Ctx(g), W, H); return; }
   g.rect(0, 0, W, H, th.base);
   if (!th.dots) return;
   for (let y = 0, row = 0; y < H + 20; y += 20, row++) {
@@ -36,7 +41,7 @@ export function drawFrame(g: G, th: Theme, x: number, y: number, w: number, h: n
   g.rrect(x, y, w, h, f.r, th.board, { shadow: { color: th.shadow, blur: 20, dy: 8 } });
   if (!f.line) return;
   const i = f.inset || 0;
-  g.rrect(x + i, y + i, w - i * 2, h - i * 2, Math.max(2, f.r - i), f.line, { stroke: { width: f.lw || 2 } });
+  g.rrect(x + i, y + i, w - i * 2, h - i * 2, Math.max(2, f.r - i), f.line, { stroke: { width: f.lw || 2 }, shadow: f.glow ? { color: f.glow, blur: 16 } : undefined });
 }
 
 export function drawEmpty(g: G, th: Theme, x: number, y: number, cell: number) {
@@ -44,13 +49,32 @@ export function drawEmpty(g: G, th: Theme, x: number, y: number, cell: number) {
 }
 
 // The score plate: fill and drop shadow, optional inner border.
-export function drawPlate(g: G, th: Theme, x: number, y: number, w: number, h: number) {
+export function drawPlate(g: G, th: Theme, x: number, y: number, w: number, h: number, t = 0) {
   const p = th.plate;
   g.rrect(x, y, w, h, p.r, p.fill, { shadow: { color: p.shadow || 'rgba(0,0,0,0.4)', blur: 14, dy: 5 } });
-  if (!p.line) return;
-  const lw = p.lw || 2;
-  const i = (p.inset || 0) + lw / 2;
-  g.rrect(x + i, y + i, w - i * 2, h - i * 2, Math.max(2, p.r - i), p.line, { stroke: { width: lw } });
+  if (p.line) {
+    const lw = p.lw || 2;
+    const i = (p.inset || 0) + lw / 2;
+    g.rrect(x + i, y + i, w - i * 2, h - i * 2, Math.max(2, p.r - i), p.line, { stroke: { width: lw }, shadow: p.glow ? { color: p.glow, blur: 14 } : undefined });
+  }
+  if (p.dots) {
+    // Mushroom cap: a few white spots peeking from the corners.
+    for (const [fx, fy, fr] of [[0.07, 0.3, 0.09], [0.93, 0.28, 0.07], [0.12, 0.78, 0.05], [0.9, 0.76, 0.06]]) g.circle(x + w * fx, y + h * fy, h * fr, 'rgba(255,255,255,0.9)');
+  }
+  if (p.bulbs) {
+    // Arcade marquee: bulbs chase around the edge.
+    const n = Math.max(8, Math.round((w + h) / 11));
+    const per = (w + h) * 2;
+    const m = 2.5;
+    for (let k = 0; k < n * 2; k++) {
+      let d = (k / (n * 2)) * per;
+      let bx: number, by: number;
+      if (d < w) { bx = x + d; by = y + m; } else if ((d -= w) < h) { bx = x + w - m; by = y + d; }
+      else if ((d -= h) < w) { bx = x + w - d; by = y + h - m; } else { d -= w; bx = x + m; by = y + h - d; }
+      const on = (k + Math.floor(t / 180)) % 3 !== 0;
+      g.circle(bx, by, 1.6, on ? p.bulbs : 'rgba(255,212,107,0.25)');
+    }
+  }
 }
 
 // ---------- blocks (themes/skins.js, render/helpers.js drawBlock / drawPiece) ----------
@@ -89,12 +113,21 @@ export function drawBoard(g: G, th: Theme, lay: Layout, state: RunState, ghost: 
       drawEmpty(g, th, x, y, cell);
     }
   }
+  anim.shifts = anim.shifts.filter((sh) => t - sh.t0 < 420);
+  for (const [i, segs] of anim.tracks) if (!tracksBusy(segs, t)) anim.tracks.delete(i);
   for (let r = 0; r < SIZE; r++) {
+    // Sea current: the row slides one cell right (the wrapped cell enters from the left edge).
+    const sh = anim.shifts.find((x) => x.row === r);
+    const dx = sh ? -(1 - easeBack(Math.max(0, (t - sh.t0) / 420))) * cell : 0;
+    if (dx) { g.save(); g.clip(bx, by + r * cell, board, cell); }
     for (let c = 0; c < SIZE; c++) {
+      let [x, y] = cellCenter(lay, r, c);
+      x += dx;
       const i = r * SIZE + c;
       const v = state.board[i];
       if (!v) continue;
-      let [x, y] = cellCenter(lay, r, c);
+      const segs = anim.tracks.get(i);
+      if (segs) y = cellCenter(lay, segRow(segs, t, r), c)[1];
       let scale = 1;
       const pop = anim.pops.find((p) => p.r === r && p.c === c);
       if (pop) {
@@ -104,6 +137,7 @@ export function drawBoard(g: G, th: Theme, lay: Layout, state: RunState, ghost: 
       const alpha = 1 - overK * 0.65;
       const sp = state.special && state.special[i];
       if (v === L.SPECIAL && sp) {
+        if (sp.kind === 'boss' || sp.kind === 'void') continue; // boss: drawn whole by drawBoss
         // An obstacle: it may be arriving (dropped from above, grown, or gliding from another cell).
         const drop = anim.drops.get(i);
         if (drop) {
@@ -120,15 +154,17 @@ export function drawBoard(g: G, th: Theme, lay: Layout, state: RunState, ghost: 
           else if (k < 1) y = lay.by - cell * 1.5 + (y - lay.by + cell * 1.5) * k * k;
           else scale *= 1 + 0.12 * Math.sin(Math.min(1, (k - 1) / 0.4) * Math.PI);
         }
-        drawSpecial(g, sp, x, y, cell, alpha, scale);
+        drawSpecial(g, sp, x, y, cell, alpha, scale, t);
         continue;
       }
       // Cells the dragged piece would clear take its color.
       const fam = preview && ghost && preview.has(i) ? ghost.piece.color : v;
       drawBlock(g, th, x, y, cell, th.palette[fam] || th.ink, alpha, scale, state.bonus[i], fam);
     }
+    if (dx) g.restore();
   }
   anim.pops = anim.pops.filter((p) => t - p.t0 < 240);
+  if (state.stage && state.stage.goal.type === 'boss') drawBoss(g, lay, state, t, 1 - overK * 0.65, ghost);
 
   if (ghost) {
     const b = ghost.piece.bonus;
@@ -160,9 +196,10 @@ export function drawFades(g: G, th: Theme, lay: Layout, t: number) {
   anim.fades = anim.fades.filter((f) => t - f.t0 - f.delay < 320);
   for (const f of anim.fades) {
     const k = (t - f.t0 - f.delay) / 320;
-    const [x, y] = cellCenter(lay, f.r, f.c);
+    const [x, y0] = cellCenter(lay, f.r, f.c);
+    const y = f.segs && k < 0 ? cellCenter(lay, segRow(f.segs, t, f.r), f.c)[1] : y0;
     if (f.kind) {
-      drawSpecial(g, { kind: f.kind, hp: 1 }, x, y, lay.cell, k < 0 ? 1 : 1 - k, k < 0 ? 1 : 1.1 - easeOut(k));
+      drawSpecial(g, { kind: f.kind, hp: 1 }, x, y, lay.cell, k < 0 ? 1 : 1 - k, k < 0 ? 1 : 1.1 - easeOut(k), t);
       continue;
     }
     const color = th.palette[f.color] || th.ink;
@@ -266,7 +303,7 @@ interface Flag { beaten: boolean; fall: number; s: number; label: string; size: 
 
 // Free runs: a pennant planted in the band's left end, carrying the record the run started with.
 function recordFlag(g: G, lay: Layout, state: RunState, t: number): Flag | null {
-  if (!(anim.bestAtStart > 0)) return null;
+  if (!keepsBest(state) || !(anim.bestAtStart > 0)) return null;
   const beaten = state.score > anim.bestAtStart;
   const s = lay.band.h;
   const label = fmt(anim.bestAtStart);
@@ -275,31 +312,62 @@ function recordFlag(g: G, lay: Layout, state: RunState, t: number): Flag | null 
   return { beaten, fall: flagFall(beaten, anim.flagDownAt, t), s, label, size, fw, room: 16 + fw + s * 0.16 + 6 };
 }
 
-// The score band: the pennant on its left, the score in the middle of what is left.
+// The score band: the pennant on its left (or, in Aventure with a move limit, the moves left), the
+// score or goal progress in the middle of what is left.
 function hudBand(g: G, lay: Layout, state: RunState, t: number) {
   const { x, y, h } = lay.band;
   const w = lay.band.w - cuboRoom(anim.mascot, lay, state); // the band stops short of Cubo
   const flag = recordFlag(g, lay, state, t);
-  const flagW = flag ? flag.room * (1 - flag.fall) : 0;
-  return { x, y, w, h, flag, cx: x + flagW + (w - flagW) / 2, cw: w - flagW - 28 };
+  const movesW = state.stage && !state.stage.clock ? Math.round(h * 1.15) : 0;
+  const flagW = flag ? flag.room * (1 - flag.fall) : movesW;
+  return { x, y, w, h, flag, movesW, cx: x + flagW + (w - flagW) / 2, cw: w - flagW - 28 };
 }
 
 export function drawHUD(g: G, th: Theme, lay: Layout, state: RunState, best: number, t: number) {
   anim.displayScore += (state.score - anim.displayScore) * 0.18;
   if (Math.abs(state.score - anim.displayScore) < 0.5) anim.displayScore = state.score;
   const p = th.plate;
-  const { x, y, w, h, flag, cx, cw } = hudBand(g, lay, state, t);
+  const band = hudBand(g, lay, state, t);
+  const { x, y, w, h, flag, cx, cw } = band;
   const bump = state.score !== Math.round(anim.displayScore) ? 1.05 : 1;
-  drawPlate(g, th, x, y, w, h);
+  drawPlate(g, th, x, y, w, h, t);
   // While the pennant stands in the band, it carries the record. Once the score is the record,
   // showing it again above would only repeat the big number.
   let sub = tr('SCORE');
   if (best > state.score && !(flag && flag.fall < 1)) sub = tr('RECORD ') + fmt(best);
   else if (flag && flag.beaten) sub = tr('NOUVEAU RECORD');
+  let main = fmt(Math.round(anim.displayScore));
+  let lowMoves = false;
+  // Aventure: the goal progress and the moves left instead of score / record.
+  const stage = state.stage;
+  if (stage) {
+    const progress = stage.goal.type === 'score' ? Math.round(anim.displayScore) : stage.progress;
+    main = fmt(Math.min(progress, stage.goal.target)) + ' / ' + fmt(stage.goal.target);
+    sub = LV.goalLabel(stage.goal);
+    lowMoves = !stage.clock && stage.movesLeft <= 3 && !state.over;
+  }
   const subSize = g.fit(sub, 11, cw);
   g.text(sub, cx, y + h * 0.34 + subSize * 0.35, subSize, p.sub, 'center');
-  const main = fmt(Math.round(anim.displayScore));
-  g.text(main, cx, y + h - h * 0.14, g.fit(main, Math.round(h * 0.56 * bump), cw), p.ink, 'center');
+  if (stage && band.movesW) {
+    // Moves left: same label-over-number shape as the goal, split off by a hairline.
+    const mx = x + 10 + band.movesW / 2;
+    const label = stage.movesLeft > 1 ? tr('COUPS') : tr('COUP');
+    const ls = g.fit(label, 11, band.movesW - 8);
+    g.text(label, mx, y + h * 0.34 + ls * 0.35, ls, p.sub, 'center');
+    const num = String(stage.movesLeft);
+    const a0 = g.alpha;
+    g.alpha = a0 * (lowMoves ? 0.7 + 0.3 * Math.sin(t / 120) : 1);
+    g.text(num, mx, y + h - h * 0.14, g.fit(num, Math.round(h * 0.46), band.movesW - 8), lowMoves ? th.danger : p.ink, 'center');
+    g.alpha = a0 * 0.25;
+    g.rect(x + 10 + band.movesW, y + h * 0.2, 1.5, h * 0.6, p.sub);
+    g.alpha = a0;
+  }
+  if (stage && stage.goal.type === 'boss') drawBossBar(g, state, cx - cw / 2 - 14, y, cw + 28, h, t);
+  else {
+    if (p.glow) g.textGlow = { color: p.glow, blur: 12 };
+    g.text(main, cx, y + h - h * 0.14, g.fit(main, Math.round(h * (stage ? 0.46 : 0.56) * bump), cw), p.ink, 'center');
+    g.textGlow = null;
+  }
 }
 
 // It waves harder in the last 10 %, and topples over once the record is beaten.
@@ -370,7 +438,7 @@ function drawComboTag(g: G, th: Theme, combo: number, left: number, ty: number, 
   g.scale(scale);
   g.translate(-mid, -(ty + 12.5));
   g.alpha = a0 * alpha;
-  const glow = tier >= 2 ? { color: tierHex(tier, t, th.accent), blur: 8 + 6 * tier } : undefined;
+  const glow = tier >= 2 ? { color: tierHex(tier, t, th.accent), blur: 8 + 6 * tier } : tag.glow ? { color: tag.glow, blur: 10 } : undefined;
   g.rrect(tx, ty, tw, 25, 12.5, broken ? '#9b93aa' : tag.fill, { shadow: glow });
   if (tag.line && !broken) g.rrect(tx + 2.5, ty + 2.5, tw - 5, 20, 4, tag.line, { stroke: { width: 1.5 } });
   const ink = broken ? '#ffffff' : tag.ink;

@@ -79,6 +79,7 @@ export interface StageDef {
   daily?: string; // the date of a daily level
   seed?: number;
   event?: string;
+  eventDay?: string; // the event day a season level counts for
 }
 // The level once started (createGame) and during play.
 export interface Stage extends StageDef {

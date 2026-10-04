@@ -1,8 +1,10 @@
 // White card with the toy's thick bottom edge (legacy --card-bb: 6px).
 import { View, type ViewProps } from 'react-native';
-import { colors, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 
 export function Card({ style, ...rest }: ViewProps) {
+  const colors = useColors();
   return (
     <View
       {...rest}

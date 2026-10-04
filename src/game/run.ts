@@ -3,11 +3,13 @@
 // (Legacy game/flow.js, game/drag.js discard / rotate, game/undo.js, screens/gameover.js newGame /
 // restartRun / settleRun / dropParked / resumeParked.)
 import { create } from 'zustand';
-import { L, M, WD } from '../core';
+import { L, LV, M, WD } from '../core';
 import type { Collected, MoveEvents } from '../core/logic';
 import type { Earned } from '../core/meta';
-import type { BonusType, Level, Lifetime, Mode, RunState, Stats } from '../core/types';
+import type { BonusType, Level, Lifetime, Mode, PuzzleSetup, RunState, StageDef, Stats } from '../core/types';
 import { tr } from '../core/i18n';
+import { paletteFor } from '../render/board-themes';
+import { BOSS_LOOK, bossCenter } from '../render/boss';
 import { TOY } from '../render/theme';
 import { today } from '../state/persist';
 import { useGame } from '../state/store';
@@ -17,15 +19,23 @@ import { sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
 import { cuboLookFor } from '../mascot/looks';
 import { cuboReact, cuboSpot, cuboTap } from '../mascot/state';
-import { anim, resetAnim } from './anim';
+import { anim, resetAnim, WAVE_MS } from './anim';
+import { planFalls } from './falls';
 import { BONUS_UI } from './bonus-ui';
 import { alreadyDone, celebrate, hasClock } from './hud';
 import { bannerFor, comboTier, confettiCount, punchAmp, shakeFor } from './juice';
-import { inProgress, isFree } from './modes';
+import { levelName } from '../state/progress';
+import { inProgress, isFree, keepsBest } from './modes';
 
 export { inProgress };
 
 const now = () => performance.now();
+
+// Block colors of the theme being played (a world's in Aventure / Mondes), for specks and confetti.
+const runPalette = () => {
+  const { saved, profile } = useGame.getState();
+  return paletteFor(saved.state, profile.equipped.boards);
+};
 
 // Cubo's reaction to an event (a no-op when the Mascotte setting is off).
 function react(mood: string, ms: number, jump = 0) {
@@ -58,7 +68,7 @@ export const bestOf = (st: RunState) => useGame.getState().saved.bests[recordKey
 function setState(state: RunState) {
   const { saved, setSaved } = useGame.getState();
   const key = recordKey(state);
-  const bests = state.score > (saved.bests[key] || 0) ? { ...saved.bests, [key]: state.score } : saved.bests;
+  const bests = keepsBest(state) && state.score > (saved.bests[key] || 0) ? { ...saved.bests, [key]: state.score } : saved.bests;
   setSaved({ ...saved, state, bests });
 }
 function patchState(state: RunState) {
@@ -74,6 +84,9 @@ let runSettled = false;
 let announced = new Set<string>();
 let endHandler: ((end: RunEnd) => void) | null = null;
 export const setEndHandler = (fn: ((end: RunEnd) => void) | null) => { endHandler = fn; };
+// Aventure / event / daily levels end here instead (the screens that own the level result register it).
+let levelHandler: ((end: LevelEnd) => void) | null = null;
+export const setLevelEndHandler = (fn: ((end: LevelEnd) => void) | null) => { levelHandler = fn; };
 
 // Today's missions with the live run's numbers (a finished run counts as nothing: it is settled).
 export const liveRun = (st: RunState) => (st.over || st.stage ? {} : L.runStats(st));
@@ -107,17 +120,25 @@ export function rollMissions() {
 }
 
 // ---------- starting runs ----------
-export interface StartOpts { mode: Mode; level: Level; stage?: unknown; puzzle?: unknown }
+export interface StartOpts {
+  mode: Mode;
+  level: Level;
+  stage?: StageDef; // an Aventure / event / daily level
+  world?: string; // Mondes: the world of the run
+  seed?: number; // a daily level's fixed seed
+  puzzle?: PuzzleSetup;
+}
 
-// opts: mode and level of the free game (legacy newGame). Obstacles come from the equipped theme.
+// opts: mode and level of the game (legacy newGame). Free play takes its obstacles from the equipped theme.
 function newGame(opts: StartOpts) {
   const store = useGame.getState();
   const fresh = M.ensureDay(store.profile, today());
   if (fresh !== store.profile) store.setProfile(fresh);
-  const obstacles = WD.freeObstacles(fresh.equipped.boards, opts.level);
-  const state = L.createGame(Date.now(), { mode: opts.mode, level: opts.level, budget: fresh.coins, upgrades: fresh.upgrades, obstacles });
+  const obstacles = ['classic', 'chrono', 'chill'].includes(opts.mode) && !opts.stage && !opts.puzzle ? WD.freeObstacles(fresh.equipped.boards, opts.level) : undefined;
+  const world = opts.world || null;
+  const state = L.createGame(opts.seed ?? Date.now(), { mode: opts.mode, level: opts.level, budget: fresh.coins, stage: opts.stage, world, upgrades: fresh.upgrades, puzzle: opts.puzzle, obstacles });
   const { saved, setSaved } = useGame.getState();
-  setSaved({ ...saved, state, startBest: bestOf(state) });
+  setSaved({ ...saved, state, startBest: keepsBest(state) ? bestOf(state) : 0 });
   enterRun();
 }
 
@@ -154,6 +175,85 @@ export function resumeParked() {
   enterRun();
 }
 
+// ---------- stage runs: Aventure, Mondes, season events ----------
+// The screens call these (then navigate to the game screen). A free run in progress is parked, not dropped.
+
+// Starts a stage (level or event level): opts.bomb = the "start with a Bombe" option (a free one from the
+// profile, else paid M.START_BONUS_COST); intro = the banner announcing it.
+export function startStage(stage: StageDef, opts: { bomb?: boolean; seed?: number; intro?: { text: string; sub?: string; tier?: number } } = {}) {
+  const prefs = useGame.getState().saved.state;
+  const { profile } = useGame.getState();
+  const freeBomb = !!opts.bomb && M.freeBombs(profile) > 0;
+  const bomb = freeBomb || (!!opts.bomb && profile.coins >= M.START_BONUS_COST);
+  restartRun({ mode: 'adventure', level: prefs.level, stage, seed: opts.seed });
+  if (bomb) {
+    const { profile: p0, setProfile, saved, setSaved } = useGame.getState();
+    setProfile((freeBomb ? M.useFreeBomb(p0) : M.spend(p0, M.START_BONUS_COST)) || p0);
+    const state = saved.state;
+    setSaved({ ...saved, state: { ...state, inventory: { ...state.inventory, bomb: state.inventory.bomb + 1 } } });
+  }
+  const intro = opts.intro || { text: levelName(stage.n), sub: LV.goalText(stage.goal) };
+  anim.banners.push({ text: intro.text, sub: intro.sub || '', tier: intro.tier || 0, gold: true });
+  // First level with the world's second obstacle: introduce it once.
+  const { saved } = useGame.getState();
+  const st = saved.state.stage;
+  const tip = 'twist-' + stage.world;
+  if (st && st.twist && !stage.event && !M.tipSeen(useGame.getState().profile, tip)) {
+    anim.banners.push({ text: tr('Nouveau : ') + WD.WORLDS[stage.world].twist!.name, sub: LV.KIND_NAMES[st.twist.kind] + tr(' en vue'), tier: 0, gold: true });
+    useGame.getState().setProfile(M.markTip(useGame.getState().profile, tip));
+  }
+}
+
+// Aventure level n of a world (1..20); the boss is the last one.
+export function startLevel(world: string, n: number, opts: { bomb?: boolean } = {}): boolean {
+  const stage = LV.level(world, n);
+  if (!stage) return false;
+  startStage(stage, { bomb: opts.bomb, intro: { text: n === M.LEVELS_PER_WORLD ? tr('Boss !') : levelName(n), sub: LV.goalText(stage.goal), tier: n === M.LEVELS_PER_WORLD ? 2 : 0 } });
+  return true;
+}
+
+// A season event level (id of the event, n 1..10); day = the event day it counts for (default today).
+export function startEventLevel(id: string, n: number, day: string = today()): boolean {
+  const def = LV.eventLevel(id, n);
+  if (!def) return false;
+  startStage({ ...def, eventDay: day }, { intro: { text: n === 10 ? tr('Boss !') : M.eventById(id)?.name || '', sub: LV.goalText(def.goal), tier: n === 10 ? 2 : 0 } });
+  return true;
+}
+
+// A Mondes run: endless play in a world's rules, with its own record (bests 'worlds-<id>').
+export function startWorldRun(world: string) {
+  const prefs = useGame.getState().saved.state;
+  restartRun({ mode: 'worlds', level: prefs.level, world });
+}
+
+// Starts the current game again (pause > Recommencer, "Rejouer"): the same level, daily, event level,
+// Mondes world or free game.
+export function restartCurrent() {
+  const st = useGame.getState().saved.state;
+  const stage = st.stage;
+  if (stage && stage.daily) startStage(stage, { seed: stage.seed });
+  else if (stage && stage.event) startEventLevel(stage.event, stage.n, stage.eventDay);
+  else if (stage) startLevel(stage.world, stage.n);
+  else if (st.mode === 'worlds' && st.world) startWorldRun(st.world);
+  else restartRun({ mode: st.mode, level: st.level });
+}
+
+// "+N coups pour finir" on a lost level: pays the price and plays on (the result card closes).
+export function buyExtraMoves(lay: Layout): boolean {
+  const { saved, profile } = useGame.getState();
+  const st = saved.state;
+  if (!st.stage) return false;
+  const cost = M.extraMovesCost(st.stage.extra);
+  const revived = L.addMoves(st, M.EXTRA_MOVES);
+  if (!revived || profile.coins < cost) return false;
+  payCoins(lay, cost);
+  setState(revived);
+  anim.overAt = 0;
+  anim.banners.push({ text: tr`+${M.EXTRA_MOVES} coups`, sub: tr('Dernière chance !'), tier: 0, gold: true });
+  sfx.buy();
+  return true;
+}
+
 // Pays out coins and advances missions for the current run, once.
 export function settleRun() {
   if (runSettled) return null;
@@ -176,6 +276,19 @@ export interface RunEnd {
   coinsBefore: number;
 }
 
+// A level is over (won, out of moves, out of room, time up, quit). The run's grid coins and missions are
+// paid (settleRun); stars, level rewards, fails and the result card are the receiver's (M.applyLevel,
+// M.applyEvent, M.applyDaily, M.recordFail). Fires ~0.9 s (won) / ~1.3 s (lost) after the last move.
+export interface LevelEnd {
+  state: RunState;
+  stage: NonNullable<RunState['stage']>;
+  won: boolean;
+  timeUp: boolean;
+  quit: boolean;
+  outOfMoves: boolean;
+  run: { earned: Earned[]; total: number; coinsBefore: number } | null; // the run's own coins, null if already paid
+}
+
 // The run is over: coins and missions count, the record is kept.
 function endGame(t: number) {
   anim.overAt = t;
@@ -183,6 +296,16 @@ function endGame(t: number) {
   anim.trash = null;
   const { saved, profile } = useGame.getState();
   const st = saved.state;
+  if (st.stage) {
+    const stage = st.stage;
+    const run = settleRun();
+    setTimeout(() => { if (stage.won) { sfx.mission(); haptic('win'); } else { sfx.over(); haptic('lose'); } }, 350);
+    setTimeout(() => levelHandler?.({
+      state: useGame.getState().saved.state, stage: useGame.getState().saved.state.stage || stage, won: stage.won, timeUp: !!st.timeUp, quit: !!st.quit,
+      outOfMoves: !stage.won && !st.timeUp && stage.movesLeft <= 0, run,
+    }), stage.won ? 900 : 1300);
+    return;
+  }
   const lifeBefore = { ...(profile.lifetime || {}) };
   const report = settleRun();
   setTimeout(() => { sfx.over(); haptic('lose'); }, 350);
@@ -198,7 +321,7 @@ function endGame(t: number) {
 // ---------- effects ----------
 // Star confetti thrown up from the board on big clears, in the board's block colors (legacy flow.js confetti).
 function confetti(lay: Layout, t0: number, count: number) {
-  const colors = TOY.palette.filter(Boolean) as string[];
+  const colors = runPalette().filter(Boolean) as string[];
   for (let k = 0; k < count; k++) {
     anim.particles.push({
       x: lay.bx + Math.random() * lay.board, y: lay.by + lay.board * (0.3 + Math.random() * 0.3),
@@ -216,7 +339,7 @@ function burst(lay: Layout, cell: { r: number; c: number; color?: number; kind?:
   for (let k = 0; k < count; k++) {
     const a = Math.random() * Math.PI * 2;
     const v = speed + Math.random() * 180;
-    const base = cell.kind ? SPECIAL_COLORS[cell.kind] : TOY.palette[cell.color || 0];
+    const base = cell.kind ? SPECIAL_COLORS[cell.kind] : runPalette()[cell.color || 0];
     anim.particles.push({
       x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120, t0, life: 500 + Math.random() * 400,
       size: lay.cell * (0.12 + Math.random() * 0.14), color: (extraColor && k % 3 === 0 ? extraColor : base) || TOY.ink,
@@ -250,29 +373,81 @@ export function stepFlyers(lay: Layout, t: number) {
   anim.flyers = anim.flyers.filter((f) => t - f.t0 < 650);
 }
 
-// Obstacles: cracked cells, and what the rules dropped, moved or removed this turn (legacy stageEffects).
+// Aventure feedback: cracked cells, blasts, gravity chains, and what the world dropped this turn (legacy stageEffects).
 function stageEffects(lay: Layout, ev: MoveEvents, t: number) {
+  const calm = anim.calm;
   for (const d of ev.damaged || []) burst(lay, { r: d.r, c: d.c, kind: d.kind }, t, 5, 80, '#ffffff');
   if ((ev.damaged || []).length) sfx.crack();
+  if ((ev.cleared || []).some((c) => c.kind === 'bubble')) sfx.pop();
+  const eggs = (ev.cleared || []).filter((c) => c.kind === 'egg').length;
+  if (eggs) { anim.banners.push({ text: eggs > 1 ? eggs + tr(' œufs trouvés !') : tr('Œuf trouvé !'), sub: '', tier: 0, gold: true }); sfx.sparkle(2); }
+  if (ev.blasts && ev.blasts.length) {
+    const rocket = ev.blasts.some((b) => b.kind === 'rocket');
+    anim.banners.push(rocket ? { text: tr('Feu d’artifice !'), sub: tr('Explosion en X'), tier: 0, gold: true } : { text: tr('Boum !'), sub: tr('Explosion en croix'), tier: 0 });
+    if (rocket && !calm) confetti(lay, t, 30);
+    if (!calm) anim.shake = 18;
+    sfx.bomb();
+  }
+  if (ev.chain) {
+    const banner = { text: tr('Réaction ×') + (ev.chain + 1), sub: tr('La gravité enchaîne'), tier: 0, gold: true };
+    if (calm) anim.banners.push(banner); else setTimeout(() => anim.banners.push(banner), WAVE_MS);
+  }
   for (const sp of ev.spawned || []) {
-    if ('row' in sp) continue;
     const at = t + 250;
+    if ('row' in sp) {
+      anim.banners.push({ text: tr('Courant !'), sub: tr('Une ligne a glissé'), tier: 0 });
+      if (!calm) anim.shifts.push({ row: sp.row, t0: at });
+      sfx.swoosh();
+      continue;
+    }
+    if (sp.kind === 'firefly') {
+      anim.pops.push({ r: sp.r, c: sp.c, t0: at });
+      burst(lay, { r: sp.r, c: sp.c, kind: 'ember' }, at, 6, 50, '#fff6a0');
+      setTimeout(() => sfx.coin(3), 250);
+      continue;
+    }
     if (sp.gone) {
+      // Left by itself (mole back underground, hole closing).
       anim.fades.push({ r: sp.r, c: sp.c, color: 0, bonus: null, kind: sp.kind, t0: t, delay: 250 });
       setTimeout(() => sfx.swoosh(), 250);
       continue;
     }
     if (sp.from) {
-      if (!anim.calm) anim.drops.set(sp.r * L.SIZE + sp.c, { t0: at, kind: sp.kind, dur: sp.hop ? 360 : 260, from: sp.from, hop: sp.hop });
+      if (!calm) anim.drops.set(sp.r * L.SIZE + sp.c, { t0: at, kind: sp.kind, dur: sp.hop ? 360 : 260, from: sp.from, hop: sp.hop });
       if (sp.hop) setTimeout(() => sfx.swoosh(), 250);
       continue;
     }
     const land = sp.kind === 'mushroom' || sp.grow ? 320 : 420;
-    if (!anim.calm) anim.drops.set(sp.r * L.SIZE + sp.c, { t0: at, kind: sp.kind, dur: land, grow: sp.grow });
+    if (!calm) anim.drops.set(sp.r * L.SIZE + sp.c, { t0: at, kind: sp.kind, dur: land, grow: sp.grow });
     setTimeout(() => {
       burst(lay, { r: sp.r, c: sp.c, kind: sp.kind }, now(), 6, 70);
-      if (sp.kind === 'mushroom' || sp.grow) sfx.grow(); else sfx.thunk();
-    }, 250 + (anim.calm ? 0 : land));
+      if (sp.kind === 'mushroom' || sp.grow) sfx.grow(); else if (sp.kind === 'ember' || sp.kind === 'lava') sfx.sizzle(); else sfx.thunk();
+    }, 250 + (calm ? 0 : land));
+  }
+}
+
+// Boss fights: hits and strikes (flash, "-N", sounds); the last hit blows the boss up (legacy bossEffects).
+function bossEffects(lay: Layout, ev: MoveEvents, state: RunState, t: number) {
+  const stage = state.stage;
+  if (!stage || stage.goal.type !== 'boss') return;
+  const hits = (ev.bossHits || []).length;
+  const [cx, cy] = bossCenter(lay);
+  if (hits) {
+    anim.bossHitAt = t;
+    anim.floaters.push({ text: '-' + hits, x: cx, y: cy - lay.cell, t0: t, big: true, scale: 1.2, tier: 2 });
+    for (const b of ev.bossHits!) burst(lay, { r: b.r, c: b.c, kind: 'boss' }, t, 5, 90, BOSS_LOOK[stage.world]);
+    sfx.thunk();
+    haptic('boss');
+    if (stage.won) {
+      anim.banners.length = 0;
+      anim.banners.push({ text: tr('Boss vaincu !'), sub: stage.goal.name || '', tier: 3 });
+      if (!anim.calm) { confetti(lay, t, 60); anim.shake = 20; }
+    }
+  }
+  if ((ev.spawned || []).some((sp) => 'attack' in sp && sp.attack)) {
+    anim.bossAttackAt = t;
+    anim.banners.push({ text: tr('Riposte !'), sub: tr`${stage.goal.name} contre-attaque`, tier: 0 });
+    sfx.fizzle();
   }
 }
 
@@ -302,16 +477,23 @@ export function commit(lay: Layout, idx: number, row: number, col: number): Move
   const pc = placed.reduce((s, p) => s + p[1], 0) / (placed.length || 1);
   if (ev.lines) {
     const combo = ev.combo || 0;
-    // Cleared cells go from the placed piece outwards.
+    // Cleared cells go from the placed piece outwards; in gravity worlds, wave by wave, and the blocks above fall.
+    const plan = ev.waves && ev.waves.length && !calm ? planFalls(ev.waves, t) : null;
     for (const cell of ev.cleared || []) {
-      const delay = Math.hypot(cell.r - pr, cell.c - pc) * 28;
-      anim.fades.push({ ...cell, t0: t, delay });
+      const wave = cell.wave || 0;
+      const delay = wave ? wave * WAVE_MS + cell.c * 12 : Math.hypot(cell.r - pr, cell.c - pc) * 28;
+      anim.fades.push({ ...cell, t0: t, delay, segs: plan?.fadeSegs.get(wave + ':' + (cell.r * L.SIZE + cell.c)) });
       burst(lay, cell, t + delay, 4, 60 + combo * 20);
+    }
+    if (plan) {
+      anim.tracks = plan.tracks;
+      for (const ms of plan.landings) setTimeout(() => sfx.land(), ms);
+      for (const ms of plan.chimes) setTimeout(() => sfx.clear(1, useGame.getState().saved.state.combo), ms);
     }
     const [fx, fy] = cellCenter(lay, pr, pc);
     const margin = lay.cell * 1.6;
     const tier = comboTier(combo, ev.lines);
-    anim.floaters.push({ text: '+' + ev.points, x: Math.max(margin, Math.min(lay.W - margin, fx)), y: fy, t0: t, big: true, scale: 1 + tier * 0.18, tier });
+    anim.floaters.push({ text: '+' + ev.points + (ev.nitro ? ' ×' + String(ev.nitro).replace('.', ',') : ''), x: Math.max(margin, Math.min(lay.W - margin, fx)), y: fy, t0: t, big: true, scale: 1 + tier * 0.18, tier });
     if (!calm) {
       for (const r of ev.rows || []) anim.sweeps.push({ row: r, t0: t });
       for (const c of ev.cols || []) anim.sweeps.push({ col: c, t0: t });
@@ -337,7 +519,8 @@ export function commit(lay: Layout, idx: number, row: number, col: number): Move
     anim.floaters.push({ text: '+' + Math.round(ev.timeGain! / 1000) + ' s', x: bx + lay.board - 30, y: by - 10, t0: t });
     sfx.time();
   }
-  if (res.state.obstacles) stageEffects(lay, ev, t);
+  if (res.state.stage || res.state.world || res.state.obstacles) stageEffects(lay, ev, t);
+  if (res.state.stage) bossEffects(lay, ev, res.state, t);
   refilled(ev.refilled || [], t);
   setState(res.state);
   afterChange(lay, res.state, t, !!ev.over);
@@ -399,6 +582,7 @@ export function fireBonus(lay: Layout, type: BonusType, target?: { r: number; c:
     anim.floaters.push({ text: '+' + ev.points, x: fx, y: fy, t0: t, big: true });
     launchFlyers(lay, ev.collected || [], t, (b) => Math.hypot(b.r - target.r, b.c - target.c) * 45);
     if (ev.perfect) anim.banners.push({ text: tr('Grille vide !'), sub: '+300', tier: 0 });
+    bossEffects(lay, ev, res.state, t);
     anim.shake = 18;
     sfx.bomb();
     haptic('bomb');
@@ -422,7 +606,7 @@ export function discardPiece(lay: Layout, idx: number, x: number, y: number): bo
   if (!res) return false;
   const t = now();
   payCoins(lay, res.events.cost || 0);
-  const color = TOY.palette[res.events.piece!.color] || TOY.ink;
+  const color = runPalette()[res.events.piece!.color] || TOY.ink;
   for (let k = 0; k < 14; k++) {
     const a = Math.random() * Math.PI * 2;
     const v = 80 + Math.random() * 160;
@@ -444,7 +628,7 @@ export function undoMove(lay: Layout): boolean {
   // An undone move doesn't keep its record.
   const { saved, setSaved } = useGame.getState();
   const key = recordKey(res.state);
-  const bests = { ...saved.bests, [key]: Math.max(anim.bestAtStart, res.state.score) };
+  const bests = keepsBest(res.state) ? { ...saved.bests, [key]: Math.max(anim.bestAtStart, res.state.score) } : saved.bests;
   setSaved({ ...saved, state: res.state, bests });
   payCoins(lay, res.events.cost || 0);
   refilled([0, 1, 2], t);

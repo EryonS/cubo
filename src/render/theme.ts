@@ -1,5 +1,6 @@
-// Cubo Blocks — Game themes as the renderer sees them (legacy themes/worlds.js THEMES). Milestone 2
-// ports the default Jouet theme; the world and season themes come with Aventure (milestone 6).
+// Cubo Blocks — Game themes as the renderer sees them (legacy themes/worlds.js THEMES). The Jouet theme
+// is here; the world and season themes are in board-themes.ts (colors) and decor/ (backgrounds).
+import type { Animate, Paint } from './decor/util';
 
 // Block colors by shape family (index = family + 1, see FAMILIES in core/logic.ts).
 export const TOY_PALETTE = [
@@ -8,7 +9,7 @@ export const TOY_PALETTE = [
 ] as const;
 
 export interface Frame { r: number; line?: string | null; lw?: number; inset?: number; glow?: string }
-export interface Plate { fill: string; line?: string | null; r: number; ink: string; sub: string; shadow?: string; lw?: number; inset?: number; glow?: string }
+export interface Plate { fill: string; line?: string | null; r: number; ink: string; sub: string; shadow?: string; lw?: number; inset?: number; glow?: string; dots?: boolean; bulbs?: string }
 export interface Theme {
   id: string;
   base: string; // background color
@@ -24,13 +25,13 @@ export interface Theme {
   frame: Frame;
   plate: Plate;
   tag: { fill: string; line?: string | null; ink: string; glow?: string };
+  pixel?: boolean; // Press Start 2P (Rétro, Arcade) at `scale` of the size
+  scale?: number;
+  paint?: Paint; // static background, recorded once per size
+  animate?: Animate; // per-frame decor drawn over it
   skin?: string; // equipped block skin (classic, neon, pixel, gold)
   patterns?: boolean; // color-blind marks on blocks (Réglages > Motifs)
 }
-
-// The theme for the equipped block skin and the Motifs setting. Board themes other than Jouet come
-// with milestone 6: equipping one keeps this look in game for now.
-export const themeFor = (skin: string, patterns: boolean): Theme => ({ ...TOY, skin, patterns });
 
 export const TOY: Theme = {
   id: 'toy',

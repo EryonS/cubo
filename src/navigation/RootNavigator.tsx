@@ -9,7 +9,7 @@ import { PlayScreen } from '../screens/PlayScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ShopScreen } from '../screens/ShopScreen';
-import { colors } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { fonts } from '../theme/fonts';
 import { Icon, type IconName } from '../ui/Icon';
 import type { RootParams, TabParams } from './types';
@@ -20,6 +20,7 @@ const Stack = createNativeStackNavigator<RootParams>();
 const icon = (name: IconName) => ({ color, size }: { color: string; size: number }) => <Icon name={name} color={color} size={size} />;
 
 function Tabs() {
+  const colors = useColors();
   return (
     <Tab.Navigator
       screenOptions={{

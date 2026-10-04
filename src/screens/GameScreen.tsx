@@ -22,7 +22,7 @@ import { cuboHit, cuboSpot } from '../mascot/state';
 import { dragGeometry, easeOut, LIFT_MS } from '../game/drag';
 import { hasInventory, trashView, undoView } from '../game/hud';
 import {
-  bestOf, commit, discardPiece, enterRun, fireBonus, giveUpRun, liveRun, persistRun, quitRun, restartRun, rotateTray,
+  bestOf, commit, discardPiece, enterRun, fireBonus, giveUpRun, liveRun, persistRun, quitRun, restartRun, rotateTray, restartCurrent,
   setAiming, setEndHandler, stepFlyers, syncBudget, tapCubo, tickRun, undoMove, useRunHud, type RunEnd,
 } from '../game/run';
 import { boardCellAt, computeLayout, invAt, miniCell, overTrash, slotAt, HUD_BTN, type Layout } from '../render/layout';
@@ -32,8 +32,9 @@ import {
   drawInventory, drawMascot, drawParticles, drawPiece, drawRecordFlag, drawReturning, drawSweeps, drawTray, drawTrash, frameFx, ghostOf, paintBackground,
 } from '../render/draw';
 import { drawIcon } from '../render/icons';
-import { useBaloo } from '../render/font';
-import { themeFor } from '../render/theme';
+import { useBaloo, usePixel } from '../render/font';
+import { Ctx } from '../render/ctx2d';
+import { themeFor, worldOf } from '../render/board-themes';
 import { sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
 import type { RootParams } from '../navigation/types';
@@ -51,9 +52,9 @@ import { GameOver } from './GameOver';
 const now = () => performance.now();
 const fmt = (n: number) => n.toLocaleString(locale());
 
-function record(lay: Layout, typeface: SkTypeface | null, paint: (g: G) => void): SkPicture {
+function record(lay: Layout, typeface: SkTypeface | null, paint: (g: G) => void, pixel: SkTypeface | null = null): SkPicture {
   const rec = Skia.PictureRecorder();
-  const g = new G(rec.beginRecording(Skia.XYWHRect(0, 0, lay.W, lay.H)), typeface);
+  const g = new G(rec.beginRecording(Skia.XYWHRect(0, 0, lay.W, lay.H)), typeface, pixel);
   paint(g);
   return rec.finishRecordingAsPicture();
 }
@@ -93,6 +94,7 @@ export function GameScreen() {
   const nav = useNavigation<NavigationProp<RootParams>>();
   const insets = useSafeAreaInsets();
   const typeface = useBaloo();
+  const pixel = usePixel();
   const [size, setSize] = useState<{ W: number; H: number } | null>(null);
   const lay = useMemo(() => (size ? computeLayout({ ...size, safeTop: insets.top }) : null), [size, insets.top]);
   const [end, setEnd] = useState<RunEnd | null>(null);
@@ -102,10 +104,16 @@ export function GameScreen() {
   const patterns = useGame((s) => s.saved.settings.patterns);
   const mascot = useGame((s) => s.saved.settings.mascot);
   const wear = useGame((s) => s.profile.equipped.cubo);
-  const th = useMemo(() => themeFor(skin, patterns), [skin, patterns]);
+  const board = useGame((s) => s.profile.equipped.boards);
+  // An Aventure level or a Mondes run wears its world's theme, else the equipped one.
+  const world = useGame((s) => worldOf(s.saved.state));
+  const th = useMemo(() => themeFor({ world }, board, skin, patterns), [world, board, skin, patterns]);
 
   const background = useMemo(() => (lay ? record(lay, null, (g) => paintBackground(g, th, lay.W, lay.H)) : null), [lay, th]);
   const runPicture = useSharedValue<SkPicture>(emptyPicture());
+  // Animated decor (clouds, bubbles, fireworks...): a third picture, redrawn at ~25 fps, drawn under the run.
+  const decorPicture = useSharedValue<SkPicture>(emptyPicture());
+  const lastDecor = useRef(0);
 
   // The dragged shape, on the UI thread: finger position, pick-up progress (0..1), its picture.
   const dragX = useSharedValue(0);
@@ -170,6 +178,11 @@ export function GameScreen() {
       acc.current = 0;
     } else if (blocked()) acc.current = 0;
     stepFlyers(lay, t);
+    if (th.animate && t - lastDecor.current >= 40) {
+      lastDecor.current = t;
+      const animate = th.animate;
+      decorPicture.value = record(lay, null, (g) => animate(new Ctx(g), lay.W, lay.H, t));
+    }
     st = useGame.getState().saved.state;
     if (!dirty.current && st === lastDrawn.current && !d && !aim && !animating(t)) {
       // Only decoration waves (pennant, combo glow, clock, Cubo breathing): half rate or less, and idle again once they are gone.
@@ -184,6 +197,7 @@ export function GameScreen() {
     const best = bestOf(st);
     const coins = useGame.getState().profile.coins;
     runPicture.value = record(lay, typeface, (g) => {
+      g.face(th);
       drawHUD(g, th, lay, st, best, t);
       // Shake and punch move the board group only, not the band or the tray.
       const fx = frameFx(lay, t);
@@ -208,8 +222,8 @@ export function GameScreen() {
       drawFloaters(g, th, lay, t);
       drawFlyers(g, lay, t);
       drawBanner(g, th, lay, t);
-    });
-  }, [lay, typeface, th, mascot, wear, runPicture, dragX, dragY]);
+    }, pixel);
+  }, [lay, typeface, pixel, th, mascot, wear, runPicture, dragX, dragY]);
 
   // Reduced motion (legacy calm()): no shake, punch, sweeps, confetti, wobble.
   useEffect(() => {
@@ -248,7 +262,7 @@ export function GameScreen() {
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, [frame]));
-  useEffect(() => { dirty.current = true; }, [lay, typeface, th, mascot, wear]);
+  useEffect(() => { dirty.current = true; decorPicture.value = emptyPicture(); }, [lay, typeface, pixel, th, mascot, wear, decorPicture]);
 
   // ---------- touch: pieces, bomb, inventory buttons ----------
   const onDown = useCallback((x: number, y: number) => {
@@ -389,7 +403,7 @@ export function GameScreen() {
     if (st.moves > 0 && !st.over && !(await ask({ title: tr('Recommencer ?'), text, ok: tr('Recommencer'), danger: true }))) return;
     pauseRef.current?.dismiss();
     setEnd(null);
-    restartRun({ mode: st.mode, level: st.level });
+    restartCurrent();
     dirty.current = true;
   };
   const confirmQuit = async () => {
@@ -400,9 +414,8 @@ export function GameScreen() {
     dirty.current = true;
   };
   const again = useCallback(() => {
-    const st = useGame.getState().saved.state;
     setEnd(null);
-    restartRun({ mode: st.mode, level: st.level });
+    restartCurrent();
     dirty.current = true;
   }, []);
 
@@ -415,6 +428,7 @@ export function GameScreen() {
         <GestureDetector gesture={pan}>
           <Canvas style={{ flex: 1 }}>
             <Picture picture={background} />
+            <Picture picture={decorPicture} />
             <Picture picture={runPicture} />
             <Group transform={dragTransform}>
               <Picture picture={dragPicture} />

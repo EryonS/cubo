@@ -75,3 +75,6 @@ export function celebrate(status: MissionView[], announced: Set<string>): Missio
 }
 export const alreadyDone = (status: MissionView[]) => new Set(status.filter((m) => m.done).map((m) => m.id));
 export const missionsDone = (status: MissionView[]) => status.filter((m) => m.done).length;
+
+// Boss hit points left (the goal's target minus the progress).
+export const bossLeft = (state: RunState) => (state.stage ? Math.max(0, state.stage.goal.target - state.stage.progress) : 0);

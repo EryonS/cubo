@@ -1,11 +1,13 @@
 // Toy button: primary (violet) or ghost (pale), pill shaped, with the thick bottom edge.
 import { Pressable, type PressableProps } from 'react-native';
-import { colors, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { Text } from './Text';
 
 type Props = PressableProps & { label: string; sub?: string; kind?: 'primary' | 'ghost' | 'danger' };
 
 export function Button({ label, sub, kind = 'primary', style, ...rest }: Props) {
+  const colors = useColors();
   const primary = kind !== 'ghost';
   const danger = kind === 'danger';
   return (

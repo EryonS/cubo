@@ -324,6 +324,7 @@ add('en', {
   '{} / {} PV': '{} / {} HP',
   'Boss vaincu !': 'Boss beaten!',
   'Riposte !': 'Strike back!',
+  '{} contre-attaque': '{} strikes back',
   'Dès le niveau {} : {}': 'From level {}: {}',
   'Maintenir pour jeter': 'Hold to discard',
   'Lâcher pour jeter': 'Release to discard',

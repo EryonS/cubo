@@ -1,9 +1,11 @@
 // Cubo Blocks — The colors of every board theme (legacy themes/worlds.js and themes/events.js), for
 // previews in the Boutique. In game, board themes other than Jouet come with milestone 6: until
 // then the run keeps the Jouet look. Generated once from the legacy tables; decor is not ported.
+import { EVENT_DECOR } from './decor/events';
+import { WORLD_DECOR } from './decor/worlds';
 import { TOY, TOY_PALETTE, type Theme } from './theme';
 
-type Look = Omit<Theme, 'id' | 'palette' | 'dots' | 'skin' | 'patterns' | 'shadow'> & { palette?: readonly (string | null)[]; shadow?: string };
+type Look = Omit<Theme, 'id' | 'palette' | 'dots' | 'skin' | 'patterns' | 'shadow' | 'paint' | 'animate'> & { palette?: readonly (string | null)[]; shadow?: string };
 
 const LOOKS: Record<string, Look> = {
   toy: {
@@ -78,10 +80,11 @@ const LOOKS: Record<string, Look> = {
     accent: '#ffe066',
     danger: '#ff7a6a',
     frame: { r: 20, line: '#5a8a4a', lw: 2.5, inset: 3 },
-    plate: { fill: '#e84a4a', line: '#ffffff', lw: 3, inset: 5, r: 24, ink: '#ffffff', sub: '#ffe0e0' },
+    plate: { fill: '#e84a4a', line: '#ffffff', lw: 3, inset: 5, r: 24, ink: '#ffffff', sub: '#ffe0e0', dots: true },
     tag: { fill: '#ffe066', ink: '#2a2400' },
   },
   retro: {
+    pixel: true, scale: 0.62,
     base: '#9bbc0f',
     board: '#8bac0f',
     empty: '#9bbc0f',
@@ -94,6 +97,7 @@ const LOOKS: Record<string, Look> = {
     tag: { fill: '#306230', ink: '#9bbc0f' },
   },
   arcade: {
+    pixel: true, scale: 0.62,
     base: '#1a0b3d',
     board: 'rgba(13,6,36,0.86)',
     empty: '#1d1147',
@@ -102,7 +106,7 @@ const LOOKS: Record<string, Look> = {
     accent: '#36f9ff',
     danger: '#ff3fd0',
     frame: { r: 12, line: '#7a4dff', lw: 2, inset: 2, glow: '#7a4dff' },
-    plate: { fill: 'rgba(13,6,36,0.9)', line: '#36f9ff', lw: 2, inset: 4, r: 10, ink: '#ffffff', sub: '#ff3fd0', glow: '#36f9ff'},
+    plate: { fill: 'rgba(13,6,36,0.9)', line: '#36f9ff', lw: 2, inset: 4, r: 10, ink: '#ffffff', sub: '#ff3fd0', glow: '#36f9ff', bulbs: '#ffe600' },
     tag: { fill: '#ff3fd0', ink: '#1a0b3d', glow: '#ff3fd0' },
   },
   volcano: {
@@ -203,9 +207,27 @@ const LOOKS: Record<string, Look> = {
   },
 };
 
-// The theme of a board id as the preview draws it (Jouet when unknown).
+const DECOR = { ...WORLD_DECOR, ...EVENT_DECOR };
+
+// The theme of a board id: colors, fonts and the decor painted behind the board (Jouet when unknown).
 export function boardTheme(id: string, skin = 'classic'): Theme {
   const look = LOOKS[id];
   if (!look || id === 'toy') return { ...TOY, skin };
-  return { ...TOY, ...look, id, palette: look.palette || TOY_PALETTE, dots: undefined, skin, shadow: look.shadow || 'rgba(0,0,0,0.4)' };
+  const decor = DECOR[id] || {};
+  return { ...TOY, ...look, id, palette: look.palette || TOY_PALETTE, dots: undefined, skin, shadow: look.shadow || 'rgba(0,0,0,0.35)', paint: decor.paint, animate: decor.animate };
 }
+
+// Rétro levels squash every shape family into three LCD greens (the world's drawback).
+const RETRO4: readonly (string | null)[] = [null, ...Array.from({ length: 14 }, (_, i) => ['#0f380f', '#306230', '#4d7a1e'][i % 3])];
+
+// The theme being played: the world of an Aventure level / Mondes run, else the equipped board,
+// with the equipped block skin and the Motifs setting (legacy themes/current.js).
+export const worldOf = (st: { stage?: { world: string } | null; world?: string | null }) => (st.stage ? st.stage.world : st.world) || null;
+export function themeFor(st: { stage?: { world: string } | null; world?: string | null }, board: string, skin: string, patterns: boolean): Theme {
+  const id = worldOf(st) || board;
+  const th = boardTheme(LOOKS[id] ? id : 'toy', skin);
+  return { ...th, patterns, palette: id === 'retro' ? RETRO4 : th.palette };
+}
+
+// Block colors of the theme being played (confetti, specks).
+export const paletteFor = (st: { stage?: { world: string } | null; world?: string | null }, board: string) => themeFor(st, board, 'classic', false).palette;

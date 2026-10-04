@@ -8,6 +8,12 @@ import type { Banner } from './juice';
 // The piece being dragged: tray slot, finger position, how high it floats, pick-up time.
 export interface DragState { idx: number; x: number; y: number; lift: number; t0: number; sx: number; sy: number }
 
+// One fall of a block, in rows: it starts at t0, takes dur ms, then bounces a little (legacy planFalls).
+export interface FallSeg { t0: number; dur: number; from: number; to: number }
+export const WAVE_MS = 430; // gravity chain: time between two clear waves
+export const FALL_AFTER = 240; // falls start once the wave's cells have faded
+export const fallMs = (rows: number) => 110 + 55 * rows;
+
 export interface Particle {
   x: number; y: number; vx: number; vy: number; t0: number; life: number; size: number; color: string;
   g?: number; star?: boolean; rot?: number; vr?: number;
@@ -28,13 +34,17 @@ export const anim = {
   displayScore: 0,
   bestAtStart: 0,
   pops: [] as { r: number; c: number; t0: number }[], // freshly placed cells
-  fades: [] as (ClearedCell & { t0: number; delay: number })[], // cleared cells shrinking out
+  fades: [] as (ClearedCell & { t0: number; delay: number; segs?: FallSeg[] })[], // cleared cells shrinking out
   floaters: [] as { text: string; x: number; y: number; t0: number; big?: boolean; scale?: number; tier?: number }[],
   returning: [] as { idx: number; x: number; y: number; size: number; t0: number }[], // pieces flying back to the tray
   slotIn: [0, 0, 0], // slide-in time of each slot's piece
   slotSpin: [0, 0, 0], // when each slot's piece was last turned (Toupie, Chill)
   flyers: [] as Flyer[],
   drops: new Map<number, Drop>(), // cell index -> arrival of a special cell
+  tracks: new Map<number, FallSeg[]>(), // final cell index -> fall segments (gravity worlds)
+  shifts: [] as { row: number; t0: number }[], // rows sliding with the sea current
+  bossHitAt: 0, // boss: last hit / last strike back
+  bossAttackAt: 0,
   aiming: null as Aim | null,
   trash: null as Trash | null,
   lastTickSec: -1, // chrono: last second a tick sound played
@@ -59,7 +69,7 @@ export function resetAnim(t: number, score: number, best: number) {
   Object.assign(anim, {
     displayScore: score, bestAtStart: best, pops: [], fades: [], floaters: [], returning: [],
     slotIn: [t, t, t], slotSpin: [0, 0, 0], nextIn: t, overAt: 0,
-    flyers: [], drops: new Map(), aiming: null, trash: null, lastTickSec: -1,
+    flyers: [], drops: new Map(), tracks: new Map(), shifts: [], bossHitAt: 0, bossAttackAt: 0, aiming: null, trash: null, lastTickSec: -1,
     sweeps: [], punch: null, shake: 0, comboAt: 0, comboBreak: null, particles: [], banners: [],
     recordAnnounced: false, flagDownAt: 0, lastT: t,
   });
@@ -67,7 +77,8 @@ export function resetAnim(t: number, score: number, best: number) {
 
 // Something moves for sure: the frame loop draws every frame.
 export const animating = (t: number) => anim.pops.length > 0 || anim.fades.length > 0 || anim.floaters.length > 0
-  || anim.returning.length > 0 || anim.flyers.length > 0 || anim.drops.size > 0 || anim.aiming !== null
+  || anim.returning.length > 0 || anim.flyers.length > 0 || anim.drops.size > 0 || anim.tracks.size > 0 || anim.shifts.length > 0 || anim.aiming !== null
+  || t - Math.max(anim.bossHitAt, anim.bossAttackAt) < 450
   || anim.slotSpin.some((s) => s > 0 && t - s < 300) || Math.round(anim.displayScore) !== anim.displayScore
   || t - Math.max(...anim.slotIn, anim.nextIn) < 400 || (anim.overAt > 0 && t - anim.overAt < 900)
   || anim.sweeps.length > 0 || anim.punch !== null || anim.shake > 0.05 || anim.particles.length > 0
@@ -77,8 +88,13 @@ export const animating = (t: number) => anim.pops.length > 0 || anim.fades.lengt
 // Only decoration waves: a running combo (glow and tag pulse) or the record pennant flying.
 // The loop redraws these at half rate and goes idle once they are gone.
 // Also the running clock (Chrono), draining bonus rings, the stuck hint and the turn-able tray pulse.
+// Obstacles that move by themselves (flicker, bob, sway, spin).
+const LIVELY = new Set(['ember', 'ghost', 'heart', 'water', 'crab', 'lantern', 'firecracker', 'rocket', 'jelly', 'hole', 'lava', 'glitch']);
 export const ambient = (state: RunState) => {
   if (state.over) return false;
+  const stage = state.stage;
+  if (stage && (stage.clock || stage.goal.type === 'boss' || (!stage.clock && stage.movesLeft <= 3))) return true;
+  if (state.special && Object.values(state.special).some((sp) => sp && LIVELY.has(sp.kind))) return true;
   if (state.mode === 'chrono' || state.stuck || Object.values(state.effects || {}).some((ms) => ms > 0)) return true;
   return !anim.calm && (state.combo >= 1 || (anim.bestAtStart > 0 && state.score <= anim.bestAtStart));
 };

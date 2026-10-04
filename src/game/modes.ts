@@ -57,3 +57,6 @@ export function guardFree(state: RunState, parked: RunState | null): { needed: b
   const which = freeInProgress(state) || parked ? tr('Ta partie libre en cours') : tr('La partie en cours');
   return { needed: inProgress(state) || !!parked, text: which + tr(' s’arrête. Les pièces gagnées sont gardées.') };
 }
+
+// Only free runs and Mondes keep a record: Aventure levels and puzzles have none.
+export const keepsBest = (st: Pick<RunState, 'mode'>) => st.mode !== 'adventure' && st.mode !== 'puzzle';

@@ -18,14 +18,23 @@ export class G {
   // globalAlpha: multiplies every color drawn (the legacy ctx.globalAlpha).
   alpha = 1;
   private fonts = new Map<number, SkFont>();
+  // The theme's text face: Press Start 2P at a fraction of the size for Rétro and Arcade (legacy themeFont).
+  private pixel = false;
+  private fscale = 1;
+  // A glow under the text drawn next (the score of glowing plates).
+  textGlow: { color: string; blur: number } | null = null;
 
-  constructor(readonly c: SkCanvas, private typeface: SkTypeface | null) {}
+  constructor(readonly c: SkCanvas, private typeface: SkTypeface | null, private pixelFace: SkTypeface | null = null) {}
+
+  face(th: { pixel?: boolean; scale?: number }) { this.pixel = !!th.pixel && !!this.pixelFace; this.fscale = th.scale || 1; }
 
   font(size: number): SkFont {
-    const key = Math.round(size * 2) / 2;
+    const px = Math.round(size * this.fscale * 2) / 2;
+    const key = this.pixel ? -px : px;
     let f = this.fonts.get(key);
     if (!f) {
-      f = this.typeface ? Skia.Font(this.typeface, key) : Skia.Font(undefined, key);
+      const face = this.pixel ? this.pixelFace : this.typeface;
+      f = face ? Skia.Font(face, px) : Skia.Font(undefined, px);
       this.fonts.set(key, f);
     }
     return f;
@@ -114,13 +123,17 @@ export class G {
   }
 
   textWidth(text: string, size: number) {
-    return this.font(size).getTextWidth(text);
+    return this.font(size).getTextWidth(this.plain(text));
   }
 
   // Text at (x, y) on its alphabetic baseline; align as canvas textAlign. outline: a stroke drawn
   // under the fill (legacy strokeText then fillText).
+  // Press Start 2P has no narrow no-break space (the thousands separator): plain spaces there.
+  private plain(text: string) { return this.pixel ? text.replace(/[\u00a0\u202f]/g, ' ') : text; }
+
   text(text: string, x: number, y: number, size: number, color: string, align: 'left' | 'center' | 'right' = 'left',
     outline?: { color: string; width: number }, gradient?: { colors: string[]; x0: number; x1: number }) {
+    text = this.plain(text);
     const f = this.font(size);
     const w = align === 'left' ? 0 : f.getTextWidth(text);
     const tx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
@@ -129,7 +142,7 @@ export class G {
       p.setStrokeJoin(1); // round
       this.c.drawText(text, tx, y, p, f);
     }
-    const fill = this.paint(color);
+    const fill = this.paint(color, this.textGlow ? { shadow: { color: this.textGlow.color, blur: this.textGlow.blur } } : {});
     if (gradient) {
       fill.setShader(Skia.Shader.MakeLinearGradient({ x: gradient.x0, y: 0 }, { x: gradient.x1, y: 0 },
         gradient.colors.map((c) => Skia.Color(c)), null, TileMode.Clamp));
