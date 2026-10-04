@@ -17,6 +17,7 @@ export function Button({ label, sub, kind = 'primary', style, ...rest }: Props) 
         paddingVertical: space.m,
         paddingHorizontal: space.xl,
         alignItems: 'center',
+        justifyContent: 'center',
         borderBottomWidth: 4,
         borderBottomColor: primary ? '#5b3fd9' : colors.edge,
         transform: [{ translateY: s.pressed ? 2 : 0 }],

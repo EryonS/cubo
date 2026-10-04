@@ -86,9 +86,15 @@ export function GameScreen() {
     });
   }, [lay, typeface, runPicture, dragX, dragY]);
 
+  // Entering the screen starts (or resumes) the run once per focus. Kept apart from the frame
+  // loop below, which restarts whenever draw changes (layout, font loaded): re-entering the run
+  // there would reset the record the score band compares against.
   useFocusEffect(useCallback(() => {
     if (useGame.getState().saved.state.over) newRun();
     else enterRun();
+    dirty.current = true;
+  }, []));
+  useFocusEffect(useCallback(() => {
     dirty.current = true;
     let raf = 0;
     const loop = () => { draw(); raf = requestAnimationFrame(loop); };
