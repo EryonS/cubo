@@ -710,7 +710,7 @@ const STICKERS: Sticker[] = [
   { id: 'multi4', page: 'combo', name: tr('Quadruple'), hint: tr("Efface 4 lignes d'un coup"), test: (p) => lt(p, 'bestMulti') >= 4 },
   { id: 'perfect', page: 'combo', name: tr('Grille vide'), hint: tr('Vide toute la grille'), test: (p) => lt(p, 'perfects') >= 1 },
   { id: 'score5k', page: 'combo', name: tr('5 000 points'), hint: tr('Fais 5 000 points en une partie'), test: (p) => lt(p, 'score') >= 5000 },
-  ...WORLD_ORDER.map((w, i) => ({
+  ...WORLD_ORDER.map((w) => ({
     id: 'world-' + w, page: 'explorer', world: w, reward: 30,
     name: WORLD_NAMES[w],
     hint: tr('Bats le boss de ce monde'), test: (p: Profile) => levelCleared(p, w, LEVELS_PER_WORLD) && levelStars(p, w, LEVELS_PER_WORLD) > 0,

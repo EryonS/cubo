@@ -197,14 +197,14 @@ test('a bush may hide an egg: found eggs count and pay a coin', () => {
 });
 
 test('crabs walk sideways and turn at walls', () => {
-  let state = eventGame('beach', 2, [[24 + 7, 'crab', { dir: 1 }]]);
+  const state = eventGame('beach', 2, [[24 + 7, 'crab', { dir: 1 }]]);
   const res = L.place(state, 0, 7, 0);
   assert.equal(res.state.special[24 + 6].kind, 'crab');
   assert.equal(res.state.special[24 + 6].dir, -1);
 });
 
 test('the tide floods the lowest row with room every 8 moves, then leaves', () => {
-  let state = eventGame('beach', 2, []);
+  const state = eventGame('beach', 2, []);
   for (let c = 0; c < 8; c++) if (c !== 3 && c !== 5) state.board[56 + c] = 2;
   state.moves = 7;
   const res = L.place(state, 0, 0, 0);

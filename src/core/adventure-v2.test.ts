@@ -35,7 +35,7 @@ test('20 levels a world: a trial at 10, a boss fight at 20', () => {
 });
 
 test('the boss sits in the center and a line through it takes 2 hp without removing it', () => {
-  let state = bossGame();
+  const state = bossGame();
   const cells = bossCells(state);
   assert.equal(cells.length, 4);
   assert.deepEqual(cells, [27, 28, 35, 36]);

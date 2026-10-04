@@ -85,7 +85,7 @@ test('solving every puzzle wins it, no line is ever cleared', () => {
 });
 
 test('undo walks back several placements, hints stay counted', () => {
-  let st = start(20);
+  const st = start(20);
   const first = st;
   const a = L.puzzleHint(st).state;
   const b = L.puzzleHint(a).state;

@@ -29,7 +29,7 @@ test('first clear pays, new stars pay, replays without progress pay nothing', ()
 });
 
 test('beating a boss unlocks the world theme once and opens the next world', () => {
-  let p = clearWorld(fresh(), 'plain', 2);
+  const p = clearWorld(fresh(), 'plain', 2);
   assert.ok(p.owned.boards.includes('plain'));
   assert.equal(M.worldOpen(p, 'sea'), true); // 20 stars >= 18
   const again = M.applyLevel(p, 'plain', 10, 3);
