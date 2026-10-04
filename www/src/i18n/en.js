@@ -712,7 +712,7 @@
     'Boutique': 'Shop',
     'Thèmes': 'Themes',
     'Blocs': 'Blocks',
-    'Annuler': 'Undo',
+    'Annuler': 'Cancel',
     'Pièces : ouvrir la Boutique': 'Coins: open the Shop',
     'Annuler le dernier coup': 'Undo the last move',
     'Choisir le mode de la partie libre': 'Choose the free play mode',
