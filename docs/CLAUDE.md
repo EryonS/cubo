@@ -32,12 +32,12 @@ build is dropped. Until the switch-over (milestone 10):
   Sound: `src/audio/sfx.ts` and `songs.ts` (pure scores) played by `engine.ts` on react-native-audio-api;
   `wireAudio()` in App.tsx suspends everything in the background.
 - Boutique and game over (milestone 4): `src/screens/ShopScreen.tsx` (tabs Thèmes / Blocs / Cubo / Bonus; skin previews
-  through `src/ui/DrawCanvas.tsx` + `render/preview.ts`; Cubo cards use the placeholder `render/cubo-preview.ts` until
-  milestone 5; theme previews show board colors from `render/board-themes.ts`). Equipping a block skin applies in game
+  through `src/ui/DrawCanvas.tsx` + `render/preview.ts`; Cubo cards use `render/cubo-preview.ts`; theme previews show board colors from `render/board-themes.ts`). Equipping a block skin applies in game
   at once (`themeFor`). Game over: `src/screens/GameOver.tsx`, summary tiles in `game/summary.ts`; the rewarded "double
   coins" button is the `DoubleCoinsAd` hook (milestone 9). `ask()` dialogs render in a native Modal, over bottom sheets.
+- Cubo (milestone 5): `src/mascot/` = legacy `mascot/` (`looks.ts` CUBO_LOOKS + `cuboLookFor`, `state.ts` reactions / taps / spot / base mood, pure and tested; `body.ts`, `hats.ts`, `fx.ts` draw through `G`; `say.ts` line of the day). Board Cubo: `drawMascot` in render/draw.ts, `anim.mascot` (setting) shrinks the score band, `react()` hooks in game/run.ts, `ambientGap()` keeps breathing/blink at 15 fps. Still poses (home, game over, Boutique): `ui/CuboPose.tsx`, `render/cubo-preview.ts`.
 - Not ported yet (milestones 4-9): bonus icons on blocks, inventory, undo, trash,
-  other modes and themes, every screen beyond the 4 placeholder tabs, Cubo, ads, cloud save. The sections
+  other modes and themes, every screen beyond the 4 placeholder tabs, ads, cloud save. The sections
   below still describe the legacy game.
 - Simulator checks without hands: `idb ui tap/swipe` (fb-idb) drives the iOS simulator; points = pixels / 3.
 
