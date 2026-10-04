@@ -1,7 +1,7 @@
 // Styled confirmation dialog (legacy ui/dialog.js #ask): replaces the system Alert. `ask()` returns
 // a promise that resolves true when the player agrees; <AskHost/> is mounted once at the root, over
 // the navigator, so it also covers the native tab bar.
-import { View } from 'react-native';
+import { Modal, View } from 'react-native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { create } from 'zustand';
 import { tr } from '../core/i18n';
@@ -36,7 +36,9 @@ export function AskHost() {
   const opts = useAsk((s) => s.opts);
   if (!opts) return null;
   const done = (v: boolean) => useAsk.getState().done?.(v);
+  // A native Modal so the dialog also covers the bottom sheets (they live in a portal under the host).
   return (
+    <Modal transparent visible animationType="none" statusBarTranslucent onRequestClose={() => done(false)}>
     <Animated.View
       entering={FadeIn.duration(150)}
       accessibilityViewIsModal
@@ -55,5 +57,6 @@ export function AskHost() {
         </View>
       </Animated.View>
     </Animated.View>
+    </Modal>
   );
 }
