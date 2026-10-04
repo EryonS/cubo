@@ -16,6 +16,6 @@ Two `localStorage` keys:
 ## Gotchas
 - Bump `PROFILE_VERSION` and extend `migrate` for any profile shape change; add a test with an old-shape fixture.
 - The installed iOS PWA has its own storage, separate from Safari.
-- Native app: iOS may purge a WebView's `localStorage`; move to `@capacitor/preferences` (async) with the same JSON shapes.
+- Native app: iOS may purge a WebView's `localStorage`. Every game key is written through `CuboBlocksStore.set` (`www/src/platform/store.js`, loaded first), which also copies it to `@capacitor/preferences` (debounced 500 ms, flushed when the app goes to the background). At start-up, if `cuboblocks.profile.v1` is missing from `localStorage` but the backup has saves, they are put back and the page reloads once; copies wait for that check so a fresh profile never overwrites the backup. Add any new save key to `KEYS` in `store.js`.
 - Run state gained `world` (Mondes mode) and `upgrades` (bonus levels); both optional, old runs play as before. Mondes records live in `bests['worlds-<world>']`.
 - Puzzle runs carry `state.puzzle` and a full `undo` chain (a handful of small states).

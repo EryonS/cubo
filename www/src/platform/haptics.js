@@ -1,7 +1,25 @@
 // Cubo Blocks — Vibrations: one pattern per kind of moment (HAPTICS), and the refused-move feedback.
 'use strict';
 
-const buzz = (p) => { if (settings.vibrate && navigator.vibrate) navigator.vibrate(p); };
+// Native app: @capacitor/haptics (iOS has no navigator.vibrate). A pattern plays as one impact
+// per "on" pulse at its offset, the pulse length picking the strength.
+const nativeHaptics = window.Capacitor && Capacitor.isNativePlatform() && Capacitor.Plugins.Haptics;
+function impactPattern(p) {
+  const steps = typeof p === 'number' ? [p] : p;
+  let at = 0;
+  steps.forEach((ms, i) => {
+    if (i % 2 === 0) {
+      const style = ms <= 8 ? 'LIGHT' : ms <= 20 ? 'MEDIUM' : 'HEAVY';
+      setTimeout(() => nativeHaptics.impact({ style }).catch(() => {}), at);
+    }
+    at += ms;
+  });
+}
+const buzz = (p) => {
+  if (!settings.vibrate) return;
+  if (nativeHaptics) impactPattern(p);
+  else if (navigator.vibrate) navigator.vibrate(p);
+};
 // One vibration per kind of moment, from a light tick (pick, coin) to long rolls (win, game over).
 // Patterns are [on, off, on...] in ms. iOS Safari has no vibration API: they play in the app build.
 const HAPTICS = {

@@ -58,7 +58,22 @@ function syncStatusBar() {
   const meta = document.querySelector('meta[name="theme-color"]');
   const screen = [...document.querySelectorAll('.overlay.screen.show')].find((el) => !/\bout-(left|right)\b/.test(el.className));
   const color = screen ? getComputedStyle(screen.querySelector('.card')).backgroundColor : theme().base;
-  if (meta.getAttribute('content') !== color) meta.setAttribute('content', color);
+  if (meta.getAttribute('content') === color) return;
+  meta.setAttribute('content', color);
+  nativeStatusBar(color);
+}
+// Native app: the same color through @capacitor/status-bar, dark icons on a light background.
+// ('LIGHT' is the style for light backgrounds.) Android also takes the bar color.
+const statusBarPlugin = window.Capacitor && Capacitor.isNativePlatform() && Capacitor.Plugins.StatusBar;
+function nativeStatusBar(color) {
+  if (!statusBarPlugin) return;
+  const [r, g, b] = (color.match(/\d+(\.\d+)?/g) || [255, 255, 255]).map(Number);
+  const light = 0.299 * r + 0.587 * g + 0.114 * b > 150;
+  statusBarPlugin.setStyle({ style: light ? 'LIGHT' : 'DARK' }).catch(() => {});
+  if (Capacitor.getPlatform() === 'android') {
+    const hex = '#' + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+    statusBarPlugin.setBackgroundColor({ color: hex }).catch(() => {});
+  }
 }
 
 // env(safe-area-inset-top) is only readable through CSS.

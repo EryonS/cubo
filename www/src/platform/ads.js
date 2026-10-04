@@ -2,7 +2,7 @@
  * Cubo Blocks — rewarded ads. showRewarded() resolves true when the reward is earned, false when
  * the player closes the ad early or none could be shown.
  * Native app: AdMob (@capacitor-community/admob), with Google's consent form (UMP) where the law
- * asks for it (EU, UK...), shown before the first ad. Web: a 3-second stand-in, as before.
+ * asks for it (EU, UK...), then the iOS tracking prompt (ATT), shown before the first ad. Web: a 3-second stand-in, as before.
  */
 (function (root) {
   'use strict';
@@ -32,6 +32,11 @@
         let consent = await AdMob.requestConsentInfo();
         if (consent.isConsentFormAvailable && consent.status === 'REQUIRED') consent = await AdMob.showConsentForm();
         privacy = consent.privacyOptionsRequirementStatus === 'REQUIRED';
+        // iOS App Tracking Transparency: asked once, after the consent form, before the first ad.
+        if (cap.getPlatform() === 'ios') {
+          const att = await AdMob.trackingAuthorizationStatus().catch(() => null);
+          if (att && att.status === 'notDetermined') await AdMob.requestTrackingAuthorization().catch(() => {});
+        }
         await AdMob.initialize({ initializeForTesting: TESTING });
         return consent.canRequestAds !== false;
       })().catch(() => { ready = null; return false; });

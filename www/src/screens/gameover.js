@@ -73,6 +73,14 @@ async function shareRun(tiles, isRecord) {
     tr`${fmt(state.score)} points${isRecord ? tr(' · nouveau record') : ''}`,
     tiles.filter((x) => x.value !== '–').map((x) => `${x.label} : ${x.value}`).join(' · '),
   ].join('\n');
+  const nativeShare = window.Capacitor && Capacitor.isNativePlatform() && Capacitor.Plugins.Share;
+  if (nativeShare) {
+    // The native sheet rejects when closed without sharing: nothing to say then.
+    try { await nativeShare.share({ text }); } catch (err) {
+      if (!/cancel/i.test((err && err.message) || '')) flashShare(tr('Partage impossible ici'));
+    }
+    return;
+  }
   try {
     if (navigator.share) { await navigator.share({ text }); return; }
     await navigator.clipboard.writeText(text);

@@ -63,7 +63,7 @@
     device: () => device,
     // Saves the choice and switches; resolves once the core tables are in the new language.
     async apply(next) {
-      try { localStorage.setItem(KEY, next); } catch { /* private mode */ }
+      window.CuboBlocksStore.set(KEY, next);
       pref = next;
       I.setLang(langOf(next));
       document.documentElement.lang = I.lang();

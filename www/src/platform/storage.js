@@ -1,4 +1,5 @@
-// Cubo Blocks — Persistence: game, records, settings and profile in localStorage.
+// Cubo Blocks — Persistence: game, records, settings and profile in localStorage (copied to the
+// native backup by CuboBlocksStore, platform/store.js).
 'use strict';
 
 // ---------- persistence ----------
@@ -20,10 +21,10 @@ const recordKey = (st = state) => (st.mode === 'worlds' ? 'worlds-' + st.world :
 function save() {
   if (tut) return; // the scripted tutorial board is never saved
   if (keepsBest()) bests[recordKey()] = best;
-  try { localStorage.setItem(STORE_KEY, JSON.stringify({ state, parked, bests, settings, prefs })); } catch { /* private mode */ }
+  CuboBlocksStore.set(STORE_KEY, JSON.stringify({ state, parked, bests, settings, prefs }));
 }
 function saveProfile() {
-  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch { /* private mode */ }
+  CuboBlocksStore.set(PROFILE_KEY, JSON.stringify(profile));
 }
 
 const saved = loadJSON(STORE_KEY);
