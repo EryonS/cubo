@@ -20,6 +20,9 @@ export interface Saved {
   bests: Record<string, number>;
   settings: Settings;
   prefs: { mode: Mode; level: Level };
+  // The record of the run's mode before it started: a resumed run compares its score with this,
+  // not with bests (which already hold the run's own score once it beat the record).
+  startBest?: number;
 }
 
 // A value that does not parse is kept under <key>.broken (for a bug report) and treated as absent.
@@ -46,6 +49,7 @@ export function loadSaved(kv: KV, seed: number): Saved {
     bests: { ...(saved.bests || {}) },
     settings: { ...DEFAULT_SETTINGS, ...(saved.settings || {}) },
     prefs: { mode: 'classic', level: 'normal', ...(saved.prefs || {}) },
+    ...(typeof saved.startBest === 'number' ? { startBest: saved.startBest } : {}),
   };
 }
 

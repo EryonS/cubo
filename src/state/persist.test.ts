@@ -68,3 +68,11 @@ test('rollDay keeps the profile on the same day and deals new missions the next 
   assert.equal(next.day, '2026-10-05');
   assert.notDeepEqual(next.missions.map((m) => m.id), profile.missions.map((m) => m.id));
 });
+
+test('the record from before the run is saved with it (a resumed run compares against it)', () => {
+  const kv = memory();
+  const saved = loadSaved(kv, 5);
+  saveRun(kv, { ...saved, bests: { classic: 900 }, startBest: 500 });
+  assert.equal(loadSaved(kv, 6).startBest, 500);
+  assert.equal(loadSaved(memory(), 6).startBest, undefined);
+});

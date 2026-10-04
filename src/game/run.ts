@@ -30,8 +30,11 @@ function setState(state: RunState) {
 
 // Shows the saved run as a fresh or resumed run.
 export function enterRun() {
-  const { state } = useGame.getState().saved;
-  resetAnim(now(), state.score, bestOf(state));
+  const { state, startBest } = useGame.getState().saved;
+  const before = startBest ?? bestOf(state);
+  resetAnim(now(), state.score, before);
+  // A resumed run that already beat the record had its announcement: not again.
+  if (before > 0 && state.score > before) anim.recordAnnounced = true;
   if (state.over) anim.overAt = now() - 900;
 }
 
@@ -40,7 +43,9 @@ export function newRun() {
   const { profile, setProfile } = useGame.getState();
   const fresh = M.ensureDay(profile, today());
   if (fresh !== profile) setProfile(fresh);
-  setState(L.createGame(Date.now(), { mode: 'classic', level: 'normal', budget: fresh.coins, upgrades: fresh.upgrades }));
+  const state = L.createGame(Date.now(), { mode: 'classic', level: 'normal', budget: fresh.coins, upgrades: fresh.upgrades });
+  const { saved, setSaved } = useGame.getState();
+  setSaved({ ...saved, state, startBest: bestOf(state) });
   enterRun();
 }
 

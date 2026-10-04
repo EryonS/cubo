@@ -71,11 +71,11 @@ export class G {
   // Closed polygon (pennant, star), filled; opts as rrect.
   poly(points: [number, number][], color: string, opts: { shadow?: Shadow; alpha?: number } = {}) {
     if (points.length < 3) return;
-    const path = Skia.Path.Make();
-    path.moveTo(points[0][0], points[0][1]);
-    for (let i = 1; i < points.length; i++) path.lineTo(points[i][0], points[i][1]);
-    path.close();
-    this.c.drawPath(path, this.paint(color, opts));
+    const b = Skia.PathBuilder.Make();
+    b.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i++) b.lineTo(points[i][0], points[i][1]);
+    b.close();
+    this.c.drawPath(b.detach(), this.paint(color, opts));
   }
 
   // Stroked segment with round caps (the pennant's pole).
@@ -91,12 +91,12 @@ export class G {
 
   // Pie slice from the origin: radius R, angles a0..a1 in radians (canvas arc).
   wedge(R: number, a0: number, a1: number, color: string) {
-    const path = Skia.Path.Make();
-    path.moveTo(0, 0);
+    const b = Skia.PathBuilder.Make();
+    b.moveTo(0, 0);
     const d = (a1 - a0) / 6;
-    for (let i = 0; i <= 6; i++) path.lineTo(Math.cos(a0 + d * i) * R, Math.sin(a0 + d * i) * R);
-    path.close();
-    this.c.drawPath(path, this.paint(color));
+    for (let i = 0; i <= 6; i++) b.lineTo(Math.cos(a0 + d * i) * R, Math.sin(a0 + d * i) * R);
+    b.close();
+    this.c.drawPath(b.detach(), this.paint(color));
   }
 
   textWidth(text: string, size: number) {
