@@ -8,6 +8,7 @@
     "serve": "python3 -m http.server 8000 --directory www",
     "sync": "cap sync",
     "ios": "cap sync ios && cap open ios",
+    "ios:live": "sh tools/ios-live.sh",
     "android": "cap sync android && cap open android",
     "assets": "capacitor-assets generate --ios --android --iconBackgroundColor '#ffe3ee' --splashBackgroundColor '#ffeef4'",
     "balance": "node tools/balance.js 10",
