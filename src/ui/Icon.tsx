@@ -95,3 +95,12 @@ export function Flame({ size = 18, on = true, color }: { size?: number; on?: boo
     </Svg>
   );
 }
+
+// Streak freeze: an ice-blue snowflake, faded when the slot is empty.
+export function Snow({ size = 22, on = true, color }: { size?: number; on?: boolean; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" opacity={on ? 1 : 0.3}>
+      <Path d="M12 2.5v19M3.8 7.25l16.4 9.5M3.8 16.75l16.4-9.5M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5" fill="none" stroke={on ? '#3fb7e8' : color} strokeWidth={2.4} strokeLinecap="round" />
+    </Svg>
+  );
+}

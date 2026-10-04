@@ -5,18 +5,28 @@ import { tr } from '../core/i18n';
 import type { Earned } from '../core/meta';
 import type { Profile } from '../core/types';
 
-export interface LevelReport { earned: Earned[]; total: number; themeUnlocked: string | null }
+export interface LevelReport { earned: Earned[]; total: number; themeUnlocked: string | null; streak?: { count: number } | null; unlocked?: { id: string } | null }
 // Per start of a level: the win is paid once, a failed attempt counts once (even if bought moves run out again).
 export interface SettleFlags { key: string; won: boolean; failed: boolean }
 export const freshFlags = (): SettleFlags => ({ key: '', won: false, failed: false });
 
-interface Ending { world: string; n: number; stars: number; won: boolean; daily?: unknown; event?: unknown }
+interface Ending { world: string; n: number; stars: number; won: boolean; daily?: string; event?: unknown }
 
-// Applies stars, level rewards, stickers (on a win) or one recorded fail (on a loss). Daily and event levels
-// are settled by their own screens: untouched here.
+// Applies stars, level rewards, stickers (on a win) or one recorded fail (on a loss). A daily is paid here too; event levels are
+// settled by their own screen: untouched here.
 export function settleLevel(profile: Profile, stage: Ending, key: string, flags: SettleFlags, day: string): { profile: Profile; report: LevelReport | null; flags: SettleFlags } {
   const f = flags.key === key ? flags : { key, won: false, failed: false };
-  if (stage.daily || stage.event) return { profile, report: null, flags: f };
+  if (stage.event) return { profile, report: null, flags: f };
+  if (stage.daily) {
+    // A won daily: stars, first-clear coins, streak, week chest, gold skin. A lost one is only an attempt (counted when the run ended).
+    if (!stage.won || f.won) return { profile, report: null, flags: f };
+    const res = M.applyDaily(profile, stage.daily, day, stage.stars);
+    const rep = res.report;
+    const report: LevelReport = { earned: [...rep.earned], total: rep.total, themeUnlocked: null, streak: rep.streak, unlocked: rep.unlocked };
+    const st = M.checkStickers(res.profile, day);
+    for (const s of st.fresh) report.earned.push({ label: tr('Autocollant : ') + s.name, coins: s.reward || M.STICKER_REWARD });
+    return { profile: st.profile, report, flags: { ...f, won: true } };
+  }
   if (stage.won) {
     if (f.won) return { profile, report: null, flags: f };
     const res = M.applyLevel(profile, stage.world, stage.n, stage.stars);

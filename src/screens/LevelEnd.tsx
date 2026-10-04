@@ -3,14 +3,15 @@
 // then Carte / Rejouer or Réessayer / Suivant. The hook registers the level-end handler of the game
 // screen and settles the level (stars, rewards, one recorded fail per start) before the card shows.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, Share, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { M, LV, WD } from '../core';
 import { locale, tr } from '../core/i18n';
 import type { Earned } from '../core/meta';
 import { sfx } from '../audio/engine';
 import { freshFlags, levelMood, nextLevelOf, settleLevel, type LevelReport } from '../game/levelend';
-import { buyExtraMoves, setLevelEndHandler, type LevelEnd } from '../game/run';
+import { shareText, dailyWord } from '../game/daily';
+import { buyExtraMoves, setLevelEndHandler, startId, type LevelEnd } from '../game/run';
 import { cuboLookFor } from '../mascot/looks';
 import { haptic } from '../platform/haptics';
 import type { Layout } from '../render/layout';
@@ -24,6 +25,8 @@ import { CuboPose } from '../ui/CuboPose';
 import { StarRow } from '../ui/Stars';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
+import { Flame, Icon } from '../ui/Icon';
+import { DailyRefill } from '../ui/DailyRefill';
 
 const fmt = (n: number) => n.toLocaleString(locale());
 
@@ -37,11 +40,11 @@ export function useLevelEnd(): [LevelCardData | null, (c: LevelCardData | null) 
     setLevelEndHandler((end) => {
       const { profile, setProfile } = useGame.getState();
       const { stage } = end;
-      const key = `${stage.world}-${stage.n}-${end.state.seed}`;
+      const key = `${stage.world}-${stage.n}-${end.state.seed}-${startId()}`;
       const res = settleLevel(profile, stage, key, flags.current, today());
       flags.current = res.flags;
       if (res.profile !== profile) setProfile(res.profile);
-      if (stage.daily || stage.event) return; // settled by their own screens
+      if (stage.event) return; // season events settle on their own screen
       const lines = [...(end.run ? end.run.earned : []), ...(res.report ? res.report.earned : [])];
       setCard({ end, report: res.report, lines, total: lines.reduce((a, l) => a + l.coins, 0) });
     });
@@ -68,9 +71,10 @@ interface Props {
   onAgain: () => void;
   onNext: (to: [string, number]) => void;
   onRevived: () => void;
+  onMenu: () => void; // daily: back to the Défis tab
 }
 
-export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived }: Props) {
+export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onMenu }: Props) {
   const colors = useColors();
   const profile = useGame((s) => s.profile);
   const mascot = useGame((s) => s.saved.settings.mascot);
@@ -107,6 +111,15 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived }: P
     setEquipped(true);
   };
   const three = won && stage.stars >= 3;
+  const day = stage.daily;
+  const left = day ? M.dailyAttemptsLeft(profile, day, today()) : 0;
+  const streak = report?.streak;
+  const [shared, setShared] = useState<string | null>(null);
+  const share = async () => {
+    if (!day) return;
+    sfx.turn();
+    try { await Share.share({ message: shareText(day, WD.WORLDS[w].name, stage.stars, stage.movesLeft) }); } catch { setShared(tr('Partage impossible ici')); setTimeout(() => setShared(null), 1800); }
+  };
 
   return (
     <Animated.View entering={FadeIn.duration(200)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim, justifyContent: 'center', padding: space.m }}>
@@ -119,9 +132,20 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived }: P
               </Animated.View>
             )}
             <Text variant="title" style={{ fontSize: 30, textTransform: 'uppercase', textAlign: 'center' }}>{title}</Text>
-            <Text variant="muted">{WD.WORLDS[w].name} · {levelName(n)}</Text>
+            <Text variant="muted">{day ? `${dailyWord(day, today())} #${LV.dayNumber(day)} · ${WD.WORLDS[w].name}` : `${WD.WORLDS[w].name} · ${levelName(n)}`}</Text>
             <View style={{ marginVertical: 12 }}><StarRow n={stage.stars} size={44} gap={6} animate /></View>
             <Text variant="muted" style={{ textAlign: 'center' }}>{LV.goalText(stage.goal)} · {fmt(progress)} / {fmt(stage.goal.target)}</Text>
+            {streak && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
+                <Flame size={20} color={colors.text} />
+                <Text style={{ fontFamily: 'Baloo2-ExtraBold' }}>{tr`Série : ${streak.count} jour${streak.count > 1 ? 's' : ''}`}</Text>
+              </View>
+            )}
+            {report?.unlocked && (
+              <View style={{ alignSelf: 'stretch', marginTop: 10, padding: 10, paddingHorizontal: 12, borderRadius: radius.card - 6, borderWidth: 2, borderColor: colors.good }}>
+                <Text style={{ color: colors.good, fontFamily: 'Baloo2-ExtraBold' }}>{tr('Skin de blocs « Or » débloqué ! Équipe-le dans la Boutique, onglet Blocs.')}</Text>
+              </View>
+            )}
             {report?.themeUnlocked && (
               <View style={{ alignSelf: 'stretch', marginTop: 12 }}>
                 <View style={{ padding: 10, paddingHorizontal: 12, borderRadius: radius.card - 6, borderWidth: 2, borderColor: colors.good }}>
@@ -150,17 +174,31 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived }: P
                 </View>
               </View>
             )}
+            {day && <DailyRefill day={day} />}
             {outOfMoves && (
               <Opt label={tr`+${M.EXTRA_MOVES} coups pour finir (1 étoile max)`} disabled={profile.coins < moreCost} onPress={more}>
                 <Text variant="title" style={{ fontSize: 17, lineHeight: 22 }}>{moreCost}</Text><Coin size={16} />
               </Opt>
             )}
+            {day && won && (
+              <Pressable accessibilityRole="button" onPress={share} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.panel2, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
+                <Icon name="share" size={16} color={colors.text} />
+                <Text style={{ fontSize: 14 }}>{shared || tr('Partager le résumé')}</Text>
+              </Pressable>
+            )}
           </ScrollView>
-          <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: space.xl, paddingTop: space.m, paddingBottom: space.xl, backgroundColor: colors.panel }}>
-            <Button kind="ghost" label={tr('Carte')} onPress={() => onMap(w)} style={{ flex: 1, paddingHorizontal: 4 }} />
-            {!three && <Button kind={next ? 'ghost' : 'primary'} label={won ? tr('Rejouer') : tr('Réessayer')} onPress={onAgain} style={{ flex: 1, paddingHorizontal: 4 }} />}
-            {next && <Button label={tr('Suivant')} onPress={() => onNext(next)} style={{ flex: 1, paddingHorizontal: 4 }} />}
-          </View>
+          {day ? (
+            <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: space.xl, paddingTop: space.m, paddingBottom: space.xl, backgroundColor: colors.panel }}>
+              <Button kind="ghost" label={tr('Menu')} onPress={onMenu} style={{ flex: 1, paddingHorizontal: 4 }} />
+              {left > 0 && !three && <Button label={`${won ? tr('Rejouer') : tr('Réessayer')}${Number.isFinite(left) ? ` (${left})` : ''}`} onPress={onAgain} style={{ flex: 1.4, paddingHorizontal: 4 }} />}
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: space.xl, paddingTop: space.m, paddingBottom: space.xl, backgroundColor: colors.panel }}>
+              <Button kind="ghost" label={tr('Carte')} onPress={() => onMap(w)} style={{ flex: 1, paddingHorizontal: 4 }} />
+              {!three && <Button kind={next ? 'ghost' : 'primary'} label={won ? tr('Rejouer') : tr('Réessayer')} onPress={onAgain} style={{ flex: 1, paddingHorizontal: 4 }} />}
+              {next && <Button label={tr('Suivant')} onPress={() => onNext(next)} style={{ flex: 1, paddingHorizontal: 4 }} />}
+            </View>
+          )}
         </View>
       </Animated.View>
     </Animated.View>

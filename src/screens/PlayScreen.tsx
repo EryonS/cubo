@@ -8,6 +8,7 @@ import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { M, LV, PZ, WD } from '../core';
 import { locale, tr } from '../core/i18n';
 import { freeInProgress, guardFree, inProgress, LEVEL_NAMES, MODE_NAMES, modeLabel, modeSub } from '../game/modes';
+import { tileSub } from '../game/daily';
 import { missionStatus, restartRun, resumeParked } from '../game/run';
 import { cuboLookFor } from '../mascot/looks';
 import { cuboLine } from '../mascot/say';
@@ -105,11 +106,8 @@ export function PlayScreen() {
   const preview = useMemo(() => boardTheme(heroWorld, profile.equipped.blocks), [heroWorld, profile.equipped.blocks]);
   const day = today();
   const daily = M.dailyOf(profile, day);
-  const left = M.dailyAttemptsLeft(profile, day, day);
   const streak = M.streakNow(profile, day);
-  const world = WD.WORLDS[LV.daily(day).world].name;
-  const dailySub = daily.stars !== undefined ? tr`${world} · réussi`
-    : left ? tr`${world} · ${left} essai${left > 1 ? 's' : ''}` : tr('Reviens demain');
+  const dailySub = useGame((s) => tileSub(s.profile, s.saved.state, day));
   const status = missionStatus();
   const done = status.filter((m) => m.done).length;
   const freeSub = parked ? tr`${fmt(parked.score)} pts` : modeSub(prefs.mode);

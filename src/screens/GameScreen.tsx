@@ -18,6 +18,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { L, M } from '../core';
 import { locale, tr } from '../core/i18n';
 import { useGame } from '../state/store';
+import { today } from '../state/persist';
+import { triesAfter } from '../game/daily';
 import { ambientGap, anim, animating, TRASH_ARM_MS, type DragState } from '../game/anim';
 import { cuboHit, cuboSpot } from '../mascot/state';
 import { dragGeometry, easeOut, LIFT_MS } from '../game/drag';
@@ -402,16 +404,21 @@ export function GameScreen() {
   const leave = () => { persistRun(); nav.goBack(); };
   const confirmRestart = async () => {
     const st = useGame.getState().saved.state;
-    const text = tr('La partie reprend depuis le début. Les pièces gagnées sont gardées.');
+    const { profile } = useGame.getState();
+    const after = st.stage && st.stage.daily ? triesAfter(profile, st, st.stage.daily, today()) : Infinity;
+    const text = Number.isFinite(after) ? tr`Cet essai compte : il t’en restera ${after}. Les pièces gagnées sont gardées.` : tr('La partie reprend depuis le début. Les pièces gagnées sont gardées.');
     if (st.moves > 0 && !st.over && !(await ask({ title: tr('Recommencer ?'), text, ok: tr('Recommencer'), danger: true }))) return;
     pauseRef.current?.dismiss();
     setEnd(null);
     setLevelCard(null);
-    restartCurrent();
+    if (!restartCurrent()) { nope(); return; }
     dirty.current = true;
   };
   const confirmQuit = async () => {
-    const text = tr('La partie s’arrête ici : ton score compte. Les pièces gagnées sont gardées.');
+    const st = useGame.getState().saved.state.stage;
+    const text = st && st.daily ? tr('Le niveau compte comme raté et cet essai est utilisé. Les pièces gagnées sont gardées.')
+      : st ? tr('Le niveau compte comme raté. Les pièces gagnées sont gardées.')
+        : tr('La partie s’arrête ici : ton score compte. Les pièces gagnées sont gardées.');
     if (!(await ask({ title: tr('Quitter la partie ?'), text, ok: tr('Quitter'), danger: true }))) return;
     pauseRef.current?.dismiss();
     quitRun();
@@ -420,7 +427,7 @@ export function GameScreen() {
   const again = useCallback(() => {
     setEnd(null);
     setLevelCard(null);
-    restartCurrent();
+    if (!restartCurrent()) nope();
     dirty.current = true;
   }, [setLevelCard]);
 
@@ -490,7 +497,7 @@ export function GameScreen() {
       <MissionsSheet ref={missionsRef} {...track('missions')} />
       <LegendSheet ref={legendRef} {...track('legend')} />
       {levelCard && (
-        <LevelEndCard card={levelCard} lay={lay} onMap={(world) => toMap({ world })} onAgain={again} onRevived={() => { setLevelCard(null); dirty.current = true; }}
+        <LevelEndCard card={levelCard} lay={lay} onMap={(world) => toMap({ world })} onAgain={again} onRevived={() => { setLevelCard(null); dirty.current = true; }} onMenu={() => { setLevelCard(null); leave(); }}
           onNext={([world, level]) => toMap(level === 1 && world !== levelCard.end.stage.world ? { world } : { world, level })} />
       )}
       {end && <GameOver end={end} onAgain={again} onMenu={() => { setEnd(null); leave(); }} />}

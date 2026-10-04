@@ -25,6 +25,7 @@ import { BONUS_UI } from './bonus-ui';
 import { alreadyDone, celebrate, hasClock } from './hud';
 import { bannerFor, comboTier, confettiCount, punchAmp, shakeFor } from './juice';
 import { levelName } from '../state/progress';
+import { dailyWord, triesAfter } from './daily';
 import { inProgress, isFree, keepsBest } from './modes';
 
 export { inProgress };
@@ -136,6 +137,7 @@ function newGame(opts: StartOpts) {
   if (fresh !== store.profile) store.setProfile(fresh);
   const obstacles = ['classic', 'chrono', 'chill'].includes(opts.mode) && !opts.stage && !opts.puzzle ? WD.freeObstacles(fresh.equipped.boards, opts.level) : undefined;
   const world = opts.world || null;
+  startCount++;
   const state = L.createGame(opts.seed ?? Date.now(), { mode: opts.mode, level: opts.level, budget: fresh.coins, stage: opts.stage, world, upgrades: fresh.upgrades, puzzle: opts.puzzle, obstacles });
   const { saved, setSaved } = useGame.getState();
   setSaved({ ...saved, state, startBest: keepsBest(state) ? bestOf(state) : 0 });
@@ -226,16 +228,31 @@ export function startWorldRun(world: string) {
   restartRun({ mode: 'worlds', level: prefs.level, world });
 }
 
+// Increments with every run started: a level end settles once per start (levelend.ts).
+let startCount = 0;
+export const startId = () => startCount;
+
+// The daily level of a day (today, or a past day to catch up on). False when no try is left: the daily
+// already going on counts as one when it gets dropped.
+export function startDaily(day: string): boolean {
+  const { profile, saved } = useGame.getState();
+  if (triesAfter(profile, saved.state, day, today()) <= 0) return false;
+  const stage = LV.daily(day);
+  startStage(stage, { seed: stage.seed, intro: { text: dailyWord(day, today()), sub: LV.goalText(stage.goal) } });
+  return true;
+}
+
 // Starts the current game again (pause > Recommencer, "Rejouer"): the same level, daily, event level,
 // Mondes world or free game.
-export function restartCurrent() {
+export function restartCurrent(): boolean {
   const st = useGame.getState().saved.state;
   const stage = st.stage;
-  if (stage && stage.daily) startStage(stage, { seed: stage.seed });
-  else if (stage && stage.event) startEventLevel(stage.event, stage.n, stage.eventDay);
-  else if (stage) startLevel(stage.world, stage.n);
-  else if (st.mode === 'worlds' && st.world) startWorldRun(st.world);
+  if (stage && stage.daily) return startDaily(stage.daily);
+  if (stage && stage.event) return startEventLevel(stage.event, stage.n, stage.eventDay);
+  if (stage) return startLevel(stage.world, stage.n);
+  if (st.mode === 'worlds' && st.world) startWorldRun(st.world);
   else restartRun({ mode: st.mode, level: st.level });
+  return true;
 }
 
 // "+N coups pour finir" on a lost level: pays the price and plays on (the result card closes).
@@ -259,7 +276,10 @@ export function settleRun() {
   if (runSettled) return null;
   runSettled = true;
   const { saved, profile, setProfile } = useGame.getState();
-  const res = M.applyRun(M.ensureDay(profile, today()), L.runStats(saved.state));
+  // A daily attempt counts once its run ends or is dropped after a move, never just for opening it.
+  const daily = saved.state.stage && saved.state.stage.daily;
+  const counted = (daily && saved.state.moves > 0 && M.countDaily(profile, daily, today())) || profile;
+  const res = M.applyRun(M.ensureDay(counted, today()), L.runStats(saved.state));
   setProfile(res.profile);
   return res.report;
 }

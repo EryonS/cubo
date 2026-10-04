@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { M } from '../core';
+import { LV, M } from '../core';
 import { freshFlags, lastOpenWorld, levelMood, nextLevelOf, settleLevel } from './levelend';
 
 const p0 = M.createProfile('2026-10-04');
@@ -28,11 +28,11 @@ test('settleLevel: one fail per start, even if called twice (bought moves runnin
   assert.equal(M.levelFails(c.profile, 'plain', 2), 2);
 });
 
-test('settleLevel: a win after bought moves still pays; daily and event levels are left alone', () => {
+test('settleLevel: a win after bought moves still pays; event levels are left alone', () => {
   const a = settleLevel(p0, loss, 'k1', freshFlags(), '2026-10-04');
   const b = settleLevel(a.profile, { ...loss, won: true, stars: 1 }, 'k1', a.flags, '2026-10-04');
   assert.equal(M.levelStars(b.profile, 'plain', 2), 1);
-  const d = settleLevel(p0, { ...win, daily: {} }, 'k3', freshFlags(), '2026-10-04');
+  const d = settleLevel(p0, { ...win, event: 'xmas' }, 'k3', freshFlags(), '2026-10-04');
   assert.equal(d.profile, p0);
 });
 
@@ -43,4 +43,19 @@ test('nextLevelOf, lastOpenWorld, levelMood', () => {
   assert.equal(levelMood(false, 0), 'sad');
   assert.equal(levelMood(true, 3), 'star');
   assert.equal(levelMood(true, 1), 'party');
+});
+
+test('settleLevel: a won daily feeds the streak once per start; a lost one pays nothing', () => {
+  const day = '2026-10-04';
+  const won = { world: 'plain', n: 3, stars: 2, won: true, daily: day };
+  const a = settleLevel(p0, won, 'd1', freshFlags(), day);
+  assert.equal(M.dailyOf(a.profile, day).stars, 2);
+  assert.equal(a.report?.streak?.count, 1);
+  assert.ok(a.report && a.report.total > 0);
+  const b = settleLevel(a.profile, won, 'd1', a.flags, day);
+  assert.equal(b.report, null);
+  const lost = settleLevel(p0, { ...won, won: false, stars: 0 }, 'd2', freshFlags(), day);
+  assert.equal(lost.profile, p0);
+  assert.equal(lost.report, null);
+  assert.ok(LV.daily(day).daily);
 });

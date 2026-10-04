@@ -2,10 +2,12 @@
 import { forwardRef } from 'react';
 import { Pressable, View } from 'react-native';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { locale, tr } from '../core/i18n';
-import { modeLabel } from '../game/modes';
+import { tr } from '../core/i18n';
+import { runLabel, triesAfter } from '../game/daily';
+import { today } from '../state/persist';
 import { useGame } from '../state/store';
-import { colors, space } from '../theme/tokens';
+import { space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { Button } from './Button';
 import { Sheet } from './Sheet';
 import { Text } from './Text';
@@ -13,7 +15,10 @@ import { Text } from './Text';
 interface Actions { onRestart: () => void; onSettings: () => void; onMenu: () => void; onQuit: () => void; onOpen?: () => void; onClose?: () => void }
 
 function Content({ onResume, onRestart, onSettings, onMenu, onQuit }: Actions & { onResume: () => void }) {
-  const label = useGame((s) => `${modeLabel(s.saved.state)} · ${s.saved.state.score.toLocaleString(locale())} pts`);
+  const colors = useColors();
+  const label = useGame((s) => runLabel(s.saved.state));
+  // A daily attempt counts when dropped: restarting needs one more try left.
+  const noRestart = useGame((s) => !!s.saved.state.stage?.daily && triesAfter(s.profile, s.saved.state, s.saved.state.stage.daily, today()) <= 0);
   return (
     <View style={{ gap: space.m }}>
       <View style={{ alignItems: 'center', gap: 2 }}>
@@ -21,7 +26,7 @@ function Content({ onResume, onRestart, onSettings, onMenu, onQuit }: Actions & 
         <Text variant="muted">{label}</Text>
       </View>
       <Button label={tr('Reprendre')} onPress={onResume} />
-      <Button kind="ghost" label={tr('Recommencer')} onPress={onRestart} />
+      {!noRestart && <Button kind="ghost" label={tr('Recommencer')} onPress={onRestart} />}
       <View style={{ flexDirection: 'row', gap: space.m }}>
         <Button kind="ghost" label={tr('Réglages')} onPress={onSettings} style={{ flex: 1 }} />
         <Button kind="ghost" label={tr('Menu')} onPress={onMenu} style={{ flex: 1 }} />
