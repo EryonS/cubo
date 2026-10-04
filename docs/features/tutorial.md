@@ -2,8 +2,8 @@
 Status: shipped
 
 ## What it does
-- **Guided first game**: 3 scripted steps (drag a piece anywhere, fill a column, two clears in a row for combo x2). A hand drags a ghost of the piece to glowing target cells; a coach card replaces the HUD. Steps 2-3 refuse a move that clears nothing ("Vise les cases qui brillent."). Ends on a "Bien joué !" card, then a normal game with the last menu mode. "Passer" skips it.
-- Runs at launch for new players only (`M.needsTutorial`: no games, no stars, not seen). Replay: Réglages > "Revoir le tutoriel"; a run in progress is restored afterwards.
+- **Guided first game**: 3 scripted steps (drag a piece anywhere, fill a column, two clears in a row for combo x2). A hand drags a ghost of the piece to glowing target cells; a coach card replaces the HUD. Steps 2-3 refuse a move that clears nothing ("Vise les cases qui brillent."). Ends on a "Bien joué !" card ("Continuer"), then the home menu over a fresh board. "Passer" skips it the same way.
+- Runs at launch for new players only (`M.needsTutorial`: no games, no stars, not seen). Replay: Réglages > "Revoir le tutoriel"; a run in progress is restored afterwards (behind the menu).
 - **One-time tips**: a dark bubble pointing at the relevant button, shown the first time: a bonus is collected (`bonus`), coins are collected (`coins`), the player is stuck with a rescue available (`stuck`), a Chrono / Chill / Aventure / daily game starts (`chrono`, `chill`, `adventure`, `daily`). Tap it (or the board) to close. Hidden under overlays, dropped on game over or when the menu opens (a dropped tip was never marked seen, so it comes back later).
 
 ## Files

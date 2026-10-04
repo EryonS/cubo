@@ -88,6 +88,7 @@ function endTutorial() {
   } else {
     newGame({ mode: prefs.mode, level: prefs.level });
   }
+  openMenu();
 }
 document.getElementById('tutorial-play').addEventListener('click', () => { unlockAudio(); endTutorial(); });
 document.getElementById('coach-skip').addEventListener('click', () => { unlockAudio(); endTutorial(); });
