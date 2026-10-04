@@ -24,8 +24,9 @@ import { ambientGap, anim, animating, TRASH_ARM_MS, type DragState } from '../ga
 import { cuboHit, cuboSpot } from '../mascot/state';
 import { dragGeometry, easeOut, LIFT_MS } from '../game/drag';
 import { hasInventory, trashView, undoView } from '../game/hud';
+import { freeTray, hintDisabled, liftOrigin, spotAt } from '../game/puzzle';
 import {
-  bestOf, commit, discardPiece, enterRun, fireBonus, giveUpRun, liveRun, persistRun, quitRun, restartRun, rotateTray, restartCurrent,
+  bestOf, commit, discardPiece, enterRun, fireBonus, giveUpRun, hintPuzzle, liftPuzzlePiece, startPuzzle, startSurprise, liveRun, persistRun, quitRun, restartRun, rotateTray, restartCurrent,
   setAiming, setEndHandler, stepFlyers, syncBudget, tapCubo, tickRun, undoMove, useRunHud, type RunEnd,
 } from '../game/run';
 import { boardCellAt, computeLayout, invAt, miniCell, overTrash, slotAt, HUD_BTN, type Layout } from '../render/layout';
@@ -52,6 +53,7 @@ import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
 import { GameOver } from './GameOver';
 import { LevelEndCard, useLevelEnd } from './LevelEnd';
+import { PuzzleEndCard, usePuzzleEnd } from './PuzzleEnd';
 
 const now = () => performance.now();
 const fmt = (n: number) => n.toLocaleString(locale());
@@ -104,6 +106,7 @@ export function GameScreen() {
   const [end, setEnd] = useState<RunEnd | null>(null);
   useEffect(() => { setEndHandler(setEnd); return () => setEndHandler(null); }, []);
   const [levelCard, setLevelCard] = useLevelEnd();
+  const [puzzleCard, setPuzzleCard] = usePuzzleEnd();
 
   const skin = useGame((s) => s.profile.equipped.blocks);
   const patterns = useGame((s) => s.saved.settings.patterns);
@@ -127,10 +130,13 @@ export function GameScreen() {
   const lifted = useSharedValue(false);
   const lift = useSharedValue(0);
   const miniRatio = useSharedValue(0.5);
+  // Where the dragged piece sits from the finger: a surprise piece picked up from the board keeps its grabbed cell under it.
+  const offX = useSharedValue(0);
+  const offY = useSharedValue(0);
   const dragPicture = useSharedValue<SkPicture>(emptyPicture());
   const dragTransform = useDerivedValue(() => {
     const k = liftK.value;
-    return [{ translateX: dragX.value }, { translateY: dragY.value - lift.value * k }, { scale: miniRatio.value + (1 - miniRatio.value) * k }];
+    return [{ translateX: dragX.value + offX.value }, { translateY: dragY.value + offY.value - lift.value * k }, { scale: miniRatio.value + (1 - miniRatio.value) * k }];
   });
 
   const drag = useRef<DragState | null>(null);
@@ -297,21 +303,43 @@ export function GameScreen() {
         return;
       }
     }
-    const idx = slotAt(lay, x, y);
+    const free = freeTray(state);
+    // Puzzle surprise: grabbing a placed piece picks it up where the finger holds it (legacy liftFromBoard).
+    if (free) {
+      const cell = boardCellAt(lay, x, y);
+      const spot = cell && spotAt(state, cell[0], cell[1]);
+      const slot = cell && spot ? liftPuzzlePiece(cell[0], cell[1]) : null;
+      if (cell && spot && slot !== null) {
+        const o = liftOrigin(spot.cells, spot.piece.w, spot.piece.h);
+        drag.current = { idx: slot, x, y, lift: 0, t0: now() - 200, sx: x, sy: y, fromBoard: true, ox: lay.bx + o.cx * lay.cell - x, oy: lay.by + o.cy * lay.cell - y };
+        gest.current = { kind: 'piece', sx: x, sy: y };
+        dragPicture.value = record(lay, typeface, (g) => drawPiece(g, th, spot.piece, 0, 0, lay.cell));
+        offX.value = drag.current.ox!;
+        offY.value = drag.current.oy!;
+        lift.value = 0;
+        miniRatio.value = 1;
+        liftK.value = 1;
+        dirty.current = true;
+        return;
+      }
+    }
+    const idx = slotAt(lay, x, y, free);
     const piece = idx >= 0 ? state.tray[idx] : null;
     if (!piece || anim.returning.some((p) => p.idx === idx)) return;
     const l = lay.cell * 2.2;
     drag.current = { idx, x, y, lift: l, t0: now(), sx: x, sy: y };
     gest.current = { kind: 'piece', sx: x, sy: y };
+    offX.value = 0;
+    offY.value = 0;
     if (state.mode !== 'puzzle') anim.trash = { over: false, since: 0, armed: false };
     if (!L.canTurn(state)) sfx.pick();
     haptic('pick');
     dragPicture.value = record(lay, typeface, (g) => drawPiece(g, th, piece, 0, 0, lay.cell));
     lift.value = l;
-    miniRatio.value = miniCell(lay) / lay.cell;
+    miniRatio.value = miniCell(lay, free) / lay.cell;
     liftK.value = 0;
     liftK.value = withTiming(1, { duration: LIFT_MS, easing: Easing.out(Easing.cubic) });
-  }, [lay, typeface, th, mascot, dragPicture, lift, miniRatio, liftK]);
+  }, [lay, typeface, th, mascot, dragPicture, lift, miniRatio, liftK, offX, offY]);
 
   const onUp = useCallback((x: number, y: number, released: boolean) => {
     const gs = gest.current;
@@ -353,14 +381,16 @@ export function GameScreen() {
     const piece = state.tray[d.idx];
     if (!piece) return;
     const t = now();
-    const g = dragGeometry(lay, state.board, piece, x, y, d.lift, easeOut((t - d.t0) / LIFT_MS));
+    const g = dragGeometry(lay, state.board, piece, x + (d.ox || 0), y + (d.oy || 0), d.lift, easeOut((t - d.t0) / LIFT_MS), freeTray(state));
     const back = () => anim.returning.push({ idx: d.idx, x: g.cx, y: g.cy, size: g.size, t0: t });
     // Only a piece held over the bin until it armed gets thrown: a quick slip below the tray doesn't count.
     if (released && bin && bin.over && bin.armed) {
       if (!discardPiece(lay, d.idx, x, y)) { back(); nope(); }
       return;
     }
-    const isTap = t - d.t0 < 280 && Math.hypot(x - d.sx, y - d.sy) < 12;
+    const isTap = t - d.t0 - (d.fromBoard ? 200 : 0) < 280 && Math.hypot(x - d.sx, y - d.sy) < 12;
+    // A tap on a piece just picked up from the board sends it back to the tray.
+    if (isTap && d.fromBoard) { back(); return; }
     if (isTap && released && L.canTurn(state)) { rotateTray(d.idx); return; }
     if (g.valid && released && commit(lay, d.idx, g.row, g.col)) return;
     back();
@@ -392,6 +422,8 @@ export function GameScreen() {
   const bump = useRunHud((s) => s.bump);
   const aiming = useRunHud((s) => s.aiming);
   const stuck = useGame((s) => s.saved.state.stuck && !s.saved.state.over);
+  const puzzle = useGame((s) => s.saved.state.mode === 'puzzle');
+  const hintOff = useGame((s) => hintDisabled(s.saved.state, s.profile.coins));
   const undoDisabled = useGame((s) => undoView(s.saved.state).disabled);
   const undoCost = useGame((s) => undoView(s.saved.state).cost);
   const undoBadge = useGame((s) => undoView(s.saved.state).badge);
@@ -411,16 +443,19 @@ export function GameScreen() {
     pauseRef.current?.dismiss();
     setEnd(null);
     setLevelCard(null);
+    setPuzzleCard(null);
     if (!restartCurrent()) { nope(); return; }
     dirty.current = true;
   };
   const confirmQuit = async () => {
-    const st = useGame.getState().saved.state.stage;
-    const text = st && st.daily ? tr('Le niveau compte comme raté et cet essai est utilisé. Les pièces gagnées sont gardées.')
+    const run = useGame.getState().saved.state;
+    const st = run.stage;
+    const text = run.puzzle ? tr('Tu retournes aux puzzles. Ta progression sur ce dessin est perdue.') : st && st.daily ? tr('Le niveau compte comme raté et cet essai est utilisé. Les pièces gagnées sont gardées.')
       : st ? tr('Le niveau compte comme raté. Les pièces gagnées sont gardées.')
         : tr('La partie s’arrête ici : ton score compte. Les pièces gagnées sont gardées.');
     if (!(await ask({ title: tr('Quitter la partie ?'), text, ok: tr('Quitter'), danger: true }))) return;
     pauseRef.current?.dismiss();
+    if (run.puzzle) { toPuzzles(true); return; }
     quitRun();
     dirty.current = true;
   };
@@ -439,6 +474,16 @@ export function GameScreen() {
     else nav.replace('Adventure', p);
   };
 
+  // Back to the Puzzles list (under the game when it was started from there). drop: the puzzle is abandoned without a result.
+  const toPuzzles = (drop = false) => {
+    if (drop) {
+      const { saved, setSaved } = useGame.getState();
+      setSaved({ ...saved, state: { ...saved.state, over: true, quit: true } });
+    } else persistRun();
+    setPuzzleCard(null);
+    if (nav.getState().routes.some((r) => r.name === 'Puzzles')) nav.popTo('Puzzles');
+    else nav.replace('Puzzles');
+  };
   const onLayout = (e: LayoutChangeEvent) => setSize({ W: e.nativeEvent.layout.width, H: e.nativeEvent.layout.height });
   const top = insets.top + 12;
 
@@ -480,10 +525,21 @@ export function GameScreen() {
         <Icon name="target" size={20} color={colors.text} />
         {missionsDone > 0 && <Badge color={colors.good}><Text style={{ color: '#fff', fontSize: 13, lineHeight: 17 }}>{missionsDone}/3</Text></Badge>}
       </HudBtn>
-      {lay && stuck && !aiming && (
+      {lay && stuck && !aiming && !puzzle && (
         <Pressable accessibilityRole="button" onPress={() => { giveUpRun(); dirty.current = true; }}
           style={({ pressed }) => ({ position: 'absolute', left: lay.W / 2 - 110, width: 220, top: lay.ty + lay.trayH / 2 - 25, height: 50, borderRadius: radius.card, backgroundColor: colors.panel, borderBottomWidth: 4, borderBottomColor: colors.edge, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.96 : 1 }] })}>
           <Text variant="title" style={{ fontSize: 20, textTransform: 'uppercase' }}>{tr('Terminer la partie')}</Text>
+        </Pressable>
+      )}
+      {lay && puzzle && (
+        <Pressable
+          accessibilityRole="button" accessibilityLabel={tr`Indice pour ${M.PUZZLE_HINT} pièces`} accessibilityState={{ disabled: hintOff }}
+          onPress={() => { if (!lay || !hintPuzzle(lay)) nope(); dirty.current = true; }}
+          style={({ pressed }) => ({ position: 'absolute', left: lay.W / 2 - 62, width: 124, justifyContent: 'center', top: lay.ty + lay.trayH + 6, flexDirection: 'row', alignItems: 'center', gap: 8, height: 52, paddingHorizontal: 18, borderRadius: radius.pill, backgroundColor: colors.panel, borderBottomWidth: 4, borderBottomColor: colors.edge, opacity: hintOff ? 0.45 : 1, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
+          <Text variant="title" style={{ fontSize: 19, lineHeight: 24 }}>{tr('Indice')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+            <Text style={{ fontSize: 16, color: colors.muted }}>{M.PUZZLE_HINT}</Text><Coin size={15} />
+          </View>
         </Pressable>
       )}
       <PauseSheet
@@ -499,6 +555,12 @@ export function GameScreen() {
       {levelCard && (
         <LevelEndCard card={levelCard} lay={lay} onMap={(world) => toMap({ world })} onAgain={again} onRevived={() => { setLevelCard(null); dirty.current = true; }} onMenu={() => { setLevelCard(null); leave(); }}
           onNext={([world, level]) => toMap(level === 1 && world !== levelCard.end.stage.world ? { world } : { world, level })} />
+      )}
+      {puzzleCard && (
+        <PuzzleEndCard card={puzzleCard} onList={() => toPuzzles()}
+          onMore={() => { setPuzzleCard(null); startSurprise(); dirty.current = true; }}
+          onAgain={() => { setPuzzleCard(null); restartCurrent(); dirty.current = true; }}
+          onNext={(n) => { setPuzzleCard(null); startPuzzle(n); dirty.current = true; }} />
       )}
       {end && <GameOver end={end} onAgain={again} onMenu={() => { setEnd(null); leave(); }} />}
     </View>

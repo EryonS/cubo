@@ -6,7 +6,8 @@ import { cuboBusy } from '../mascot/state';
 import type { Banner } from './juice';
 
 // The piece being dragged: tray slot, finger position, how high it floats, pick-up time.
-export interface DragState { idx: number; x: number; y: number; lift: number; t0: number; sx: number; sy: number }
+// ox, oy: where the piece sits from the finger (a surprise piece picked up from the board keeps its grabbed cell under it).
+export interface DragState { idx: number; x: number; y: number; lift: number; t0: number; sx: number; sy: number; ox?: number; oy?: number; fromBoard?: boolean }
 
 // One fall of a block, in rows: it starts at t0, takes dur ms, then bounces a little (legacy planFalls).
 export interface FallSeg { t0: number; dur: number; from: number; to: number }
@@ -37,8 +38,8 @@ export const anim = {
   fades: [] as (ClearedCell & { t0: number; delay: number; segs?: FallSeg[] })[], // cleared cells shrinking out
   floaters: [] as { text: string; x: number; y: number; t0: number; big?: boolean; scale?: number; tier?: number }[],
   returning: [] as { idx: number; x: number; y: number; size: number; t0: number }[], // pieces flying back to the tray
-  slotIn: [0, 0, 0], // slide-in time of each slot's piece
-  slotSpin: [0, 0, 0], // when each slot's piece was last turned (Toupie, Chill)
+  slotIn: new Array(12).fill(0) as number[], // slide-in time of each slot's piece
+  slotSpin: new Array(12).fill(0) as number[], // when each slot's piece was last turned (Toupie, Chill)
   flyers: [] as Flyer[],
   drops: new Map<number, Drop>(), // cell index -> arrival of a special cell
   tracks: new Map<number, FallSeg[]>(), // final cell index -> fall segments (gravity worlds)
@@ -68,7 +69,7 @@ export const anim = {
 export function resetAnim(t: number, score: number, best: number) {
   Object.assign(anim, {
     displayScore: score, bestAtStart: best, pops: [], fades: [], floaters: [], returning: [],
-    slotIn: [t, t, t], slotSpin: [0, 0, 0], nextIn: t, overAt: 0,
+    slotIn: new Array(12).fill(t) as number[], slotSpin: new Array(12).fill(0) as number[], nextIn: t, overAt: 0,
     flyers: [], drops: new Map(), tracks: new Map(), shifts: [], bossHitAt: 0, bossAttackAt: 0, aiming: null, trash: null, lastTickSec: -1,
     sweeps: [], punch: null, shake: 0, comboAt: 0, comboBreak: null, particles: [], banners: [],
     recordAnnounced: false, flagDownAt: 0, lastT: t,

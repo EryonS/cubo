@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeLayout, slotBox, slotAt, boardCellAt, cellCenter, miniCell } from './layout';
+import { computeLayout, slotBox, slotAt, slotCenter, boardCellAt, cellCenter, miniCell } from './layout';
 
 const phones = [
   { W: 402, H: 874, safeTop: 62 }, // iPhone 17 Pro
@@ -64,5 +64,28 @@ test('inventory: six buttons centered under the tray, hit tests, bin above the H
     assert.equal(overTrash(lay, t.x + 5, t.y + t.h + 20), true, '24 px of slack under the bin');
     assert.equal(overTrash(lay, t.x + 5, t.y - 5), false);
     assert.equal(overTrash(lay, t.x - 5, t.y + 5), false);
+  }
+});
+
+test('puzzle surprise tray: two rows of pads over the board width', () => {
+  for (const p of phones) {
+    const lay = computeLayout(p);
+    for (const n of [8, 9, 10]) {
+      const cols = Math.ceil(n / 2);
+      const first = slotBox(lay, 0, n);
+      const last = slotBox(lay, cols - 1, n);
+      assert.ok(Math.abs(last.x + last.w - (lay.bx + lay.board)) < 1e-9, 'a row spans the board');
+      assert.equal(slotBox(lay, cols, n).y, first.y + first.h, 'the second row starts under the first');
+      assert.equal(slotBox(lay, cols, n).x, first.x);
+      assert.ok(slotBox(lay, n - 1, n).y + first.h <= lay.ty + lay.trayH + 1e-9, 'inside the tray');
+      assert.ok(miniCell(lay, n) * 5 <= first.w && miniCell(lay, n) * 3 <= first.h, 'a 5-long piece stays inside its pad');
+      for (let i = 0; i < n; i++) {
+        const [cx, cy] = slotCenter(lay, i, n);
+        assert.equal(slotAt(lay, cx, cy, n), i);
+      }
+    }
+    // a normal tray has three slots only
+    const [cx, cy] = slotCenter(lay, 1);
+    assert.equal(slotAt(lay, cx, cy), 1);
   }
 });

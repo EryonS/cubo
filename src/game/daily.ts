@@ -4,6 +4,7 @@ import { locale, tr } from '../core/i18n';
 import type { Profile, RunState } from '../core/types';
 import { levelName } from '../state/progress';
 import { inProgress, modeLabel } from './modes';
+import { puzzleLabel } from './puzzle';
 
 export const dailyWord = (day: string, today: string) => (day === today ? tr('Niveau du jour') : tr('Jour rattrapé'));
 export const triesText = (left: number) => tr`${left} essai${left > 1 ? 's' : ''} restant${left > 1 ? 's' : ''}`;
@@ -74,5 +75,6 @@ export function runLabel(st: RunState): string {
       : `${WD.WORLDS[stage.world].name} · ${levelName(stage.n)}`;
     return `${where} · ${LV.goalText(stage.goal)}`;
   }
+  if (st.puzzle) return tr`${puzzleLabel(st.puzzle)} · ${st.puzzle.placed} / ${st.puzzle.total} formes`;
   return `${modeLabel(st)} · ${st.score.toLocaleString(locale())} pts`;
 }

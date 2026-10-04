@@ -22,6 +22,7 @@ import type { Theme } from './theme';
 import { hasClock, hasInventory, hintText, invView, ringEnding, ringFill, trashFill, trashLabel, trashView } from '../game/hud';
 import { TRASH_ARM_MS } from '../game/anim';
 import { keepsBest } from '../game/modes';
+import { freeTray, isVoid, puzzleLabel } from '../game/puzzle';
 
 const SIZE = L.SIZE;
 const fmt = (n: number) => n.toLocaleString(locale());
@@ -42,6 +43,19 @@ export function drawFrame(g: G, th: Theme, x: number, y: number, w: number, h: n
   if (!f.line) return;
   const i = f.inset || 0;
   g.rrect(x + i, y + i, w - i * 2, h - i * 2, Math.max(2, f.r - i), f.line, { stroke: { width: f.lw || 2 }, shadow: f.glow ? { color: f.glow, blur: 16 } : undefined });
+}
+
+// Puzzle frame: follows the drawing instead of the square (one padded rounded tile per cell of the
+// drawing, filled as a single path so the shadow stays one piece). No frame line: it would cut through the joins.
+export function drawShapedFrame(g: G, th: Theme, lay: Layout, inside: (i: number) => boolean) {
+  const { bx, by, cell } = lay;
+  const pad = 10;
+  const path = g.path();
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    if (!inside(i)) continue;
+    path.roundRect(bx + (i % SIZE) * cell - pad, by + Math.floor(i / SIZE) * cell - pad, cell + pad * 2, cell + pad * 2, Math.min(th.frame.r, pad + cell * 0.2));
+  }
+  path.fill(th.board, { shadow: { color: th.shadow, blur: 20, dy: 8 } });
 }
 
 export function drawEmpty(g: G, th: Theme, x: number, y: number, cell: number) {
@@ -103,12 +117,15 @@ export function drawPiece(g: G, th: Theme, piece: Piece, cx: number, cy: number,
 // ---------- board (render/board.js drawBoard) ----------
 export function drawBoard(g: G, th: Theme, lay: Layout, state: RunState, ghost: (DragGeometry & { piece: Piece }) | null, t: number) {
   const { bx, by, board, cell } = lay;
-  drawFrame(g, th, bx - 10, by - 10, board + 20, board + 20);
-  const preview = ghost ? L.previewClears(state.board, ghost.piece, ghost.row, ghost.col, state.special) : null;
+  if (state.puzzle) drawShapedFrame(g, th, lay, (i) => !isVoid(state.special, i));
+  else drawFrame(g, th, bx - 10, by - 10, board + 20, board + 20);
+  // Puzzles have no line clears: no preview.
+  const preview = ghost && state.mode !== 'puzzle' ? L.previewClears(state.board, ghost.piece, ghost.row, ghost.col, state.special) : null;
   const overK = anim.overAt ? easeOut((t - anim.overAt) / 900) : 0;
 
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
+      if (isVoid(state.special, r * SIZE + c)) continue; // puzzle: outside the drawing
       const [x, y] = cellCenter(lay, r, c);
       drawEmpty(g, th, x, y, cell);
     }
@@ -187,7 +204,7 @@ export function ghostOf(lay: Layout, state: RunState, drag: DragState | null, t:
   if (!drag) return null;
   const piece = state.tray[drag.idx];
   if (!piece) return null;
-  const g = dragGeometry(lay, state.board, piece, drag.x, drag.y, drag.lift, easeOut((t - drag.t0) / 110));
+  const g = dragGeometry(lay, state.board, piece, drag.x + (drag.ox || 0), drag.y + (drag.oy || 0), drag.lift, easeOut((t - drag.t0) / 110), freeTray(state));
   return g.valid ? { ...g, piece } : null;
 }
 
@@ -231,8 +248,9 @@ export function drawReturning(g: G, th: Theme, lay: Layout, state: RunState, t: 
   anim.returning = anim.returning.filter((p) => t - p.t0 < 200 && state.tray[p.idx]);
   for (const p of anim.returning) {
     const k = easeOut((t - p.t0) / 200);
-    const [tx, ty] = slotCenter(lay, p.idx);
-    drawPiece(g, th, state.tray[p.idx]!, p.x + (tx - p.x) * k, p.y + (ty - p.y) * k, p.size + (miniCell(lay) - p.size) * k);
+    const free = freeTray(state);
+    const [tx, ty] = slotCenter(lay, p.idx, free);
+    drawPiece(g, th, state.tray[p.idx]!, p.x + (tx - p.x) * k, p.y + (ty - p.y) * k, p.size + (miniCell(lay, free) - p.size) * k);
   }
 }
 
@@ -245,26 +263,30 @@ function drawTrayPad(g: G, th: Theme, x: number, y: number, w: number, h: number
 }
 
 export function drawTray(g: G, th: Theme, lay: Layout, state: RunState, drag: DragState | null, t: number) {
-  const m = miniCell(lay);
-  drawNext(g, th, lay, state, t);
-  for (let i = 0; i < 3; i++) {
-    const b = slotBox(lay, i);
-    drawTrayPad(g, th, b.x + 4, b.y + 6, b.w - 8, b.h - 12);
+  // Puzzle surprise: smaller pads on two rows, one per piece of the quota, and no "next" column.
+  const free = freeTray(state);
+  const m = miniCell(lay, free);
+  if (!free) drawNext(g, th, lay, state, t);
+  const n = free || 3;
+  const gap = free ? 3 : 6;
+  for (let i = 0; i < n; i++) {
+    const b = slotBox(lay, i, free);
+    drawTrayPad(g, th, b.x + 4, b.y + gap, b.w - 8, b.h - gap * 2);
   }
-  // While Toupie runs, the pads breathe: a tap turns the piece.
+  // While Toupie runs (and always in Chill and puzzles), a tap turns the piece: the pads breathe (not in Chill / puzzles).
   const canTurn = state.effects.rotate > 0 && !state.over;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < n; i++) {
     const piece = state.tray[i];
     if (!piece || anim.returning.some((p) => p.idx === i)) continue;
-    const [cx, cy] = slotCenter(lay, i);
+    const [cx, cy] = slotCenter(lay, i, free);
     if (canTurn) {
-      const b = slotBox(lay, i);
+      const b = slotBox(lay, i, free);
       g.rrect(b.x + 6, b.y + 4, b.w - 12, b.h - 8, 16, withAlpha(th.accent, 0.06 + 0.04 * Math.sin(t / 250 + i)));
     }
     if (drag && drag.idx === i) continue;
     // A new piece slides in from the next column.
     const k = easeBack((t - anim.slotIn[i]) / 380);
-    const offset = (1 - k) * (lay.nextX + lay.nextW / 2 - cx);
+    const offset = free ? 0 : (1 - k) * (lay.nextX + lay.nextW / 2 - cx);
     const fits = L.pieceFits(state, piece);
     const spin = anim.slotSpin[i] ? 1 - easeBack((t - anim.slotSpin[i]) / 260) : 0;
     g.save();
@@ -293,6 +315,9 @@ function drawNext(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
   g.text(label, cx + 0.5, y + size * 0.36, size, '#ffffff', 'center');
   const piece = state.next;
   if (!piece) return;
+  // Puzzle: how many more pieces are still to come after the next one.
+  const more = state.puzzle ? state.puzzle.queue.length - 1 : 0;
+  if (more > 0) g.text('+' + more, cx, y + h + 18, 15, withAlpha(th.ink, 0.75), 'center');
   const s = Math.min(miniCell(lay) * 0.62, (w - 12) / Math.max(piece.w, piece.h, 3));
   const k = easeOut((t - anim.nextIn) / 320);
   drawPiece(g, th, piece, cx, y + h / 2 + 4 + (1 - k) * 20, s, 0.9 * k);
@@ -340,7 +365,10 @@ export function drawHUD(g: G, th: Theme, lay: Layout, state: RunState, best: num
   let lowMoves = false;
   // Aventure: the goal progress and the moves left instead of score / record.
   const stage = state.stage;
-  if (stage) {
+  if (state.puzzle) {
+    main = `${state.puzzle.placed} / ${state.puzzle.total}`;
+    sub = puzzleLabel(state.puzzle).toUpperCase();
+  } else if (stage) {
     const progress = stage.goal.type === 'score' ? Math.round(anim.displayScore) : stage.progress;
     main = fmt(Math.min(progress, stage.goal.target)) + ' / ' + fmt(stage.goal.target);
     sub = LV.goalLabel(stage.goal);
@@ -365,7 +393,7 @@ export function drawHUD(g: G, th: Theme, lay: Layout, state: RunState, best: num
   if (stage && stage.goal.type === 'boss') drawBossBar(g, state, cx - cw / 2 - 14, y, cw + 28, h, t);
   else {
     if (p.glow) g.textGlow = { color: p.glow, blur: 12 };
-    g.text(main, cx, y + h - h * 0.14, g.fit(main, Math.round(h * (stage ? 0.46 : 0.56) * bump), cw), p.ink, 'center');
+    g.text(main, cx, y + h - h * 0.14, g.fit(main, Math.round(h * (stage || state.puzzle ? 0.46 : 0.56) * bump), cw), p.ink, 'center');
     g.textGlow = null;
   }
 }

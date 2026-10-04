@@ -44,21 +44,34 @@ export function computeLayout({ W, H, safeTop }: { W: number; H: number; safeTop
 export const cellCenter = (lay: Layout, r: number, c: number): [number, number] =>
   [lay.bx + (c + 0.5) * lay.cell, lay.by + (r + 0.5) * lay.cell];
 
-export const slotBox = (lay: Layout, i: number): Box => ({ x: lay.bx + lay.slotW * i, y: lay.ty, w: lay.slotW, h: lay.trayH });
-export function slotCenter(lay: Layout, i: number): [number, number] {
-  const b = slotBox(lay, i);
+// free: the number of pads of a Puzzle surprise tray (the whole quota on two rows over the board width), 0 for
+// the usual three slots (legacy render/helpers.js freeTray / slotBox / miniCell, game/drag.js slotAt).
+export const slotBox = (lay: Layout, i: number, free = 0): Box => {
+  if (!free) return { x: lay.bx + lay.slotW * i, y: lay.ty, w: lay.slotW, h: lay.trayH };
+  const cols = Math.max(3, Math.ceil(free / 2));
+  const w = lay.board / cols;
+  const h = lay.trayH / 2;
+  return { x: lay.bx + w * (i % cols), y: lay.ty + h * Math.floor(i / cols), w, h };
+};
+export function slotCenter(lay: Layout, i: number, free = 0): [number, number] {
+  const b = slotBox(lay, i, free);
   return [b.x + b.w / 2, b.y + b.h / 2];
 }
 // Tray cell size: a 5-long piece stays inside its pad.
-export const miniCell = (lay: Layout) => Math.min(lay.cell * 0.46, lay.slotW / 5.8);
+export function miniCell(lay: Layout, free = 0) {
+  if (!free) return Math.min(lay.cell * 0.46, lay.slotW / 5.8);
+  const b = slotBox(lay, 0, free);
+  return Math.min(lay.cell * 0.4, b.w / 5.6, (b.h - 8) / 3.4);
+}
 
 // A piece is picked up only from its pad as drawn (plus a few px of slack), never from the gap
 // above the tray or the screen margins.
-export function slotAt(lay: Layout, x: number, y: number): number {
-  const gap = 6;
+export function slotAt(lay: Layout, x: number, y: number, free = 0): number {
+  const gap = free ? 3 : 6;
   const slack = 4;
-  for (let i = 0; i < 3; i++) {
-    const b = slotBox(lay, i);
+  const n = free || 3;
+  for (let i = 0; i < n; i++) {
+    const b = slotBox(lay, i, free);
     if (x >= b.x + 4 - slack && x <= b.x + b.w - 4 + slack && y >= b.y + gap - slack && y <= b.y + b.h - gap + slack) return i;
   }
   return -1;

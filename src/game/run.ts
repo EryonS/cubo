@@ -3,7 +3,7 @@
 // (Legacy game/flow.js, game/drag.js discard / rotate, game/undo.js, screens/gameover.js newGame /
 // restartRun / settleRun / dropParked / resumeParked.)
 import { create } from 'zustand';
-import { L, LV, M, WD } from '../core';
+import { L, LV, M, PZ, WD } from '../core';
 import type { Collected, MoveEvents } from '../core/logic';
 import type { Earned } from '../core/meta';
 import type { BonusType, Level, Lifetime, Mode, PuzzleSetup, RunState, StageDef, Stats } from '../core/types';
@@ -27,6 +27,7 @@ import { bannerFor, comboTier, confettiCount, punchAmp, shakeFor } from './juice
 import { levelName } from '../state/progress';
 import { dailyWord, triesAfter } from './daily';
 import { inProgress, isFree, keepsBest } from './modes';
+import { settlePuzzle } from './puzzle';
 
 export { inProgress };
 
@@ -88,6 +89,11 @@ export const setEndHandler = (fn: ((end: RunEnd) => void) | null) => { endHandle
 // Aventure / event / daily levels end here instead (the screens that own the level result register it).
 let levelHandler: ((end: LevelEnd) => void) | null = null;
 export const setLevelEndHandler = (fn: ((end: LevelEnd) => void) | null) => { levelHandler = fn; };
+
+// A solved puzzle or Puzzle surprise: the result card is the PuzzleEnd component's.
+export interface PuzzleEnd { state: RunState; pz: NonNullable<RunState['puzzle']>; lines: Earned[]; total: number }
+let puzzleHandler: ((end: PuzzleEnd) => void) | null = null;
+export const setPuzzleEndHandler = (fn: ((end: PuzzleEnd) => void) | null) => { puzzleHandler = fn; };
 
 // Today's missions with the live run's numbers (a finished run counts as nothing: it is settled).
 export const liveRun = (st: RunState) => (st.over || st.stage ? {} : L.runStats(st));
@@ -228,6 +234,25 @@ export function startWorldRun(world: string) {
   restartRun({ mode: 'worlds', level: prefs.level, world });
 }
 
+// ---------- puzzles ----------
+// Puzzle n (1..60): a drawing to fill with the given pieces.
+export function startPuzzle(n: number): boolean {
+  const def = PZ.puzzle(n);
+  if (!def) return false;
+  restartRun({ mode: 'puzzle', level: useGame.getState().saved.state.level, puzzle: def });
+  puzzleIntro(tr('Puzzle ') + n);
+  return true;
+}
+// Puzzle surprise: a random drawing, every piece in the tray at once.
+export function startSurprise(seed: number = Date.now()): void {
+  restartRun({ mode: 'puzzle', level: useGame.getState().saved.state.level, puzzle: PZ.surprise(seed) });
+  puzzleIntro(tr('Puzzle surprise'));
+}
+function puzzleIntro(text: string) {
+  const pz = useGame.getState().saved.state.puzzle!;
+  anim.banners.push({ text, sub: pz.name + ' · ' + pz.total + tr(' formes'), tier: 0, gold: true });
+}
+
 // Increments with every run started: a level end settles once per start (levelend.ts).
 let startCount = 0;
 export const startId = () => startCount;
@@ -247,6 +272,7 @@ export function startDaily(day: string): boolean {
 export function restartCurrent(): boolean {
   const st = useGame.getState().saved.state;
   const stage = st.stage;
+  if (st.puzzle) { if (st.puzzle.free) startSurprise(st.puzzle.seed); else startPuzzle(st.puzzle.n); return true; }
   if (stage && stage.daily) return startDaily(stage.daily);
   if (stage && stage.event) return startEventLevel(stage.event, stage.n, stage.eventDay);
   if (stage) return startLevel(stage.world, stage.n);
@@ -310,7 +336,8 @@ export interface LevelEnd {
 }
 
 // The run is over: coins and missions count, the record is kept.
-function endGame(t: number) {
+function endGame(t: number, lay?: Layout) {
+  if (useGame.getState().saved.state.puzzle) { endPuzzle(t, lay); return; }
   anim.overAt = t;
   setAiming(false);
   anim.trash = null;
@@ -336,6 +363,32 @@ function endGame(t: number) {
     earned: report ? report.earned : [], total: report ? report.total : 0, coinsBefore: report ? report.coinsBefore : profile.coins,
   };
   setTimeout(() => endHandler?.(end), 1300);
+}
+
+// Puzzle solved: pay, record the stars, celebrate, then the result card (legacy flow.js endPuzzle).
+let puzzleSettled = -1;
+function endPuzzle(t: number, lay?: Layout) {
+  setAiming(false);
+  const st = useGame.getState().saved.state;
+  const pz = st.puzzle!;
+  const run = settleRun();
+  const lines: Earned[] = run ? [...run.earned] : [];
+  if (puzzleSettled !== startCount) {
+    puzzleSettled = startCount;
+    const { profile, setProfile } = useGame.getState();
+    const res = settlePuzzle(profile, pz, today());
+    setProfile(res.profile);
+    lines.push(...res.lines);
+  }
+  anim.banners.length = 0;
+  anim.banners.push({ text: tr('Bravo !'), sub: pz.name + tr(' complété'), tier: 3 });
+  if (!anim.calm) {
+    if (lay) confetti(lay, t, 70);
+    anim.shake = 10;
+  }
+  setTimeout(() => { sfx.mission(); haptic('win'); }, 350);
+  const total = lines.reduce((a, l) => a + l.coins, 0);
+  setTimeout(() => puzzleHandler?.({ state: useGame.getState().saved.state, pz, lines, total }), 1300);
 }
 
 // ---------- effects ----------
@@ -551,7 +604,7 @@ export function commit(lay: Layout, idx: number, row: number, col: number): Move
 function afterChange(lay: Layout, state: RunState, t: number, over: boolean) {
   announceRecord(lay, state, t);
   checkMissions();
-  if (over) endGame(t);
+  if (over) endGame(t, lay);
 }
 
 // The run just beat the record it started with: a banner, once (legacy flow.js afterChange).
@@ -651,12 +704,51 @@ export function undoMove(lay: Layout): boolean {
   const bests = keepsBest(res.state) ? { ...saved.bests, [key]: Math.max(anim.bestAtStart, res.state.score) } : saved.bests;
   setSaved({ ...saved, state: res.state, bests });
   payCoins(lay, res.events.cost || 0);
-  refilled([0, 1, 2], t);
+  refilled(Array.from({ length: Math.max(3, res.state.tray.length) }, (_, i) => i), t);
   anim.pops = []; anim.fades = []; anim.flyers = [];
   sfx.undo();
   haptic('undo');
   afterChange(lay, res.state, t, !!res.events.over);
   return true;
+}
+
+// Hint button (puzzle): puts one tray piece on a right spot for M.PUZZLE_HINT coins. Returns false when it
+// could not (not enough coins, or no free right spot: the caller plays the "nope").
+export function hintPuzzle(lay: Layout): boolean {
+  const { saved, profile } = useGame.getState();
+  const before = saved.state;
+  if (before.mode !== 'puzzle' || before.over) return false;
+  if (profile.coins < M.PUZZLE_HINT) {
+    anim.banners.push({ text: tr('Pas assez de pièces'), sub: tr`Un indice coûte ${M.PUZZLE_HINT}`, tier: 0 });
+    return false;
+  }
+  const res = L.puzzleHint(before);
+  if (!res) {
+    anim.banners.push({ text: tr('Pas de place juste'), sub: before.puzzle!.free ? tr('Retire une forme mal placée, puis réessaie') : tr('Annule quelques coups, puis réessaie'), tier: 0 });
+    return false;
+  }
+  const t = now();
+  payCoins(lay, M.PUZZLE_HINT);
+  for (const [r, c] of res.events.placed || []) {
+    anim.pops.push({ r, c, t0: t });
+    burst(lay, { r, c }, t, 4, 70, '#fff6a0');
+  }
+  refilled(res.events.refilled || [], t);
+  sfx.bonus();
+  haptic('hint');
+  setState(res.state);
+  afterChange(lay, res.state, t, !!res.events.over);
+  return true;
+}
+
+// Puzzle surprise: the placed piece under (r, c) goes back to the tray; returns its tray slot.
+export function liftPuzzlePiece(r: number, c: number): number | null {
+  const res = L.liftPuzzle(useGame.getState().saved.state, r, c);
+  if (!res) return null;
+  setState(res.state);
+  sfx.pick();
+  haptic('lift');
+  return res.slot;
 }
 
 // Tap on a tray piece while Toupie runs (or in Chill): it turns a quarter.

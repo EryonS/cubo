@@ -8,6 +8,7 @@ import { GameScreen } from '../screens/GameScreen';
 import { tr } from '../core/i18n';
 import { DefisScreen } from '../screens/DefisScreen';
 import { PlayScreen } from '../screens/PlayScreen';
+import { PuzzlesScreen } from '../screens/PuzzlesScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ShopScreen } from '../screens/ShopScreen';
@@ -62,6 +63,7 @@ export function RootNavigator() {
       <Stack.Screen name="Tabs" component={Tabs} />
       <Stack.Screen name="Game" component={GameScreen} options={{ gestureEnabled: false, animation: 'fade' }} />
       <Stack.Screen name="Adventure" component={AdventureScreen} />
+      <Stack.Screen name="Puzzles" component={PuzzlesScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );

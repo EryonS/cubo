@@ -17,8 +17,8 @@ export interface DragGeometry { size: number; cx: number; cy: number; row: numbe
 
 // x, y: the finger. lift: how far above the finger the piece floats once lifted (0 with a mouse).
 // k: 0..1 progress of the pick-up animation (eased).
-export function dragGeometry(lay: Layout, board: number[], piece: Piece, x: number, y: number, lift: number, k: number): DragGeometry {
-  const size = miniCell(lay) + (lay.cell - miniCell(lay)) * k;
+export function dragGeometry(lay: Layout, board: number[], piece: Piece, x: number, y: number, lift: number, k: number, free = 0): DragGeometry {
+  const size = miniCell(lay, free) + (lay.cell - miniCell(lay, free)) * k;
   const cx = x;
   const cy = y - lift * k;
   const tlx = cx - (piece.w * lay.cell) / 2;

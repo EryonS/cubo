@@ -5,10 +5,11 @@ import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { M, LV, PZ, WD } from '../core';
+import { M, LV, WD } from '../core';
 import { locale, tr } from '../core/i18n';
 import { freeInProgress, guardFree, inProgress, LEVEL_NAMES, MODE_NAMES, modeLabel, modeSub } from '../game/modes';
 import { tileSub } from '../game/daily';
+import { puzzleInProgress, puzzleTileSub } from '../game/puzzle';
 import { missionStatus, restartRun, resumeParked } from '../game/run';
 import { cuboLookFor } from '../mascot/looks';
 import { cuboLine } from '../mascot/say';
@@ -27,7 +28,7 @@ import { fonts } from '../theme/fonts';
 import { BoardPreview } from '../ui/BoardPreview';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { ask, notice } from '../ui/dialog';
+import { ask } from '../ui/dialog';
 import { FreePickSheet } from '../ui/FreePickSheet';
 import { Flame, Icon, Star } from '../ui/Icon';
 import { Pips } from '../ui/Missions';
@@ -108,11 +109,12 @@ export function PlayScreen() {
   const daily = M.dailyOf(profile, day);
   const streak = M.streakNow(profile, day);
   const dailySub = useGame((s) => tileSub(s.profile, s.saved.state, day));
+  const puzzleGoing = useGame((s) => puzzleInProgress(s.saved.state));
+  const puzzleSub = useGame((s) => puzzleTileSub(s.profile, s.saved.state));
   const status = missionStatus();
   const done = status.filter((m) => m.done).length;
   const freeSub = parked ? tr`${fmt(parked.score)} pts` : modeSub(prefs.mode);
 
-  const soon = () => notice(tr('Bientôt'), tr('Cette partie du jeu arrive dans une prochaine version.'));
   const play = () => nav.navigate('Game');
   const playFree = () => {
     const g = guardFree(useGame.getState().saved.state, useGame.getState().saved.parked);
@@ -188,10 +190,10 @@ export function PlayScreen() {
             <Text variant="title" style={{ fontSize: 19, lineHeight: 21 }}>{tr('Défi du jour')}</Text>
             <Text variant="muted" style={{ fontSize: 13, lineHeight: 16 }}>{dailySub}</Text>
           </Tap>
-          <Tap onPress={soon} style={tile}>
+          <Tap onPress={() => { if (puzzleGoing) nav.navigate('Game'); else nav.navigate('Puzzles'); }} style={tile}>
             <View style={{ alignSelf: 'stretch', marginBottom: 4 }}><Icon name="puzzle" size={24} color={colors.accent} /></View>
             <Text variant="title" style={{ fontSize: 19, lineHeight: 21 }}>{tr('Puzzles')}</Text>
-            <Text variant="muted" style={{ fontSize: 13, lineHeight: 16 }}>{tr`${M.puzzlesSolved(profile)} / ${PZ.COUNT} résolus`}</Text>
+            <Text variant="muted" style={{ fontSize: 13, lineHeight: 16 }}>{puzzleSub}</Text>
           </Tap>
         </View>
 

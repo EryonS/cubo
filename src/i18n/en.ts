@@ -616,6 +616,8 @@ add('en', {
   ' formes': ' shapes',
   'Indice <span class="price">{}{}</span>': 'Hint <span class="price">{}{}</span>',
   'Indice pour {} pièces': 'Hint for {} coins',
+  'Indice': 'Hint',
+  'Un autre': 'Another one',
   'Un indice coûte {}': 'A hint costs {}',
   'Pas de place juste': 'No right spot',
   'Retire une forme mal placée, puis réessaie': 'Remove a misplaced shape, then try again',
