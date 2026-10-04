@@ -20,8 +20,16 @@ build is dropped. Until the switch-over (milestone 10):
   call `tr()` at load, so a language change reloads the app.
 - Checks: `npm run check:unit`, `npm run check:types`, `npm run lint`; visual changes on the iOS simulator and
   the Android emulator (`npm run ios` / `npm run android`).
-- Not ported yet (milestones 2-9): everything drawn on the canvas, every screen beyond the 4 placeholder tabs,
-  audio, haptics, ads, cloud save. The sections below still describe the legacy game.
+- Game screen (milestone 2, done): `src/screens/GameScreen.tsx` draws the run with Skia. `src/render/draw.ts`
+  ports the legacy canvas code call for call through `src/render/g.ts` (a canvas-2D-like wrapper over
+  SkCanvas); the run picture is recorded on the JS thread only while something moves (`animating()` in
+  `src/game/anim.ts`), the dragged shape is a separate picture moved on the UI thread. Geometry is pure and
+  tested (`src/render/layout.ts`, `src/game/drag.ts`); moves go through `src/game/run.ts` (commit, end of run).
+  Only Classique with the Jouet theme and the classic block skin so far.
+- Not ported yet (milestones 3-9): combo juice, sounds, haptics, bonus icons on blocks, inventory, undo, trash,
+  other modes and themes, every screen beyond the 4 placeholder tabs, Cubo, ads, cloud save. The sections
+  below still describe the legacy game.
+- Simulator checks without hands: `idb ui tap/swipe` (fb-idb) drives the iOS simulator; points = pixels / 3.
 
 ## Name
 - Name: **Cubo Blocks** (store and web), **Cubo** under the icon, appId `com.slapps.cubo`, domain `cuboblocks.app`, repo `EryonS/cubo`. Internal ids use `cuboblocks` / `CuboBlocks*` (save keys `cuboblocks.*`, globals `window.CuboBlocksMeta`...). Old name Gridlock: `gridlock.*` saves are moved to the new keys once at start-up (`platform/storage.js`, `i18n/setup.js` for the language); `gridlock.v1` stays the legacy format key.
