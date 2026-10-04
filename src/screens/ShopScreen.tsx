@@ -1,6 +1,6 @@
 // Boutique tab (legacy screens/shop.js): Thèmes / Blocs / Cubo / Bonus. Skin cards with a preview,
 // price, owned / equipped / exclusive states; Bonus = upgrades. Theme previews show the board colors
-// (full world themes come with milestone 6); Cubo previews are placeholders until milestone 5.
+// (full world themes come with milestone 6).
 import { useState } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
 import { L, M } from '../core';
@@ -65,7 +65,7 @@ function SkinCard({ kind, skin, width }: { kind: SkinKind; skin: ReturnType<type
   return (
     <View style={{ width, padding: 7, paddingBottom: 8, borderRadius: radius.card - 2, backgroundColor: colors.panel2, alignItems: 'center' }}>
       {kind === 'cubo'
-        ? <DrawCanvas width={width - 14} radius={radius.card - 6} deps={[skin.id, eqBoard]} draw={(g, w, h) => drawCuboPreview(g, boardTheme(eqBoard), skin.id, w, h)} />
+        ? <DrawCanvas width={width - 14} radius={radius.card - 6} deps={[skin.id, eqBoard]} draw={(g, w) => drawCuboPreview(g, boardTheme(eqBoard), eqBoard, skin.id, w)} />
         : <DrawCanvas width={width - 14} radius={radius.card - 6} deps={[kind, skin.id, eqBoard, eqBlocks]}
             draw={(g, w, h) => drawPreview(g, boardTheme(kind === 'boards' ? skin.id : eqBoard, kind === 'blocks' ? skin.id : eqBlocks), w, h)} />}
       <Text numberOfLines={1} style={{ marginVertical: 7, fontSize: 14 }}>{skin.name}</Text>

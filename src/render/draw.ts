@@ -7,6 +7,9 @@ import type { Piece, RunState } from '../core/types';
 import { dragGeometry, easeBack, easeOut, type DragGeometry } from '../game/drag';
 import { anim, type DragState } from '../game/anim';
 import { bannerHead, bannerLook, comboTagLook, COMBO_BREAK_MS, comboTier, flagFall, flagWave, hslToHex, PUNCH_MS, tierHex } from '../game/juice';
+import { drawCubo } from '../mascot/body';
+import { cuboLookFor } from '../mascot/looks';
+import { cuboBaseMood, cuboMoodAt, cuboRoom, cuboSpot } from '../mascot/state';
 import { G, withAlpha } from './g';
 import { drawSpecial } from './cells';
 import { drawIcon, drawMark, iconScale } from './icons';
@@ -274,7 +277,8 @@ function recordFlag(g: G, lay: Layout, state: RunState, t: number): Flag | null 
 
 // The score band: the pennant on its left, the score in the middle of what is left.
 function hudBand(g: G, lay: Layout, state: RunState, t: number) {
-  const { x, y, w, h } = lay.band;
+  const { x, y, h } = lay.band;
+  const w = lay.band.w - cuboRoom(anim.mascot, lay, state); // the band stops short of Cubo
   const flag = recordFlag(g, lay, state, t);
   const flagW = flag ? flag.room * (1 - flag.fall) : 0;
   return { x, y, w, h, flag, cx: x + flagW + (w - flagW) / 2, cw: w - flagW - 28 };
@@ -327,6 +331,14 @@ export function drawRecordFlag(g: G, th: Theme, lay: Layout, state: RunState, t:
   g.text(f.label, s * 0.18, top + fh / 2 + wave(0.3) + 1 + f.size * 0.35, f.size, th.tag.ink, 'left');
   g.restore();
   g.alpha = a;
+}
+
+// Cubo, standing at the right end of the score band, on the board frame's corner (legacy drawCubo(t)).
+// asleep: a sheet is open over the game. wear: the equipped wardrobe piece.
+export function drawMascot(g: G, th: Theme, lay: Layout, state: RunState, drag: DragState | null, asleep: boolean, wear: string, t: number) {
+  if (!anim.mascot) return;
+  const mood = cuboMoodAt(t, cuboBaseMood(state, asleep, !!drag));
+  drawCubo(g, t, cuboSpot(lay, state), cuboLookFor(th.id, wear), mood, { calm: anim.calm, look: drag ? { x: drag.x, y: drag.y } : null, ink: th.ink });
 }
 
 // ---------- combo feel (render/hud.js, render/effects.js, render/loop.js) ----------

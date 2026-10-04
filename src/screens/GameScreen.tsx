@@ -17,18 +17,19 @@ import { useFocusEffect, useNavigation, type NavigationProp } from '@react-navig
 import { L, M } from '../core';
 import { locale, tr } from '../core/i18n';
 import { useGame } from '../state/store';
-import { ambient, anim, animating, TRASH_ARM_MS, type DragState } from '../game/anim';
+import { ambientGap, anim, animating, TRASH_ARM_MS, type DragState } from '../game/anim';
+import { cuboHit, cuboSpot } from '../mascot/state';
 import { dragGeometry, easeOut, LIFT_MS } from '../game/drag';
 import { hasInventory, trashView, undoView } from '../game/hud';
 import {
   bestOf, commit, discardPiece, enterRun, fireBonus, giveUpRun, liveRun, persistRun, quitRun, restartRun, rotateTray,
-  setAiming, setEndHandler, stepFlyers, syncBudget, tickRun, undoMove, useRunHud, type RunEnd,
+  setAiming, setEndHandler, stepFlyers, syncBudget, tapCubo, tickRun, undoMove, useRunHud, type RunEnd,
 } from '../game/run';
 import { boardCellAt, computeLayout, invAt, miniCell, overTrash, slotAt, HUD_BTN, type Layout } from '../render/layout';
 import { G } from '../render/g';
 import {
   drawAim, drawBanner, drawBoard, drawChrono, drawComboGlow, drawComboHang, drawFades, drawFlyers, drawFloaters, drawHint, drawHUD,
-  drawInventory, drawParticles, drawPiece, drawRecordFlag, drawReturning, drawSweeps, drawTray, drawTrash, frameFx, ghostOf, paintBackground,
+  drawInventory, drawMascot, drawParticles, drawPiece, drawRecordFlag, drawReturning, drawSweeps, drawTray, drawTrash, frameFx, ghostOf, paintBackground,
 } from '../render/draw';
 import { drawIcon } from '../render/icons';
 import { useBaloo } from '../render/font';
@@ -99,6 +100,8 @@ export function GameScreen() {
 
   const skin = useGame((s) => s.profile.equipped.blocks);
   const patterns = useGame((s) => s.saved.settings.patterns);
+  const mascot = useGame((s) => s.saved.settings.mascot);
+  const wear = useGame((s) => s.profile.equipped.cubo);
   const th = useMemo(() => themeFor(skin, patterns), [skin, patterns]);
 
   const background = useMemo(() => (lay ? record(lay, null, (g) => paintBackground(g, th, lay.W, lay.H)) : null), [lay, th]);
@@ -129,7 +132,7 @@ export function GameScreen() {
   const open = useRef(new Set<string>());
   const reopenPause = useRef(false);
   const track = (name: string) => ({
-    onOpen: () => { open.current.add(name); if (name === 'pause') persistRun(); },
+    onOpen: () => { dirty.current = true; open.current.add(name); if (name === 'pause') persistRun(); },
     onClose: () => { open.current.delete(name); dirty.current = true; },
   });
   // Timers (bonuses, clock) only run while actually playing.
@@ -146,6 +149,7 @@ export function GameScreen() {
     lastRaf.current = t;
     const d = drag.current;
     const aim = anim.aiming;
+    anim.mascot = mascot;
     if (d) { d.x = dragX.value; d.y = dragY.value; }
     if (aim && gest.current?.kind === 'bomb') {
       aim.x = dragX.value; aim.y = dragY.value;
@@ -168,8 +172,9 @@ export function GameScreen() {
     stepFlyers(lay, t);
     st = useGame.getState().saved.state;
     if (!dirty.current && st === lastDrawn.current && !d && !aim && !animating(t)) {
-      // Only decoration waves (pennant, combo glow, clock): half rate, and idle again once they are gone.
-      if (!ambient(st) || t - lastDraw.current < 33) return;
+      // Only decoration waves (pennant, combo glow, clock, Cubo breathing): half rate or less, and idle again once they are gone.
+      const gap = ambientGap(st);
+      if (!gap || t - lastDraw.current < gap) return;
     }
     dirty.current = false;
     lastDrawn.current = st;
@@ -193,6 +198,7 @@ export function GameScreen() {
       g.restore();
       drawRecordFlag(g, th, lay, st, t);
       drawComboHang(g, th, lay, st, t);
+      drawMascot(g, th, lay, st, d, open.current.size > 0 || asking(), wear, t);
       drawTray(g, th, lay, st, d, t);
       drawChrono(g, th, lay, st, t);
       drawHint(g, th, lay, st, t);
@@ -203,7 +209,7 @@ export function GameScreen() {
       drawFlyers(g, lay, t);
       drawBanner(g, th, lay, t);
     });
-  }, [lay, typeface, th, runPicture, dragX, dragY]);
+  }, [lay, typeface, th, mascot, wear, runPicture, dragX, dragY]);
 
   // Reduced motion (legacy calm()): no shake, punch, sweeps, confetti, wobble.
   useEffect(() => {
@@ -242,7 +248,7 @@ export function GameScreen() {
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, [frame]));
-  useEffect(() => { dirty.current = true; }, [lay, typeface, th]);
+  useEffect(() => { dirty.current = true; }, [lay, typeface, th, mascot, wear]);
 
   // ---------- touch: pieces, bomb, inventory buttons ----------
   const onDown = useCallback((x: number, y: number) => {
@@ -254,6 +260,7 @@ export function GameScreen() {
       gest.current = { kind: 'aimtap', sx: x, sy: y };
       return;
     }
+    if (mascot && !drag.current && cuboHit(x, y, cuboSpot(lay, state))) { tapCubo(lay, th.id); dirty.current = true; return; }
     if (state.over) return;
     if (hasInventory(state)) {
       const id = invAt(lay, x, y);
@@ -285,7 +292,7 @@ export function GameScreen() {
     miniRatio.value = miniCell(lay) / lay.cell;
     liftK.value = 0;
     liftK.value = withTiming(1, { duration: LIFT_MS, easing: Easing.out(Easing.cubic) });
-  }, [lay, typeface, th, dragPicture, lift, miniRatio, liftK]);
+  }, [lay, typeface, th, mascot, dragPicture, lift, miniRatio, liftK]);
 
   const onUp = useCallback((x: number, y: number, released: boolean) => {
     const gs = gest.current;

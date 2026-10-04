@@ -1,13 +1,18 @@
 // Jouer tab (legacy #menu): Continuer, the Aventure card, Défi du jour and Puzzles tiles, the free
 // game row (mode and level, Jouer), Missions with their pips, and the wallet.
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { M, LV, PZ, WD } from '../core';
 import { locale, tr } from '../core/i18n';
 import { freeInProgress, guardFree, inProgress, LEVEL_NAMES, MODE_NAMES, modeLabel, modeSub } from '../game/modes';
 import { missionStatus, restartRun, resumeParked } from '../game/run';
+import { cuboLookFor } from '../mascot/looks';
+import { cuboLine } from '../mascot/say';
+import { haptic } from '../platform/haptics';
+import { CuboPose } from '../ui/CuboPose';
 import { boardTheme } from '../render/board-themes';
 import { sfx } from '../audio/engine';
 import { today } from '../state/persist';
@@ -43,6 +48,35 @@ function Tap({ onPress, style, children, label }: { onPress: () => void; style?:
 const Small = ({ children, style }: { children: React.ReactNode; style?: object }) => (
   <Text variant="muted" style={[{ fontSize: 12, letterSpacing: 0.9, textTransform: 'uppercase', fontFamily: fonts.bold }, style]}>{children}</Text>
 );
+
+// Cubo and his line of the day; a tap makes him pull the theme's faces in turn and hop.
+function CuboSay() {
+  const profile = useGame((s) => s.profile);
+  const line = useMemo(() => cuboLine(profile, today()), [profile]);
+  const look = useMemo(() => cuboLookFor(profile.equipped.boards, profile.equipped.cubo), [profile.equipped.boards, profile.equipped.cubo]);
+  const [mood, setMood] = useState<string | null>(null);
+  const taps = useRef(0);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const hop = useSharedValue(0);
+  const style = useAnimatedStyle(() => ({ transform: [{ translateY: -10 * hop.value }, { scaleX: 1 + 0.04 * hop.value }, { scaleY: 1 - 0.04 * hop.value }] }));
+  const onTap = () => {
+    sfx.pop();
+    haptic('pick');
+    setMood(look.taps[taps.current++ % look.taps.length]);
+    hop.value = withSequence(withTiming(1, { duration: 150 }), withTiming(0, { duration: 270 }));
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setMood(null), 900);
+  };
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel="Cubo" onPress={onTap} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -6 }}>
+      <Animated.View style={[{ transformOrigin: 'bottom' }, style]}><CuboPose width={76} lw={152} lh={160} s={100} foot={9} look={look} mood={mood ?? line.mood} /></Animated.View>
+      <View style={{ flex: 1, minWidth: 0, marginLeft: 6, paddingVertical: 10, paddingHorizontal: 13, borderRadius: 16, backgroundColor: colors.panel2 }}>
+        <View style={{ position: 'absolute', left: -7, top: '50%', marginTop: -7, borderTopWidth: 7, borderBottomWidth: 7, borderRightWidth: 7, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderRightColor: colors.panel2 }} />
+        <Text style={{ fontSize: 15, lineHeight: 20 }}>{line.text}</Text>
+      </View>
+    </Pressable>
+  );
+}
 
 export function PlayScreen() {
   const nav = useNavigation<NavigationProp<RootParams & TabParams>>();
@@ -97,6 +131,8 @@ export function PlayScreen() {
             <Text variant="title" style={{ fontSize: 22, lineHeight: 28 }}>{fmt(profile.coins)}</Text>
           </Pressable>
         </View>
+
+        <CuboSay />
 
         {playing && (
           <Button label={tr('Continuer')} sub={playingLabel} onPress={() => { sfx.turn(); play(); }} />

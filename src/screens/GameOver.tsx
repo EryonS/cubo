@@ -1,6 +1,6 @@
 // End of a free run (legacy screens/gameover.js showGameOver): title, score, record, run summary, coin lines
 // one by one while the wallet counts up, next goal, today's missions, Rejouer / Menu.
-// Not yet: Cubo's pose (milestone 5) and the rewarded "double coins" button (milestone 9, see DoubleCoinsAd).
+// Cubo's pose over the title (star on a record, happy past half of it, oops below). Not yet: the rewarded "double coins" button (milestone 9, see DoubleCoinsAd).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Share, View, Pressable } from 'react-native';
 import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
@@ -12,7 +12,9 @@ import { modeLabel } from '../game/modes';
 import type { RunEnd } from '../game/run';
 import { useGame } from '../state/store';
 import { colors, radius, space } from '../theme/tokens';
+import { cuboLookFor } from '../mascot/looks';
 import { Button } from '../ui/Button';
+import { CuboPose } from '../ui/CuboPose';
 import { Icon } from '../ui/Icon';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
@@ -63,6 +65,8 @@ function MissionsLine() {
 
 export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () => void; onMenu: () => void }) {
   const profile = useGame((s) => s.profile);
+  const mascot = useGame((s) => s.saved.settings.mascot);
+  const look = useMemo(() => cuboLookFor('toy', profile.equipped.cubo), [profile.equipped.cubo]);
   const tiles = useMemo(() => runSummary(end), [end]);
   const [shown, setShown] = useState(end.coinsBefore);
   const [lines, setLines] = useState(0);
@@ -103,6 +107,11 @@ export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () =>
       <Animated.View entering={ZoomIn.duration(260)} style={{ maxHeight: '100%' }}>
         <View style={{ backgroundColor: colors.panel, borderRadius: radius.card + 8, borderBottomWidth: 6, borderBottomColor: colors.edge, overflow: 'hidden', maxHeight: '100%' }}>
           <ScrollView contentContainerStyle={{ padding: space.xl, alignItems: 'center', gap: 4 }}>
+            {mascot && (
+              <Animated.View entering={ZoomIn.duration(560)} style={{ marginTop: -12, marginBottom: -4, transformOrigin: 'bottom' }}>
+                <CuboPose width={112} lw={224} lh={236} s={150} foot={13} look={look} mood={end.record ? 'star' : end.score >= end.best / 2 ? 'happy' : 'oops'} />
+              </Animated.View>
+            )}
             <Text variant="title" style={{ fontSize: 30, textTransform: 'uppercase', textAlign: 'center' }}>{TITLES[end.title]()}</Text>
             <Text variant="big" style={{ fontSize: 76, lineHeight: 78, marginTop: -4, marginBottom: -14, color: colors.text }}>{fmt(end.score)}</Text>
             <Text variant="muted" style={{ fontSize: 15 }}>{tr('Record : ') + fmt(end.best)}</Text>

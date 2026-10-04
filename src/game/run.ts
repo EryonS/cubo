@@ -15,6 +15,8 @@ import { cellCenter, chronoBar, hudTop, walletTarget, invCenter, type InvId, typ
 import { SPECIAL_COLORS } from '../render/cells';
 import { sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
+import { cuboLookFor } from '../mascot/looks';
+import { cuboReact, cuboSpot, cuboTap } from '../mascot/state';
 import { anim, resetAnim } from './anim';
 import { BONUS_UI } from './bonus-ui';
 import { alreadyDone, celebrate, hasClock } from './hud';
@@ -24,6 +26,19 @@ import { inProgress, isFree } from './modes';
 export { inProgress };
 
 const now = () => performance.now();
+
+// Cubo's reaction to an event (a no-op when the Mascotte setting is off).
+function react(mood: string, ms: number, jump = 0) {
+  if (useGame.getState().saved.settings.mascot) cuboReact(now(), mood, ms, jump, anim.calm);
+}
+
+// A tap on Cubo (the caller checked cuboHit): a face, a hop, hearts, a sound.
+export function tapCubo(lay: Layout, th: string) {
+  const { saved, profile } = useGame.getState();
+  const kind = cuboTap(now(), cuboSpot(lay, saved.state), cuboLookFor(th, profile.equipped.cubo), anim.calm);
+  if (kind === 'dizzy') sfx.fizzle(); else sfx.pop();
+  haptic('tap');
+}
 
 // What the game HUD needs from the run that is not in the saved state: coins picked up this run
 // and already landed in the wallet, and a counter that makes the wallet bump.
@@ -278,6 +293,7 @@ export function commit(lay: Layout, idx: number, row: number, col: number): Move
   const calm = anim.calm;
   if (!ev.lines && before.combo >= 2 && !res.state.combo) {
     anim.comboBreak = { t0: t, n: before.combo };
+    react('oops', 900);
     sfx.fizzle();
   }
   (ev.placed || []).forEach(([r, c]) => anim.pops.push({ r, c, t0: t }));
@@ -303,6 +319,8 @@ export function commit(lay: Layout, idx: number, row: number, col: number): Move
       if (tier >= 2 || ev.lines >= 2) confetti(lay, t, confettiCount(tier, ev.lines));
     }
     if (combo >= 2) anim.comboAt = t;
+    if (ev.perfect || tier >= 2) react('star', 1300, 1);
+    else react('happy', 900, 0.45 + 0.2 * Math.min(3, ev.lines));
     if (combo >= 2 && comboTier(combo) > comboTier(combo - 1)) sfx.sparkle(comboTier(combo));
     const banner = bannerFor({ lines: ev.lines, combo, perfect: ev.perfect }, tier);
     if (banner) anim.banners.push(banner);
@@ -339,6 +357,7 @@ function announceRecord(lay: Layout, state: RunState, t: number) {
   anim.recordAnnounced = true;
   anim.banners.push({ text: tr('Nouveau record !'), sub: '', tier: 0, gold: true });
   haptic('record');
+  react('star', 1500, 1);
   anim.flagDownAt = t;
   if (!anim.calm) confetti(lay, t, 36);
   sfx.sparkle(3);
@@ -369,6 +388,7 @@ export function fireBonus(lay: Layout, type: BonusType, target?: { r: number; c:
   if (!res) return false;
   const ev = res.events;
   const t = now();
+  react('wow', 900, 0.5);
   if (type === 'bomb' && target) {
     for (const cell of ev.cleared || []) {
       const delay = Math.hypot(cell.r - target.r, cell.c - target.c) * 45;

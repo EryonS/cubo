@@ -1,6 +1,6 @@
 // Cubo Blocks — A thin canvas-2D-like layer over Skia's SkCanvas, so the legacy drawing code
 // (ctx.roundRect, fillStyle, globalAlpha, shadows...) ports call for call.
-import { BlurStyle, PaintStyle, Skia, TileMode, type SkCanvas, type SkFont, type SkPaint, type SkPathBuilder, type SkShader, type SkTypeface } from '@shopify/react-native-skia';
+import { BlurStyle, ClipOp, PaintStyle, Skia, TileMode, type SkCanvas, type SkFont, type SkPaint, type SkPathBuilder, type SkShader, type SkTypeface } from '@shopify/react-native-skia';
 
 // Corner radii: one number, or [topLeft, topRight, bottomRight, bottomLeft] as canvas roundRect.
 export type Radii = number | [number, number, number, number];
@@ -189,6 +189,8 @@ export class P {
   }
   rect(x: number, y: number, w: number, h: number) { this.b.addRect(Skia.XYWHRect(x, y, w, h)); this.has = true; return this; }
 
+  // Limits what is drawn next (until the enclosing save / restore) to this path.
+  clip() { this.g.c.clipPath(this.b.build(), ClipOp.Intersect, true); return this; }
   fill(color: string, opts: DrawOpts = {}) { this.g.c.drawPath(this.b.build(), this.g.paint(color, opts)); return this; }
   stroke(color: string, width: number, opts: DrawOpts & { cap?: 'round'; join?: 'round' } = {}) {
     const { cap, join, ...rest } = opts;

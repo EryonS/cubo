@@ -2,6 +2,7 @@
 // A plain mutable object: it changes every frame and never goes through React.
 import type { ClearedCell } from '../core/logic';
 import type { RunState } from '../core/types';
+import { cuboBusy } from '../mascot/state';
 import type { Banner } from './juice';
 
 // The piece being dragged: tray slot, finger position, how high it floats, pick-up time.
@@ -51,6 +52,7 @@ export const anim = {
   flagDownAt: 0, // when the record pennant started to topple
   lastT: 0, // previous frame (particle physics)
   calm: false, // reduced motion: no shake, punch, sweeps, confetti, wobble
+  mascot: true, // Réglages > Mascotte: Cubo stands on the board (set by the game screen every frame)
 };
 
 export function resetAnim(t: number, score: number, best: number) {
@@ -70,7 +72,7 @@ export const animating = (t: number) => anim.pops.length > 0 || anim.fades.lengt
   || t - Math.max(...anim.slotIn, anim.nextIn) < 400 || (anim.overAt > 0 && t - anim.overAt < 900)
   || anim.sweeps.length > 0 || anim.punch !== null || anim.shake > 0.05 || anim.particles.length > 0
   || anim.banners.length > 0 || anim.comboBreak !== null || (anim.comboAt > 0 && t - anim.comboAt < 420)
-  || (anim.flagDownAt > 0 && t - anim.flagDownAt < 700);
+  || (anim.flagDownAt > 0 && t - anim.flagDownAt < 700) || (anim.mascot && cuboBusy(t));
 
 // Only decoration waves: a running combo (glow and tag pulse) or the record pennant flying.
 // The loop redraws these at half rate and goes idle once they are gone.
@@ -80,3 +82,7 @@ export const ambient = (state: RunState) => {
   if (state.mode === 'chrono' || state.stuck || Object.values(state.effects || {}).some((ms) => ms > 0)) return true;
   return !anim.calm && (state.combo >= 1 || (anim.bestAtStart > 0 && state.score <= anim.bestAtStart));
 };
+
+// Minimum ms between two redraws when only decoration moves: 33 for the waves above, 66 for Cubo alone
+// (breathing, sway, blink), 0 when nothing needs redrawing. Reduced motion: Cubo holds still.
+export const ambientGap = (state: RunState) => (ambient(state) ? 33 : anim.mascot && !anim.calm ? 66 : 0);

@@ -67,6 +67,7 @@ export function SettingsScreen() {
           <Row id="vibrate" label={tr('Vibrations')} sub={tr('Retour haptique sur mobile')} />
           <Section>{tr('Affichage')}</Section>
           <Row id="patterns" label={tr('Motifs sur les blocs')} sub={tr('Un symbole par couleur, pour mieux les distinguer')} />
+          <Row id="mascot" label={tr('Mascotte')} sub={tr('Cubo, perché sur le plateau, réagit à ta partie')} />
           <Section>{tr('Langue')}</Section>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: space.s }}>
             {LANGS.map(([id, label]) => (
