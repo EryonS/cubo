@@ -2,3 +2,21 @@
 .superpowers/
 node_modules/
 .impeccable/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+.metro-health-check*
+npm-debug.*
+.env*.local
+*.tsbuildinfo

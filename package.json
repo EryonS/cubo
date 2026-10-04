@@ -1,0 +1,52 @@
+{
+  "name": "cuboblocks",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@react-navigation/bottom-tabs": "^7.20.0",
+    "@react-navigation/native": "^7.5.0",
+    "@react-navigation/native-stack": "^7.20.0",
+    "expo": "~57.0.26",
+    "expo-dev-client": "~57.0.19",
+    "expo-font": "~57.0.4",
+    "expo-localization": "~57.0.2",
+    "expo-splash-screen": "~57.0.9",
+    "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.4",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-mmkv": "^4.3.2",
+    "react-native-nitro-modules": "^0.37.1",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
+    "react-native-worklets": "0.10.1",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/react": "~19.2.2",
+    "@typescript-eslint/eslint-plugin": "^8.71.0",
+    "@typescript-eslint/parser": "^8.71.0",
+    "eslint": "^10.12.0",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
+    "prebuild": "expo prebuild",
+    "xcode": "open ios/Cubo.xcworkspace",
+    "check:types": "tsc --noEmit",
+    "check:unit": "TZ=Europe/Paris tsx --test \"src/**/*.test.ts\"",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "i18n": "tsx scripts/i18n-keys.ts",
+    "balance": "tsx scripts/balance.ts 10",
+    "legacy": "python3 -m http.server 8000 --directory legacy/www"
+  },
+  "private": true,
+  "description": "Cubo Blocks, puzzle de blocs : app native iOS / Android (Expo). Ancienne version Capacitor dans legacy/."
+}
