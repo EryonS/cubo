@@ -1,47 +1,183 @@
-// Jouer tab. Milestone 1 placeholder: live numbers from the core; the real home comes at milestone 4.
-import { View } from 'react-native';
+// Jouer tab (legacy #menu): Continuer, the Aventure card, Défi du jour and Puzzles tiles, the free
+// game row (mode and level, Jouer), Missions with their pips, and the wallet.
+import { useMemo, useRef } from 'react';
+import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { inProgress, newRun } from '../game/run';
-import type { RootParams } from '../navigation/types';
-import { Button } from '../ui/Button';
-import { M, WD } from '../core';
+import { M, LV, PZ, WD } from '../core';
 import { locale, tr } from '../core/i18n';
-import { useGame } from '../state/store';
+import { freeInProgress, guardFree, inProgress, LEVEL_NAMES, MODE_NAMES, modeLabel, modeSub } from '../game/modes';
+import { missionStatus, restartRun, resumeParked } from '../game/run';
+import { boardTheme } from '../render/board-themes';
+import { sfx } from '../audio/engine';
+import { today } from '../state/persist';
 import { levelName, nextAdventure } from '../state/progress';
+import { useGame } from '../state/store';
+import type { RootParams, TabParams } from '../navigation/types';
+import { colors, radius } from '../theme/tokens';
+import { fonts } from '../theme/fonts';
+import { BoardPreview } from '../ui/BoardPreview';
+import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { Text } from '../ui/Text';
-import { Wallet } from '../ui/Wallet';
+import { ask, notice } from '../ui/dialog';
+import { FreePickSheet } from '../ui/FreePickSheet';
+import { Flame, Icon, Star } from '../ui/Icon';
+import { Pips } from '../ui/Missions';
+import { MissionsSheet } from '../ui/MissionsSheet';
 import { Screen } from '../ui/Screen';
+import { Text } from '../ui/Text';
+import { Coin } from '../ui/Wallet';
+
+const fmt = (n: number) => n.toLocaleString(locale());
+
+// A tappable block that shrinks a little under the finger.
+function Tap({ onPress, style, children, label }: { onPress: () => void; style?: StyleProp<ViewStyle>; children: React.ReactNode; label?: string }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={() => { sfx.turn(); onPress(); }}
+      style={({ pressed }) => [{ transform: [{ scale: pressed ? 0.97 : 1 }] }, style]}>
+      {children}
+    </Pressable>
+  );
+}
+
+const Small = ({ children, style }: { children: React.ReactNode; style?: object }) => (
+  <Text variant="muted" style={[{ fontSize: 12, letterSpacing: 0.9, textTransform: 'uppercase', fontFamily: fonts.bold }, style]}>{children}</Text>
+);
 
 export function PlayScreen() {
+  const nav = useNavigation<NavigationProp<RootParams & TabParams>>();
   const profile = useGame((s) => s.profile);
-  const best = useGame((s) => s.saved.bests.classic || 0);
-  const run = useGame((s) => s.saved.state);
-  const nav = useNavigation<NavigationProp<RootParams>>();
+  const prefs = useGame((s) => s.saved.prefs);
+  const parked = useGame((s) => s.saved.parked);
+  useGame((s) => s.saved.state.stats); // missions progress with the run
+  const playing = useGame((s) => freeInProgress(s.saved.state));
+  const playingLabel = useGame((s) => `${modeLabel(s.saved.state)} · ${fmt(s.saved.state.score)} pts`);
+  const pickRef = useRef<BottomSheetModal>(null);
+  const missionsRef = useRef<BottomSheetModal>(null);
+
   const next = nextAdventure(profile);
+  const stars = M.totalStars(profile);
   const maxStars = M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3;
+  const preview = useMemo(() => boardTheme('toy', profile.equipped.blocks), [profile.equipped.blocks]);
+  const day = today();
+  const daily = M.dailyOf(profile, day);
+  const left = M.dailyAttemptsLeft(profile, day, day);
+  const streak = M.streakNow(profile, day);
+  const world = WD.WORLDS[LV.daily(day).world].name;
+  const dailySub = daily.stars !== undefined ? tr`${world} · réussi`
+    : left ? tr`${world} · ${left} essai${left > 1 ? 's' : ''}` : tr('Reviens demain');
+  const status = missionStatus();
+  const done = status.filter((m) => m.done).length;
+  const freeSub = parked ? tr`${fmt(parked.score)} pts` : modeSub(prefs.mode);
+
+  const soon = () => notice(tr('Bientôt'), tr('Cette partie du jeu arrive dans une prochaine version.'));
+  const play = () => nav.navigate('Game');
+  const playFree = () => {
+    const g = guardFree(useGame.getState().saved.state, useGame.getState().saved.parked);
+    const go = () => { restartRun({ mode: prefs.mode, level: prefs.level }); play(); };
+    if (!g.needed) { go(); return; }
+    ask({ title: tr('Abandonner ?'), text: g.text, ok: tr('Abandonner'), danger: true }).then((yes) => { if (yes) go(); });
+  };
+  const onFreePlay = () => {
+    if (!parked) { playFree(); return; }
+    const go = () => { resumeParked(); play(); };
+    if (!inProgress(useGame.getState().saved.state)) { go(); return; }
+    ask({ title: tr('Reprendre ?'), text: tr('Le niveau en cours s’arrête pour reprendre ta partie libre. Les pièces gagnées sont gardées.'), ok: tr('Reprendre') })
+      .then((yes) => { if (yes) go(); });
+  };
+
   return (
     <Screen>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text variant="title">Cubo Blocks</Text>
-        <Wallet coins={profile.coins} />
-      </View>
-      <Card>
-        <Text variant="muted">{tr('Aventure')}</Text>
-        <Text variant="title">{next ? `${WD.WORLDS[next[0]].name} · ${levelName(next[1])}` : tr('Carte des mondes')}</Text>
-        <Text variant="muted">{tr('Étoiles')} : {M.totalStars(profile)} / {maxStars}</Text>
-      </Card>
-      <Card>
-        <Text variant="muted">{tr('Partie libre')}</Text>
-        <Text variant="title">{tr('Classique')}</Text>
-        <Text variant="muted">{tr('Record')} : {best.toLocaleString(locale())}</Text>
-        <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
-          {inProgress(run) && (
-            <Button kind="ghost" style={{ flex: 1 }} label={tr('Continuer')} sub={tr`${run.score.toLocaleString(locale())} pts`} onPress={() => nav.navigate('Game')} />
-          )}
-          <Button style={{ flex: 1 }} label={tr('Jouer')} onPress={() => { newRun(); nav.navigate('Game'); }} />
+      <Card style={{ padding: 20, gap: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <Text style={{ flex: 1, fontFamily: fonts.display, fontSize: 34, lineHeight: 40, letterSpacing: 1.4, textTransform: 'uppercase' }} numberOfLines={1} adjustsFontSizeToFit>Cubo Blocks</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={tr('Pièces : ouvrir la Boutique')} onPress={() => { sfx.turn(); nav.navigate('Shop'); }}
+            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.panel2, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
+            <Coin size={19} />
+            <Text variant="title" style={{ fontSize: 22, lineHeight: 28 }}>{fmt(profile.coins)}</Text>
+          </Pressable>
         </View>
+
+        {playing && (
+          <Button label={tr('Continuer')} sub={playingLabel} onPress={() => { sfx.turn(); play(); }} />
+        )}
+
+        <View>
+          <Tap onPress={soon} label={next ? tr`Aventure : jouer ${WD.WORLDS[next[0]].name}, ${levelName(next[1])}` : tr('Aventure : carte des mondes')}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.card, backgroundColor: playing ? colors.panel2 : colors.accent, borderBottomWidth: playing ? 0 : 5, borderBottomColor: 'rgba(0,0,0,0.2)' }}>
+            <View style={{ borderRadius: 14, overflow: 'hidden', borderWidth: playing ? 0 : 3, borderColor: 'rgba(255,255,255,0.4)' }}>
+              <BoardPreview th={preview} width={86} radius={11} />
+            </View>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Small style={{ color: playing ? colors.muted : colors.onAccent, opacity: 0.85 }}>{tr('Aventure')}</Small>
+              <Text variant="title" style={{ fontSize: 22, lineHeight: 24, color: playing ? colors.text : colors.onAccent }}>
+                {next ? `${WD.WORLDS[next[0]].name} · ${levelName(next[1])}` : tr('Carte des mondes')}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Star size={14} />
+                <Text style={{ fontSize: 13, color: playing ? colors.muted : colors.onAccent }}>{fmt(stars)} / {maxStars}</Text>
+              </View>
+            </View>
+            <View style={{ alignSelf: 'flex-end', paddingHorizontal: 14, paddingVertical: 7, borderRadius: radius.pill, backgroundColor: playing ? colors.accent : colors.onAccent }}>
+              <Text variant="title" style={{ fontSize: 17, lineHeight: 20, textTransform: 'uppercase', color: playing ? colors.onAccent : colors.accent }}>{next ? tr('Jouer') : tr('Voir')}</Text>
+            </View>
+          </Tap>
+          <Pressable accessibilityRole="button" accessibilityLabel={tr('Carte')} onPress={() => { sfx.turn(); soon(); }} hitSlop={8}
+            style={{ position: 'absolute', top: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 32, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: playing ? colors.panel : 'rgba(255,255,255,0.22)' }}>
+            <Icon name="map" size={16} color={playing ? colors.text : colors.onAccent} />
+            <Text style={{ fontSize: 13, color: playing ? colors.text : colors.onAccent }}>{tr('Carte')}</Text>
+          </Pressable>
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Tap onPress={() => nav.navigate('Defis')} style={[tile, daily.stars !== undefined && { borderWidth: 2, borderColor: colors.good }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', alignSelf: 'stretch', marginBottom: 4 }}>
+              <Icon name="defis" size={24} color={colors.accent} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }} accessibilityLabel={tr`Série de ${streak} jour${streak > 1 ? 's' : ''}`}>
+                <Flame size={18} on={streak > 0} color={colors.text} />
+                <Text style={{ fontSize: 15 }}>{streak}</Text>
+              </View>
+            </View>
+            <Text variant="title" style={{ fontSize: 19, lineHeight: 21 }}>{tr('Défi du jour')}</Text>
+            <Text variant="muted" style={{ fontSize: 13, lineHeight: 16 }}>{dailySub}</Text>
+          </Tap>
+          <Tap onPress={soon} style={tile}>
+            <View style={{ alignSelf: 'stretch', marginBottom: 4 }}><Icon name="puzzle" size={24} color={colors.accent} /></View>
+            <Text variant="title" style={{ fontSize: 19, lineHeight: 21 }}>{tr('Puzzles')}</Text>
+            <Text variant="muted" style={{ fontSize: 13, lineHeight: 16 }}>{tr`${M.puzzlesSolved(profile)} / ${PZ.COUNT} résolus`}</Text>
+          </Tap>
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Tap onPress={() => pickRef.current?.present()} label={tr('Choisir le mode de la partie libre')}
+            style={{ flex: 1, minWidth: 0, justifyContent: 'center', paddingVertical: 10, paddingLeft: 14, paddingRight: 34, borderRadius: radius.card - 2, backgroundColor: colors.panel2 }}>
+            <Small>{parked ? tr('Partie en cours') : tr('Partie libre')}</Small>
+            <Text variant="title" style={{ fontSize: 18, lineHeight: 21 }} numberOfLines={1}>
+              {parked ? modeLabel(parked) : `${MODE_NAMES[prefs.mode]} · ${LEVEL_NAMES[prefs.level]}`}
+            </Text>
+            <Text variant="muted" style={{ fontSize: 13 }}>{freeSub}</Text>
+            <View style={{ position: 'absolute', right: 12, top: '50%', marginTop: -8 }}><Icon name="chevDown" size={16} color={colors.muted} /></View>
+          </Tap>
+          <Pressable accessibilityRole="button" onPress={onFreePlay}
+            style={({ pressed }) => ({ width: 104, alignItems: 'center', justifyContent: 'center', borderRadius: radius.card - 2, backgroundColor: parked && !playing ? colors.accent : colors.panel2, borderBottomWidth: 4, borderBottomColor: parked && !playing ? 'rgba(0,0,0,0.22)' : colors.hairline, transform: [{ translateY: pressed ? 2 : 0 }] })}>
+            <Text variant="title" style={{ fontSize: 20, textTransform: 'uppercase', color: parked && !playing ? colors.onAccent : colors.accent }}>{parked ? tr('Reprendre') : tr('Jouer')}</Text>
+          </Pressable>
+        </View>
+
+        <Tap onPress={() => missionsRef.current?.present()} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: radius.card - 2, backgroundColor: colors.panel2 }}>
+          <Icon name="target" size={24} color={colors.accent} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text variant="title" style={{ fontSize: 22, lineHeight: 24, textTransform: 'uppercase' }}>{tr('Missions')}</Text>
+            <Text variant="muted" style={{ fontSize: 13 }} numberOfLines={1}>{done === status.length ? tr('Toutes faites') : tr`${done}/${status.length} faites aujourd’hui`}</Text>
+          </View>
+          <Pips status={status} />
+          <Icon name="chevRight" size={16} color={colors.muted} />
+        </Tap>
       </Card>
+      <FreePickSheet ref={pickRef} parked={!!parked} onPlay={onFreePlay} />
+      <MissionsSheet ref={missionsRef} />
     </Screen>
   );
 }
+
+const tile: ViewStyle = { flex: 1, minWidth: 0, padding: 12, paddingHorizontal: 14, gap: 2, borderRadius: radius.card - 2, backgroundColor: colors.panel2 };

@@ -8,8 +8,13 @@ import { dragGeometry, easeBack, easeOut, type DragGeometry } from '../game/drag
 import { anim, type DragState } from '../game/anim';
 import { bannerHead, bannerLook, comboTagLook, COMBO_BREAK_MS, comboTier, flagFall, flagWave, hslToHex, PUNCH_MS, tierHex } from '../game/juice';
 import { G, withAlpha } from './g';
-import { cellCenter, miniCell, slotBox, slotCenter, type Layout } from './layout';
+import { drawSpecial } from './cells';
+import { drawIcon, drawMark, iconScale } from './icons';
+import { chronoBar, cellCenter, hintY, invBoxes, invCenter, miniCell, slotBox, slotCenter, trashBox, walletTarget, type InvBox, type Layout } from './layout';
+import { blockSkin, isNeon } from './skins';
 import type { Theme } from './theme';
+import { hasClock, hasInventory, hintText, invView, ringEnding, ringFill, trashFill, trashLabel, trashView } from '../game/hud';
+import { TRASH_ARM_MS } from '../game/anim';
 
 const SIZE = L.SIZE;
 const fmt = (n: number) => n.toLocaleString(locale());
@@ -31,12 +36,12 @@ export function drawFrame(g: G, th: Theme, x: number, y: number, w: number, h: n
   g.rrect(x + i, y + i, w - i * 2, h - i * 2, Math.max(2, f.r - i), f.line, { stroke: { width: f.lw || 2 } });
 }
 
-function drawEmpty(g: G, th: Theme, x: number, y: number, cell: number) {
+export function drawEmpty(g: G, th: Theme, x: number, y: number, cell: number) {
   g.rrect(x - cell * 0.44, y - cell * 0.44, cell * 0.88, cell * 0.88, cell * th.cellR, th.empty);
 }
 
 // The score plate: fill and drop shadow, optional inner border.
-function drawPlate(g: G, th: Theme, x: number, y: number, w: number, h: number) {
+export function drawPlate(g: G, th: Theme, x: number, y: number, w: number, h: number) {
   const p = th.plate;
   g.rrect(x, y, w, h, p.r, p.fill, { shadow: { color: p.shadow || 'rgba(0,0,0,0.4)', blur: 14, dy: 5 } });
   if (!p.line) return;
@@ -45,28 +50,26 @@ function drawPlate(g: G, th: Theme, x: number, y: number, w: number, h: number) 
   g.rrect(x + i, y + i, w - i * 2, h - i * 2, Math.max(2, p.r - i), p.line, { stroke: { width: lw } });
 }
 
-// ---------- blocks (themes/skins.js classic, render/helpers.js drawBlock / drawPiece) ----------
-function classicBlock(g: G, x: number, y: number, s: number, color: string) {
-  const r = s * 0.2;
-  g.rrect(x, y, s, s, r, color);
-  g.rrect(x, y + s * 0.74, s, s * 0.26, [0, 0, r, r], 'rgba(0,0,0,0.2)');
-  g.rrect(x + s * 0.12, y + s * 0.09, s * 0.76, s * 0.2, r * 0.6, 'rgba(255,255,255,0.3)');
-}
-
-export function drawBlock(g: G, cx: number, cy: number, size: number, color: string, alpha = 1, scale = 1) {
+// ---------- blocks (themes/skins.js, render/helpers.js drawBlock / drawPiece) ----------
+// bonus: the bonus or coin icon the block carries. fam: its shape family, for the Motifs marks.
+export function drawBlock(g: G, th: Theme, cx: number, cy: number, size: number, color: string, alpha = 1, scale = 1, bonus: string | null = null, fam = 0) {
   const s = size * scale * 0.9;
   if (s <= 0.5) return;
   const a = g.alpha;
   g.alpha = a * alpha;
-  classicBlock(g, cx - s / 2, cy - s / 2, s, color);
+  blockSkin(th.skin)(g, cx - s / 2, cy - s / 2, s, color);
+  if (bonus) drawIcon(g, bonus, cx, cy, s * iconScale(bonus));
+  else if (fam && th.patterns) drawMark(g, fam, cx, cy, s, isNeon(th.skin) ? color : 'rgba(0,0,0,0.42)');
   g.alpha = a;
 }
 
 export function drawPiece(g: G, th: Theme, piece: Piece, cx: number, cy: number, cellSize: number, alpha = 1) {
   const ox = cx - (piece.w * cellSize) / 2;
   const oy = cy - (piece.h * cellSize) / 2;
+  const b = piece.bonus;
   for (const [r, c] of piece.cells) {
-    drawBlock(g, ox + (c + 0.5) * cellSize, oy + (r + 0.5) * cellSize, cellSize, th.palette[piece.color] || th.ink, alpha);
+    const bonus = b && b.r === r && b.c === c ? b.type : null;
+    drawBlock(g, th, ox + (c + 0.5) * cellSize, oy + (r + 0.5) * cellSize, cellSize, th.palette[piece.color] || th.ink, alpha, 1, bonus, piece.color);
   }
 }
 
@@ -88,24 +91,47 @@ export function drawBoard(g: G, th: Theme, lay: Layout, state: RunState, ghost: 
       const i = r * SIZE + c;
       const v = state.board[i];
       if (!v) continue;
-      const [x, y] = cellCenter(lay, r, c);
+      let [x, y] = cellCenter(lay, r, c);
       let scale = 1;
       const pop = anim.pops.find((p) => p.r === r && p.c === c);
       if (pop) {
         const k = (t - pop.t0) / 220;
         scale = k < 1 ? 1 + 0.16 * Math.sin(k * Math.PI) : 1;
       }
+      const alpha = 1 - overK * 0.65;
+      const sp = state.special && state.special[i];
+      if (v === L.SPECIAL && sp) {
+        // An obstacle: it may be arriving (dropped from above, grown, or gliding from another cell).
+        const drop = anim.drops.get(i);
+        if (drop) {
+          const k = (t - drop.t0) / drop.dur;
+          if (k >= 1.4) anim.drops.delete(i);
+          else if (drop.from && k < 0) [x, y] = cellCenter(lay, drop.from[0], drop.from[1]);
+          else if (k < 0) continue;
+          else if (drop.from) {
+            const [fx, fy] = cellCenter(lay, drop.from[0], drop.from[1]);
+            const e = easeOut(Math.min(1, k));
+            if (drop.hop) scale *= k < 0.5 ? 1 - k * 2 : Math.min(1, (k - 0.5) * 2);
+            if (drop.hop && k < 0.5) { x = fx; y = fy; } else if (!drop.hop) { x = fx + (x - fx) * e; y = fy + (y - fy) * e; }
+          } else if (drop.grow || drop.kind === 'mushroom') scale *= k < 1 ? 0.3 + 0.7 * easeBack(k) : 1;
+          else if (k < 1) y = lay.by - cell * 1.5 + (y - lay.by + cell * 1.5) * k * k;
+          else scale *= 1 + 0.12 * Math.sin(Math.min(1, (k - 1) / 0.4) * Math.PI);
+        }
+        drawSpecial(g, sp, x, y, cell, alpha, scale);
+        continue;
+      }
       // Cells the dragged piece would clear take its color.
       const fam = preview && ghost && preview.has(i) ? ghost.piece.color : v;
-      drawBlock(g, x, y, cell, th.palette[fam] || th.ink, 1 - overK * 0.65, scale);
+      drawBlock(g, th, x, y, cell, th.palette[fam] || th.ink, alpha, scale, state.bonus[i], fam);
     }
   }
   anim.pops = anim.pops.filter((p) => t - p.t0 < 240);
 
   if (ghost) {
+    const b = ghost.piece.bonus;
     for (const [r, c] of ghost.piece.cells) {
       const [x, y] = cellCenter(lay, ghost.row + r, ghost.col + c);
-      drawBlock(g, x, y, cell, th.palette[ghost.piece.color] || th.ink, 0.35);
+      drawBlock(g, th, x, y, cell, th.palette[ghost.piece.color] || th.ink, 0.35, 1, b && b.r === r && b.c === c ? b.type : null, ghost.piece.color);
     }
     if (preview && preview.size) {
       const a = 0.12 + 0.06 * Math.sin(t / 90);
@@ -132,9 +158,13 @@ export function drawFades(g: G, th: Theme, lay: Layout, t: number) {
   for (const f of anim.fades) {
     const k = (t - f.t0 - f.delay) / 320;
     const [x, y] = cellCenter(lay, f.r, f.c);
+    if (f.kind) {
+      drawSpecial(g, { kind: f.kind, hp: 1 }, x, y, lay.cell, k < 0 ? 1 : 1 - k, k < 0 ? 1 : 1.1 - easeOut(k));
+      continue;
+    }
     const color = th.palette[f.color] || th.ink;
-    if (k < 0) { drawBlock(g, x, y, lay.cell, color); continue; }
-    drawBlock(g, x, y, lay.cell, k < 0.25 ? '#ffffff' : color, 1 - k, 1.1 - easeOut(k));
+    if (k < 0) { drawBlock(g, th, x, y, lay.cell, color, 1, 1, null, f.color); continue; }
+    drawBlock(g, th, x, y, lay.cell, k < 0.25 ? '#ffffff' : color, 1 - k, 1.1 - easeOut(k));
   }
 }
 
@@ -181,16 +211,27 @@ export function drawTray(g: G, th: Theme, lay: Layout, state: RunState, drag: Dr
     const b = slotBox(lay, i);
     drawTrayPad(g, th, b.x + 4, b.y + 6, b.w - 8, b.h - 12);
   }
+  // While Toupie runs, the pads breathe: a tap turns the piece.
+  const canTurn = state.effects.rotate > 0 && !state.over;
   for (let i = 0; i < 3; i++) {
     const piece = state.tray[i];
     if (!piece || anim.returning.some((p) => p.idx === i)) continue;
-    if (drag && drag.idx === i) continue;
     const [cx, cy] = slotCenter(lay, i);
+    if (canTurn) {
+      const b = slotBox(lay, i);
+      g.rrect(b.x + 6, b.y + 4, b.w - 12, b.h - 8, 16, withAlpha(th.accent, 0.06 + 0.04 * Math.sin(t / 250 + i)));
+    }
+    if (drag && drag.idx === i) continue;
     // A new piece slides in from the next column.
     const k = easeBack((t - anim.slotIn[i]) / 380);
     const offset = (1 - k) * (lay.nextX + lay.nextW / 2 - cx);
     const fits = L.pieceFits(state, piece);
-    drawPiece(g, th, piece, cx + offset, cy, m, fits ? 1 : 0.28);
+    const spin = anim.slotSpin[i] ? 1 - easeBack((t - anim.slotSpin[i]) / 260) : 0;
+    g.save();
+    g.translate(cx + offset, cy);
+    g.rotate(-spin * Math.PI / 2);
+    drawPiece(g, th, piece, 0, 0, m, fits ? 1 : 0.28);
+    g.restore();
   }
 }
 
@@ -432,18 +473,177 @@ export function drawBanner(g: G, th: Theme, lay: Layout, t: number) {
   const maxW = lay.board - 24;
   const size = g.fit(banner.text, Math.round(lay.cell * 1.05), maxW);
   const textW = g.textWidth(banner.text, size);
+  const iconSize = lay.cell * 0.9;
+  const shift = banner.icon ? (iconSize + 10) / 2 : 0;
   const outline = { color: withAlpha(th.base, 0.95), width: 10 };
   if (tier >= 3) {
     // Rainbow sliding across the letters.
     const colors = [0, 1, 2, 3, 4].map((i) => hslToHex((Math.round(t / 4) + i * 70) % 360, 92, 58));
-    g.text(banner.text, 0, 0, size, colors[0], 'center', outline, { colors, x0: -textW / 2, x1: textW / 2 });
+    g.text(banner.text, shift, 0, size, colors[0], 'center', outline, { colors, x0: shift - textW / 2, x1: shift + textW / 2 });
   } else {
-    g.text(banner.text, 0, 0, size, tier ? tierHex(tier, t, th.accent) : banner.gold ? th.accent : th.ink, 'center', outline);
+    g.text(banner.text, shift, 0, size, tier ? tierHex(tier, t, th.accent) : banner.gold ? th.accent : th.ink, 'center', outline);
   }
+  if (banner.icon) drawIcon(g, banner.icon, shift - textW / 2 - 10 - iconSize / 2, -lay.cell * 0.32, iconSize);
   if (banner.sub) {
     const subSize = g.fit(banner.sub, Math.round(lay.cell * 0.5), maxW);
-    g.text(banner.sub, 0, lay.cell * 0.7, subSize, th.accent, 'center', { color: withAlpha(th.base, 0.95), width: 6 });
+    const subW = g.textWidth(banner.sub, subSize);
+    const subShift = banner.subIcon ? -lay.cell * 0.25 : 0;
+    g.text(banner.sub, subShift, lay.cell * 0.7, subSize, th.accent, 'center', { color: withAlpha(th.base, 0.95), width: 6 });
+    if (banner.subIcon) drawIcon(g, banner.subIcon, subShift + subW / 2 + lay.cell * 0.3, lay.cell * 0.55, lay.cell * 0.45);
   }
+  g.restore();
+  g.alpha = a0;
+}
+
+// ---------- bonuses, bin, hints (render/board.js, ui/inventory.js, css/hud.css) ----------
+// Chrono: time bar in the gap between the board and the tray.
+export function drawChrono(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
+  if (!hasClock(state)) return;
+  const timed = state.stage && state.stage.clock;
+  const clockMax = timed ? state.stage!.clock! : (L.LEVELS[state.level] || L.LEVELS.normal).clockMax;
+  const [x, y] = chronoBar(lay);
+  const secs = Math.ceil(state.clock / 1000);
+  const low = state.clock < 10000 && !state.over;
+  const a = g.alpha;
+  g.alpha = a * (low ? 0.65 + 0.35 * Math.sin(t / 90) : 1);
+  g.text(Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0'), x, y + 1 + 16 * 0.35, 16, low ? th.danger : th.ink, 'left');
+  g.alpha = a;
+  const labelW = 44;
+  const bw = lay.board - labelW;
+  g.rrect(x + labelW, y - 4, bw, 8, 4, 'rgba(0,0,0,0.3)');
+  g.rrect(x + labelW, y - 4, Math.max(8, bw * Math.min(1, state.clock / clockMax)), 8, 4, low ? th.danger : th.accent);
+}
+
+// The instruction line between the board and the tray.
+export function drawHint(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
+  const hint = hintText(state, anim.aiming);
+  if (!hint) return;
+  const size = hasClock(state) ? 13 : 15;
+  const a = g.alpha;
+  g.alpha = a * (0.7 + 0.3 * Math.sin(t / 200));
+  g.text(hint.text, lay.W / 2, hintY(lay, hasClock(state)) + size * 0.35, size, hint.danger ? th.danger : th.accent, 'center');
+  g.alpha = a;
+}
+
+// Bomb aiming: the board dims, the blast area pulses where the finger is.
+export function drawAim(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
+  const aim = anim.aiming;
+  if (!aim) return;
+  const { cell } = lay;
+  g.rrect(lay.bx - 10, lay.by - 10, lay.board + 20, lay.board + 20, th.frame.r, 'rgba(0,0,0,0.35)');
+  if (!aim.cell) return;
+  const [r0, c0] = aim.cell;
+  const pulse = 0.35 + 0.15 * Math.sin(t / 80);
+  for (const [r, c] of L.bombArea(r0, c0, L.upLevel(state, 'bomb'))) {
+    const [x, y] = cellCenter(lay, r, c);
+    g.rrect(x - cell * 0.46, y - cell * 0.46, cell * 0.92, cell * 0.92, cell * 0.18, '#ff5d73', { alpha: pulse });
+  }
+  if (aim.drag) return;
+  const [x, y] = cellCenter(lay, r0, c0);
+  drawIcon(g, 'bomb', x, y, cell * 0.8);
+}
+
+// Icons flying from their cell to the wallet or their inventory button (landing: game/run.ts).
+export function drawFlyers(g: G, lay: Layout, t: number) {
+  for (const f of anim.flyers) {
+    const k = (t - f.t0) / 650;
+    if (k < 0) continue;
+    const [tx, ty] = f.coins ? walletTarget(lay) : invCenter(lay, f.type as InvBox['id']);
+    const e = easeOut(k);
+    const x = f.x + (tx - f.x) * e;
+    const y = f.y + (ty - f.y) * e - Math.sin(k * Math.PI) * lay.cell * 1.5;
+    drawIcon(g, f.type, x, y, lay.cell * (0.8 - 0.3 * k));
+  }
+}
+
+// The bonus bar under the tray: five buttons with their count, timer ring, and a legend button.
+export function drawInventory(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
+  if (!hasInventory(state)) return;
+  const aiming = anim.aiming !== null;
+  const a0 = g.alpha;
+  for (const b of invBoxes(lay)) {
+    if (b.id === 'legend') {
+      g.rrect(b.x, b.y, b.w, b.h, 18, th.board, { shadow: { color: th.shadow, blur: 8, dy: 3 } });
+      g.text('?', b.x + b.w / 2, b.y + b.h / 2 + 24 * 0.35, 24, th.ink, 'center');
+      continue;
+    }
+    const v = invView(state, b.id, aiming);
+    const help = v.help ? 0.5 - 0.5 * Math.cos((t / 700) * Math.PI * 2) : 0;
+    const y = b.y - 4 * help;
+    const cx = b.x + b.w / 2, cy = y + b.h / 2;
+    if (v.active) {
+      // Timer ring: drains clockwise from the top.
+      const left = ringFill(state, b.id);
+      g.alpha = a0 * (ringEnding(state, b.id) ? 0.65 + 0.35 * Math.sin(t / 95) : 1);
+      g.path().arc(cx, cy, 28.5, 0, Math.PI * 2).stroke('rgba(74,58,102,0.14)', 3);
+      g.path().arc(cx, cy, 28.5, -Math.PI / 2, -Math.PI / 2 + left * Math.PI * 2).stroke(th.accent, 3, { cap: 'round' });
+      g.alpha = a0;
+    }
+    g.alpha = a0 * (v.empty ? 0.6 : 1);
+    if (v.empty) g.rrect(b.x + 0.75, y + 0.75, b.w - 1.5, b.h - 1.5, 22, 'rgba(74,58,102,0.14)', { stroke: { width: 1.5 } });
+    else {
+      g.rrect(b.x, y, b.w, b.h, 22, v.aiming ? '#3a1d24' : th.board, { shadow: { color: 'rgba(0,0,0,0.18)', blur: 12, dy: 4 } });
+      g.rrect(b.x + 0.75, y + 0.75, b.w - 1.5, b.h - 1.5, 22, v.aiming ? '#ff5d73' : 'rgba(74,58,102,0.14)', { stroke: { width: v.aiming ? 2.5 : 1.5 } });
+    }
+    if (help) g.rrect(b.x - 1.5, y - 1.5, b.w + 3, b.h + 3, 24, th.accent, { stroke: { width: 3 }, alpha: help });
+    g.alpha = a0 * (v.empty ? 0.3 : 1);
+    drawIcon(g, b.id, cx, cy, 30);
+    g.alpha = a0;
+    if (!v.empty) {
+      const label = String(v.count);
+      const w = Math.max(21, g.textWidth(label, 15) + 10);
+      g.rrect(b.x + b.w + 6 - w, y - 6, w, 21, 6, th.accent, { shadow: { color: 'rgba(0,0,0,0.35)', blur: 6, dy: 2 } });
+      g.text(label, b.x + b.w + 6 - w / 2, y - 6 + 15.5, 15, '#ffffff', 'center');
+    }
+  }
+}
+
+// The bin, under the tray while a piece is held: fills while hovered, red once armed.
+export function drawTrash(g: G, th: Theme, lay: Layout, state: RunState, coins: number, t: number) {
+  const tr_ = anim.trash;
+  if (!tr_ || state.mode === 'puzzle') return;
+  const view = trashView(state, coins);
+  const b = trashBox(lay);
+  const hot = tr_.over && !view.broke;
+  const armed = hot && tr_.armed;
+  const a0 = g.alpha;
+  g.alpha = a0 * (view.broke ? 0.55 : 1);
+  g.save();
+  if (armed) {
+    g.translate(b.x + b.w / 2, b.y + b.h / 2);
+    g.scale(1.06);
+    g.translate(-(b.x + b.w / 2), -(b.y + b.h / 2));
+  }
+  g.rrect(b.x, b.y, b.w, b.h, 22, armed ? '#ff5d73' : 'rgba(74,58,102,0.1)');
+  if (hot && !armed) {
+    const fill = trashFill(t - tr_.since, TRASH_ARM_MS);
+    g.save();
+    g.clip(b.x, b.y, b.w * fill, b.h);
+    g.rrect(b.x, b.y, b.w, b.h, 22, 'rgba(255,93,115,0.35)');
+    g.restore();
+  }
+  g.rrect(b.x + 1, b.y + 1, b.w - 2, b.h - 2, 21, hot ? '#ff5d73' : 'rgba(74,58,102,0.14)', { stroke: { width: hot ? 2.5 : 2 } });
+  const ink = armed ? '#ffffff' : th.ink;
+  const label = trashLabel(view, armed);
+  const size = g.fit(label, 19, b.w * 0.5);
+  const costText = String(view.cost);
+  const lw = g.textWidth(label, size);
+  const cw = g.textWidth(costText, 19) + 6 + 19;
+  const total = 22 + 10 + lw + 10 + cw;
+  let x = b.x + (b.w - total) / 2;
+  const cy = b.y + b.h / 2;
+  g.save();
+  g.translate(x, cy - 11);
+  g.scale(22 / 24);
+  g.path().moveTo(4, 7).lineTo(20, 7).moveTo(9, 7).lineTo(9, 4).lineTo(15, 4).lineTo(15, 7)
+    .moveTo(6, 7).lineTo(7, 20).lineTo(17, 20).lineTo(18, 7).moveTo(10, 11).lineTo(10, 17).moveTo(14, 11).lineTo(14, 17)
+    .stroke(ink, 2.2, { cap: 'round', join: 'round' });
+  g.restore();
+  x += 22 + 10;
+  g.text(label, x, cy + size * 0.35, size, ink, 'left');
+  x += lw + 10;
+  g.text(costText, x, cy + 19 * 0.35, 19, armed ? '#ffffff' : th.accent, 'left');
+  drawIcon(g, 'coin', x + g.textWidth(costText, 19) + 6 + 9.5, cy, 19);
   g.restore();
   g.alpha = a0;
 }

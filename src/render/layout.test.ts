@@ -43,3 +43,26 @@ test('hit tests: a cell center maps back to its cell, a pad center to its slot, 
   assert.equal(slotAt(lay, lay.nextX + lay.nextW / 2, lay.ty + lay.trayH / 2), -1, 'the next column is not a slot');
   assert.equal(slotAt(lay, lay.bx + 10, lay.ty - 20), -1, 'the gap above the tray is not a slot');
 });
+
+test('inventory: six buttons centered under the tray, hit tests, bin above the HUD row', async () => {
+  const { invBoxes, invAt, invCenter, trashBox, overTrash, BONUS_ORDER } = await import('./layout');
+  for (const p of phones) {
+    const lay = computeLayout(p);
+    const boxes = invBoxes(lay);
+    assert.deepEqual(boxes.map((b) => b.id), [...BONUS_ORDER, 'legend']);
+    const left = boxes[0].x;
+    const right = boxes[5].x + boxes[5].w;
+    assert.ok(Math.abs(left - (p.W - right)) < 1e-9, 'centered');
+    assert.ok(left >= 8 && right <= p.W - 8, 'fits the width');
+    assert.ok(boxes[0].y + boxes[0].h <= p.H, 'on screen');
+    for (const b of boxes) assert.equal(invAt(lay, b.x + b.w / 2, b.y + b.h / 2), b.id);
+    assert.equal(invAt(lay, p.W / 2, lay.by), null);
+    assert.deepEqual(invCenter(lay, 'bomb'), [boxes[3].x + 26, boxes[3].y + 26]);
+    const t = trashBox(lay);
+    assert.equal(t.w, lay.board);
+    assert.equal(overTrash(lay, t.x + 5, t.y + 5), true);
+    assert.equal(overTrash(lay, t.x + 5, t.y + t.h + 20), true, '24 px of slack under the bin');
+    assert.equal(overTrash(lay, t.x + 5, t.y - 5), false);
+    assert.equal(overTrash(lay, t.x - 5, t.y + 5), false);
+  }
+});

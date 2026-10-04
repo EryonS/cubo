@@ -7,8 +7,8 @@ export const TOY_PALETTE = [
   '#d49cff', '#ff8fb8', '#b6e36b', '#ff7a8a', '#3fc1b0', '#a3b1c9', '#e0b07a',
 ] as const;
 
-export interface Frame { r: number; line: string | null; lw?: number; inset?: number; glow?: string }
-export interface Plate { fill: string; line: string | null; r: number; ink: string; sub: string; shadow?: string; lw?: number; inset?: number; glow?: string }
+export interface Frame { r: number; line?: string | null; lw?: number; inset?: number; glow?: string }
+export interface Plate { fill: string; line?: string | null; r: number; ink: string; sub: string; shadow?: string; lw?: number; inset?: number; glow?: string }
 export interface Theme {
   id: string;
   base: string; // background color
@@ -23,8 +23,14 @@ export interface Theme {
   shadow: string; // drop shadow of plate and frame
   frame: Frame;
   plate: Plate;
-  tag: { fill: string; line: string | null; ink: string };
+  tag: { fill: string; line?: string | null; ink: string; glow?: string };
+  skin?: string; // equipped block skin (classic, neon, pixel, gold)
+  patterns?: boolean; // color-blind marks on blocks (Réglages > Motifs)
 }
+
+// The theme for the equipped block skin and the Motifs setting. Board themes other than Jouet come
+// with milestone 6: equipping one keeps this look in game for now.
+export const themeFor = (skin: string, patterns: boolean): Theme => ({ ...TOY, skin, patterns });
 
 export const TOY: Theme = {
   id: 'toy',

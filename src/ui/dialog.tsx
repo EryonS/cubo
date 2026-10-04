@@ -10,7 +10,7 @@ import { colors, radius, space } from '../theme/tokens';
 import { Button } from './Button';
 import { Text } from './Text';
 
-export interface AskOpts { title: string; text: string; ok: string; danger?: boolean }
+export interface AskOpts { title: string; text: string; ok: string; danger?: boolean; single?: boolean }
 
 interface AskStore { opts: AskOpts | null; done: ((v: boolean) => void) | null }
 const useAsk = create<AskStore>(() => ({ opts: null, done: null }));
@@ -24,6 +24,9 @@ export function ask(opts: AskOpts): Promise<boolean> {
     });
   });
 }
+
+// A message with one OK button.
+export const notice = (title: string, text: string) => ask({ title, text, ok: tr('OK'), single: true });
 
 // True while a dialog is open (the game timers wait).
 export const asking = () => useAsk.getState().opts !== null;
@@ -47,7 +50,7 @@ export function AskHost() {
         <Text variant="title" style={{ textAlign: 'center', textTransform: 'uppercase' }}>{opts.title}</Text>
         <Text variant="muted" style={{ textAlign: 'center', fontSize: 15, lineHeight: 20 }}>{opts.text}</Text>
         <View style={{ flexDirection: 'row', gap: space.m, marginTop: space.s }}>
-          <Button kind="ghost" label={tr('Annuler')} style={{ flex: 1, paddingHorizontal: space.m }} onPress={() => { sfx.turn(); done(false); }} />
+          {!opts.single && <Button kind="ghost" label={tr('Annuler')} style={{ flex: 1, paddingHorizontal: space.m }} onPress={() => { sfx.turn(); done(false); }} />}
           <Button kind={opts.danger ? 'danger' : 'primary'} label={opts.ok} style={{ flex: 1.2, paddingHorizontal: space.m }} onPress={() => done(true)} />
         </View>
       </Animated.View>

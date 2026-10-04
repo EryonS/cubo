@@ -69,3 +69,57 @@ export function boardCellAt(lay: Layout, x: number, y: number): [number, number]
   const r = Math.floor((y - lay.by) / lay.cell);
   return r >= 0 && c >= 0 && r < SIZE && c < SIZE ? [r, c] : null;
 }
+
+// ---------- inventory bar, bin, wallet target (legacy ui/inventory.js, css/hud.css) ----------
+export const BONUS_ORDER = ['rotate', 'nitro', 'shield', 'bomb', 'reroll'] as const;
+export type InvId = (typeof BONUS_ORDER)[number] | 'legend';
+export const INV_SIZE = 52;
+export const INV_GAP = 8;
+export const LEGEND_W = 42;
+export interface InvBox extends Box { id: InvId }
+
+// The bonus buttons then the legend button, centered in a row under the tray.
+export function invBoxes(lay: Layout): InvBox[] {
+  const ids: InvId[] = [...BONUS_ORDER, 'legend'];
+  const widths = ids.map((id) => (id === 'legend' ? LEGEND_W : INV_SIZE));
+  const total = widths.reduce((a, b) => a + b, 0) + INV_GAP * (ids.length - 1);
+  let x = (lay.W - total) / 2;
+  const y = lay.ty + lay.trayH;
+  return ids.map((id, i) => {
+    const box = { id, x, y, w: widths[i], h: INV_SIZE };
+    x += widths[i] + INV_GAP;
+    return box;
+  });
+}
+export function invAt(lay: Layout, x: number, y: number): InvId | null {
+  const slack = 4;
+  for (const b of invBoxes(lay)) {
+    if (x >= b.x - slack && x <= b.x + b.w + slack && y >= b.y - slack && y <= b.y + b.h + slack) return b.id;
+  }
+  return null;
+}
+export const invCenter = (lay: Layout, id: InvId): [number, number] => {
+  const b = invBoxes(lay).find((v) => v.id === id)!;
+  return [b.x + b.w / 2, b.y + b.h / 2];
+};
+
+// The bin appears where the inventory is: the board's width, 56 high.
+export const TRASH_H = 56;
+export const trashBox = (lay: Layout): Box => ({ x: lay.bx, y: lay.ty + lay.trayH, w: lay.board, h: TRASH_H });
+// A finger counts as over the bin from its top to 24 px under it.
+export function overTrash(lay: Layout, x: number, y: number): boolean {
+  const b = trashBox(lay);
+  return y > b.y && y < b.y + b.h + 24 && x > b.x && x < b.x + b.w;
+}
+
+// HUD buttons (top row, 42 high): wallet left, then pause, undo and missions from the right.
+export const HUD_BTN = 42;
+export const hudTop = (lay: Layout) => lay.safeTop + 12;
+// Where coins fly to: the wallet, approximately its middle.
+export const walletTarget = (lay: Layout): [number, number] => [16 + 46, hudTop(lay) + HUD_BTN / 2];
+// Text line between the board and the tray (hints), and the chrono bar in the same gap.
+export const hintY = (lay: Layout, chrono: boolean) => {
+  const gapTop = lay.by + lay.board + 10;
+  return chrono ? gapTop + 2 : gapTop + (lay.ty - gapTop) / 2;
+};
+export const chronoBar = (lay: Layout): [number, number] => [lay.bx, lay.by + lay.board + 10 + (lay.ty - lay.by - lay.board - 10) * 0.62];

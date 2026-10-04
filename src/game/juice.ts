@@ -27,7 +27,8 @@ export const tierHex = (tier: number, t: number, accent: string) =>
 
 export const lineWords = () => ['', '', tr('Double !'), tr('Triple !'), tr('Quadruple !'), tr('Énorme !'), tr('Délirant !')];
 
-export interface Banner { text: string; sub: string; tier: number; gold?: boolean; t0?: number }
+// icon / subIcon: a bonus or coin icon drawn beside the text or the sub line.
+export interface Banner { text: string; sub: string; tier: number; gold?: boolean; t0?: number; icon?: string; subIcon?: string }
 
 // The big center text a clear earns: the line word, else "Combo ×n"; a cleared grid wins over both.
 export function bannerFor(ev: { lines: number; combo: number; perfect?: boolean }, tier: number): Banner | null {

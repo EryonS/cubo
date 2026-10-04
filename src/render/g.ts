@@ -1,11 +1,13 @@
 // Cubo Blocks — A thin canvas-2D-like layer over Skia's SkCanvas, so the legacy drawing code
 // (ctx.roundRect, fillStyle, globalAlpha, shadows...) ports call for call.
-import { BlurStyle, PaintStyle, Skia, TileMode, type SkCanvas, type SkFont, type SkPaint, type SkTypeface } from '@shopify/react-native-skia';
+import { BlurStyle, PaintStyle, Skia, TileMode, type SkCanvas, type SkFont, type SkPaint, type SkPathBuilder, type SkShader, type SkTypeface } from '@shopify/react-native-skia';
 
 // Corner radii: one number, or [topLeft, topRight, bottomRight, bottomLeft] as canvas roundRect.
 export type Radii = number | [number, number, number, number];
 export interface Shadow { color: string; blur: number; dy?: number }
-export interface StrokeOpts { width: number; dash?: [number, number] }
+export interface StrokeOpts { width: number; dash?: [number, number]; cap?: 'round'; join?: 'round' }
+// Everything a draw call can add to its color: a stroke instead of a fill, a drop shadow, an alpha, a gradient.
+export interface DrawOpts { stroke?: StrokeOpts; shadow?: Shadow; alpha?: number; shader?: SkShader }
 
 export function withAlpha(hex: string, a: number) {
   const n = parseInt(hex.slice(1), 16);
@@ -29,7 +31,7 @@ export class G {
     return f;
   }
 
-  paint(color: string, opts: { stroke?: StrokeOpts; shadow?: Shadow; alpha?: number } = {}): SkPaint {
+  paint(color: string, opts: DrawOpts = {}): SkPaint {
     const p = Skia.Paint();
     p.setAntiAlias(true);
     p.setColor(Skia.Color(color));
@@ -39,13 +41,16 @@ export class G {
       p.setStyle(PaintStyle.Stroke);
       p.setStrokeWidth(opts.stroke.width);
       if (opts.stroke.dash) p.setPathEffect(Skia.PathEffect.MakeDash(opts.stroke.dash, 0));
+      if (opts.stroke.cap) p.setStrokeCap(1); // round
+      if (opts.stroke.join) p.setStrokeJoin(1); // round
     }
+    if (opts.shader) p.setShader(opts.shader);
     // Canvas shadowBlur is about twice the Gaussian sigma.
     if (opts.shadow) p.setImageFilter(Skia.ImageFilter.MakeDropShadow(0, opts.shadow.dy || 0, opts.shadow.blur / 2, opts.shadow.blur / 2, Skia.Color(opts.shadow.color)));
     return p;
   }
 
-  rrect(x: number, y: number, w: number, h: number, r: Radii, color: string, opts: { stroke?: StrokeOpts; shadow?: Shadow; alpha?: number } = {}) {
+  rrect(x: number, y: number, w: number, h: number, r: Radii, color: string, opts: DrawOpts = {}) {
     if (w <= 0 || h <= 0) return;
     const rect = Skia.XYWHRect(x, y, w, h);
     const p = this.paint(color, opts);
@@ -58,11 +63,20 @@ export class G {
     }
   }
 
-  rect(x: number, y: number, w: number, h: number, color: string) {
-    this.c.drawRect(Skia.XYWHRect(x, y, w, h), this.paint(color));
+  rect(x: number, y: number, w: number, h: number, color: string, opts: DrawOpts = {}) {
+    this.c.drawRect(Skia.XYWHRect(x, y, w, h), this.paint(color, opts));
   }
 
-  circle(x: number, y: number, r: number, color: string, opts: { alpha?: number; blur?: number } = {}) {
+  // Linear gradient between two points (canvas createLinearGradient + addColorStop).
+  linear(x0: number, y0: number, x1: number, y1: number, stops: [number, string][]): SkShader {
+    return Skia.Shader.MakeLinearGradient({ x: x0, y: y0 }, { x: x1, y: y1 },
+      stops.map((s) => Skia.Color(s[1])), stops.map((s) => s[0]), TileMode.Clamp);
+  }
+
+  // A path in canvas terms (beginPath / moveTo / arc ... / fill / stroke).
+  path() { return new P(this); }
+
+  circle(x: number, y: number, r: number, color: string, opts: DrawOpts & { blur?: number } = {}) {
     const p = this.paint(color, opts);
     if (opts.blur) p.setMaskFilter(Skia.MaskFilter.MakeBlur(BlurStyle.Normal, opts.blur, true));
     this.c.drawCircle(x, y, r, p);
@@ -135,4 +149,50 @@ export class G {
   rotate(rad: number) { this.c.rotate((rad * 180) / Math.PI, 0, 0); }
   scale(s: number) { this.c.scale(s, s); }
   clip(x: number, y: number, w: number, h: number) { this.c.clipRect(Skia.XYWHRect(x, y, w, h), 1, true); }
+}
+
+// A path drawn like a canvas 2D path: build it, then fill or stroke it. Arcs and ellipses are
+// flattened to segments, so they connect to the current point as canvas does.
+export class P {
+  private b: SkPathBuilder = Skia.PathBuilder.Make();
+  private has = false;
+
+  constructor(private g: G) {}
+
+  moveTo(x: number, y: number) { this.b.moveTo(x, y); this.has = true; return this; }
+  lineTo(x: number, y: number) { if (this.has) this.b.lineTo(x, y); else this.moveTo(x, y); return this; }
+  quadraticCurveTo(cx: number, cy: number, x: number, y: number) { this.b.quadTo(cx, cy, x, y); return this; }
+  bezierCurveTo(c1x: number, c1y: number, c2x: number, c2y: number, x: number, y: number) { this.b.cubicTo(c1x, c1y, c2x, c2y, x, y); return this; }
+  closePath() { this.b.close(); return this; }
+
+  ellipse(cx: number, cy: number, rx: number, ry: number, rot: number, a0: number, a1: number, ccw = false) {
+    let sweep = a1 - a0;
+    if (!ccw && sweep < 0) sweep = (sweep % (Math.PI * 2)) + Math.PI * 2;
+    if (ccw && sweep > 0) sweep = (sweep % (Math.PI * 2)) - Math.PI * 2;
+    if (Math.abs(sweep) > Math.PI * 2) sweep = Math.sign(sweep) * Math.PI * 2;
+    const n = Math.max(8, Math.ceil(Math.abs(sweep) * Math.sqrt(Math.max(rx, ry)) * 2.2));
+    const cr = Math.cos(rot), sr = Math.sin(rot);
+    for (let i = 0; i <= n; i++) {
+      const a = a0 + (sweep * i) / n;
+      const x = Math.cos(a) * rx, y = Math.sin(a) * ry;
+      this.lineTo(cx + x * cr - y * sr, cy + x * sr + y * cr);
+    }
+    return this;
+  }
+  arc(cx: number, cy: number, r: number, a0: number, a1: number, ccw = false) { return this.ellipse(cx, cy, r, r, 0, a0, a1, ccw); }
+
+  roundRect(x: number, y: number, w: number, h: number, r: number) {
+    const rr = Math.min(r, w / 2, h / 2);
+    this.b.addRRect(Skia.RRectXY(Skia.XYWHRect(x, y, w, h), rr, rr));
+    this.has = true;
+    return this;
+  }
+  rect(x: number, y: number, w: number, h: number) { this.b.addRect(Skia.XYWHRect(x, y, w, h)); this.has = true; return this; }
+
+  fill(color: string, opts: DrawOpts = {}) { this.g.c.drawPath(this.b.build(), this.g.paint(color, opts)); return this; }
+  stroke(color: string, width: number, opts: DrawOpts & { cap?: 'round'; join?: 'round' } = {}) {
+    const { cap, join, ...rest } = opts;
+    this.g.c.drawPath(this.b.build(), this.g.paint(color, { ...rest, stroke: { width, cap, join } }));
+    return this;
+  }
 }

@@ -17,7 +17,7 @@ import { tr } from '../core/i18n';
 import { useGame } from '../state/store';
 import { ambient, anim, animating, type DragState } from '../game/anim';
 import { dragGeometry, easeOut, LIFT_MS } from '../game/drag';
-import { bestOf, commit, enterRun, newRun, type RunEnd } from '../game/run';
+import { bestOf, commit, enterRun, restartRun, setEndHandler, type RunEnd } from '../game/run';
 import { computeLayout, miniCell, slotAt, type Layout } from '../render/layout';
 import { G } from '../render/g';
 import { drawBanner, drawBoard, drawComboGlow, drawComboHang, drawFades, drawFloaters, drawHUD, drawParticles, drawPiece, drawRecordFlag, drawReturning, drawSweeps, drawTray, frameFx, ghostOf, paintBackground } from '../render/draw';
@@ -49,6 +49,7 @@ export function GameScreen() {
   const [size, setSize] = useState<{ W: number; H: number } | null>(null);
   const lay = useMemo(() => (size ? computeLayout({ ...size, safeTop: insets.top }) : null), [size, insets.top]);
   const [end, setEnd] = useState<RunEnd | null>(null);
+  useEffect(() => { setEndHandler(setEnd); return () => setEndHandler(null); }, []);
 
   const background = useMemo(() => (lay ? record(lay, null, (g) => paintBackground(g, th, lay.W, lay.H)) : null), [lay]);
   const runPicture = useSharedValue<SkPicture>(emptyPicture());
@@ -118,7 +119,8 @@ export function GameScreen() {
   // loop below, which restarts whenever draw changes (layout, font loaded): re-entering the run
   // there would reset the record the score band compares against.
   useFocusEffect(useCallback(() => {
-    if (useGame.getState().saved.state.over) newRun();
+    const { state, prefs } = useGame.getState().saved;
+    if (state.over) restartRun(prefs);
     else enterRun();
     dirty.current = true;
   }, []));
@@ -161,7 +163,7 @@ export function GameScreen() {
     if (!piece) return;
     const t = now();
     const g = dragGeometry(lay, state.board, piece, x, y, d.lift, easeOut((t - d.t0) / LIFT_MS));
-    if (g.valid && commit(lay, d.idx, g.row, g.col, setEnd)) return;
+    if (g.valid && commit(lay, d.idx, g.row, g.col)) return;
     anim.returning.push({ idx: d.idx, x: g.cx, y: g.cy, size: g.size, t0: t });
     // Refused move: the sound and a double tick.
     if (released) { sfx.nope(); haptic('nope'); }
@@ -185,7 +187,7 @@ export function GameScreen() {
 
   const again = useCallback(() => {
     setEnd(null);
-    newRun();
+    restartRun(useGame.getState().saved.prefs);
     dirty.current = true;
   }, []);
 
