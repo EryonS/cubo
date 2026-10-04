@@ -756,4 +756,6 @@ add('en', {
   'Supprimer': 'Delete',
   'Compte supprimé.': 'Account deleted.',
   'Progression synchronisée.': 'Progress synced.',
+  // ----- native app (src/)
+  '{} pièces': (n) => `${n} ${plural(n, 'coin', 'coins')}`,
 });

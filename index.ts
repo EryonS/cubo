@@ -1,8 +1,9 @@
 import { registerRootComponent } from 'expo';
+import { bootLang } from './src/i18n/lang';
 
-import App from './App';
+// The language must be set before any core module loads: their tables call tr() at load.
+bootLang();
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const App = require('./App').default;
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
 registerRootComponent(App);
