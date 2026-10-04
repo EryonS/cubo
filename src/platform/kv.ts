@@ -1,12 +1,6 @@
-// Cubo Blocks — Key-value storage. The app writes through `KV` so pure code and tests can swap
-// MMKV for a Map (see memoryKV).
+// Cubo Blocks — Key-value storage on device (MMKV). Pure code takes a `KV` (kv-types.ts).
 import { createMMKV } from 'react-native-mmkv';
-
-export interface KV {
-  get(key: string): string | undefined;
-  set(key: string, value: string): void;
-  remove(key: string): void;
-}
+import type { KV } from './kv-types';
 
 const store = createMMKV({ id: 'cuboblocks' });
 export const mmkv: KV = {
