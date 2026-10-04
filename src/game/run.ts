@@ -27,7 +27,13 @@ const now = () => performance.now();
 
 // What the game HUD needs from the run that is not in the saved state: coins picked up this run
 // and already landed in the wallet, and a counter that makes the wallet bump.
-export const useRunHud = create<{ pending: number; bump: number }>(() => ({ pending: 0, bump: 0 }));
+export const useRunHud = create<{ pending: number; bump: number; aiming: boolean }>(() => ({ pending: 0, bump: 0, aiming: false }));
+
+// Bomb aiming on or off (null cell: tap mode waits for a cell).
+export function setAiming(on: { drag: boolean; x: number; y: number; lift: number } | boolean) {
+  anim.aiming = on ? (typeof on === 'object' ? { drag: on.drag, cell: null, x: on.x, y: on.y, lift: on.lift, sx: on.x, sy: on.y } : { drag: false, cell: null, x: 0, y: 0, lift: 0, sx: 0, sy: 0 }) : null;
+  useRunHud.setState({ aiming: !!on });
+}
 
 // Free-play records live in bests, one per mode.
 const recordKey = (st: RunState) => (st.mode === 'worlds' ? 'worlds-' + st.world : st.mode);
@@ -158,7 +164,7 @@ export interface RunEnd {
 // The run is over: coins and missions count, the record is kept.
 function endGame(t: number) {
   anim.overAt = t;
-  anim.aiming = null;
+  setAiming(false);
   anim.trash = null;
   const { saved, profile } = useGame.getState();
   const st = saved.state;

@@ -7,6 +7,7 @@ import { tr } from '../core/i18n';
 import { DefisScreen } from '../screens/DefisScreen';
 import { PlayScreen } from '../screens/PlayScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
 import { ShopScreen } from '../screens/ShopScreen';
 import { colors } from '../theme/tokens';
 import { fonts } from '../theme/fonts';
@@ -42,6 +43,7 @@ export function RootNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={Tabs} />
       <Stack.Screen name="Game" component={GameScreen} options={{ gestureEnabled: false, animation: 'fade' }} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 }

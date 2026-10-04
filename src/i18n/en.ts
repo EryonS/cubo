@@ -759,5 +759,6 @@ add('en', {
   // ----- native app (src/)
   '{} pièces': (n) => `${n} ${plural(n, 'coin', 'coins')}`,
   'Bientôt': 'Coming soon',
+  'Menu': 'Menu',
   'Cette partie du jeu arrive dans une prochaine version.': 'This part of the game comes in a later version.',
 });

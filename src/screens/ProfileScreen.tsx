@@ -1,5 +1,8 @@
 // Profil tab. Milestone 1 placeholder: a few totals and the language choice.
 import { Pressable, View } from 'react-native';
+import { useNavigation, type NavigationProp } from '@react-navigation/native';
+import type { RootParams } from '../navigation/types';
+import { Icon } from '../ui/Icon';
 import { M } from '../core';
 import { tr } from '../core/i18n';
 import { langPref, setLangPref, type LangPref } from '../i18n/lang';
@@ -14,6 +17,7 @@ const LANGS: [LangPref, string][] = [['auto', 'Auto'], ['fr', 'Français'], ['en
 export function ProfileScreen() {
   const profile = useGame((s) => s.profile);
   const pref = langPref();
+  const nav = useNavigation<NavigationProp<RootParams>>();
   return (
     <Screen>
       <Text variant="title">{tr('Profil')}</Text>
@@ -23,6 +27,12 @@ export function ProfileScreen() {
         <Text variant="muted">{tr('Étoiles')}</Text>
         <Text variant="big">{M.totalStars(profile)}</Text>
       </Card>
+      <Pressable accessibilityRole="button" onPress={() => nav.navigate('Settings')} style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.97 : 1 }] })}>
+        <Card style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text variant="title" style={{ fontSize: 20 }}>{tr('Réglages')}</Text>
+          <Icon name="chevRight" size={16} color={colors.muted} />
+        </Card>
+      </Pressable>
       <Card>
         <Text variant="muted">{tr('Langue')}</Text>
         <View style={{ flexDirection: 'row', gap: space.s }}>

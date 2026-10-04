@@ -5,7 +5,7 @@ import type { RunState } from '../core/types';
 import type { Banner } from './juice';
 
 // The piece being dragged: tray slot, finger position, how high it floats, pick-up time.
-export interface DragState { idx: number; x: number; y: number; lift: number; t0: number }
+export interface DragState { idx: number; x: number; y: number; lift: number; t0: number; sx: number; sy: number }
 
 export interface Particle {
   x: number; y: number; vx: number; vy: number; t0: number; life: number; size: number; color: string;

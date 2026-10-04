@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 export type TabParams = {
   Play: undefined;
   Defis: undefined;
@@ -6,6 +8,7 @@ export type TabParams = {
 };
 
 export type RootParams = {
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<TabParams> | undefined;
   Game: undefined;
+  Settings: { from?: 'pause' } | undefined;
 };
