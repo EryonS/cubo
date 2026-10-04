@@ -7,6 +7,7 @@ const settingsBody = document.getElementById('settings-body');
 if (!navigator.vibrate) document.getElementById('setting-vibrate').style.display = 'none';
 function renderSettings() {
   document.getElementById('setting-privacy').hidden = !CuboBlocksAds.privacyRequired();
+  renderAccount();
   for (const t of document.querySelectorAll('.toggle')) t.setAttribute('aria-checked', String(!!settings[t.dataset.setting]));
 }
 for (const t of document.querySelectorAll('.toggle')) {

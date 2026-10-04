@@ -132,3 +132,8 @@ Email / password sign-in, anonymous Firebase accounts, automatic merge, syncing 
 
 ## Order
 Project A (native plugins: haptics, preferences, share, status bar, back button; ATT prompt) comes first, with its own short design. This spec is implemented after it, through an implementation plan.
+
+## Implementation notes (2026-10-04)
+- `profile`, `settings` and `bests` are stored in Firestore as JSON text (Firestore refuses nested arrays and `undefined`); rules check them as strings.
+- The Firebase SDK files are not in `ASSETS`: the service worker caches them on first use, so players without an account never download them.
+- A pulled copy is applied by writing the local saves and reloading the page.

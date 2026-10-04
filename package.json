@@ -11,10 +11,12 @@
     "android": "cap sync android && cap open android",
     "assets": "capacitor-assets generate --ios --android --iconBackgroundColor '#ffe3ee' --splashBackgroundColor '#ffeef4'",
     "balance": "node tools/balance.js 10",
-    "i18n": "node tools/i18n-keys.js"
+    "i18n": "node tools/i18n-keys.js",
+    "vendor": "mkdir -p www/vendor/firebase && for f in app auth firestore; do sed '/sourceMappingURL/d' node_modules/firebase/firebase-$f-compat.js > www/vendor/firebase/firebase-$f-compat.js; done"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.1.0",
+    "@capacitor-firebase/authentication": "^8.5.2",
     "@capacitor/android": "^8.5.2",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.2",
@@ -22,7 +24,8 @@
     "@capacitor/ios": "^8.5.2",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.3",
-    "@capacitor/status-bar": "^8.0.4"
+    "@capacitor/status-bar": "^8.0.4",
+    "firebase": "^12.19.0"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

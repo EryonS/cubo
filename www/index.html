@@ -136,6 +136,10 @@
       <div class="setting"><div>Mascotte<small>Cubo, perché sur le plateau, réagit à ta partie</small></div><button class="toggle" role="switch" data-setting="mascot" aria-label="Mascotte"></button></div>
       <div class="section-title">Langue</div>
       <div class="seg pills" id="setting-lang"><button data-lang="auto">Auto</button><button data-lang="fr" lang="fr">Français</button><button data-lang="en" lang="en">English</button></div>
+      <div id="setting-account" hidden>
+        <div class="section-title">Sauvegarde en ligne</div>
+        <div id="account-body"></div>
+      </div>
       <div class="section-title">Aide</div>
       <button class="setting link" id="setting-tutorial"><div>Revoir le tutoriel<small>Une partie guidée en 3 étapes</small></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
       <button class="setting link" id="setting-privacy" hidden><div>Confidentialité des pubs<small>Revoir tes choix de consentement</small></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
@@ -311,6 +315,15 @@
     <div class="card" id="sticker-card"></div>
   </div>
 
+  <div id="sync-choice" class="overlay ui" role="dialog" aria-modal="true" aria-labelledby="sync-choice-title">
+    <div class="card">
+      <h2 id="sync-choice-title">Quelle progression garder ?</h2>
+      <p class="ask-text">Cet appareil et ton compte n’ont pas la même progression. Choisis celle à garder : l’autre sera remplacée.</p>
+      <div class="sync-cards" id="sync-cards"></div>
+      <div class="actions"><button class="btn ghost" id="sync-cancel">Plus tard</button></div>
+    </div>
+  </div>
+
   <div id="ask" class="overlay ui" role="alertdialog" aria-modal="true" aria-labelledby="ask-title">
     <div class="card">
       <h2 id="ask-title"></h2>
@@ -330,7 +343,9 @@
   <script src="src/core/tutorial.js"></script>
   <script src="src/core/puzzles.js"></script>
   <script src="src/core/meta.js"></script>
+  <script src="src/core/sync.js"></script>
   <script src="src/platform/ads.js"></script>
+  <script src="src/platform/cloud.js"></script>
   <script src="src/app/base.js"></script>
   <script src="src/ui/icons.js"></script>
   <script src="src/themes/setup.js"></script>
@@ -361,6 +376,7 @@
   <script src="src/screens/profile.js"></script>
   <script src="src/screens/defis.js"></script>
   <script src="src/screens/stats.js"></script>
+  <script src="src/screens/account.js"></script>
   <script src="src/screens/settings.js"></script>
   <script src="src/screens/pause.js"></script>
   <script src="src/game/undo.js"></script>

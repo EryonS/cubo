@@ -20,3 +20,4 @@ syncMode();
 if (M.needsTutorial(profile)) startTutorial();
 else { renderMenu(); menuEl.classList.add('show'); }
 requestAnimationFrame(frame);
+startCloud();

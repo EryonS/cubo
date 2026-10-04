@@ -31,11 +31,11 @@
   function flush() {
     clearTimeout(timer);
     timer = 0;
-    if (restoring) return;
-    for (const [key, value] of pending) {
-      (value === null ? Prefs.remove({ key }) : Prefs.set({ key, value })).catch(() => {});
-    }
+    if (restoring) return Promise.resolve();
+    const writes = [...pending].map(([key, value]) =>
+      (value === null ? Prefs.remove({ key }) : Prefs.set({ key, value })).catch(() => {}));
     pending.clear();
+    return Promise.all(writes);
   }
   function copy(key, value) {
     if (!Prefs) return;
@@ -53,5 +53,8 @@
     copy(key, null);
   }
 
-  root.CuboBlocksStore = { set, remove, ready };
+  // Writes the pending copies now (before a reload).
+  const flushNow = () => (Prefs ? ready.then(flush) : Promise.resolve());
+
+  root.CuboBlocksStore = { set, remove, ready, flush: flushNow };
 })(window);

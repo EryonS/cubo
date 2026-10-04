@@ -116,6 +116,31 @@ body.hub-on #tabbar { display: grid; }
 .ask-text { margin: 10px 0 0; font-weight: 700; color: var(--muted); line-height: 1.35; }
 #ask .btn.danger { background: #e5484d; color: #fff; }
 
+/* Cloud save: Compte block in Réglages, and the dialog to pick which progression to keep */
+.account-text { margin: 0 2px 10px; font-weight: 700; font-size: 14px; color: var(--muted); line-height: 1.35; text-align: left; }
+.account-btns { display: grid; gap: 8px; margin-bottom: 8px; }
+.account-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 13px 16px;
+  font-family: system-ui, sans-serif; font-style: normal; font-size: 16px; font-weight: 800; letter-spacing: 0; text-transform: none;
+  background: #fff; color: #1f1f1f; box-shadow: inset 0 0 0 1.5px var(--hairline); }
+.account-btn.apple { background: #000; color: #fff; box-shadow: none; }
+.account-btn svg { flex: none; }
+.account-who { cursor: default; }
+.account-who small { overflow-wrap: anywhere; }
+.setting.link.danger { color: #e5484d; }
+.setting.link.danger svg { color: #e5484d; }
+#sync-choice { z-index: 29; } /* under #ask, which confirms the choice */
+#sync-choice .card { width: min(360px, 100%); }
+#sync-choice h2 { font-size: 24px; }
+.sync-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.sync-card { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 0; border-radius: calc(var(--radius) - 6px);
+  background: var(--panel-2); color: var(--text); cursor: pointer; text-align: left; font: inherit; font-weight: 700; font-size: 14px;
+  box-shadow: inset 0 0 0 1.5px var(--hairline); transition: transform 120ms cubic-bezier(.2,.8,.2,1); }
+.sync-card:active { transform: scale(0.97); }
+.sync-card strong { font-family: var(--font-display); font-style: var(--display-style); font-size: 18px; margin-bottom: 2px; }
+.sync-card span { display: flex; justify-content: space-between; gap: 6px; color: var(--muted); }
+.sync-card span b { color: var(--text); font-variant-numeric: tabular-nums; }
+.sync-card small { color: var(--muted); font-size: 12px; }
+
 /* Result cards: actions stay reachable at the bottom while the rest scrolls. */
 .card.sticky-foot { padding-bottom: 0; }
 .card.sticky-foot > .actions { position: sticky; bottom: 0; z-index: 1; margin-top: 16px; padding: 12px 0 24px; background: var(--panel); }

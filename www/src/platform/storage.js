@@ -16,15 +16,19 @@ function loadJSON(key) {
   try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; }
 }
 // Free-play records live in `bests` (Mondes: one per world, 'worlds-<id>'); Aventure has none.
+// Called after every save (the cloud save watches for changes to send, screens/account.js).
+let onSaved = null;
 const keepsBest = () => state.mode !== 'adventure' && state.mode !== 'puzzle';
 const recordKey = (st = state) => (st.mode === 'worlds' ? 'worlds-' + st.world : st.mode);
 function save() {
   if (tut) return; // the scripted tutorial board is never saved
   if (keepsBest()) bests[recordKey()] = best;
   CuboBlocksStore.set(STORE_KEY, JSON.stringify({ state, parked, bests, settings, prefs }));
+  if (onSaved) onSaved();
 }
 function saveProfile() {
   CuboBlocksStore.set(PROFILE_KEY, JSON.stringify(profile));
+  if (onSaved) onSaved();
 }
 
 const saved = loadJSON(STORE_KEY);

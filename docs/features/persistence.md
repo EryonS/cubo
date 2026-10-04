@@ -8,6 +8,8 @@ Two `localStorage` keys:
 
 `M.migrate(profile)` runs at launch and returns `{ profile, refund }`. Version 2 (2026-09-30) removed the road themes and the Bonbon blocks and refunds them at their old price; the menu shows the refund once. Version 3 (2026-10-01, Aventure v2) records worlds opened under the v1 rules in `adventure.opened`. Version 4 refunded daily attempts. Version 5 (2026-10-01) adds Cubo's wardrobe: `owned.cubo` / `equipped.cubo` (`addWardrobe`). Version 6 moves the first Halloween's `profile.halloween` into `profile.seasons.halloween` (season events, `moveHalloween`); `seasons` and `trophies` are optional.
 
+Signed-in players also have `cuboblocks.sync` and a cloud copy of the profile, settings, records and language (`docs/features/account.md`).
+
 ## Files
 - `www/src/core/meta.js`: `PROFILE_VERSION`, `RETIRED`, `migrate`.
 - `www/src/platform/storage.js`: `loadJSON`, `save`, `saveProfile`, launch sequence.

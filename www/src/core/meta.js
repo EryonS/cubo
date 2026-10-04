@@ -795,5 +795,5 @@
     WORLD_NAMES, worldFreeOpen, worldPrimeRate, worldPrime, UPGRADE_PRICES, upgradeLevel, upgradePrice, buyUpgrade,
     WORLD_ORDER, LEVELS_PER_WORLD, TRIAL_LEVEL, CHESTS, chestState, openChest, freeBombs, useFreeBomb, bossBeaten, EXTRA_MOVES, START_BONUS_COST, SKIP_COST, SKIP_AFTER, levelFails, recordFail, canSkip, extraMovesCost,
     levelStars, levelCleared, totalStars, worldStars, worldMastered, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,
-    SKINS, MISSIONS, createProfile, migrate, ensureDay, missionStatus, missionText, runCoins, applyRun, doubleRun, spend, buy, equip, nextGoal };
+    PROFILE_VERSION, SKINS, MISSIONS, createProfile, migrate, ensureDay, missionStatus, missionText, runCoins, applyRun, doubleRun, spend, buy, equip, nextGoal };
 });

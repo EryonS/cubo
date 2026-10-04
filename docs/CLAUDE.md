@@ -11,6 +11,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 - `www/src/i18n/`: `en.js` (English dictionary) and `setup.js` (picks the language, translates the static HTML); loaded right after `core/i18n.js`, before the other core modules.
 - `www/src/` app files, one entity per file, loaded in order by `<script>` tags in `www/index.html`:
   `app/base.js` (shared names) → `ui/icons.js` → `themes/` → `platform/storage.js` → `game/anim-state.js` → `themes/current.js` → `render/layout.js` → `audio/` (sfx, music) → `platform/haptics.js` → `render/helpers.js` → `game/` (cells, boss, drag, flow) → `screens/` + `ui/` → `mascot/` → `render/` (loop, hud, board, effects) → `boot.js` (runs last).
+- `www/vendor/`: third-party files served as is (Firebase compat SDK, `npm run vendor`), loaded on demand.
 - `www/css/`: one stylesheet per area, linked in cascade order from `www/index.html`.
 
 ## Hard rules
@@ -48,6 +49,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Second obstacles of levels 11-19 (taupe, méduse, trou noir...) | [features/twists.md](features/twists.md) | `TWISTS` in `www/src/core/levels.js`, `KINDS` / `kindMoves` in `www/src/core/logic.js`, `twist` in `www/src/core/worlds.js` |
 | Cubo's wardrobe (Boutique tab Cubo) | [features/wardrobe.md](features/wardrobe.md) | `SKINS.cubo` in `www/src/core/meta.js`, `drawWardrobeHat` / `cuboLookFor` in `www/src/mascot/hats.js`, `www/src/mascot/cubo.js` |
 | Season events (Nouvel An, Nouvel An chinois, Saint-Valentin, Pâques, Plage, Halloween, Noël), their dates, season trophies | [features/seasons.md](features/seasons.md) | `EVENTS` / `applyEvent` in `www/src/core/meta.js`, `EVENT_LEVELS` in `www/src/core/levels.js`, event worlds in `www/src/core/worlds.js`, section `season events` in `www/src/screens/events.js` |
+| Cloud save (Google / Apple account, Firebase), choice dialog | [features/account.md](features/account.md) | `www/src/core/sync.js`, `www/src/platform/cloud.js`, `www/src/screens/account.js`, `firestore.rules` |
 | Record flag on the board frame (free runs) | [features/comfort.md](features/comfort.md) | `drawRecordFlag` in `www/src/render/hud.js` |
 | Tab bar, home screen, dialogs, screen layout | [features/navigation.md](features/navigation.md) | `#tabbar` / `#menu` / `#ask` in `www/index.html`, sections `home menu`, `tab bar`, `confirmation dialog` in `www/src/screens/home.js`, `www/src/ui/tabbar.js`, `www/src/ui/dialog.js` |
 
@@ -79,4 +81,4 @@ Status: shipped | planned
 10. UI/UX audit (**done**, 2026-09-30): tab bar (Jouer / Défis / Boutique / Profil), new home, Mondes moved into each Aventure world, streak moved to Défis, styled confirm dialogs, boss refunds an already bought theme, paid skip only after 2 failures, "forme" for shapes and "pièce" only for coins.
 10. Mascot Cubo (**done**).
 11. Second obstacles in levels 11-19, Cubo's wardrobe, Halloween event, record flag (**done**, 2026-10-01). Then five more season events, one per season (**done**, same day).
-12. Native app via Capacitor (2026-10-01): game moved to `www/`, `main.js` split into one file per entity, `ios/` + `android/` added. Renamed Cubo Blocks, FR/EN translation, Cubo as app icon + line of the day on home + result poses, AdMob rewarded ads (test ids). Native plugins (2026-10-04): haptics, preferences backup (`platform/store.js`), share sheet, status bar color, Android back button (`platform/native.js`), iOS ATT prompt before the first ad. Next: real AdMob ids, cloud save (spec `docs/superpowers/specs/2026-10-04-cloud-save-design.md`).
+12. Native app via Capacitor (2026-10-01): game moved to `www/`, `main.js` split into one file per entity, `ios/` + `android/` added. Renamed Cubo Blocks, FR/EN translation, Cubo as app icon + line of the day on home + result poses, AdMob rewarded ads (test ids). Native plugins (2026-10-04): haptics, preferences backup (`platform/store.js`), share sheet, status bar color, Android back button (`platform/native.js`), iOS ATT prompt before the first ad. Cloud save with Google / Apple sign-in (2026-10-04, code done, Firebase project to create: [features/account.md](features/account.md)). Next: Firebase setup, real AdMob ids.
