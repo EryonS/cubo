@@ -80,8 +80,10 @@ function HudBtn({ right, label, onPress, disabled, children }: { right: number; 
 }
 function Badge({ children, color = colors.accent }: { children: React.ReactNode; color?: string }) {
   return (
-    <View style={{ position: 'absolute', top: -6, right: -8, minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 6, backgroundColor: color, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 2 }}>
-      {children}
+    <View pointerEvents="none" style={{ position: 'absolute', top: -6, right: -8, width: 120, alignItems: 'flex-end' }}>
+      <View style={{ minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 6, backgroundColor: color, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 2 }}>
+        {children}
+      </View>
     </View>
   );
 }
@@ -106,6 +108,7 @@ export function GameScreen() {
   const dragX = useSharedValue(0);
   const dragY = useSharedValue(0);
   const liftK = useSharedValue(0);
+  const lifted = useSharedValue(false);
   const lift = useSharedValue(0);
   const miniRatio = useSharedValue(0.5);
   const dragPicture = useSharedValue<SkPicture>(emptyPicture());
@@ -342,6 +345,7 @@ export function GameScreen() {
     .minDistance(0)
     .maxPointers(1)
     .onBegin((e) => {
+      lifted.value = false;
       dragX.value = e.x;
       dragY.value = e.y;
       scheduleOnRN(onDown, e.x, e.y);
@@ -350,9 +354,11 @@ export function GameScreen() {
       dragX.value = e.x;
       dragY.value = e.y;
     })
+    // A very quick tap ends before the pan activates (success false): the finger lifting still counts as a release.
+    .onTouchesUp(() => { lifted.value = true; })
     .onFinalize((e, success) => {
-      scheduleOnRN(onUp, e.x, e.y, success);
-    }), [onDown, onUp, dragX, dragY]);
+      scheduleOnRN(onUp, e.x, e.y, success || lifted.value);
+    }), [onDown, onUp, dragX, dragY, lifted]);
 
   // ---------- HUD ----------
   const coins = useGame((s) => s.profile.coins);
