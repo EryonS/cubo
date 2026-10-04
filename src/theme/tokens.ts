@@ -14,6 +14,8 @@ export const colors = {
   mintInk: '#1e7a55',
   good: '#1f9e68',
   danger: '#ff5d7a',
+  dangerBtn: '#e5484d', // destructive confirm button (legacy #ask .btn.danger)
+  scrim: 'rgba(74,58,102,0.45)',
   edge: '#f3dce8',
   coin: '#ffd166',
   coinEdge: '#e0a43a',

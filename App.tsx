@@ -4,11 +4,13 @@ import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { wireAudio } from './src/audio/engine';
 import { useGame } from './src/state/store';
+import { AskHost } from './src/ui/dialog';
 import { colors } from './src/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -25,10 +27,13 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
       <SafeAreaProvider>
-        <NavigationContainer theme={theme} onReady={() => SplashScreen.hideAsync().catch(() => {})}>
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </NavigationContainer>
+        <BottomSheetModalProvider>
+          <NavigationContainer theme={theme} onReady={() => SplashScreen.hideAsync().catch(() => {})}>
+            <StatusBar style="dark" />
+            <RootNavigator />
+          </NavigationContainer>
+          <AskHost />
+        </BottomSheetModalProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

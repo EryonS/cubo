@@ -3,23 +3,24 @@ import { Pressable, type PressableProps } from 'react-native';
 import { colors, radius, space } from '../theme/tokens';
 import { Text } from './Text';
 
-type Props = PressableProps & { label: string; sub?: string; kind?: 'primary' | 'ghost' };
+type Props = PressableProps & { label: string; sub?: string; kind?: 'primary' | 'ghost' | 'danger' };
 
 export function Button({ label, sub, kind = 'primary', style, ...rest }: Props) {
-  const primary = kind === 'primary';
+  const primary = kind !== 'ghost';
+  const danger = kind === 'danger';
   return (
     <Pressable
       accessibilityRole="button"
       {...rest}
       style={(s) => [{
-        backgroundColor: primary ? colors.accent : colors.panel2,
+        backgroundColor: danger ? colors.dangerBtn : primary ? colors.accent : colors.panel2,
         borderRadius: radius.pill,
         paddingVertical: space.m,
         paddingHorizontal: space.xl,
         alignItems: 'center',
         justifyContent: 'center',
         borderBottomWidth: 4,
-        borderBottomColor: primary ? '#5b3fd9' : colors.edge,
+        borderBottomColor: danger ? '#b8353a' : primary ? '#5b3fd9' : colors.edge,
         transform: [{ translateY: s.pressed ? 2 : 0 }],
       }, typeof style === 'function' ? style(s) : style]}
     >
