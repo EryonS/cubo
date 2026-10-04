@@ -91,39 +91,29 @@ function resize() {
   canvas.style.height = H + 'px';
 
   const safeTop = safeProbe.offsetHeight;
-  // Tall screens: HUD buttons, then the score sign + combo tag right above the board.
-  // Short screens: the sign moves up between the HUD buttons when it fits (wide screens),
-  // otherwise it gets a slimmer row of its own right under them (phones).
-  const short = H < 760;
-  const compact = short && hudGap() >= 150;
-  const slim = short && !compact;
-  const topH = compact ? safeTop + 118 : slim ? safeTop + 62 + 88 : safeTop + 62 + 116;
+  // HUD buttons, then the score band right above the board frame (Cubo stands at its right end).
+  const bandH = H < 760 ? 50 : 60;
+  const bandGap = 14; // room under the band for the combo tag hung from it
+  const topH = safeTop + 66 + bandH + bandGap + 10;
   const invH = 64;
   const maxBoard = Math.min(W - 32, 440);
-  // board + gap (1 cell: hints, chrono) + tray (3.4 cells) + inventory must fit below the HUD
-  const cell = Math.floor(Math.min(maxBoard / SIZE, (H - topH - invH - 24) / (SIZE + 4.4)));
+  // board + gap (1 cell: hints, chrono) + tray (2.7 cells) + inventory must fit below the HUD
+  const cell = Math.floor(Math.min(maxBoard / SIZE, (H - topH - invH - 24) / (SIZE + 3.7)));
   const board = cell * SIZE;
   const bx = Math.round((W - board) / 2);
-  const used = board + cell * 4.4 + invH;
+  const used = board + cell * 3.7 + invH;
   const by = Math.round(topH + Math.max(0, (H - topH - used) * 0.5));
   const ty = by + board + cell;
   // Three tray slots, then a narrow column announcing the next piece.
   const slotW = board / 3.6;
-  lay = { cell, board, bx, by, ty, trayH: cell * 3.4, slotW, nextX: bx + slotW * 3, nextW: board - slotW * 3, compact,
-    plateY: compact ? safeTop + 10 : slim ? safeTop + 60 : by - 116, plateH: compact || slim ? 58 : 72 };
+  lay = { cell, board, bx, by, ty, trayH: cell * 2.7, slotW, nextX: bx + slotW * 3, nextW: board - slotW * 3,
+    safeTop, band: { x: bx - 10, y: by - 10 - bandGap - bandH, w: board + 20, h: bandH } };
   invEl.style.top = Math.round(ty + lay.trayH) + 'px';
   trashEl.style.top = Math.round(ty + lay.trayH) + 'px';
   trashEl.style.width = board + 'px';
   paintBackground();
 }
-// Width left for the score sign, centered between the wallet and the right HUD buttons.
-// The wallet is counted at least 110px wide so a growing coin count never overlaps the sign.
-function hudGap() {
-  const wallet = document.getElementById('wallet').getBoundingClientRect();
-  const missions = document.getElementById('missions-open');
-  const right = (missions.offsetParent ? missions : document.getElementById('undo')).getBoundingClientRect();
-  const walletRight = Math.max(wallet.right, wallet.left + 110);
-  return 2 * Math.min(W / 2 - walletRight, right.left - W / 2) - 16;
-}
 window.addEventListener('resize', resize);
+// iOS can resolve env(safe-area-inset-top) after the first layout: lay out again when it lands.
+if (window.ResizeObserver) new ResizeObserver(() => { if (safeProbe.offsetHeight !== lay.safeTop) resize(); }).observe(safeProbe);
 resize();

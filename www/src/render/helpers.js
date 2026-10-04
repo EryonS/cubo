@@ -66,7 +66,7 @@ function slotCenter(i) {
 }
 // A 5-long piece stays inside its tray pad.
 function miniCell() {
-  if (!freeTray()) return Math.min(lay.cell * 0.5, lay.slotW / 5.8);
+  if (!freeTray()) return Math.min(lay.cell * 0.46, lay.slotW / 5.8);
   const b = slotBox(0);
   return Math.min(lay.cell * 0.4, b.w / 5.6, (b.h - 8) / 3.4);
 }

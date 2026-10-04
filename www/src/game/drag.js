@@ -16,16 +16,18 @@ function dragGeometry(d, t) {
   return { piece, size, cx, cy, row, col, valid };
 }
 
+// A piece is picked up only from its pad as drawn in drawTray (plus a few px of slack),
+// never from the gap above the tray or the screen margins.
 function slotAt(x, y) {
-  if (y < lay.ty - lay.cell * 0.4 || y > lay.ty + lay.trayH + lay.cell * 0.2) return -1;
-  if (freeTray()) {
-    if (x < lay.bx || x > lay.bx + lay.board) return -1;
-    const b = slotBox(0);
-    const i = Math.min(1, Math.max(0, Math.floor((y - lay.ty) / b.h))) * Math.round(lay.board / b.w) + Math.floor((x - lay.bx) / b.w);
-    return i < state.tray.length ? i : -1;
+  const free = freeTray();
+  const gap = free ? 3 : 6;
+  const slack = 4;
+  const n = free ? state.tray.length : 3;
+  for (let i = 0; i < n; i++) {
+    const b = slotBox(i);
+    if (x >= b.x + 4 - slack && x <= b.x + b.w - 4 + slack && y >= b.y + gap - slack && y <= b.y + b.h - gap + slack) return i;
   }
-  if (x > lay.nextX) return -1;
-  return Math.max(0, Math.floor((x - lay.bx) / lay.slotW));
+  return -1;
 }
 
 function boardCellAt(x, y) {

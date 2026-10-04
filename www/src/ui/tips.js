@@ -69,7 +69,7 @@ function collectTips(collected) {
 }
 
 function modeTips() {
-  const plate = () => rectOf(W / 2 - 110, lay.plateY, 220, lay.plateH);
+  const plate = () => rectOf(lay.band.x, lay.band.y, lay.band.w, lay.band.h);
   if (state.mode === 'chrono') {
     tip('chrono', tr('Chrono'), tr('Le temps file ! Chaque ligne effacée te rend quelques secondes.'), () => {
       const [x, y] = chronoBar();

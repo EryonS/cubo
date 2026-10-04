@@ -69,6 +69,7 @@ function frame() {
   if (aiming) drawAim(t);
   ctx.restore();
   drawRecordFlag(t);
+  drawComboHang(t);
   drawCubo(t);
   drawTray(t);
   drawChrono(t);

@@ -50,7 +50,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 | Cubo's wardrobe (Boutique tab Cubo) | [features/wardrobe.md](features/wardrobe.md) | `SKINS.cubo` in `www/src/core/meta.js`, `drawWardrobeHat` / `cuboLookFor` in `www/src/mascot/hats.js`, `www/src/mascot/cubo.js` |
 | Season events (Nouvel An, Nouvel An chinois, Saint-Valentin, Pâques, Plage, Halloween, Noël), their dates, season trophies | [features/seasons.md](features/seasons.md) | `EVENTS` / `applyEvent` in `www/src/core/meta.js`, `EVENT_LEVELS` in `www/src/core/levels.js`, event worlds in `www/src/core/worlds.js`, section `season events` in `www/src/screens/events.js` |
 | Cloud save (Google / Apple account, Firebase), choice dialog | [features/account.md](features/account.md) | `www/src/core/sync.js`, `www/src/platform/cloud.js`, `www/src/screens/account.js`, `firestore.rules` |
-| Record flag on the board frame (free runs) | [features/comfort.md](features/comfort.md) | `drawRecordFlag` in `www/src/render/hud.js` |
+| Score band above the board, record flag (free runs) | [features/comfort.md](features/comfort.md) | `hudBand`, `drawHUD`, `drawRecordFlag`, `drawComboHang` in `www/src/render/hud.js`, `lay.band` in `www/src/render/layout.js` |
 | Tab bar, home screen, dialogs, screen layout | [features/navigation.md](features/navigation.md) | `#tabbar` / `#menu` / `#ask` in `www/index.html`, sections `home menu`, `tab bar`, `confirmation dialog` in `www/src/screens/home.js`, `www/src/ui/tabbar.js`, `www/src/ui/dialog.js` |
 
 ## Adding a new feature

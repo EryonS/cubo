@@ -71,10 +71,10 @@ Themes are whole worlds (`SKINS.boards` in `www/src/core/meta.js`, visuals in `T
 Tokens above are the Jouet theme. Per-theme values live in each theme's `css` map: `--bg`, `--panel`, `--panel-2`, `--slot`, `--text`, `--muted`, `--accent`, `--on-accent`, `--good`, `--edge`, `--radius`, `--card-edge`, `--plate-edge`, and the translucent helpers `--hairline` (thin outlines), `--sunken` (tracks, disabled fills) and `--scrim` (overlay backdrop). Dark worlds get defaults from `css()`, light worlds from `lightCss()`. The accent is reserved for primary action, counts and timers. Block colors come from `PALETTE` unless the theme ships its own `palette` (Jouet does); every palette keeps 14 distinct colors, one per shape family.
 
 ## Typography
-Baloo 2 everywhere (UI and display), Press Start 2P for the two pixel worlds with `scale: 0.62` so numbers fit. Both are bundled in `fonts/` for offline play. Score on the plate: 0.64 x plate height. Game-over score: 76px.
+Baloo 2 everywhere (UI and display), Press Start 2P for the two pixel worlds with `scale: 0.62` so numbers fit. Both are bundled in `fonts/` for offline play. Score in the band: 0.56 x band height. Game-over score: 76px.
 
 ## Layout
-Tall screens: HUD buttons row, then score plate + combo tag sitting right above the board. Screens under 760px tall: the plate moves up between the wallet and the undo button. Bonus timers drain as a ring around their inventory button.
+HUD buttons row, then the score band right above the board (board-frame wide, 60px; 50px under 760px tall): record pennant on its left, score centered, Cubo standing on the frame at its right end, combo tag hung from its bottom edge. Tray pads are 2.7 cells tall. Bonus timers drain as a ring around their inventory button.
 
 ## Elevation & Depth
 Plates and the board slab cast an offset shadow (y 5-8px, blur 14-20px), tinted on light worlds (`shadow`). Neon worlds (Espace, Arcade, Volcan) may glow.
@@ -83,7 +83,7 @@ Plates and the board slab cast an offset shadow (y 5-8px, blur 14-20px), tinted 
 Round and soft: pills for score and combo, 22px cards, board radius 18-26px, cells with 16-24% radius. Only Rétro goes square.
 
 ## Components
-- **Score plate**: "RECORD n" subline and the score. Variants: marquee bulbs (Arcade), mushroom-cap dots (Forêt).
+- **Score band** (drawn with the theme's plate style): "SCORE" / "RECORD n" subline and the score, record pennant on the left. Variants: marquee bulbs (Arcade), mushroom-cap dots (Forêt).
 - **Combo tag**: pill under the score with the grace dots.
 - **HUD buttons**: `--panel` + `--plate-edge`.
 - **Inventory buttons**: `--slot` tiles, accent count badge, conic timer ring when active.
