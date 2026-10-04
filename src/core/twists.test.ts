@@ -129,7 +129,7 @@ test('a glitch jumps every 3 moves', () => {
 });
 
 test('a token gives 4 seconds back when destroyed', () => {
-  let state = game([[0, 'token']], null, { clock: 60000 });
+  const state = game([[0, 'token']], null, { clock: 60000 });
   state.clock = 30000;
   state.special[0] = { kind: 'token', hp: 1, age: 0 };
   for (let c = 1; c < SIZE - 1; c++) state.board[c] = 2;
