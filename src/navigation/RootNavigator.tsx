@@ -2,6 +2,7 @@
 // game, full screen above it.
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { AdventureScreen } from '../screens/AdventureScreen';
 import { GameScreen } from '../screens/GameScreen';
 import { tr } from '../core/i18n';
 import { DefisScreen } from '../screens/DefisScreen';
@@ -44,6 +45,7 @@ export function RootNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={Tabs} />
       <Stack.Screen name="Game" component={GameScreen} options={{ gestureEnabled: false, animation: 'fade' }} />
+      <Stack.Screen name="Adventure" component={AdventureScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );

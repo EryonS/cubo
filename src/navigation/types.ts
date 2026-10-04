@@ -10,5 +10,6 @@ export type TabParams = {
 export type RootParams = {
   Tabs: NavigatorScreenParams<TabParams> | undefined;
   Game: undefined;
+  Adventure: { world?: string; level?: number } | undefined;
   Settings: { from?: 'pause' } | undefined;
 };

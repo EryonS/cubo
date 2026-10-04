@@ -16,10 +16,12 @@ import { CuboPose } from '../ui/CuboPose';
 import { boardTheme } from '../render/board-themes';
 import { sfx } from '../audio/engine';
 import { today } from '../state/persist';
+import { lastOpenWorld } from '../game/levelend';
 import { levelName, nextAdventure } from '../state/progress';
 import { useGame } from '../state/store';
 import type { RootParams, TabParams } from '../navigation/types';
-import { colors, radius } from '../theme/tokens';
+import { radius } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { fonts } from '../theme/fonts';
 import { BoardPreview } from '../ui/BoardPreview';
 import { Button } from '../ui/Button';
@@ -51,6 +53,7 @@ const Small = ({ children, style }: { children: React.ReactNode; style?: object 
 
 // Cubo and his line of the day; a tap makes him pull the theme's faces in turn and hop.
 function CuboSay() {
+  const colors = useColors();
   const profile = useGame((s) => s.profile);
   const line = useMemo(() => cuboLine(profile, today()), [profile]);
   const look = useMemo(() => cuboLookFor(profile.equipped.boards, profile.equipped.cubo), [profile.equipped.boards, profile.equipped.cubo]);
@@ -79,6 +82,8 @@ function CuboSay() {
 }
 
 export function PlayScreen() {
+  const colors = useColors();
+  const tile = tileStyle(colors);
   const nav = useNavigation<NavigationProp<RootParams & TabParams>>();
   const profile = useGame((s) => s.profile);
   const prefs = useGame((s) => s.saved.prefs);
@@ -89,10 +94,15 @@ export function PlayScreen() {
   const pickRef = useRef<BottomSheetModal>(null);
   const missionsRef = useRef<BottomSheetModal>(null);
 
-  const next = nextAdventure(profile);
+  // A level in progress resumes from the hero card; else the next level to play (legacy home.js renderMenu).
+  const levelKey = useGame((s) => (inProgress(s.saved.state) && s.saved.state.stage && !s.saved.state.stage.daily && !s.saved.state.stage.event ? `${s.saved.state.stage.world}:${s.saved.state.stage.n}` : ''));
+  const level = useMemo(() => (levelKey ? ([levelKey.split(':')[0], +levelKey.split(':')[1]] as [string, number]) : null), [levelKey]);
+  const levelGoal = useGame((s) => (s.saved.state.stage ? LV.goalText(s.saved.state.stage.goal) : ''));
+  const next = level || nextAdventure(profile);
   const stars = M.totalStars(profile);
   const maxStars = M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3;
-  const preview = useMemo(() => boardTheme('toy', profile.equipped.blocks), [profile.equipped.blocks]);
+  const heroWorld = next ? next[0] : lastOpenWorld(profile);
+  const preview = useMemo(() => boardTheme(heroWorld, profile.equipped.blocks), [heroWorld, profile.equipped.blocks]);
   const day = today();
   const daily = M.dailyOf(profile, day);
   const left = M.dailyAttemptsLeft(profile, day, day);
@@ -139,26 +149,29 @@ export function PlayScreen() {
         )}
 
         <View>
-          <Tap onPress={soon} label={next ? tr`Aventure : jouer ${WD.WORLDS[next[0]].name}, ${levelName(next[1])}` : tr('Aventure : carte des mondes')}
+          <Tap onPress={() => { if (level) play(); else nav.navigate('Adventure'); }}
+            label={level ? tr`Aventure : reprendre ${WD.WORLDS[level[0]].name}, ${levelName(level[1])}` : next ? tr`Aventure : jouer ${WD.WORLDS[next[0]].name}, ${levelName(next[1])}` : tr('Aventure : carte des mondes')}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.card, backgroundColor: playing ? colors.panel2 : colors.accent, borderBottomWidth: playing ? 0 : 5, borderBottomColor: 'rgba(0,0,0,0.2)' }}>
             <View style={{ borderRadius: 14, overflow: 'hidden', borderWidth: playing ? 0 : 3, borderColor: 'rgba(255,255,255,0.4)' }}>
               <BoardPreview th={preview} width={86} radius={11} />
             </View>
             <View style={{ flex: 1, gap: 3 }}>
               <Small style={{ color: playing ? colors.muted : colors.onAccent, opacity: 0.85 }}>{tr('Aventure')}</Small>
-              <Text variant="title" style={{ fontSize: 22, lineHeight: 24, color: playing ? colors.text : colors.onAccent }}>
+              <Text variant="title" numberOfLines={2} adjustsFontSizeToFit style={{ fontSize: 22, lineHeight: 24, color: playing ? colors.text : colors.onAccent }}>
                 {next ? `${WD.WORLDS[next[0]].name} · ${levelName(next[1])}` : tr('Carte des mondes')}
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Star size={14} />
-                <Text style={{ fontSize: 13, color: playing ? colors.muted : colors.onAccent }}>{fmt(stars)} / {maxStars}</Text>
-              </View>
+              {level ? <Text numberOfLines={1} style={{ fontSize: 13, color: playing ? colors.muted : colors.onAccent }}>{levelGoal}</Text> : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Star size={14} />
+                  <Text style={{ fontSize: 13, color: playing ? colors.muted : colors.onAccent }}>{fmt(stars)} / {maxStars}</Text>
+                </View>
+              )}
             </View>
-            <View style={{ alignSelf: 'flex-end', paddingHorizontal: 14, paddingVertical: 7, borderRadius: radius.pill, backgroundColor: playing ? colors.accent : colors.onAccent }}>
-              <Text variant="title" style={{ fontSize: 17, lineHeight: 20, textTransform: 'uppercase', color: playing ? colors.onAccent : colors.accent }}>{next ? tr('Jouer') : tr('Voir')}</Text>
+            <View style={{ alignSelf: 'flex-end', paddingHorizontal: 11, paddingVertical: 7, borderRadius: radius.pill, backgroundColor: playing ? colors.accent : colors.onAccent }}>
+              <Text variant="title" style={{ fontSize: 15, lineHeight: 20, textTransform: 'uppercase', color: playing ? colors.onAccent : colors.accent }}>{level ? tr('Reprendre') : next ? tr('Jouer') : tr('Voir')}</Text>
             </View>
           </Tap>
-          <Pressable accessibilityRole="button" accessibilityLabel={tr('Carte')} onPress={() => { sfx.turn(); soon(); }} hitSlop={8}
+          <Pressable accessibilityRole="button" accessibilityLabel={tr('Carte')} onPress={() => { sfx.turn(); nav.navigate('Adventure'); }} hitSlop={8}
             style={{ position: 'absolute', top: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 32, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: playing ? colors.panel : 'rgba(255,255,255,0.22)' }}>
             <Icon name="map" size={16} color={playing ? colors.text : colors.onAccent} />
             <Text style={{ fontSize: 13, color: playing ? colors.text : colors.onAccent }}>{tr('Carte')}</Text>
@@ -216,4 +229,4 @@ export function PlayScreen() {
   );
 }
 
-const tile: ViewStyle = { flex: 1, minWidth: 0, padding: 12, paddingHorizontal: 14, gap: 2, borderRadius: radius.card - 2, backgroundColor: colors.panel2 };
+const tileStyle = (colors: ReturnType<typeof useColors>): ViewStyle => ({ flex: 1, minWidth: 0, padding: 12, paddingHorizontal: 14, gap: 2, borderRadius: radius.card - 2, backgroundColor: colors.panel2 });

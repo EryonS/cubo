@@ -400,6 +400,8 @@ add('en', {
   '{} coups': (n) => `${n} ${plural(n, 'move', 'moves')}`,
   "1 étoile en réussissant, 2 s'il te reste {}, 3 s'il t'en reste {}.": '1 star for clearing it, 2 with {} left, 3 with {} left.',
   'Retour au monde': 'Back to the world',
+  'Suivant': 'Next',
+  'Un niveau plus corsé au milieu du monde, mieux payé.': 'A tougher level halfway through the world, with a bigger payout.',
   ' · niveau ': ' · level ',
   'un obstacle': 'an obstacle',
   'Il a {} PV : chaque ligne qui le traverse lui en retire 2. Tous les {} coups, il riposte en posant {}.': 'It has {} HP: each line through it takes off 2. Every {} moves, it strikes back by placing {}.',

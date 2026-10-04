@@ -13,7 +13,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, useAnimatedStyle, useDerivedValue, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation, type NavigationProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { L, M } from '../core';
 import { locale, tr } from '../core/i18n';
 import { useGame } from '../state/store';
@@ -48,6 +49,7 @@ import { PauseSheet } from '../ui/PauseSheet';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
 import { GameOver } from './GameOver';
+import { LevelEndCard, useLevelEnd } from './LevelEnd';
 
 const now = () => performance.now();
 const fmt = (n: number) => n.toLocaleString(locale());
@@ -91,7 +93,7 @@ function Badge({ children, color = colors.accent }: { children: React.ReactNode;
 }
 
 export function GameScreen() {
-  const nav = useNavigation<NavigationProp<RootParams>>();
+  const nav = useNavigation<NativeStackNavigationProp<RootParams>>();
   const insets = useSafeAreaInsets();
   const typeface = useBaloo();
   const pixel = usePixel();
@@ -99,6 +101,7 @@ export function GameScreen() {
   const lay = useMemo(() => (size ? computeLayout({ ...size, safeTop: insets.top }) : null), [size, insets.top]);
   const [end, setEnd] = useState<RunEnd | null>(null);
   useEffect(() => { setEndHandler(setEnd); return () => setEndHandler(null); }, []);
+  const [levelCard, setLevelCard] = useLevelEnd();
 
   const skin = useGame((s) => s.profile.equipped.blocks);
   const patterns = useGame((s) => s.saved.settings.patterns);
@@ -403,6 +406,7 @@ export function GameScreen() {
     if (st.moves > 0 && !st.over && !(await ask({ title: tr('Recommencer ?'), text, ok: tr('Recommencer'), danger: true }))) return;
     pauseRef.current?.dismiss();
     setEnd(null);
+    setLevelCard(null);
     restartCurrent();
     dirty.current = true;
   };
@@ -415,9 +419,18 @@ export function GameScreen() {
   };
   const again = useCallback(() => {
     setEnd(null);
+    setLevelCard(null);
     restartCurrent();
     dirty.current = true;
-  }, []);
+  }, [setLevelCard]);
+
+  // Back to the Aventure screen, on a world (and its level sheet): the screen below the game, else in its place.
+  const toMap = (p: { world: string; level?: number }) => {
+    persistRun();
+    setLevelCard(null);
+    if (nav.getState().routes.some((r) => r.name === 'Adventure')) nav.popTo('Adventure', p);
+    else nav.replace('Adventure', p);
+  };
 
   const onLayout = (e: LayoutChangeEvent) => setSize({ W: e.nativeEvent.layout.width, H: e.nativeEvent.layout.height });
   const top = insets.top + 12;
@@ -476,6 +489,10 @@ export function GameScreen() {
       />
       <MissionsSheet ref={missionsRef} {...track('missions')} />
       <LegendSheet ref={legendRef} {...track('legend')} />
+      {levelCard && (
+        <LevelEndCard card={levelCard} lay={lay} onMap={(world) => toMap({ world })} onAgain={again} onRevived={() => { setLevelCard(null); dirty.current = true; }}
+          onNext={([world, level]) => toMap(level === 1 && world !== levelCard.end.stage.world ? { world } : { world, level })} />
+      )}
       {end && <GameOver end={end} onAgain={again} onMenu={() => { setEnd(null); leave(); }} />}
     </View>
   );
