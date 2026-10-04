@@ -26,7 +26,12 @@ build is dropped. Until the switch-over (milestone 10):
   `src/game/anim.ts`), the dragged shape is a separate picture moved on the UI thread. Geometry is pure and
   tested (`src/render/layout.ts`, `src/game/drag.ts`); moves go through `src/game/run.ts` (commit, end of run).
   Only Classique with the Jouet theme and the classic block skin so far.
-- Not ported yet (milestones 3-9): combo juice, sounds, haptics, bonus icons on blocks, inventory, undo, trash,
+- Juice (milestone 3, done): combo feel lives in `src/game/juice.ts` (pure: tiers, banners, pennant), drawn by
+  `src/render/draw.ts`; effects state in `anim` (`animating()` = busy, `ambient()` = pennant / combo pulses
+  redrawn at half rate). Haptics: `src/platform/haptic-pattern.ts` (pure) + `haptics.ts` (expo-haptics).
+  Sound: `src/audio/sfx.ts` and `songs.ts` (pure scores) played by `engine.ts` on react-native-audio-api;
+  `wireAudio()` in App.tsx suspends everything in the background.
+- Not ported yet (milestones 4-9): bonus icons on blocks, inventory, undo, trash,
   other modes and themes, every screen beyond the 4 placeholder tabs, Cubo, ads, cloud save. The sections
   below still describe the legacy game.
 - Simulator checks without hands: `idb ui tap/swipe` (fb-idb) drives the iOS simulator; points = pixels / 3.

@@ -65,3 +65,4 @@ target 'Cubo' do
     )
   end
 end
+ENV['DISABLE_AUDIOAPI_FFMPEG'] = '1'

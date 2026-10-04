@@ -1,6 +1,6 @@
 // Cubo Blocks — A thin canvas-2D-like layer over Skia's SkCanvas, so the legacy drawing code
 // (ctx.roundRect, fillStyle, globalAlpha, shadows...) ports call for call.
-import { BlurStyle, PaintStyle, Skia, type SkCanvas, type SkFont, type SkPaint, type SkTypeface } from '@shopify/react-native-skia';
+import { BlurStyle, PaintStyle, Skia, TileMode, type SkCanvas, type SkFont, type SkPaint, type SkTypeface } from '@shopify/react-native-skia';
 
 // Corner radii: one number, or [topLeft, topRight, bottomRight, bottomLeft] as canvas roundRect.
 export type Radii = number | [number, number, number, number];
@@ -68,6 +68,37 @@ export class G {
     this.c.drawCircle(x, y, r, p);
   }
 
+  // Closed polygon (pennant, star), filled; opts as rrect.
+  poly(points: [number, number][], color: string, opts: { shadow?: Shadow; alpha?: number } = {}) {
+    if (points.length < 3) return;
+    const path = Skia.Path.Make();
+    path.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i++) path.lineTo(points[i][0], points[i][1]);
+    path.close();
+    this.c.drawPath(path, this.paint(color, opts));
+  }
+
+  // Stroked segment with round caps (the pennant's pole).
+  line(x0: number, y0: number, x1: number, y1: number, color: string, width: number) {
+    const p = this.paint(color, { stroke: { width } });
+    p.setStrokeCap(1); // round
+    this.c.drawLine(x0, y0, x1, y1, p);
+  }
+
+  ellipse(cx: number, cy: number, rx: number, ry: number, color: string) {
+    this.c.drawOval(Skia.XYWHRect(cx - rx, cy - ry, rx * 2, ry * 2), this.paint(color));
+  }
+
+  // Pie slice from the origin: radius R, angles a0..a1 in radians (canvas arc).
+  wedge(R: number, a0: number, a1: number, color: string) {
+    const path = Skia.Path.Make();
+    path.moveTo(0, 0);
+    const d = (a1 - a0) / 6;
+    for (let i = 0; i <= 6; i++) path.lineTo(Math.cos(a0 + d * i) * R, Math.sin(a0 + d * i) * R);
+    path.close();
+    this.c.drawPath(path, this.paint(color));
+  }
+
   textWidth(text: string, size: number) {
     return this.font(size).getTextWidth(text);
   }
@@ -75,7 +106,7 @@ export class G {
   // Text at (x, y) on its alphabetic baseline; align as canvas textAlign. outline: a stroke drawn
   // under the fill (legacy strokeText then fillText).
   text(text: string, x: number, y: number, size: number, color: string, align: 'left' | 'center' | 'right' = 'left',
-    outline?: { color: string; width: number }) {
+    outline?: { color: string; width: number }, gradient?: { colors: string[]; x0: number; x1: number }) {
     const f = this.font(size);
     const w = align === 'left' ? 0 : f.getTextWidth(text);
     const tx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
@@ -84,7 +115,12 @@ export class G {
       p.setStrokeJoin(1); // round
       this.c.drawText(text, tx, y, p, f);
     }
-    this.c.drawText(text, tx, y, this.paint(color), f);
+    const fill = this.paint(color);
+    if (gradient) {
+      fill.setShader(Skia.Shader.MakeLinearGradient({ x: gradient.x0, y: 0 }, { x: gradient.x1, y: 0 },
+        gradient.colors.map((c) => Skia.Color(c)), null, TileMode.Clamp));
+    }
+    this.c.drawText(text, tx, y, fill, f);
   }
 
   // Largest size <= size at which text fits in maxW (legacy fitFont).

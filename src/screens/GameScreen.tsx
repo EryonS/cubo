@@ -5,7 +5,7 @@
 // picture inside a Group whose transform follows the finger on the UI thread, so it stays glued
 // to the finger even when the JS thread is busy (see the spec, Rendering).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, View, type LayoutChangeEvent } from 'react-native';
+import { AccessibilityInfo, Pressable, View, type LayoutChangeEvent } from 'react-native';
 import { Canvas, Group, Picture, Skia, useTypeface, type SkPicture, type SkTypeface } from '@shopify/react-native-skia';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Easing, useDerivedValue, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -15,12 +15,14 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Svg, { Rect } from 'react-native-svg';
 import { tr } from '../core/i18n';
 import { useGame } from '../state/store';
-import { anim, animating, type DragState } from '../game/anim';
+import { ambient, anim, animating, type DragState } from '../game/anim';
 import { dragGeometry, easeOut, LIFT_MS } from '../game/drag';
 import { bestOf, commit, enterRun, newRun, type RunEnd } from '../game/run';
 import { computeLayout, miniCell, slotAt, type Layout } from '../render/layout';
 import { G } from '../render/g';
-import { drawBoard, drawFades, drawFloaters, drawHUD, drawPiece, drawReturning, drawTray, ghostOf, paintBackground } from '../render/draw';
+import { drawBanner, drawBoard, drawComboGlow, drawComboHang, drawFades, drawFloaters, drawHUD, drawParticles, drawPiece, drawRecordFlag, drawReturning, drawSweeps, drawTray, frameFx, ghostOf, paintBackground } from '../render/draw';
+import { sfx } from '../audio/engine';
+import { haptic } from '../platform/haptics';
 import { TOY } from '../render/theme';
 import { colors, radius, space } from '../theme/tokens';
 import { GameOver } from './GameOver';
@@ -67,24 +69,50 @@ export function GameScreen() {
   const dirty = useRef(true);
 
   // ---------- frame loop ----------
+  const lastDraw = useRef(0);
   const draw = useCallback(() => {
     if (!lay) return;
     const t = now();
     const d = drag.current;
     if (d) { d.x = dragX.value; d.y = dragY.value; }
-    if (!dirty.current && !d && !animating(t)) return;
-    dirty.current = false;
     const state = useGame.getState().saved.state;
+    if (!dirty.current && !d && !animating(t)) {
+      // Only decoration waves (pennant, combo glow): half rate, and idle again once they are gone.
+      if (!ambient(state) || t - lastDraw.current < 33) return;
+    }
+    dirty.current = false;
+    lastDraw.current = t;
+    const dt = Math.min(0.05, (t - anim.lastT) / 1000);
+    anim.lastT = t;
     const best = bestOf(state);
     runPicture.value = record(lay, typeface, (g) => {
-      drawHUD(g, th, lay, state, best);
+      drawHUD(g, th, lay, state, best, t);
+      // Shake and punch move the board group only, not the band or the tray.
+      const fx = frameFx(lay, t);
+      g.save();
+      g.translate(fx.sx, fx.sy);
+      g.translate(fx.cx, fx.cy); g.scale(fx.zoom); g.translate(-fx.cx, -fx.cy);
       drawBoard(g, th, lay, state, ghostOf(lay, state, d, t), t);
+      drawComboGlow(g, th, lay, state, t);
       drawFades(g, th, lay, t);
+      drawSweeps(g, lay, t);
+      g.restore();
+      drawRecordFlag(g, th, lay, state, t);
+      drawComboHang(g, th, lay, state, t);
       drawTray(g, th, lay, state, d, t);
       drawReturning(g, th, lay, state, t);
+      drawParticles(g, t, dt);
       drawFloaters(g, th, lay, t);
+      drawBanner(g, th, lay, t);
     });
   }, [lay, typeface, runPicture, dragX, dragY]);
+
+  // Reduced motion (legacy calm()): no shake, punch, sweeps, confetti, wobble.
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then((v) => { anim.calm = v; }).catch(() => {});
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (v) => { anim.calm = v; dirty.current = true; });
+    return () => sub.remove();
+  }, []);
 
   // Entering the screen starts (or resumes) the run once per focus. Kept apart from the frame
   // loop below, which restarts whenever draw changes (layout, font loaded): re-entering the run
@@ -113,6 +141,8 @@ export function GameScreen() {
     if (!piece || anim.returning.some((p) => p.idx === idx)) return;
     const l = lay.cell * 2.2;
     drag.current = { idx, x, y, lift: l, t0: now() };
+    sfx.pick();
+    haptic('pick');
     dragPicture.value = record(lay, typeface, (g) => drawPiece(g, th, piece, 0, 0, lay.cell));
     lift.value = l;
     miniRatio.value = miniCell(lay) / lay.cell;
@@ -120,7 +150,7 @@ export function GameScreen() {
     liftK.value = withTiming(1, { duration: LIFT_MS, easing: Easing.out(Easing.cubic) });
   }, [lay, typeface, dragPicture, lift, miniRatio, liftK]);
 
-  const onUp = useCallback((x: number, y: number) => {
+  const onUp = useCallback((x: number, y: number, released: boolean) => {
     const d = drag.current;
     if (!lay || !d) return;
     drag.current = null;
@@ -133,6 +163,8 @@ export function GameScreen() {
     const g = dragGeometry(lay, state.board, piece, x, y, d.lift, easeOut((t - d.t0) / LIFT_MS));
     if (g.valid && commit(lay, d.idx, g.row, g.col, setEnd)) return;
     anim.returning.push({ idx: d.idx, x: g.cx, y: g.cy, size: g.size, t0: t });
+    // Refused move: the sound and a double tick.
+    if (released) { sfx.nope(); haptic('nope'); }
   }, [lay, dragPicture]);
 
   const pan = useMemo(() => Gesture.Pan()
@@ -147,8 +179,8 @@ export function GameScreen() {
       dragX.value = e.x;
       dragY.value = e.y;
     })
-    .onFinalize((e) => {
-      scheduleOnRN(onUp, e.x, e.y);
+    .onFinalize((e, success) => {
+      scheduleOnRN(onUp, e.x, e.y, success);
     }), [onDown, onUp, dragX, dragY]);
 
   const again = useCallback(() => {

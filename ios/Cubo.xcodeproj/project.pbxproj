@@ -8,36 +8,36 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		2F4EE94FB81249D89FD260F5 /* Baloo2-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4CC2B9E982554734BA2C10F4 /* Baloo2-Bold.ttf */; };
+		17343E0AC95D1BABB137105B /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3370AB93098AEAA7EAA2AAC3 /* ExpoModulesProvider.swift */; };
+		1D55BBB017D74F8F87B0225B /* PressStart2P-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 232FCF23F5944A748C34C34F /* PressStart2P-Regular.ttf */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		4A87B8711824489CAF588A00 /* Baloo2-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 80F8A5F74F9C44D1AFC90044 /* Baloo2-SemiBold.ttf */; };
-		A02AD38BF7B5436988C0A90F /* Baloo2-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1F47B0B2EDDA40E597C9679A /* Baloo2-ExtraBold.ttf */; };
+		4CF5207FCC2DD72F9554E742 /* libPods-Cubo.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 653D47EA6F4104E97E8C193C /* libPods-Cubo.a */; };
+		7C42F1B6432DCD57B2FA1352 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B82C196CA3F01AA2AF7ACAA8 /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		D56A24D91E555B28B096CACC /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8E334ACC20663DD08B747016 /* PrivacyInfo.xcprivacy */; };
-		D71AA6F52A3048279D032851 /* PressStart2P-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B1C35D3A9D4C4089A7002947 /* PressStart2P-Regular.ttf */; };
-		DAB74713375AC34C296F4C2C /* libPods-Cubo.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 83D39E7453DD7065CB8DD8DB /* libPods-Cubo.a */; };
-		E68A7F15E0E17A0D734F47C3 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00B8315B943C1E44108D9401 /* ExpoModulesProvider.swift */; };
+		BBCCCB23B279475B866635C7 /* Baloo2-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CF8797145CDA4B8DB39504B9 /* Baloo2-SemiBold.ttf */; };
+		C24C6101280242DC91422295 /* Baloo2-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B9763AE5020F45B1B20BF640 /* Baloo2-ExtraBold.ttf */; };
+		CFC0ABEA4B07409E9CC1A0F9 /* Baloo2-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 88E4CF54D053477ABF95EC60 /* Baloo2-Bold.ttf */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		00B8315B943C1E44108D9401 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Cubo/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* Cubo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cubo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Cubo/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Cubo/Info.plist; sourceTree = "<group>"; };
-		1F47B0B2EDDA40E597C9679A /* Baloo2-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Baloo2-ExtraBold.ttf"; path = "../assets/fonts/Baloo2-ExtraBold.ttf"; sourceTree = "<group>"; };
-		4CC2B9E982554734BA2C10F4 /* Baloo2-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Baloo2-Bold.ttf"; path = "../assets/fonts/Baloo2-Bold.ttf"; sourceTree = "<group>"; };
-		516CF9AB6F79AEA4F30602E1 /* Pods-Cubo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Cubo.release.xcconfig"; path = "Target Support Files/Pods-Cubo/Pods-Cubo.release.xcconfig"; sourceTree = "<group>"; };
-		543B8678ED12D7DB57318FC8 /* Pods-Cubo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Cubo.debug.xcconfig"; path = "Target Support Files/Pods-Cubo/Pods-Cubo.debug.xcconfig"; sourceTree = "<group>"; };
-		80F8A5F74F9C44D1AFC90044 /* Baloo2-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Baloo2-SemiBold.ttf"; path = "../assets/fonts/Baloo2-SemiBold.ttf"; sourceTree = "<group>"; };
-		83D39E7453DD7065CB8DD8DB /* libPods-Cubo.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Cubo.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		8E334ACC20663DD08B747016 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Cubo/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		16450AD82CEF23B5FCA21D04 /* Pods-Cubo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Cubo.debug.xcconfig"; path = "Target Support Files/Pods-Cubo/Pods-Cubo.debug.xcconfig"; sourceTree = "<group>"; };
+		232FCF23F5944A748C34C34F /* PressStart2P-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "PressStart2P-Regular.ttf"; path = "../assets/fonts/PressStart2P-Regular.ttf"; sourceTree = "<group>"; };
+		3370AB93098AEAA7EAA2AAC3 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Cubo/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		653D47EA6F4104E97E8C193C /* libPods-Cubo.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Cubo.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		88E4CF54D053477ABF95EC60 /* Baloo2-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Baloo2-Bold.ttf"; path = "../assets/fonts/Baloo2-Bold.ttf"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Cubo/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B1C35D3A9D4C4089A7002947 /* PressStart2P-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "PressStart2P-Regular.ttf"; path = "../assets/fonts/PressStart2P-Regular.ttf"; sourceTree = "<group>"; };
+		B82C196CA3F01AA2AF7ACAA8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Cubo/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B9763AE5020F45B1B20BF640 /* Baloo2-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Baloo2-ExtraBold.ttf"; path = "../assets/fonts/Baloo2-ExtraBold.ttf"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		CF8797145CDA4B8DB39504B9 /* Baloo2-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Baloo2-SemiBold.ttf"; path = "../assets/fonts/Baloo2-SemiBold.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Cubo/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* Cubo-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Cubo-Bridging-Header.h"; path = "Cubo/Cubo-Bridging-Header.h"; sourceTree = "<group>"; };
+		FE79799A159D06259D78B14C /* Pods-Cubo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Cubo.release.xcconfig"; path = "Target Support Files/Pods-Cubo/Pods-Cubo.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,13 +45,25 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DAB74713375AC34C296F4C2C /* libPods-Cubo.a in Frameworks */,
+				4CF5207FCC2DD72F9554E742 /* libPods-Cubo.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		07395218CDE04694982191F1 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				CF8797145CDA4B8DB39504B9 /* Baloo2-SemiBold.ttf */,
+				88E4CF54D053477ABF95EC60 /* Baloo2-Bold.ttf */,
+				B9763AE5020F45B1B20BF640 /* Baloo2-ExtraBold.ttf */,
+				232FCF23F5944A748C34C34F /* PressStart2P-Regular.ttf */,
+			);
+			name = Resources;
+			path = "";
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* Cubo */ = {
 			isa = PBXGroup;
 			children = (
@@ -61,7 +73,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				8E334ACC20663DD08B747016 /* PrivacyInfo.xcprivacy */,
+				B82C196CA3F01AA2AF7ACAA8 /* PrivacyInfo.xcprivacy */,
 			);
 			name = Cubo;
 			sourceTree = "<group>";
@@ -70,9 +82,25 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				83D39E7453DD7065CB8DD8DB /* libPods-Cubo.a */,
+				653D47EA6F4104E97E8C193C /* libPods-Cubo.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		42784C9A9E7187C969F69F44 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				5221706062EBACA9A33949DD /* Cubo */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
+		5221706062EBACA9A33949DD /* Cubo */ = {
+			isa = PBXGroup;
+			children = (
+				3370AB93098AEAA7EAA2AAC3 /* ExpoModulesProvider.swift */,
+			);
+			name = Cubo;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -89,9 +117,9 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				88865B8DF3164BF794EE006A /* Resources */,
-				F7D912FC7CB63CDD21DDC0F5 /* Pods */,
-				D1CB18459D79AD80E2E2422C /* ExpoModulesProviders */,
+				07395218CDE04694982191F1 /* Resources */,
+				97E5A0CBEA5FB6A8A10A4513 /* Pods */,
+				42784C9A9E7187C969F69F44 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -106,16 +134,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		88865B8DF3164BF794EE006A /* Resources */ = {
+		97E5A0CBEA5FB6A8A10A4513 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				80F8A5F74F9C44D1AFC90044 /* Baloo2-SemiBold.ttf */,
-				4CC2B9E982554734BA2C10F4 /* Baloo2-Bold.ttf */,
-				1F47B0B2EDDA40E597C9679A /* Baloo2-ExtraBold.ttf */,
-				B1C35D3A9D4C4089A7002947 /* PressStart2P-Regular.ttf */,
+				16450AD82CEF23B5FCA21D04 /* Pods-Cubo.debug.xcconfig */,
+				FE79799A159D06259D78B14C /* Pods-Cubo.release.xcconfig */,
 			);
-			name = Resources;
-			path = "";
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -127,32 +153,6 @@
 			path = Cubo/Supporting;
 			sourceTree = "<group>";
 		};
-		D1CB18459D79AD80E2E2422C /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				E78588DB4C52DA047FF48CD0 /* Cubo */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
-		E78588DB4C52DA047FF48CD0 /* Cubo */ = {
-			isa = PBXGroup;
-			children = (
-				00B8315B943C1E44108D9401 /* ExpoModulesProvider.swift */,
-			);
-			name = Cubo;
-			sourceTree = "<group>";
-		};
-		F7D912FC7CB63CDD21DDC0F5 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				543B8678ED12D7DB57318FC8 /* Pods-Cubo.debug.xcconfig */,
-				516CF9AB6F79AEA4F30602E1 /* Pods-Cubo.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -161,14 +161,14 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Cubo" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				9D8DA0FF8B536220F9BE418D /* [Expo] Configure project */,
+				3443E683FB07722D7C351E79 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				4FEB1BC4F0CE41ECB2AECED9 /* [Expo Dev Launcher] Strip Local Network Keys for Release */,
-				C4F1D6197C05A4EAD9CAF28F /* [CP] Embed Pods Frameworks */,
+				B314112AB24147C6B0314981 /* [Expo Dev Launcher] Strip Local Network Keys for Release */,
+				5CA32448EB8DEE83C2D6381D /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -218,11 +218,11 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				4A87B8711824489CAF588A00 /* Baloo2-SemiBold.ttf in Resources */,
-				2F4EE94FB81249D89FD260F5 /* Baloo2-Bold.ttf in Resources */,
-				A02AD38BF7B5436988C0A90F /* Baloo2-ExtraBold.ttf in Resources */,
-				D71AA6F52A3048279D032851 /* PressStart2P-Regular.ttf in Resources */,
-				D56A24D91E555B28B096CACC /* PrivacyInfo.xcprivacy in Resources */,
+				BBCCCB23B279475B866635C7 /* Baloo2-SemiBold.ttf in Resources */,
+				CFC0ABEA4B07409E9CC1A0F9 /* Baloo2-Bold.ttf in Resources */,
+				C24C6101280242DC91422295 /* Baloo2-ExtraBold.ttf in Resources */,
+				1D55BBB017D74F8F87B0225B /* PressStart2P-Regular.ttf in Resources */,
+				7C42F1B6432DCD57B2FA1352 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -268,19 +268,61 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		4FEB1BC4F0CE41ECB2AECED9 /* [Expo Dev Launcher] Strip Local Network Keys for Release */ = {
+		3443E683FB07722D7C351E79 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.xcode.env",
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/Cubo/Cubo.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-Cubo/expo-configure-project.sh",
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Pods/Target Support Files/Pods-Cubo/ExpoModulesProvider.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Cubo/expo-configure-project.sh\"\n";
+		};
+		5CA32448EB8DEE83C2D6381D /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Cubo/Pods-Cubo-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem.framework/ExpoFileSystem",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoFont/ExpoFont.framework/ExpoFont",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesCore/ExpoModulesCore.framework/ExpoModulesCore",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesJSI/ExpoModulesJSI.framework/ExpoModulesJSI",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesWorklets/ExpoModulesWorklets.framework/ExpoModulesWorklets",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermesvm.framework/hermesvm",
 			);
-			name = "[Expo Dev Launcher] Strip Local Network Keys for Release";
+			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoFileSystem.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoFont.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoModulesCore.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoModulesJSI.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoModulesWorklets.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermesvm.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Strip dev-launcher-specific local network permission keys from non-Debug builds\n# This only removes _expo._tcp Bonjour services and the dev-launcher usage description.\n# Other Bonjour services and custom descriptions are preserved for production use.\n\nif [ \"$CONFIGURATION\" != \"Debug\" ]; then\n  PLIST_PATH=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n  if [ -f \"$PLIST_PATH\" ]; then\n    # Check if NSBonjourServices exists\n    if /usr/libexec/PlistBuddy -c \"Print :NSBonjourServices\" \"$PLIST_PATH\" >/dev/null 2>&1; then\n      # Get the count of services\n      COUNT=$(/usr/libexec/PlistBuddy -c \"Print :NSBonjourServices\" \"$PLIST_PATH\" 2>/dev/null | grep \"^    \" | wc -l | tr -d ' ')\n\n      # Remove _expo._tcp\n      for ((i=COUNT-1; i>=0; i--)); do\n        SERVICE=$(/usr/libexec/PlistBuddy -c \"Print :NSBonjourServices:$i\" \"$PLIST_PATH\" 2>/dev/null || echo \"\")\n        if echo \"$SERVICE\" | grep -q \"_expo._tcp\"; then\n          /usr/libexec/PlistBuddy -c \"Delete :NSBonjourServices:$i\" \"$PLIST_PATH\" 2>/dev/null || true\n        fi\n      done\n\n      # If the array is now empty, remove it entirely\n      REMAINING=$(/usr/libexec/PlistBuddy -c \"Print :NSBonjourServices\" \"$PLIST_PATH\" 2>/dev/null | grep \"^    \" | wc -l | tr -d ' ')\n      if [ \"$REMAINING\" -eq \"0\" ]; then\n        /usr/libexec/PlistBuddy -c \"Delete :NSBonjourServices\" \"$PLIST_PATH\" 2>/dev/null || true\n      fi\n    fi\n\n    # Only delete the description if it matches the dev-launcher default text\n    DESC=$(/usr/libexec/PlistBuddy -c \"Print :NSLocalNetworkUsageDescription\" \"$PLIST_PATH\" 2>/dev/null || echo \"\")\n    if echo \"$DESC\" | grep -q \"Expo Dev Launcher\"; then\n      /usr/libexec/PlistBuddy -c \"Delete :NSLocalNetworkUsageDescription\" \"$PLIST_PATH\" 2>/dev/null || true\n    fi\n  fi\nfi\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Cubo/Pods-Cubo-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -320,61 +362,19 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Cubo/Pods-Cubo-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		9D8DA0FF8B536220F9BE418D /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/.xcode.env",
-				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/Cubo/Cubo.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-Cubo/expo-configure-project.sh",
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-Cubo/ExpoModulesProvider.swift",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Cubo/expo-configure-project.sh\"\n";
-		};
-		C4F1D6197C05A4EAD9CAF28F /* [CP] Embed Pods Frameworks */ = {
+		B314112AB24147C6B0314981 /* [Expo Dev Launcher] Strip Local Network Keys for Release */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Cubo/Pods-Cubo-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem.framework/ExpoFileSystem",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoFont/ExpoFont.framework/ExpoFont",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesCore/ExpoModulesCore.framework/ExpoModulesCore",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesJSI/ExpoModulesJSI.framework/ExpoModulesJSI",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesWorklets/ExpoModulesWorklets.framework/ExpoModulesWorklets",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermesvm.framework/hermesvm",
 			);
-			name = "[CP] Embed Pods Frameworks";
+			name = "[Expo Dev Launcher] Strip Local Network Keys for Release";
 			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoFileSystem.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoFont.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoModulesCore.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoModulesJSI.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ExpoModulesWorklets.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermesvm.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Cubo/Pods-Cubo-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
+			shellScript = "# Strip dev-launcher-specific local network permission keys from non-Debug builds\n# This only removes _expo._tcp Bonjour services and the dev-launcher usage description.\n# Other Bonjour services and custom descriptions are preserved for production use.\n\nif [ \"$CONFIGURATION\" != \"Debug\" ]; then\n  PLIST_PATH=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n  if [ -f \"$PLIST_PATH\" ]; then\n    # Check if NSBonjourServices exists\n    if /usr/libexec/PlistBuddy -c \"Print :NSBonjourServices\" \"$PLIST_PATH\" >/dev/null 2>&1; then\n      # Get the count of services\n      COUNT=$(/usr/libexec/PlistBuddy -c \"Print :NSBonjourServices\" \"$PLIST_PATH\" 2>/dev/null | grep \"^    \" | wc -l | tr -d ' ')\n\n      # Remove _expo._tcp\n      for ((i=COUNT-1; i>=0; i--)); do\n        SERVICE=$(/usr/libexec/PlistBuddy -c \"Print :NSBonjourServices:$i\" \"$PLIST_PATH\" 2>/dev/null || echo \"\")\n        if echo \"$SERVICE\" | grep -q \"_expo._tcp\"; then\n          /usr/libexec/PlistBuddy -c \"Delete :NSBonjourServices:$i\" \"$PLIST_PATH\" 2>/dev/null || true\n        fi\n      done\n\n      # If the array is now empty, remove it entirely\n      REMAINING=$(/usr/libexec/PlistBuddy -c \"Print :NSBonjourServices\" \"$PLIST_PATH\" 2>/dev/null | grep \"^    \" | wc -l | tr -d ' ')\n      if [ \"$REMAINING\" -eq \"0\" ]; then\n        /usr/libexec/PlistBuddy -c \"Delete :NSBonjourServices\" \"$PLIST_PATH\" 2>/dev/null || true\n      fi\n    fi\n\n    # Only delete the description if it matches the dev-launcher default text\n    DESC=$(/usr/libexec/PlistBuddy -c \"Print :NSLocalNetworkUsageDescription\" \"$PLIST_PATH\" 2>/dev/null || echo \"\")\n    if echo \"$DESC\" | grep -q \"Expo Dev Launcher\"; then\n      /usr/libexec/PlistBuddy -c \"Delete :NSLocalNetworkUsageDescription\" \"$PLIST_PATH\" 2>/dev/null || true\n    fi\n  fi\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -384,7 +384,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				E68A7F15E0E17A0D734F47C3 /* ExpoModulesProvider.swift in Sources */,
+				17343E0AC95D1BABB137105B /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -393,7 +393,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 543B8678ED12D7DB57318FC8 /* Pods-Cubo.debug.xcconfig */;
+			baseConfigurationReference = 16450AD82CEF23B5FCA21D04 /* Pods-Cubo.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -430,7 +430,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 516CF9AB6F79AEA4F30602E1 /* Pods-Cubo.release.xcconfig */;
+			baseConfigurationReference = FE79799A159D06259D78B14C /* Pods-Cubo.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

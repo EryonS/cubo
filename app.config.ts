@@ -35,6 +35,8 @@ const config: ExpoConfig = {
       ],
     }],
     'expo-localization',
+    // Sounds only while the app is in front: no background audio mode, no foreground service, no FFmpeg (nothing is decoded).
+    ['react-native-audio-api', { iosBackgroundMode: false, androidForegroundService: false, androidPermissions: [], disableFFmpeg: true }],
     ['expo-splash-screen', { backgroundColor: BG, image: './assets/splash.png', imageWidth: 220 }],
   ],
 };

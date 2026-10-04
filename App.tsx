@@ -7,6 +7,7 @@ import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { wireAudio } from './src/audio/engine';
 import { useGame } from './src/state/store';
 import { colors } from './src/theme/tokens';
 
@@ -15,6 +16,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 const theme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.bg, primary: colors.accent, card: colors.panel, text: colors.text } };
 
 export default function App() {
+  useEffect(() => { wireAudio(); }, []);
   // Back from the background past midnight: today's missions.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') useGame.getState().rollDay(); });
