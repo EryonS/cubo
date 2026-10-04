@@ -2,7 +2,7 @@
 Status: shipped
 
 ## What it does
-Menu row "Puzzles" opens 60 puzzles in 6 packs of 10 (Débutant, Malin, Expert, Maître, Virtuose, Légende; the last two added 2026-10-01), unlocked one after the other, then the Puzzle surprise card. A puzzle is a drawing (heart, house, rocket...) mostly filled with pieces already in place. The player gets a quota of pieces (3 at the start, 8 at puzzle 40, 8 to 10 in packs 5-6), dealt in a fixed order to the tray (next piece + count in the "Ensuite" column), and must fill every empty cell of the drawing.
+Menu row "Puzzles" opens 60 puzzles in 6 packs of 10 (Débutant, Malin, Expert, Maître, Virtuose, Légende; the last two added 2026-10-01), unlocked one after the other, then the Puzzle surprise card. A puzzle is a drawing (heart, house, rocket...) mostly filled with pieces already in place. The player gets a quota of pieces (3 at the start, 8 at puzzle 40, 8 to 10 in packs 5-6), dealt in a fixed order to the tray (next piece + count in the "Suivant" column), and must fill every empty cell of the drawing.
 
 - Free rotation (tap a piece), no line clears, no bonuses, no bin.
 - Undo is free and goes back as far as wanted.
@@ -12,7 +12,7 @@ Menu row "Puzzles" opens 60 puzzles in 6 packs of 10 (Débutant, Malin, Expert, 
 
 ### Puzzle surprise
 Last card of the list, opens once pack Maître (puzzles 31-40) is done. Each game picks a random drawing (any of `DRAWINGS`, turned or mirrored) and takes out 8 to 10 pieces.
-- Every piece is in the tray at once (two rows of pads over the board width, no Ensuite column).
+- Every piece is in the tray at once (two rows of pads over the board width, no Suivant column).
 - A placed piece can be grabbed again: drag it elsewhere, drop it outside to send it back to the tray, or tap it to send it back. Undo also undoes a pick-up.
 - Pays 25 coins, 10 if a hint was used. No stars; `profile.surprises` counts the ones solved. "Un autre" deals a new one; Recommencer replays the same seed.
 

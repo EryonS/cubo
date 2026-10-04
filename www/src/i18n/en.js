@@ -366,11 +366,11 @@
     'Bloqué ! Utilise un bonus ou termine la partie': 'Stuck! Use a bonus or end the game',
     'Bloqué ! Annule ton coup ou jette une forme': 'Stuck! Undo your move or discard a shape',
     'Bloqué ! Maintiens une forme en bas pour la jeter': 'Stuck! Hold a shape at the bottom to discard it',
-    'ENSUITE': 'NEXT',
+    'SUIVANT': 'NEXT',
     'RECORD ': 'RECORD ',
     'SCORE': 'SCORE',
-    ' COUPS': ' MOVES',
-    ' COUP': ' MOVE',
+    'COUPS': 'MOVES',
+    'COUP': 'MOVE',
 
     // ----- Aventure screens
     'Boss': 'Boss',

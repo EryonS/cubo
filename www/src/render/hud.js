@@ -8,8 +8,10 @@ function hudBand(t) {
   const cuboRoom = settings.mascot && !state.puzzle && !tut ? cuboSpot().s + 16 : 0;
   const w = lay.band.w - cuboRoom;
   const flag = recordFlag(t);
-  const flagW = flag ? flag.room * (1 - flag.fall) : 0;
-  return { x, y, w, h, flag, cx: x + flagW + (w - flagW) / 2, cw: w - flagW - 28 };
+  // Aventure with a move limit: the moves left get their own column at the band's left end.
+  const movesW = state.stage && !state.stage.clock ? Math.round(h * 1.15) : 0;
+  const flagW = flag ? flag.room * (1 - flag.fall) : movesW;
+  return { x, y, w, h, flag, movesW, cx: x + flagW + (w - flagW) / 2, cw: w - flagW - 28 };
 }
 
 function drawHUD(t) {
@@ -27,8 +29,11 @@ function drawHUD(t) {
   ctx.textBaseline = 'alphabetic';
   // Aventure: the band shows the goal progress and the moves left instead of score / record.
   const stage = state.stage;
-  // While the record pennant stands in the band, it carries the record.
-  let sub = best && !(band.flag && band.flag.fall < 1) ? tr('RECORD ') + fmt(best) : tr('SCORE');
+  // While the record pennant stands in the band, it carries the record. Once the score is
+  // the record, showing it again above would only repeat the big number.
+  let sub = tr('SCORE');
+  if (best > state.score && !(band.flag && band.flag.fall < 1)) sub = tr('RECORD ') + fmt(best);
+  else if (band.flag && band.flag.beaten) sub = tr('NOUVEAU RECORD');
   let main = fmt(Math.round(displayScore));
   let lowMoves = false;
   if (state.puzzle) {
@@ -37,16 +42,30 @@ function drawHUD(t) {
   } else if (stage) {
     const progress = stage.goal.type === 'score' ? Math.round(displayScore) : stage.progress;
     main = fmt(Math.min(progress, stage.goal.target)) + ' / ' + fmt(stage.goal.target);
-    sub = LV.goalLabel(stage.goal) + (stage.clock ? '' : ' · ' + stage.movesLeft + (stage.movesLeft > 1 ? tr(' COUPS') : tr(' COUP')));
+    sub = LV.goalLabel(stage.goal);
     lowMoves = !stage.clock && stage.movesLeft <= 3 && !state.over;
   }
-  ctx.fillStyle = lowMoves ? th.danger : p.sub;
-  ctx.globalAlpha = lowMoves ? 0.7 + 0.3 * Math.sin(t / 120) : 1;
+  ctx.fillStyle = p.sub;
   if ('letterSpacing' in ctx) ctx.letterSpacing = '1.5px';
   fitFont(th, 11, sub, cw);
   ctx.fillText(sub, cx, y + h * 0.34);
+  if (band.movesW) {
+    // Moves left: same label-over-number shape as the goal, split off by a hairline.
+    const mx = x + 10 + band.movesW / 2;
+    const label = stage.movesLeft > 1 ? tr('COUPS') : tr('COUP');
+    fitFont(th, 11, label, band.movesW - 8);
+    ctx.fillText(label, mx, y + h * 0.34);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    ctx.fillStyle = lowMoves ? th.danger : p.ink;
+    ctx.globalAlpha = lowMoves ? 0.7 + 0.3 * Math.sin(t / 120) : 1;
+    fitFont(th, Math.round(h * 0.46), String(stage.movesLeft), band.movesW - 8);
+    ctx.fillText(String(stage.movesLeft), mx, y + h - h * 0.14);
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = p.sub;
+    ctx.fillRect(x + 10 + band.movesW, y + h * 0.2, 1.5, h * 0.6);
+    ctx.globalAlpha = 1;
+  }
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-  ctx.globalAlpha = 1;
   if (stage && stage.goal.type === 'boss') drawBossBar(th, cx - cw / 2 - 14, y, cw + 28, h, t);
   else {
     ctx.save();

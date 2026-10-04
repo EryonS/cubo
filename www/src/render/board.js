@@ -261,15 +261,15 @@ function drawNext(t) {
   ctx.restore();
   // Label chip astride the top edge.
   if ('letterSpacing' in ctx) ctx.letterSpacing = '1px'; // before measuring: the spacing counts in the width
-  fitFont(th, 10, tr('ENSUITE'), w - 6);
-  const cw = Math.min(w + 4, ctx.measureText(tr('ENSUITE')).width + 14);
+  fitFont(th, 10, tr('SUIVANT'), w - 6);
+  const cw = Math.min(w + 4, ctx.measureText(tr('SUIVANT')).width + 14);
   const cx = x + w / 2;
   ctx.fillStyle = acc;
   ctx.beginPath(); ctx.roundRect(cx - cw / 2, y - 9, cw, 18, 9); ctx.fill();
   ctx.fillStyle = onAcc;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(tr('ENSUITE'), cx + 0.5, y + 0.5);
+  ctx.fillText(tr('SUIVANT'), cx + 0.5, y + 0.5);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   ctx.textBaseline = 'alphabetic';
   const piece = state.next;
