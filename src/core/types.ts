@@ -167,3 +167,52 @@ export interface RunState {
   // Set by the app on runs it starts (daily level, season events...).
   [extra: string]: unknown;
 }
+
+// ---------- profile (meta.ts) ----------
+export type SkinKind = 'blocks' | 'boards' | 'cubo';
+export interface Mission { id: string; key: string; target: number; reward: number; progress: number; done: boolean }
+export interface ModeStats { games: number; total: number; best: number; bestCombo: number; lines: number }
+export interface DailyDay { stars?: number; attempts: number; bonus?: number; paid?: number; ad?: boolean }
+export interface Streak { count: number; best: number; lastDay: string | null; freezes: number }
+export interface SeasonProgress { year: string; stars: Record<string, number> }
+// Lifetime totals and bests, keyed by run stat (lines, pieces, score...) plus a few of their own.
+export interface Lifetime {
+  games?: number;
+  coinsEarned?: number;
+  used?: Partial<Record<BonusType, number>>;
+  bestPerfects?: number;
+  cleanScore?: number;
+  [stat: string]: number | Partial<Record<BonusType, number>> | undefined;
+}
+export interface Adventure {
+  stars?: Record<string, number>;
+  opened?: string[];
+  fails?: Record<string, number>;
+  chests?: Record<string, boolean>;
+  bombs?: number;
+}
+
+export interface Profile {
+  version?: number;
+  coins: number;
+  owned: Record<SkinKind, string[]>;
+  equipped: Record<SkinKind, string>;
+  day: string | null;
+  missions: Mission[];
+  missionsDone: number;
+  games: number;
+  lifetime?: Lifetime;
+  modes?: Record<string, Partial<ModeStats>>;
+  history?: { m: string; s: number }[];
+  adventure?: Adventure;
+  puzzles?: Record<string, number>;
+  surprises?: number;
+  upgrades?: Partial<Record<BonusType, number>>;
+  seasons?: Record<string, SeasonProgress>;
+  trophies?: Record<string, 'silver' | 'gold'>;
+  daily?: Record<string, DailyDay>;
+  streak?: Streak;
+  stickers?: Record<string, string>;
+  tips?: Record<string, boolean>;
+  halloween?: SeasonProgress; // before v6
+}

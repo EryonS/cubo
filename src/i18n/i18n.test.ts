@@ -53,3 +53,12 @@ test('detect picks the first supported device language, English otherwise', () =
   assert.equal(I.detect(['ja-JP']), 'en');
   assert.equal(I.detect([]), 'en');
 });
+
+// Core tables call tr() as their module loads (the app sets the language first, see i18n/lang.ts).
+// Each test file runs in its own process, so meta.ts is not loaded yet here.
+test('a core table loaded after setLang("en") is in English', async () => {
+  I.setLang('en');
+  const M = await import('../core/meta');
+  assert.equal(M.SKINS.boards.find((s) => s.id === 'sea')!.name, 'Undersea');
+  I.setLang('fr');
+});
