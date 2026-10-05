@@ -25,6 +25,7 @@ import { useColors } from '../theme/useColors';
 import { Button } from '../ui/Button';
 import { CuboPose } from '../ui/CuboPose';
 import { StarRow } from '../ui/Stars';
+import { ListRow } from '../ui/ListRow';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
 import { Flame, Icon } from '../ui/Icon';
@@ -63,13 +64,9 @@ export function useLevelEnd(): [LevelCardData | null, (c: LevelCardData | null) 
 }
 
 function Opt({ label, children, disabled, onPress }: { label: string; children: React.ReactNode; disabled?: boolean; onPress: () => void }) {
-  const colors = useColors();
   return (
-    <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress}
-      style={{ alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 10, paddingVertical: 11, paddingHorizontal: 14, borderRadius: radius.card - 6, backgroundColor: colors.panel2, opacity: disabled ? 0.45 : 1 }}>
-      <Text style={{ fontSize: 15, flex: 1 }}>{label}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>{children}</View>
-    </Pressable>
+    <ListRow inset title={label} disabled={disabled} quiet onPress={onPress} style={{ alignSelf: 'stretch', marginTop: space.s }}
+      right={<View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>{children}</View>} />
   );
 }
 

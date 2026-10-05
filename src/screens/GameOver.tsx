@@ -18,6 +18,7 @@ import { cuboLookFor } from '../mascot/looks';
 import { Button } from '../ui/Button';
 import { CuboPose } from '../ui/CuboPose';
 import { Icon } from '../ui/Icon';
+import { ListRow } from '../ui/ListRow';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
 
@@ -27,7 +28,6 @@ const TITLES = { over: () => tr('Plus de place !'), time: () => tr('Temps écoul
 
 // Rewarded ad: doubles this run's coins once (legacy #over-ad).
 function DoubleCoinsAd({ total, visible, onDoubled }: { total: number; visible: boolean; onDoubled: (n: number) => void }) {
-  const colors = useColors();
   const [busy, setBusy] = useState(false);
   const [got, setGot] = useState(false);
   if (!visible) return null;
@@ -54,11 +54,8 @@ function DoubleCoinsAd({ total, visible, onDoubled }: { total: number; visible: 
     onDoubled(total);
   };
   return (
-    <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void press(); }}
-      style={{ alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 10, paddingVertical: 11, paddingHorizontal: 14, borderRadius: radius.card - 6, backgroundColor: colors.panel2, opacity: busy ? 0.45 : 1 }}>
-      <Text style={{ fontSize: 15, flex: 1 }}>{tr`Regarder une pub · +${fmt(total)}`}</Text>
-      <Text variant="title" style={{ fontSize: 17, lineHeight: 22 }}>{tr('Pub')}</Text>
-    </Pressable>
+    <ListRow inset title={tr`Regarder une pub · +${fmt(total)}`} disabled={busy} quiet onPress={() => { void press(); }}
+      style={{ alignSelf: 'stretch', marginTop: space.s }} right={<Text variant="headline">{tr('Pub')}</Text>} />
   );
 }
 
