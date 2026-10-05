@@ -25,7 +25,7 @@ function Content({ onClose }: { onClose: () => void }) {
           <Icon name="close" size={16} color={colors.text} />
         </Pressable>
       </View>
-      <MissionList status={missionStatus()} />
+      <MissionList inset status={missionStatus()} />
       <Text variant="muted" style={{ fontSize: 12, lineHeight: 16 }}>{tr('Elles avancent dans tous les modes. Trois nouvelles chaque jour.')}</Text>
     </View>
   );

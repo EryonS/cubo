@@ -2,7 +2,7 @@
 // price, owned / equipped / exclusive states; Bonus = upgrades. Theme previews show the board colors
 // (full world themes come with milestone 6).
 import { useState } from 'react';
-import { Pressable, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { L, M } from '../core';
 import { locale, tr } from '../core/i18n';
 import type { BonusType, SkinKind } from '../core/types';
@@ -16,7 +16,13 @@ import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import { radius, space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Counter } from '../ui/Counter';
 import { DrawCanvas } from '../ui/DrawCanvas';
+import { Icon } from '../ui/Icon';
+import { ListRow } from '../ui/ListRow';
+import { Segmented } from '../ui/Segmented';
 import { showStickers } from '../ui/StickerBanner';
 import { IconCanvas } from '../ui/IconCanvas';
 import { Screen } from '../ui/Screen';
@@ -34,18 +40,17 @@ function withStickers(next: ReturnType<typeof M.buy>) {
   return { profile: res.profile, fresh: res.fresh };
 }
 
-function Price({ price, off }: { price: number; off: boolean }) {
+// The skin card's action: Équipé (a quiet green pill), Équiper, the price, or how to get it.
+function SkinAction({ equipped, owned, price, cant, exclusive, onPress }: { equipped: boolean; owned: boolean; price: number | null | undefined; cant: boolean; exclusive?: string; onPress: () => void }) {
   const colors = useColors();
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-      <Coin size={16} />
-      <Text variant="title" style={{ fontSize: 18, lineHeight: 22, color: off ? colors.muted : colors.onAccent }}>{fmt(price)}</Text>
-    </View>
-  );
+  const pill = { alignSelf: 'stretch' as const, height: 40, borderRadius: radius.pill, alignItems: 'center' as const, justifyContent: 'center' as const, flexDirection: 'row' as const, gap: space.xs, backgroundColor: colors.panel2, paddingHorizontal: space.s };
+  if (equipped) return <View style={pill} accessible accessibilityLabel={tr('Équipé')}><Icon name="check" size={16} color={colors.good} /><Text variant="headline" style={{ color: colors.good }}>{tr('Équipé')}</Text></View>;
+  if (owned) return <Button size="s" kind="ghost" label={tr('Équiper')} onPress={onPress} style={{ alignSelf: 'stretch' }} />;
+  if (price == null) return <View style={pill}><Text variant="caption" numberOfLines={1} adjustsFontSizeToFit>{exclusive}</Text></View>;
+  return <Button size="s" kind={cant ? 'ghost' : 'primary'} disabled={cant} icon={<Coin size={16} />} label={fmt(price)} accessibilityLabel={tr`Acheter pour ${price} pièces`} onPress={onPress} style={{ alignSelf: 'stretch' }} />;
 }
 
 function SkinCard({ kind, skin, width }: { kind: SkinKind; skin: ReturnType<typeof skinsOf>[number]; width: number }) {
-  const colors = useColors();
   const profile = useGame((s) => s.profile);
   const setProfile = useGame((s) => s.setProfile);
   const owned = profile.owned[kind].includes(skin.id);
@@ -64,28 +69,18 @@ function SkinCard({ kind, skin, width }: { kind: SkinKind; skin: ReturnType<type
 
   const via = kind === 'boards' && !owned && M.WORLD_ORDER.includes(skin.id);
   const cant = !owned && skin.price != null && profile.coins < skin.price;
-  const bg = equipped ? 'transparent' : owned ? colors.panel : skin.price == null || cant ? colors.sunken : colors.accent;
   return (
-    <View style={{ width, padding: 7, paddingBottom: 8, borderRadius: radius.card - 2, backgroundColor: colors.panel2, alignItems: 'center' }}>
+    <Card small style={{ width, alignItems: 'center', padding: space.s, gap: space.s }}>
       {kind === 'cubo'
-        ? <DrawCanvas width={width - 14} radius={radius.card - 6} deps={[skin.id, eqBoard]} draw={(g, w) => drawCuboPreview(g, boardTheme(eqBoard), eqBoard, skin.id, w)} />
-        : <DrawCanvas width={width - 14} radius={radius.card - 6} deps={[kind, skin.id, eqBoard, eqBlocks]}
+        ? <DrawCanvas width={width - 2 * space.s} radius={radius.s + 2} deps={[skin.id, eqBoard]} draw={(g, w) => drawCuboPreview(g, boardTheme(eqBoard), eqBoard, skin.id, w)} />
+        : <DrawCanvas width={width - 2 * space.s} radius={radius.s + 2} deps={[kind, skin.id, eqBoard, eqBlocks]}
             draw={(g, w, h) => drawPreview(g, boardTheme(kind === 'boards' ? skin.id : eqBoard, kind === 'blocks' ? skin.id : eqBlocks), w, h)} />}
-      <Text numberOfLines={1} style={{ marginVertical: 7, fontSize: 14 }}>{skin.name}</Text>
-      {via && <Text variant="muted" style={{ fontSize: 12, marginTop: -4, marginBottom: 6 }}>{tr('Ou bats son boss')}</Text>}
-      <Pressable
-        accessibilityRole="button"
-        disabled={equipped || (!owned && (skin.price == null || cant))}
-        onPress={act}
-        style={({ pressed }) => ({ alignSelf: 'stretch', paddingVertical: 8, paddingHorizontal: 9, borderRadius: 9, backgroundColor: bg, transform: [{ scale: pressed ? 0.97 : 1 }],
-          borderWidth: equipped ? 2 : owned ? 1.5 : 0, borderColor: equipped ? colors.good : colors.hairline })}
-      >
-        {equipped ? <Text variant="title" style={{ fontSize: 18, lineHeight: 22, textAlign: 'center', color: colors.good }}>{tr('Équipé')}</Text>
-          : owned ? <Text variant="title" style={{ fontSize: 18, lineHeight: 22, textAlign: 'center' }}>{tr('Équiper')}</Text>
-          : skin.price == null ? <Text variant="title" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 16, lineHeight: 22, textAlign: 'center', color: colors.muted }}>{skin.exclusive}</Text>
-          : <Price price={skin.price} off={cant} />}
-      </Pressable>
-    </View>
+      <View style={{ alignItems: 'center' }}>
+        <Text numberOfLines={1}>{skin.name}</Text>
+        {via && <Text variant="caption">{tr('Ou bats son boss')}</Text>}
+      </View>
+      <SkinAction equipped={equipped} owned={owned} price={skin.price} cant={cant} exclusive={skin.exclusive} onPress={act} />
+    </Card>
   );
 }
 
@@ -96,7 +91,7 @@ function Upgrades() {
   const profile = useGame((s) => s.profile);
   const setProfile = useGame((s) => s.setProfile);
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: space.s }}>
       {BONUS_TYPES.map((type: BonusType) => {
         const ui = BONUS_UI[type];
         const lv = M.upgradeLevel(profile, type);
@@ -112,67 +107,37 @@ function Upgrades() {
           sfx.buy(); haptic('buy');
         };
         return (
-          <View key={type} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: radius.card - 4, backgroundColor: colors.panel2 }}>
-            <IconCanvas type={type} size={40} />
-            <View style={{ flex: 1 }} accessibilityLabel={tr`Niveau ${lv} sur ${L.UPGRADE_MAX}`}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontSize: 15 }}>{ui.name}</Text>
-                <View style={{ flexDirection: 'row', gap: 3 }}>
-                  {[1, 2, 3].map((k) => <View key={k} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: k <= lv ? colors.accent : colors.hairline }} />)}
-                </View>
-              </View>
-              <Text variant="muted" style={{ fontSize: 13 }}>
-                {price == null ? ui.levels[lv - 1] + tr(' · niveau max') : `${ui.levels[lv - 1]} → ${ui.levels[lv]}`}
-              </Text>
+          <ListRow key={type} title={ui.name} icon={<IconCanvas type={type} size={40} />}
+            sub={price == null ? ui.levels[lv - 1] + tr(' · niveau max') : `${ui.levels[lv - 1]} → ${ui.levels[lv]}`}
+            label={`${ui.name}, ${tr`Niveau ${lv} sur ${L.UPGRADE_MAX}`}`}
+            right={price == null
+              ? <View style={{ height: 40, paddingHorizontal: space.l, borderRadius: radius.pill, backgroundColor: colors.panel2, justifyContent: 'center' }}><Text variant="headline" style={{ color: colors.muted }}>{tr('Max')}</Text></View>
+              : <Button size="s" kind={off ? 'ghost' : 'primary'} disabled={off} icon={<Coin size={16} />} label={fmt(price)} accessibilityLabel={tr`Améliorer ${ui.name} pour ${price} pièces`} onPress={buy} />}>
+            <View style={{ flexDirection: 'row', gap: space.xs, marginTop: space.xs }}>
+              {[1, 2, 3].map((k) => <View key={k} style={{ width: 18, height: 6, borderRadius: 3, backgroundColor: k <= lv ? colors.accent : colors.sunken }} />)}
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={price == null ? tr('Max') : tr`Améliorer ${ui.name} pour ${price} pièces`}
-              disabled={off}
-              onPress={buy}
-              style={({ pressed }) => ({ minWidth: 70, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 9, backgroundColor: off ? colors.sunken : colors.accent, transform: [{ scale: pressed ? 0.97 : 1 }] })}
-            >
-              {price == null ? <Text variant="title" style={{ fontSize: 18, lineHeight: 22, textAlign: 'center', color: colors.muted }}>{tr('Max')}</Text> : <Price price={price} off={off} />}
-            </Pressable>
-          </View>
+          </ListRow>
         );
       })}
-      <Text variant="muted" style={{ fontSize: 12, lineHeight: 17, marginTop: 4 }}>{tr('Les améliorations comptent dans tous les modes, même dans la partie en cours.')}</Text>
+      <Text variant="caption" style={{ marginHorizontal: space.xs }}>{tr('Les améliorations comptent dans tous les modes, même dans la partie en cours.')}</Text>
     </View>
   );
 }
 
 export function ShopScreen() {
-  const colors = useColors();
   const coins = useGame((s) => s.profile.coins);
   const [tab, setTab] = useState<Tab>('boards');
   const { width: W } = useWindowDimensions();
-  // Screen padding 16 + card padding 24 on both sides, 10 between the two columns.
-  const cardW = Math.floor((W - 2 * space.l - 2 * space.l - 10) / 2);
+  // Two columns between the 16 pt gutters, 12 pt apart.
+  const cardW = Math.floor((W - 2 * space.l - space.m) / 2);
   return (
-    <Screen>
-      <View style={{ backgroundColor: colors.panel, borderRadius: radius.card + 8, borderBottomWidth: 6, borderBottomColor: colors.edge, padding: space.l, gap: space.m }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text variant="title" style={{ fontSize: 30, textTransform: 'uppercase' }}>{tr('Boutique')}</Text>
-          <View accessibilityLabel={tr`${coins} pièces`} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.panel2 }}>
-            <Coin size={19} />
-            <Text variant="title" style={{ fontSize: 22, lineHeight: 28 }}>{fmt(coins)}</Text>
-          </View>
+    <Screen title={tr('Boutique')} right={<Counter icon={<Coin size={20} />} value={fmt(coins)} label={tr`${coins} pièces`} />}>
+      <Segmented role="tab" options={TABS.map(([id, label]) => [id, label()] as [Tab, string])} value={tab} onChange={(v) => { sfx.turn(); setTab(v); }} />
+      {tab === 'bonus' ? <Upgrades /> : (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.m }}>
+          {skinsOf(tab).map((skin) => <SkinCard key={tab + skin.id} kind={tab} skin={skin} width={cardW} />)}
         </View>
-        <View style={{ flexDirection: 'row', gap: 4, padding: 4, borderRadius: radius.card - 2, backgroundColor: colors.panel2 }}>
-          {TABS.map(([id, label]) => (
-            <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: tab === id }} onPress={() => { sfx.turn(); setTab(id); }}
-              style={{ flex: 1, paddingVertical: 8, borderRadius: radius.card - 5, backgroundColor: tab === id ? colors.accent : 'transparent', alignItems: 'center' }}>
-              <Text variant="title" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 17, lineHeight: 22, textTransform: 'uppercase', color: tab === id ? colors.onAccent : colors.muted }}>{label()}</Text>
-            </Pressable>
-          ))}
-        </View>
-        {tab === 'bonus' ? <Upgrades /> : (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {skinsOf(tab).map((skin) => <SkinCard key={tab + skin.id} kind={tab} skin={skin} width={cardW} />)}
-          </View>
-        )}
-      </View>
+      )}
     </Screen>
   );
 }

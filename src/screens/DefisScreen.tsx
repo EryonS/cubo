@@ -1,10 +1,10 @@
 // Défis tab (legacy #defis): the calendar on top (a week, unfolds to the month), the picked day's level,
 // the streak with its freezes, today's missions. A daily in progress is resumed from here.
 import { useCallback, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { useFocusEffect, useNavigation, type NavigationProp } from '@react-navigation/native';
 import { M } from '../core';
-import { tr, many } from '../core/i18n';
+import { locale, tr, many } from '../core/i18n';
 import { sfx } from '../audio/engine';
 import { calFirst, calLast, dailyGoingOn, pickDay, stepMonth } from '../game/daily';
 import { guardFree, inProgress, isFree } from '../game/modes';
@@ -13,9 +13,12 @@ import { haptic } from '../platform/haptics';
 import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import type { RootParams } from '../navigation/types';
-import { radius, space } from '../theme/tokens';
+import { space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
 import { Card } from '../ui/Card';
+import { Counter } from '../ui/Counter';
+import { ListRow } from '../ui/ListRow';
+import { SectionLabel } from '../ui/SectionLabel';
 import { ask } from '../ui/dialog';
 import { Flame, Snow } from '../ui/Icon';
 import { MissionList } from '../ui/Missions';
@@ -42,29 +45,21 @@ function StreakBlock() {
     sfx.buy();
   };
   return (
-    <View style={{ gap: 10 }}>
-      <Text variant="muted" style={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 13 }}>{tr('Série')}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: radius.card - 6, backgroundColor: colors.panel2 }}>
-        <Flame size={38} on={now > 0} color={colors.text} />
-        <Text variant="title" style={{ fontSize: 34, lineHeight: 38 }}>{now}</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, lineHeight: 18 }}>{many(now) ? tr("jours d'affilée") : tr("jour d'affilée")}</Text>
-          <Text variant="muted" style={{ fontSize: 13, lineHeight: 17 }}>{tr`Record : ${st.best}`}</Text>
-        </View>
-        <View style={{ alignItems: 'center', gap: 3 }} accessibilityLabel={tr`Gels de série : ${st.freezes} sur ${M.FREEZE_MAX}`}>
-          <View style={{ flexDirection: 'row', gap: 4 }}>
-            {Array.from({ length: M.FREEZE_MAX }, (_, i) => <Snow key={i} size={22} on={i < st.freezes} color={colors.muted} />)}
+    <View style={{ gap: space.s }}>
+      <SectionLabel>{tr('Série')}</SectionLabel>
+      <ListRow title={many(now) ? tr("jours d'affilée") : tr("jour d'affilée")} sub={tr`Record : ${st.best}`}
+        label={`${now} ${many(now) ? tr("jours d'affilée") : tr("jour d'affilée")}, ${tr`Record : ${st.best}`}`}
+        icon={<View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}><Flame size={36} on={now > 0} color={colors.text} /><Text variant="title" style={{ fontSize: 34 }}>{now}</Text></View>}
+        right={(
+          <View style={{ alignItems: 'center', gap: space.xxs }} accessible accessibilityLabel={tr`Gels de série : ${st.freezes} sur ${M.FREEZE_MAX}`}>
+            <View style={{ flexDirection: 'row', gap: space.xs }}>
+              {Array.from({ length: M.FREEZE_MAX }, (_, i) => <Snow key={i} size={22} on={i < st.freezes} color={colors.muted} />)}
+            </View>
+            <Text variant="caption">{tr`Gels ${st.freezes}/${M.FREEZE_MAX}`}</Text>
           </View>
-          <Text variant="muted" style={{ fontSize: 12 }}>{tr`Gels ${st.freezes}/${M.FREEZE_MAX}`}</Text>
-        </View>
-      </View>
-      <Pressable accessibilityRole="button" disabled={disabled} onPress={freeze}
-        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingVertical: 11, paddingHorizontal: 14, borderRadius: radius.card - 6, backgroundColor: colors.panel2, opacity: disabled ? 0.45 : 1 }}>
-        <Text style={{ fontSize: 15, flex: 1 }}>{tr('Gel de série : protège un jour manqué')}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-          <Text variant="title" style={{ fontSize: 17, lineHeight: 22 }}>{M.FREEZE_COST}</Text><Coin size={16} />
-        </View>
-      </Pressable>
+        )} />
+      <ListRow title={tr('Gel de série : protège un jour manqué')} disabled={disabled} onPress={freeze} quiet
+        right={<View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}><Text variant="headline">{M.FREEZE_COST}</Text><Coin size={16} /></View>} />
     </View>
   );
 }
@@ -105,26 +100,21 @@ export function DefisScreen() {
   };
 
   return (
-    <Screen>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.m }}>
-        <Text variant="title" style={{ flex: 1 }}>{tr('Défis')}</Text>
-        <View accessibilityLabel={tr`Série de ${streak} jour${streak > 1 ? 's' : ''}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.panel, borderRadius: radius.pill, paddingHorizontal: space.m, paddingVertical: space.xs }}>
-          <Flame size={18} on={streak > 0} color={colors.text} /><Text>{streak}</Text>
-        </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={tr('Pièces : ouvrir la Boutique')} onPress={() => nav.navigate('Tabs', { screen: 'Shop' })}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.panel, borderRadius: radius.pill, paddingHorizontal: space.m, paddingVertical: space.xs }}>
-          <Coin /><Text>{profile.coins.toLocaleString()}</Text>
-        </Pressable>
-      </View>
-      <Card style={{ gap: space.m }}>
+    <Screen title={tr('Défis')} right={(
+      <>
+        <Counter icon={<Flame size={18} on={streak > 0} color={colors.text} />} value={String(streak)} label={tr`Série de ${streak} jour${streak > 1 ? 's' : ''}`} />
+        <Counter icon={<Coin size={20} />} value={profile.coins.toLocaleString(locale())} label={tr('Pièces : ouvrir la Boutique')} onPress={() => nav.navigate('Tabs', { screen: 'Shop' })} />
+      </>
+    )}>
+      <Card>
         <Calendar open={open} month={pick.month} week={pick.week} picked={pick.day}
           onToggle={() => { setOpen(!open); sfx.turn(); }} onStep={step}
           onPick={(day) => { setPick(pickDay(day, t)); sfx.turn(); }} />
-        <DayCard day={pick.day} onPlay={() => { sfx.turn(); go(pick.day); }} />
-        <StreakBlock />
-        <MissionList status={missionStatus()} />
-        <Text variant="muted" style={{ fontSize: 12, lineHeight: 16 }}>{tr('Elles avancent dans tous les modes. Trois nouvelles chaque jour.')}</Text>
       </Card>
+      <DayCard day={pick.day} onPlay={() => { sfx.turn(); go(pick.day); }} />
+      <StreakBlock />
+      <MissionList status={missionStatus()} />
+      <Text variant="caption" style={{ marginHorizontal: space.xs }}>{tr('Elles avancent dans tous les modes. Trois nouvelles chaque jour.')}</Text>
     </Screen>
   );
 }

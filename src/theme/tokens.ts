@@ -38,12 +38,13 @@ export const lip = { card: 5, tile: 3 } as const;
 export const TOUCH = 44;
 
 // Type scale. lh = line height as a share of the size (Text keeps it when a style changes the size).
+// 1.25 is the floor for one-line titles: tighter, iOS clips the accent of an uppercase É.
 // display: screen titles. title: card titles, big numbers. headline: row and tile titles.
 // body: running text. muted: secondary lines. caption: small print. label: section labels.
 export const typeScale = {
-  display: { fontFamily: fonts.display, fontSize: 30, lh: 1.15, textTransform: 'uppercase', letterSpacing: 0.5, tone: 'text' },
-  title: { fontFamily: fonts.display, fontSize: 22, lh: 1.2, tone: 'text' },
-  headline: { fontFamily: fonts.display, fontSize: 18, lh: 1.22, tone: 'text' },
+  display: { fontFamily: fonts.display, fontSize: 30, lh: 1.25, textTransform: 'uppercase', letterSpacing: 0.5, tone: 'text' },
+  title: { fontFamily: fonts.display, fontSize: 22, lh: 1.25, tone: 'text' },
+  headline: { fontFamily: fonts.display, fontSize: 18, lh: 1.25, tone: 'text' },
   body: { fontFamily: fonts.bold, fontSize: 16, lh: 1.3, tone: 'text' },
   muted: { fontFamily: fonts.semibold, fontSize: 14, lh: 1.3, tone: 'muted' },
   caption: { fontFamily: fonts.semibold, fontSize: 12, lh: 1.3, tone: 'muted' },

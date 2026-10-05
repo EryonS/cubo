@@ -5,8 +5,10 @@ import { View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { MissionView } from '../core/meta';
 import { locale, tr } from '../core/i18n';
-import { radius, space } from '../theme/tokens';
+import { space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
+import { ListRow } from './ListRow';
+import { SectionLabel } from './SectionLabel';
 import { Text } from './Text';
 import { Coin } from './Wallet';
 
@@ -18,35 +20,30 @@ function Bar({ value }: { value: number }) {
   useEffect(() => { w.value = withTiming(value, { duration: 700, easing: Easing.bezier(0.2, 0.8, 0.2, 1) }); }, [value, w]);
   const style = useAnimatedStyle(() => ({ width: `${w.value * 100}%` }));
   return (
-    <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.sunken, overflow: 'hidden', marginTop: 6 }}>
+    <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.sunken, overflow: 'hidden', marginTop: space.s }}>
       <Animated.View style={[{ height: '100%', borderRadius: 4, backgroundColor: colors.accent }, style]} />
     </View>
   );
 }
 
-export function MissionList({ status }: { status: MissionView[] }) {
+// inset: inside a card or sheet (rows on panel2); else rows are small cards on the background.
+export function MissionList({ status, inset, label = true }: { status: MissionView[]; inset?: boolean; label?: boolean }) {
   const colors = useColors();
   const allDone = status.length > 0 && status.every((m) => m.done);
   return (
     <View style={{ gap: space.s }}>
-      <Text variant="muted" style={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 13 }}>
-        {allDone ? tr('Missions du jour · nouvelles demain') : tr('Missions du jour')}
-      </Text>
+      {label && <SectionLabel>{allDone ? tr('Missions du jour · nouvelles demain') : tr('Missions du jour')}</SectionLabel>}
       {status.map((m) => (
-        <View
-          key={m.id}
-          style={{ padding: 12, borderRadius: radius.card - 4, backgroundColor: colors.panel2, borderWidth: m.done ? 2 : 0, borderColor: colors.good }}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-            <Text style={{ flex: 1, fontSize: 14 }}>{m.text}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-              <Text style={{ fontSize: 14, color: m.done ? colors.good : colors.text }}>+{m.reward}</Text>
-              <Coin size={14} />
+        <ListRow key={m.id} inset={inset} done={m.done} title={m.text} label={`${m.text}, ${m.done ? tr('Terminée') : `${fmt(m.current)} / ${fmt(m.target)}`}`}
+          right={(
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, alignSelf: 'flex-start' }}>
+              <Text style={{ color: m.done ? colors.good : colors.text }}>+{m.reward}</Text>
+              <Coin size={15} />
             </View>
-          </View>
+          )}>
           {!m.done && <Bar value={m.current / m.target} />}
-          <Text variant="muted" style={{ fontSize: 12, marginTop: 5 }}>{m.done ? tr('Terminée') : `${fmt(m.current)} / ${fmt(m.target)}`}</Text>
-        </View>
+          <Text variant="caption" style={{ marginTop: space.xs }}>{m.done ? tr('Terminée') : `${fmt(m.current)} / ${fmt(m.target)}`}</Text>
+        </ListRow>
       ))}
     </View>
   );
