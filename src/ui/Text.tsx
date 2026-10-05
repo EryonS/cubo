@@ -1,19 +1,37 @@
-// Text in the game's font (Baloo 2): body = bold, title = extra bold.
-import { Text as RNText, type TextProps } from 'react-native';
+// Text in the game's font (Baloo 2) on the app's type scale (theme/tokens `type`).
+//
+// Baloo 2's line box is 1.6 em tall (ascent 1078, descent 524). When a style sets a tighter lineHeight,
+// iOS trims the line from the top, so the glyphs ride up out of their box (an 18 pt label in a 22 pt line
+// sits ~3 pt high). Every Text puts them back on center with a translate, which keeps the layout box as is.
+import { StyleSheet, Text as RNText, useWindowDimensions, type TextProps, type TextStyle } from 'react-native';
 import { useColors } from '../theme/useColors';
-import { fonts } from '../theme/fonts';
+import { typeScale as scale, type TypeVariant } from '../theme/tokens';
 
-type Props = TextProps & { variant?: 'body' | 'muted' | 'title' | 'big' };
+type Props = TextProps & { variant?: TypeVariant };
 
-const BASE = {
-  body: { fontFamily: fonts.bold, fontSize: 16 },
-  muted: { fontFamily: fonts.semibold, fontSize: 14 },
-  title: { fontFamily: fonts.display, fontSize: 24 },
-  big: { fontFamily: fonts.display, fontSize: 40 },
-} as const;
+const BALOO_BOX = 1.602;
+const CAP_NUDGE = 0.024; // caps and digits sit a hair above the line's center
+export const MAX_FONT_SCALE = 1.3; // Dynamic Type grows text up to here; past it the cards would break
 
-export function Text({ variant = 'body', style, ...rest }: Props) {
+export function centerShift(st: TextStyle, fontScale: number): number {
+  const fs = st.fontSize ?? 16;
+  const lh = st.lineHeight;
+  const family = st.fontFamily ?? '';
+  if (!lh || (family && !family.startsWith('Baloo'))) return 0;
+  const k = Math.min(fontScale, MAX_FONT_SCALE);
+  return Math.max(0, (fs * BALOO_BOX - lh) / 2 + fs * CAP_NUDGE) * k;
+}
+
+export function Text({ variant = 'body', style, maxFontSizeMultiplier = MAX_FONT_SCALE, ...rest }: Props) {
   const colors = useColors();
-  const color = variant === 'muted' ? colors.muted : variant === 'big' ? colors.accent : colors.text;
-  return <RNText {...rest} style={[BASE[variant], { color }, style]} />;
+  const { fontScale } = useWindowDimensions();
+  const { tone, lh, ...base } = scale[variant];
+  const color = tone === 'muted' ? colors.muted : tone === 'accent' ? colors.accent : colors.text;
+  const own = (StyleSheet.flatten(style) ?? {}) as TextStyle;
+  // A style that only changes the size keeps the variant's leading.
+  const lineHeight = own.lineHeight ?? Math.round((own.fontSize ?? base.fontSize) * lh);
+  const flat = { ...base, color, ...own, lineHeight } as TextStyle;
+  const dy = centerShift(flat, fontScale);
+  const transform = dy ? [...((flat.transform as object[] | undefined) ?? []), { translateY: dy }] : flat.transform;
+  return <RNText maxFontSizeMultiplier={maxFontSizeMultiplier} {...rest} style={[flat, transform ? { transform } as TextStyle : null]} />;
 }

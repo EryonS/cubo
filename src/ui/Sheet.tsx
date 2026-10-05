@@ -13,8 +13,8 @@ export const Sheet = forwardRef<BottomSheetModal, Props>(function Sheet({ childr
   const insets = useSafeAreaInsets();
   const colors = useColors();
   const backdrop = useCallback((p: BottomSheetBackdropProps) => (
-    <BottomSheetBackdrop {...p} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.45} pressBehavior="close" style={[p.style, { backgroundColor: '#4a3a66' }]} />
-  ), []);
+    <BottomSheetBackdrop {...p} appearsOnIndex={0} disappearsOnIndex={-1} opacity={1} pressBehavior="close" style={[p.style, { backgroundColor: colors.scrim }]} />
+  ), [colors.scrim]);
   return (
     <BottomSheetModal
       ref={ref}

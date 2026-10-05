@@ -1,40 +1,55 @@
-// Toy button: primary (violet) or ghost (pale), pill shaped, with the thick bottom edge.
-import { Pressable, type PressableProps } from 'react-native';
-import { radius, space } from '../theme/tokens';
+// Toy button, pill shaped, with the thick bottom lip. primary: accent (the one main action of a view).
+// secondary: a panel (Équiper, a second choice next to a primary). ghost: panel2, inside a card or sheet.
+// danger: destructive confirm. size s for buttons inside a card or row.
+import type { ReactNode } from 'react';
+import { Pressable, View, type PressableProps } from 'react-native';
+import { lip as lipW, radius, space, TOUCH } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
 import { Text } from './Text';
 
-// The thick lip under a primary button: a darker step of the theme accent (legacy toy used #5b3fd9).
-function lip(hex: string) {
+// The lip under a filled button: a darker step of its color (legacy toy used #5b3fd9 under #7c5cff).
+export function darker(hex: string, by = 48) {
   const n = Number.parseInt(hex.slice(1), 16);
-  const ch = (shift: number) => Math.max(0, Math.min(255, ((n >> shift) & 255) - 48));
+  const ch = (shift: number) => Math.max(0, Math.min(255, ((n >> shift) & 255) - by));
   return `#${[ch(16), ch(8), ch(0)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
-type Props = PressableProps & { label: string; sub?: string; kind?: 'primary' | 'ghost' | 'danger' };
+type Kind = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Props = PressableProps & { label: string; sub?: string; kind?: Kind; size?: 'm' | 's'; icon?: ReactNode };
 
-export function Button({ label, sub, kind = 'primary', style, ...rest }: Props) {
+export function Button({ label, sub, kind = 'primary', size = 'm', icon, style, disabled, ...rest }: Props) {
   const colors = useColors();
-  const primary = kind !== 'ghost';
-  const danger = kind === 'danger';
+  const fill = { primary: colors.accent, secondary: colors.panel, ghost: colors.panel2, danger: colors.dangerBtn }[kind];
+  const ink = kind === 'primary' ? colors.onAccent : kind === 'danger' ? '#ffffff' : colors.text;
+  const edge = kind === 'primary' || kind === 'danger' ? darker(fill) : colors.edge;
+  const small = size === 's';
+  const lip = small ? lipW.tile : lipW.card - 1;
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={sub ? `${label}, ${sub}` : label}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
       {...rest}
       style={(s) => [{
-        backgroundColor: danger ? colors.dangerBtn : primary ? colors.accent : colors.panel2,
+        backgroundColor: fill,
         borderRadius: radius.pill,
-        paddingVertical: space.m,
-        paddingHorizontal: space.xl,
+        minHeight: small ? 40 : TOUCH + space.s,
+        paddingHorizontal: small ? space.l : space.xl,
+        paddingVertical: small ? space.xs : space.s,
         alignItems: 'center',
         justifyContent: 'center',
-        borderBottomWidth: 4,
-        borderBottomColor: danger ? '#b8353a' : primary ? lip(colors.accent) : colors.edge,
-        transform: [{ translateY: s.pressed ? 2 : 0 }],
+        borderBottomWidth: s.pressed ? lip - 2 : lip,
+        borderBottomColor: edge,
+        marginTop: s.pressed ? 2 : 0,
+        opacity: disabled ? 0.5 : 1,
       }, typeof style === 'function' ? style(s) : style]}
     >
-      <Text variant="title" style={{ fontSize: 20, color: primary ? colors.onAccent : colors.text }}>{label}</Text>
-      {sub ? <Text variant="muted" style={{ color: primary ? colors.onAccent : colors.muted, opacity: 0.85 }}>{sub}</Text> : null}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
+        {icon}
+        <Text variant={small ? 'headline' : 'title'} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ color: ink }}>{label}</Text>
+      </View>
+      {sub ? <Text variant="caption" numberOfLines={1} style={{ color: ink, opacity: 0.85 }}>{sub}</Text> : null}
     </Pressable>
   );
 }
