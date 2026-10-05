@@ -6,13 +6,15 @@ import { L } from '../core';
 import { tr } from '../core/i18n';
 import { BONUS_TYPES, BONUS_UI, COIN_UI } from '../game/bonus-ui';
 import { useGame } from '../state/store';
-import { colors, space } from '../theme/tokens';
+import { space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { IconCanvas } from './IconCanvas';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
 import { Text } from './Text';
 
 function Content({ onClose }: { onClose: () => void }) {
+  const colors = useColors();
   const upgrades = useGame((s) => s.saved.state.upgrades);
   const lv = (type: (typeof BONUS_TYPES)[number]) => Math.min(L.UPGRADE_MAX, Math.max(1, (upgrades && upgrades[type]) || 1));
   const rows = [

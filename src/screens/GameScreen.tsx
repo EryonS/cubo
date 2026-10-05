@@ -13,20 +13,24 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, useAnimatedStyle, useDerivedValue, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { CommonActions, useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { L, M } from '../core';
 import { locale, tr } from '../core/i18n';
 import { useGame } from '../state/store';
 import { today } from '../state/persist';
+import { setRunOpen } from '../game/hub';
 import { triesAfter } from '../game/daily';
 import { ambientGap, anim, animating, TRASH_ARM_MS, type DragState } from '../game/anim';
 import { cuboHit, cuboSpot } from '../mascot/state';
 import { dragGeometry, easeOut, LIFT_MS } from '../game/drag';
+import { dismissTip, hideTips, pumpTips } from '../game/tips';
+import { endTutorial } from '../game/tutorial';
+import { tutActive, tutor, useTut } from '../game/tut-state';
 import { hasInventory, trashView, undoView } from '../game/hud';
 import { freeTray, hintDisabled, liftOrigin, spotAt } from '../game/puzzle';
 import {
-  bestOf, commit, discardPiece, enterRun, fireBonus, giveUpRun, hintPuzzle, liftPuzzlePiece, startPuzzle, startSurprise, liveRun, persistRun, quitRun, restartRun, rotateTray, restartCurrent,
+  bestOf, commit, discardPiece, enterRun, newRun, fireBonus, giveUpRun, hintPuzzle, liftPuzzlePiece, startPuzzle, startSurprise, liveRun, persistRun, quitRun, restartRun, rotateTray, restartCurrent,
   setAiming, setEndHandler, stepFlyers, syncBudget, tapCubo, tickRun, undoMove, useRunHud, type RunEnd,
 } from '../game/run';
 import { boardCellAt, computeLayout, invAt, miniCell, overTrash, slotAt, HUD_BTN, type Layout } from '../render/layout';
@@ -38,11 +42,13 @@ import {
 import { drawIcon } from '../render/icons';
 import { useBaloo, usePixel } from '../render/font';
 import { Ctx } from '../render/ctx2d';
+import { drawTutorialCells, drawTutorialHand } from '../render/tutorial';
 import { themeFor, worldOf } from '../render/board-themes';
 import { sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
 import type { RootParams } from '../navigation/types';
-import { colors, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { fonts } from '../theme/fonts';
 import { ask, asking } from '../ui/dialog';
 import { Icon } from '../ui/Icon';
@@ -50,6 +56,8 @@ import { LegendSheet } from '../ui/LegendSheet';
 import { MissionsSheet } from '../ui/MissionsSheet';
 import { PauseSheet } from '../ui/PauseSheet';
 import { Text } from '../ui/Text';
+import { TipBubble } from '../ui/TipBubble';
+import { TutorialOverlay } from '../ui/TutorialOverlay';
 import { Coin } from '../ui/Wallet';
 import { GameOver } from './GameOver';
 import { LevelEndCard, useLevelEnd } from './LevelEnd';
@@ -75,6 +83,7 @@ type Gest = { kind: 'piece' | 'bomb' | 'aimtap' | 'inv'; id?: string; sx: number
 
 // A HUD button in the top row (legacy .hud-btn).
 function HudBtn({ right, label, onPress, disabled, children }: { right: number; label: string; onPress: () => void; disabled?: boolean; children: React.ReactNode }) {
+  const colors = useColors();
   const insets = useSafeAreaInsets();
   return (
     <Pressable
@@ -86,10 +95,11 @@ function HudBtn({ right, label, onPress, disabled, children }: { right: number; 
     </Pressable>
   );
 }
-function Badge({ children, color = colors.accent }: { children: React.ReactNode; color?: string }) {
+function Badge({ children, color }: { children: React.ReactNode; color?: string }) {
+  const colors = useColors();
   return (
     <View pointerEvents="none" style={{ position: 'absolute', top: -6, right: -8, width: 120, alignItems: 'flex-end' }}>
-      <View style={{ minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 6, backgroundColor: color, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 2 }}>
+      <View style={{ minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 6, backgroundColor: color ?? colors.accent, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 2 }}>
         {children}
       </View>
     </View>
@@ -97,6 +107,7 @@ function Badge({ children, color = colors.accent }: { children: React.ReactNode;
 }
 
 export function GameScreen() {
+  const colors = useColors();
   const nav = useNavigation<NativeStackNavigationProp<RootParams>>();
   const insets = useSafeAreaInsets();
   const typeface = useBaloo();
@@ -107,6 +118,10 @@ export function GameScreen() {
   useEffect(() => { setEndHandler(setEnd); return () => setEndHandler(null); }, []);
   const [levelCard, setLevelCard] = useLevelEnd();
   const [puzzleCard, setPuzzleCard] = usePuzzleEnd();
+  // A result card covers the game: tips wait (read by the frame loop).
+  const cards = useRef(false);
+  cards.current = !!(end || levelCard || puzzleCard);
+  const tutOn = useTut((s) => s.tut !== null);
 
   const skin = useGame((s) => s.profile.equipped.blocks);
   const patterns = useGame((s) => s.saved.settings.patterns);
@@ -182,8 +197,9 @@ export function GameScreen() {
       if (over && !tz.armed && t - tz.since >= TRASH_ARM_MS && !trashView(st, useGame.getState().profile.coins).broke) { tz.armed = true; haptic('arm'); }
     }
     // Timers: every frame while something moves, else 30 times a second.
+    const tut = tutor();
     const busy = !!d || !!aim || animating(t);
-    if (!blocked() && (busy || acc.current >= 33)) {
+    if (!blocked() && !tut && (busy || acc.current >= 33)) {
       syncBudget(t);
       tickRun(acc.current, t);
       acc.current = 0;
@@ -195,7 +211,9 @@ export function GameScreen() {
       decorPicture.value = record(lay, null, (g) => animate(new Ctx(g), lay.W, lay.H, t));
     }
     st = useGame.getState().saved.state;
-    if (!dirty.current && st === lastDrawn.current && !d && !aim && !animating(t)) {
+    pumpTips(blocked() || cards.current, st.over);
+    // The tutorial's glow and hand move all the time.
+    if (!dirty.current && st === lastDrawn.current && !d && !aim && !animating(t) && !(tut && !tut.ending)) {
       // Only decoration waves (pennant, combo glow, clock, Cubo breathing): half rate or less, and idle again once they are gone.
       const gap = ambientGap(st);
       if (!gap || t - lastDraw.current < gap) return;
@@ -217,6 +235,7 @@ export function GameScreen() {
       g.translate(fx.cx, fx.cy); g.scale(fx.zoom); g.translate(-fx.cx, -fx.cy);
       drawBoard(g, th, lay, st, ghostOf(lay, st, d, t), t);
       drawComboGlow(g, th, lay, st, t);
+      if (tut) drawTutorialCells(g, th, lay, st, tut, t);
       drawFades(g, th, lay, t);
       drawSweeps(g, lay, t);
       drawAim(g, th, lay, st, t);
@@ -233,6 +252,7 @@ export function GameScreen() {
       drawFloaters(g, th, lay, t);
       drawFlyers(g, lay, t);
       drawBanner(g, th, lay, t);
+      if (tut) drawTutorialHand(g, th, lay, st, tut, d, t);
     }, pixel);
   }, [lay, typeface, pixel, th, mascot, wear, runPicture, dragX, dragY]);
 
@@ -248,6 +268,7 @@ export function GameScreen() {
     const sub = AppState.addEventListener('change', (s) => {
       if (s === 'active') return;
       persistRun();
+      if (tutActive()) return;
       const st = useGame.getState().saved.state;
       if (!st.over && (st.moves > 0 || st.clock > 0) && open.current.size === 0 && !asking()) pauseRef.current?.present();
     });
@@ -258,12 +279,13 @@ export function GameScreen() {
   // loop below, which restarts whenever frame changes (layout, font loaded): re-entering the run
   // there would reset the record the score band compares against.
   useFocusEffect(useCallback(() => {
+    setRunOpen(true);
     const { state, prefs } = useGame.getState().saved;
     if (state.over) restartRun(prefs);
     else enterRun();
     dirty.current = true;
     if (reopenPause.current) { reopenPause.current = false; setTimeout(() => pauseRef.current?.present(), 250); }
-    return () => { persistRun(); };
+    return () => { setRunOpen(false); persistRun(); hideTips(); };
   }, []));
   useFocusEffect(useCallback(() => {
     dirty.current = true;
@@ -278,6 +300,7 @@ export function GameScreen() {
   // ---------- touch: pieces, bomb, inventory buttons ----------
   const onDown = useCallback((x: number, y: number) => {
     if (!lay || gest.current) return;
+    dismissTip();
     const state = useGame.getState().saved.state;
     // Tap-aim mode: the next touch picks the cell, or cancels off the board.
     if (anim.aiming && !anim.aiming.drag) {
@@ -285,9 +308,9 @@ export function GameScreen() {
       gest.current = { kind: 'aimtap', sx: x, sy: y };
       return;
     }
-    if (mascot && !drag.current && cuboHit(x, y, cuboSpot(lay, state))) { tapCubo(lay, th.id); dirty.current = true; return; }
+    if (mascot && !tutActive() && !drag.current && cuboHit(x, y, cuboSpot(lay, state))) { tapCubo(lay, th.id); dirty.current = true; return; }
     if (state.over) return;
-    if (hasInventory(state)) {
+    if (hasInventory(state) && !tutActive()) {
       const id = invAt(lay, x, y);
       if (id) {
         if (id === 'bomb') {
@@ -331,7 +354,7 @@ export function GameScreen() {
     gest.current = { kind: 'piece', sx: x, sy: y };
     offX.value = 0;
     offY.value = 0;
-    if (state.mode !== 'puzzle') anim.trash = { over: false, since: 0, armed: false };
+    if (state.mode !== 'puzzle' && !tutActive()) anim.trash = { over: false, since: 0, armed: false };
     if (!L.canTurn(state)) sfx.pick();
     haptic('pick');
     dragPicture.value = record(lay, typeface, (g) => drawPiece(g, th, piece, 0, 0, lay.cell));
@@ -474,6 +497,14 @@ export function GameScreen() {
     else nav.replace('Adventure', p);
   };
 
+  // Back to the event screen, optionally opening the next level's sheet.
+  const toEvent = (id: string, level?: number) => {
+    persistRun();
+    setLevelCard(null);
+    if (nav.getState().routes.some((r) => r.name === 'Event')) nav.popTo('Event', { id, level });
+    else nav.replace('Event', { id, level });
+  };
+
   // Back to the Puzzles list (under the game when it was started from there). drop: the puzzle is abandoned without a result.
   const toPuzzles = (drop = false) => {
     if (drop) {
@@ -483,6 +514,14 @@ export function GameScreen() {
     setPuzzleCard(null);
     if (nav.getState().routes.some((r) => r.name === 'Puzzles')) nav.popTo('Puzzles');
     else nav.replace('Puzzles');
+  };
+  // End of the tutorial (skip or "Continuer"): the home menu over a fresh board, or the run that was going on.
+  const leaveTutorial = () => {
+    sfx.turn();
+    const prefs = useGame.getState().saved.prefs;
+    endTutorial(() => newRun(prefs));
+    dirty.current = true;
+    nav.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Tabs' }] }));
   };
   const onLayout = (e: LayoutChangeEvent) => setSize({ W: e.nativeEvent.layout.width, H: e.nativeEvent.layout.height });
   const top = insets.top + 12;
@@ -501,14 +540,15 @@ export function GameScreen() {
           </Canvas>
         </GestureDetector>
       )}
-      <Animated.View style={[{ position: 'absolute', top, left: space.l }, walletStyle]}>
+      {!tutOn && <Animated.View style={[{ position: 'absolute', top, left: space.l }, walletStyle]}>
         <Pressable accessibilityRole="button" accessibilityLabel={tr('Pièces : ouvrir la Boutique')} onPress={goShop}
           style={{ height: HUD_BTN, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, borderRadius: radius.card - 4, backgroundColor: colors.panel, borderBottomWidth: 3, borderBottomColor: colors.edge }}>
           <Coin size={18} />
           <Text style={{ fontFamily: fonts.display, fontSize: 21, lineHeight: 26 }}>{fmt(coins)}</Text>
           {pending > 0 && <Text style={{ color: colors.good, fontSize: 16 }}>+{pending}</Text>}
         </Pressable>
-      </Animated.View>
+      </Animated.View>}
+      {!tutOn && <>
       <HudBtn right={16} label={tr('Pause')} onPress={() => { sfx.turn(); setAiming(false); pauseRef.current?.present(); }}>
         <Icon name="pause" size={20} color={colors.text} />
       </HudBtn>
@@ -525,13 +565,14 @@ export function GameScreen() {
         <Icon name="target" size={20} color={colors.text} />
         {missionsDone > 0 && <Badge color={colors.good}><Text style={{ color: '#fff', fontSize: 13, lineHeight: 17 }}>{missionsDone}/3</Text></Badge>}
       </HudBtn>
-      {lay && stuck && !aiming && !puzzle && (
+      </>}
+      {lay && !tutOn && stuck && !aiming && !puzzle && (
         <Pressable accessibilityRole="button" onPress={() => { giveUpRun(); dirty.current = true; }}
           style={({ pressed }) => ({ position: 'absolute', left: lay.W / 2 - 110, width: 220, top: lay.ty + lay.trayH / 2 - 25, height: 50, borderRadius: radius.card, backgroundColor: colors.panel, borderBottomWidth: 4, borderBottomColor: colors.edge, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.96 : 1 }] })}>
           <Text variant="title" style={{ fontSize: 20, textTransform: 'uppercase' }}>{tr('Terminer la partie')}</Text>
         </Pressable>
       )}
-      {lay && puzzle && (
+      {lay && !tutOn && puzzle && (
         <Pressable
           accessibilityRole="button" accessibilityLabel={tr`Indice pour ${M.PUZZLE_HINT} pièces`} accessibilityState={{ disabled: hintOff }}
           onPress={() => { if (!lay || !hintPuzzle(lay)) nope(); dirty.current = true; }}
@@ -554,7 +595,8 @@ export function GameScreen() {
       <LegendSheet ref={legendRef} {...track('legend')} />
       {levelCard && (
         <LevelEndCard card={levelCard} lay={lay} onMap={(world) => toMap({ world })} onAgain={again} onRevived={() => { setLevelCard(null); dirty.current = true; }} onMenu={() => { setLevelCard(null); leave(); }}
-          onNext={([world, level]) => toMap(level === 1 && world !== levelCard.end.stage.world ? { world } : { world, level })} />
+          onNext={([world, level]) => toMap(level === 1 && world !== levelCard.end.stage.world ? { world } : { world, level })}
+          onEvent={toEvent} />
       )}
       {puzzleCard && (
         <PuzzleEndCard card={puzzleCard} onList={() => toPuzzles()}
@@ -562,6 +604,8 @@ export function GameScreen() {
           onAgain={() => { setPuzzleCard(null); restartCurrent(); dirty.current = true; }}
           onNext={(n) => { setPuzzleCard(null); startPuzzle(n); dirty.current = true; }} />
       )}
+      {lay && <TipBubble lay={lay} safeTop={insets.top} />}
+      <TutorialOverlay onEnd={leaveTutorial} />
       {end && <GameOver end={end} onAgain={again} onMenu={() => { setEnd(null); leave(); }} />}
     </View>
   );

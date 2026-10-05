@@ -1,17 +1,19 @@
 // End of a free run (legacy screens/gameover.js showGameOver): title, score, record, run summary, coin lines
 // one by one while the wallet counts up, next goal, today's missions, Rejouer / Menu.
-// Cubo's pose over the title (star on a record, happy past half of it, oops below). Not yet: the rewarded "double coins" button (milestone 9, see DoubleCoinsAd).
+// Cubo's pose over the title (star on a record, happy past half of it, oops below). A rewarded ad doubles the run's coins once.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Share, View, Pressable } from 'react-native';
 import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { M } from '../core';
 import { locale, tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
+import { showRewarded } from '../platform/ads';
 import { runSummary } from '../game/summary';
 import { modeLabel } from '../game/modes';
 import type { RunEnd } from '../game/run';
 import { useGame } from '../state/store';
-import { colors, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { cuboLookFor } from '../mascot/looks';
 import { Button } from '../ui/Button';
 import { CuboPose } from '../ui/CuboPose';
@@ -23,12 +25,45 @@ const fmt = (n: number) => n.toLocaleString(locale());
 
 const TITLES = { over: () => tr('Plus de place !'), time: () => tr('Temps écoulé !'), quit: () => tr('Partie terminée') };
 
-// Hook for milestone 9: the rewarded "Regarder une pub · +N" button that doubles the run's coins.
-function DoubleCoinsAd(_props: { total: number; visible: boolean }) {
-  return null;
+// Rewarded ad: doubles this run's coins once (legacy #over-ad).
+function DoubleCoinsAd({ total, visible, onDoubled }: { total: number; visible: boolean; onDoubled: (n: number) => void }) {
+  const colors = useColors();
+  const [busy, setBusy] = useState(false);
+  const [got, setGot] = useState(false);
+  if (!visible) return null;
+  if (got) {
+    return (
+      <View style={{ alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 2 }}>
+        <Text variant="muted" style={{ fontSize: 14 }}>{tr('Bonus pub')}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <Text style={{ fontSize: 14 }}>+{total}</Text>
+          <Coin size={14} />
+        </View>
+      </View>
+    );
+  }
+  const press = async () => {
+    if (busy) return;
+    setBusy(true);
+    const ok = await showRewarded();
+    if (!ok) { setBusy(false); return; }
+    const { profile, setProfile } = useGame.getState();
+    setProfile(M.doubleRun(profile, { total }));
+    sfx.buy();
+    setGot(true);
+    onDoubled(total);
+  };
+  return (
+    <Pressable accessibilityRole="button" disabled={busy} onPress={() => { void press(); }}
+      style={{ alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 10, paddingVertical: 11, paddingHorizontal: 14, borderRadius: radius.card - 6, backgroundColor: colors.panel2, opacity: busy ? 0.45 : 1 }}>
+      <Text style={{ fontSize: 15, flex: 1 }}>{tr`Regarder une pub · +${fmt(total)}`}</Text>
+      <Text variant="title" style={{ fontSize: 17, lineHeight: 22 }}>{tr('Pub')}</Text>
+    </Pressable>
+  );
 }
 
 function Goal({ coins, delay }: { coins: number; delay: number }) {
+  const colors = useColors();
   const goal = useMemo(() => M.nextGoal(useGame.getState().profile), []);
   const [filled, setFilled] = useState(false);
   useEffect(() => { const id = setTimeout(() => setFilled(true), delay); return () => clearTimeout(id); }, [delay]);
@@ -50,6 +85,7 @@ function Goal({ coins, delay }: { coins: number; delay: number }) {
 }
 
 function MissionsLine() {
+  const colors = useColors();
   const profile = useGame((s) => s.profile);
   const status = M.missionStatus(profile, {});
   const done = status.filter((m) => m.done).length;
@@ -64,6 +100,7 @@ function MissionsLine() {
 }
 
 export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () => void; onMenu: () => void }) {
+  const colors = useColors();
   const profile = useGame((s) => s.profile);
   const mascot = useGame((s) => s.saved.settings.mascot);
   const look = useMemo(() => cuboLookFor('toy', profile.equipped.cubo), [profile.equipped.cubo]);
@@ -150,9 +187,13 @@ export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () =>
                 <Text variant="title" style={{ fontSize: 26, lineHeight: 30 }}>{fmt(shown)}</Text>
               </View>
             </View>
-            <DoubleCoinsAd total={end.total} visible={end.total > 0} />
+            <DoubleCoinsAd total={end.total} visible={end.total > 0} onDoubled={(n) => {
+              const from = shown;
+              const steps = Math.min(12, n);
+              for (let i = 1; i <= steps; i++) timers.current.push(setTimeout(() => setShown(Math.round(from + (n * i) / steps)), i * 28));
+            }} />
             <View style={{ alignSelf: 'stretch', marginTop: 10 }}>
-              <Goal coins={profile.coins} delay={linesDone} />
+              <Goal key={profile.coins} coins={profile.coins} delay={linesDone} />
             </View>
             <View style={{ alignSelf: 'stretch', marginTop: 8 }}><MissionsLine /></View>
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 16, alignSelf: 'stretch' }}>

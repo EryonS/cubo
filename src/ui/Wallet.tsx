@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { locale, tr } from '../core/i18n';
 import { colors, radius, space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { Text } from './Text';
 
 export function Coin({ size = 18 }: { size?: number }) {
@@ -15,6 +16,7 @@ export function Coin({ size = 18 }: { size?: number }) {
 }
 
 export function Wallet({ coins }: { coins: number }) {
+  const colors = useColors();
   return (
     <View
       accessibilityLabel={tr`${coins} pièces`}

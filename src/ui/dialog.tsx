@@ -6,7 +6,8 @@ import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { create } from 'zustand';
 import { tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
-import { colors, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { Button } from './Button';
 import { Text } from './Text';
 
@@ -33,6 +34,7 @@ export const asking = () => useAsk.getState().opts !== null;
 export const useAsking = () => useAsk((s) => s.opts !== null);
 
 export function AskHost() {
+  const colors = useColors();
   const opts = useAsk((s) => s.opts);
   if (!opts) return null;
   const done = (v: boolean) => useAsk.getState().done?.(v);

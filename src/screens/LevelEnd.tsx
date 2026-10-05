@@ -9,6 +9,7 @@ import { M, LV, WD } from '../core';
 import { locale, tr } from '../core/i18n';
 import type { Earned } from '../core/meta';
 import { sfx } from '../audio/engine';
+import { eventLevelName, hatName, settleEvent, type EventPay } from '../game/events';
 import { freshFlags, levelMood, nextLevelOf, settleLevel, type LevelReport } from '../game/levelend';
 import { shareText, dailyWord } from '../game/daily';
 import { buyExtraMoves, setLevelEndHandler, startId, type LevelEnd } from '../game/run';
@@ -16,6 +17,7 @@ import { cuboLookFor } from '../mascot/looks';
 import { haptic } from '../platform/haptics';
 import type { Layout } from '../render/layout';
 import { today } from '../state/persist';
+import { fonts } from '../theme/fonts';
 import { levelName } from '../state/progress';
 import { useGame } from '../state/store';
 import { radius, space } from '../theme/tokens';
@@ -30,7 +32,7 @@ import { DailyRefill } from '../ui/DailyRefill';
 
 const fmt = (n: number) => n.toLocaleString(locale());
 
-export interface LevelCardData { end: LevelEnd; report: LevelReport | null; lines: Earned[]; total: number }
+export interface LevelCardData { end: LevelEnd; report: LevelReport | null; eventPay: EventPay | null; lines: Earned[]; total: number }
 
 // Registers the handler while the game screen is mounted; returns the card to show.
 export function useLevelEnd(): [LevelCardData | null, (c: LevelCardData | null) => void] {
@@ -43,10 +45,17 @@ export function useLevelEnd(): [LevelCardData | null, (c: LevelCardData | null) 
       const key = `${stage.world}-${stage.n}-${end.state.seed}-${startId()}`;
       const res = settleLevel(profile, stage, key, flags.current, today());
       flags.current = res.flags;
+      if (stage.event) {
+        const paid = settleEvent(profile, { ...stage, won: end.won }, key, flags.current, today());
+        flags.current = paid.flags;
+        if (paid.profile !== profile) setProfile(paid.profile);
+        const lines = [...(end.run ? end.run.earned : []), ...(paid.pay ? paid.pay.earned : [])];
+        setCard({ end, report: null, eventPay: paid.pay, lines, total: lines.reduce((a, l) => a + l.coins, 0) });
+        return;
+      }
       if (res.profile !== profile) setProfile(res.profile);
-      if (stage.event) return; // season events settle on their own screen
       const lines = [...(end.run ? end.run.earned : []), ...(res.report ? res.report.earned : [])];
-      setCard({ end, report: res.report, lines, total: lines.reduce((a, l) => a + l.coins, 0) });
+      setCard({ end, report: res.report, eventPay: null, lines, total: lines.reduce((a, l) => a + l.coins, 0) });
     });
     return () => setLevelEndHandler(null);
   }, []);
@@ -72,21 +81,26 @@ interface Props {
   onNext: (to: [string, number]) => void;
   onRevived: () => void;
   onMenu: () => void; // daily: back to the Défis tab
+  onEvent: (id: string, level?: number) => void;
 }
 
-export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onMenu }: Props) {
+export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onMenu, onEvent }: Props) {
   const colors = useColors();
   const profile = useGame((s) => s.profile);
   const mascot = useGame((s) => s.saved.settings.mascot);
   const look = useMemo(() => cuboLookFor('toy', profile.equipped.cubo), [profile.equipped.cubo]);
-  const { end, report, lines, total } = card;
+  const { end, report, eventPay, lines, total } = card;
   const { stage, won, outOfMoves } = end;
   const { world: w, n } = stage;
+  const eventId = stage.event;
+  const ev = eventId ? M.eventById(eventId) : null;
   const [equipped, setEquipped] = useState(false);
-  const title = won
-    ? (n === M.LEVELS_PER_WORLD ? tr('Boss vaincu !') : n === M.TRIAL_LEVEL ? tr('Épreuve réussie !') : tr('Niveau réussi !'))
+  const [worn, setWorn] = useState(false);
+  const title = eventId && won ? (n === 10 ? tr('Boss vaincu !') : tr('Niveau réussi !'))
+    : won ? (n === M.LEVELS_PER_WORLD ? tr('Boss vaincu !') : n === M.TRIAL_LEVEL ? tr('Épreuve réussie !') : tr('Niveau réussi !'))
     : end.timeUp ? tr('Temps écoulé !') : end.quit ? tr('Niveau abandonné') : outOfMoves ? tr('Plus de coups !') : tr('Plus de place !');
-  const next = won ? nextLevelOf(profile, w, n) : null;
+  const next = !eventId && won ? nextLevelOf(profile, w, n) : null;
+  const eventNext = ev && won && n < ev.levels && M.eventActive(today(), ev.id) ? n + 1 : null;
   const moreCost = M.extraMovesCost(stage.extra || 0);
   const progress = Math.min(stage.goal.type === 'score' ? end.state.score : stage.progress, stage.goal.target);
 
@@ -100,6 +114,17 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
   const more = () => {
     if (!lay || !buyExtraMoves(lay)) { sfx.nope(); haptic('nope'); return; }
     onRevived();
+  };
+  const wear = () => {
+    if (!eventPay?.unlocked.length) return;
+    let p = useGame.getState().profile;
+    for (const u of eventPay.unlocked) {
+      const nextP = M.equip(p, u.kind as 'boards' | 'cubo', u.id);
+      if (nextP) p = nextP;
+    }
+    useGame.getState().setProfile(p);
+    sfx.buy();
+    setWorn(true);
   };
   const equip = () => {
     if (!report?.themeUnlocked) return;
@@ -132,7 +157,7 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
               </Animated.View>
             )}
             <Text variant="title" style={{ fontSize: 30, textTransform: 'uppercase', textAlign: 'center' }}>{title}</Text>
-            <Text variant="muted">{day ? `${dailyWord(day, today())} #${LV.dayNumber(day)} · ${WD.WORLDS[w].name}` : `${WD.WORLDS[w].name} · ${levelName(n)}`}</Text>
+            <Text variant="muted">{ev ? `${ev.name} · ${eventLevelName(n)}` : day ? `${dailyWord(day, today())} #${LV.dayNumber(day)} · ${WD.WORLDS[w].name}` : `${WD.WORLDS[w].name} · ${levelName(n)}`}</Text>
             <View style={{ marginVertical: 12 }}><StarRow n={stage.stars} size={44} gap={6} animate /></View>
             <Text variant="muted" style={{ textAlign: 'center' }}>{LV.goalText(stage.goal)} · {fmt(progress)} / {fmt(stage.goal.target)}</Text>
             {streak && (
@@ -144,6 +169,21 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
             {report?.unlocked && (
               <View style={{ alignSelf: 'stretch', marginTop: 10, padding: 10, paddingHorizontal: 12, borderRadius: radius.card - 6, borderWidth: 2, borderColor: colors.good }}>
                 <Text style={{ color: colors.good, fontFamily: 'Baloo2-ExtraBold' }}>{tr('Skin de blocs « Or » débloqué ! Équipe-le dans la Boutique, onglet Blocs.')}</Text>
+              </View>
+            )}
+            {ev && eventPay?.unlocked.map((u) => (
+              <View key={u.kind + u.id} style={{ alignSelf: 'stretch', marginTop: 10, padding: 10, paddingHorizontal: 12, borderRadius: radius.card - 6, borderWidth: 2, borderColor: colors.good }}>
+                <Text style={{ color: colors.good, fontFamily: fonts.display }}>{u.kind === 'boards' ? tr`Thème « ${ev.name} » débloqué !` : tr`${hatName(ev.hat)} pour Cubo !`}</Text>
+              </View>
+            ))}
+            {ev && !!eventPay?.unlocked.length && (
+              <Opt label={tr('Les mettre maintenant')} disabled={worn} onPress={wear}>
+                <Text variant="title" style={{ fontSize: 17, lineHeight: 22 }}>{worn ? tr('Équipé') : tr('Équiper')}</Text>
+              </Opt>
+            )}
+            {ev && eventPay?.trophy && (
+              <View style={{ alignSelf: 'stretch', marginTop: 10, padding: 10, paddingHorizontal: 12, borderRadius: radius.card - 6, borderWidth: 2, borderColor: colors.good }}>
+                <Text style={{ color: colors.good, fontFamily: fonts.display }}>{eventPay.trophy === 'gold' ? tr`Trophée ${ev.name} ${M.eventYear(stage.eventDay || today())} en or !` : tr`Trophée ${ev.name} ${M.eventYear(stage.eventDay || today())} en argent !`}</Text>
               </View>
             )}
             {report?.themeUnlocked && (
@@ -187,7 +227,13 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
               </Pressable>
             )}
           </ScrollView>
-          {day ? (
+          {eventId && ev ? (
+            <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: space.xl, paddingTop: space.m, paddingBottom: space.xl, backgroundColor: colors.panel }}>
+              <Button kind="ghost" label={tr('Événement')} onPress={() => onEvent(ev.id)} style={{ flex: 1, paddingHorizontal: 4 }} />
+              {!three && <Button kind={eventNext ? 'ghost' : 'primary'} label={won ? tr('Rejouer') : tr('Réessayer')} onPress={onAgain} style={{ flex: 1, paddingHorizontal: 4 }} />}
+              {eventNext != null && <Button label={tr('Suivant')} onPress={() => onEvent(ev.id, eventNext)} style={{ flex: 1, paddingHorizontal: 4 }} />}
+            </View>
+          ) : day ? (
             <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: space.xl, paddingTop: space.m, paddingBottom: space.xl, backgroundColor: colors.panel }}>
               <Button kind="ghost" label={tr('Menu')} onPress={onMenu} style={{ flex: 1, paddingHorizontal: 4 }} />
               {left > 0 && !three && <Button label={`${won ? tr('Rejouer') : tr('Réessayer')}${Number.isFinite(left) ? ` (${left})` : ''}`} onPress={onAgain} style={{ flex: 1.4, paddingHorizontal: 4 }} />}

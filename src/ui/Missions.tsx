@@ -5,13 +5,15 @@ import { View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { MissionView } from '../core/meta';
 import { locale, tr } from '../core/i18n';
-import { colors, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { Text } from './Text';
 import { Coin } from './Wallet';
 
 const fmt = (n: number) => n.toLocaleString(locale());
 
 function Bar({ value }: { value: number }) {
+  const colors = useColors();
   const w = useSharedValue(0);
   useEffect(() => { w.value = withTiming(value, { duration: 700, easing: Easing.bezier(0.2, 0.8, 0.2, 1) }); }, [value, w]);
   const style = useAnimatedStyle(() => ({ width: `${w.value * 100}%` }));
@@ -23,6 +25,7 @@ function Bar({ value }: { value: number }) {
 }
 
 export function MissionList({ status }: { status: MissionView[] }) {
+  const colors = useColors();
   const allDone = status.length > 0 && status.every((m) => m.done);
   return (
     <View style={{ gap: space.s }}>
@@ -51,6 +54,7 @@ export function MissionList({ status }: { status: MissionView[] }) {
 
 // One small bar per mission, filled by its progress (home) or just lit when done (game over).
 export function Pips({ status, progress = true }: { status: MissionView[]; progress?: boolean }) {
+  const colors = useColors();
   return (
     <View style={{ flexDirection: 'row', gap: 4 }}>
       {status.map((m) => (

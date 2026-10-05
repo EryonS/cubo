@@ -10,7 +10,6 @@ import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import { radius } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
-import { notice } from './dialog';
 import { Text } from './Text';
 import { Coin } from './Wallet';
 
@@ -39,9 +38,10 @@ export function DailyRefill({ day, plain }: { day: string; plain?: boolean }) {
   };
   const ad = async () => {
     const ok = await showRewarded();
+    if (!ok) return; // no ad, or closed early: the ad layer says so when none could be shown
     const { profile: p, setProfile } = useGame.getState();
-    const next = ok && M.adDailyRefill(p, day, t);
-    if (!next) { notice(tr('Pub indisponible'), tr('Pas de pub disponible pour le moment. Réessaie plus tard.')); return; }
+    const next = M.adDailyRefill(p, day, t);
+    if (!next) return;
     setProfile(next);
     sfx.buy();
   };

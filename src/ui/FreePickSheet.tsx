@@ -6,7 +6,8 @@ import { tr } from '../core/i18n';
 import { FREE_LEVELS, FREE_MODES, LEVEL_NAMES, levelInfo, MODE_NAMES, modeNote, modeSub, richRuns } from '../game/modes';
 import { sfx } from '../audio/engine';
 import { useGame } from '../state/store';
-import { colors, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { Button } from './Button';
 import { Icon } from './Icon';
 import { KindIcon } from './KindIcon';
@@ -18,6 +19,7 @@ function Label({ children }: { children: string }) {
 }
 
 function Content({ onClose, onPlay, parked }: { onClose: () => void; onPlay: () => void; parked: boolean }) {
+  const colors = useColors();
   const prefs = useGame((s) => s.saved.prefs);
   const board = useGame((s) => s.profile.equipped.boards);
   const pick = (next: Partial<typeof prefs>) => {

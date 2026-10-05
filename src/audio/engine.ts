@@ -188,13 +188,21 @@ export function pickSong(id: string) {
   step = 0;
 }
 
+let adHold = false;
+
+// A rewarded ad is playing: the game's sound stays quiet until it closes (legacy ads onShow).
+export function holdAudio(held: boolean) {
+  adHold = held;
+  syncAudio();
+}
+
 // Brings the sound in line with the settings and the app state: music while the app is in front
-// and Musique is on; the whole context asleep in the background.
+// and Musique is on; the whole context asleep in the background or under an ad.
 export function syncAudio() {
   active = AppState.currentState === 'active';
   const c = context();
   if (!c) return;
-  if (!active) {
+  if (!active || adHold) {
     stopMusic();
     c.suspend().catch(() => {});
     return;

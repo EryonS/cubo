@@ -3,7 +3,7 @@
 // (Legacy game/flow.js, game/drag.js discard / rotate, game/undo.js, screens/gameover.js newGame /
 // restartRun / settleRun / dropParked / resumeParked.)
 import { create } from 'zustand';
-import { L, LV, M, PZ, WD } from '../core';
+import { L, LV, M, PZ, T, WD } from '../core';
 import type { Collected, MoveEvents } from '../core/logic';
 import type { Earned } from '../core/meta';
 import type { BonusType, Level, Lifetime, Mode, PuzzleSetup, RunState, StageDef, Stats } from '../core/types';
@@ -28,6 +28,9 @@ import { levelName } from '../state/progress';
 import { dailyWord, triesAfter } from './daily';
 import { inProgress, isFree, keepsBest } from './modes';
 import { settlePuzzle } from './puzzle';
+import { collectTips, hideTips, modeTips, stuckTip } from './tips';
+import { tutActive, tutor } from './tut-state';
+import { tutorialMoved, tutorialNope } from './tutorial';
 
 export { inProgress };
 
@@ -148,7 +151,10 @@ function newGame(opts: StartOpts) {
   const { saved, setSaved } = useGame.getState();
   setSaved({ ...saved, state, startBest: keepsBest(state) ? bestOf(state) : 0 });
   enterRun();
+  modeTips(state);
 }
+// A fresh run without settling the one before (the tutorial's end).
+export const newRun = newGame;
 
 // Ends the current run (coins and missions count) and starts a new free one. A free run in
 // progress is parked instead when a level, a daily or a puzzle starts (later milestones).
@@ -345,6 +351,7 @@ export interface LevelEnd {
 
 // The run is over: coins and missions count, the record is kept.
 function endGame(t: number, lay?: Layout) {
+  hideTips();
   if (useGame.getState().saved.state.puzzle) { endPuzzle(t, lay); return; }
   anim.overAt = t;
   setAiming(false);
@@ -544,6 +551,8 @@ export function commit(lay: Layout, idx: number, row: number, col: number): Move
   const before = useGame.getState().saved.state;
   const res = L.place(before, idx, row, col);
   if (!res) return null;
+  // The tutorial only takes the move its step asks for; the piece flies back.
+  if (tutActive() && !T.accepts(tutor()!.step, res.events)) { tutorialNope(); return null; }
   const ev = res.events;
   const t = now();
   const calm = anim.calm;
@@ -588,6 +597,7 @@ export function commit(lay: Layout, idx: number, row: number, col: number): Move
     const banner = bannerFor({ lines: ev.lines, combo, perfect: ev.perfect }, tier);
     if (banner) anim.banners.push(banner);
     launchFlyers(lay, ev.collected || [], t, (b) => Math.hypot(b.r - pr, b.c - pc) * 28);
+    collectTips(ev.collected || []);
     anim.shake = calm ? 0 : shakeFor(ev.lines, combo);
     sfx.clear(ev.lines, combo);
     haptic('lines', ev.lines, combo);
@@ -602,6 +612,7 @@ export function commit(lay: Layout, idx: number, row: number, col: number): Move
   }
   if (res.state.stage || res.state.world || res.state.obstacles) stageEffects(lay, ev, t);
   if (res.state.stage) bossEffects(lay, ev, res.state, t);
+  if (tutActive()) { tutorialMoved(idx, res.state); return ev; }
   refilled(ev.refilled || [], t);
   setState(res.state);
   afterChange(lay, res.state, t, !!ev.over);
@@ -612,6 +623,7 @@ export function commit(lay: Layout, idx: number, row: number, col: number): Move
 function afterChange(lay: Layout, state: RunState, t: number, over: boolean) {
   announceRecord(lay, state, t);
   checkMissions();
+  stuckTip(state);
   if (over) endGame(t, lay);
 }
 

@@ -1,15 +1,21 @@
-// Réglages (legacy #settings): sounds, music, vibrations, color-blind marks, language.
-// Account, privacy and tutorial rows come with their milestones.
+// Réglages (legacy #settings): sounds, music, vibrations, color-blind marks, language,
+// the cloud account (hidden until Firebase is configured) and the ad-privacy row.
+import { useSyncExternalStore } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import { tr } from '../core/i18n';
 import { langPref, setLangPref, type LangPref } from '../i18n/lang';
 import { sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
+import { startTutorial } from '../game/tutorial';
+import { privacyRequired, showPrivacyOptions, subscribePrivacy } from '../platform/ads';
+import { available } from '../platform/cloud';
 import type { Settings } from '../state/persist';
 import { useGame } from '../state/store';
-import { colors, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
+import { AccountBlock } from '../ui/AccountBlock';
 import { Icon } from '../ui/Icon';
 import { Text } from '../ui/Text';
 
@@ -20,6 +26,7 @@ function Section({ children }: { children: string }) {
 }
 
 function Toggle({ on }: { on: boolean }) {
+  const colors = useColors();
   return (
     <View style={{ width: 50, height: 30, borderRadius: 15, backgroundColor: on ? colors.accent : colors.sunken, justifyContent: 'center' }}>
       <View style={{ position: 'absolute', top: 3, left: on ? 23 : 3, width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 2, shadowOffset: { width: 0, height: 2 } }} />
@@ -28,6 +35,7 @@ function Toggle({ on }: { on: boolean }) {
 }
 
 function Row({ id, label, sub }: { id: keyof Settings; label: string; sub: string }) {
+  const colors = useColors();
   const on = useGame((s) => s.saved.settings[id]);
   const flip = () => {
     const { saved, setSaved } = useGame.getState();
@@ -48,8 +56,11 @@ function Row({ id, label, sub }: { id: keyof Settings; label: string; sub: strin
 }
 
 export function SettingsScreen() {
+  const colors = useColors();
   const nav = useNavigation();
   const pref = langPref();
+  const privacy = useSyncExternalStore(subscribePrivacy, privacyRequired, privacyRequired);
+  const cloud = available();
   return (
     <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: space.l }}>
@@ -77,6 +88,25 @@ export function SettingsScreen() {
               </Pressable>
             ))}
           </View>
+          {cloud && <Section>{tr('Sauvegarde en ligne')}</Section>}
+          {cloud && <AccountBlock />}
+          {privacy && (
+            <Pressable accessibilityRole="button" onPress={() => { sfx.turn(); void showPrivacyOptions(); }}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: radius.card - 4, backgroundColor: colors.panel2, marginTop: space.s }}>
+              <Text style={{ fontSize: 16, flex: 1 }}>{tr('Confidentialité des pubs')}</Text>
+              <Icon name="chevRight" size={16} color={colors.accent} />
+            </Pressable>
+          )}
+          <Section>{tr('Aide')}</Section>
+          <Pressable accessibilityRole="button" accessibilityLabel={tr('Revoir le tutoriel')}
+            onPress={() => { sfx.turn(); startTutorial(); nav.dispatch(CommonActions.reset({ index: 1, routes: [{ name: 'Tabs' }, { name: 'Game' }] })); }}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: radius.card - 4, backgroundColor: colors.panel2, marginTop: space.s }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16 }}>{tr('Revoir le tutoriel')}</Text>
+              <Text variant="muted" style={{ fontSize: 12 }}>{tr('Une partie guidée en 3 étapes')}</Text>
+            </View>
+            <Icon name="chevRight" size={16} color={colors.accent} />
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>

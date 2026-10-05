@@ -5,13 +5,15 @@ import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { tr } from '../core/i18n';
 import { missionStatus } from '../game/run';
 import { useGame } from '../state/store';
-import { colors, space } from '../theme/tokens';
+import { space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { Icon } from './Icon';
 import { MissionList } from './Missions';
 import { Sheet } from './Sheet';
 import { Text } from './Text';
 
 function Content({ onClose }: { onClose: () => void }) {
+  const colors = useColors();
   useGame((s) => s.profile);
   useGame((s) => s.saved.state);
   return (

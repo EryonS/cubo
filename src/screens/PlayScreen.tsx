@@ -9,6 +9,7 @@ import { M, LV, WD } from '../core';
 import { locale, tr } from '../core/i18n';
 import { freeInProgress, guardFree, inProgress, LEVEL_NAMES, MODE_NAMES, modeLabel, modeSub } from '../game/modes';
 import { tileSub } from '../game/daily';
+import { eventRows } from '../game/events';
 import { puzzleInProgress, puzzleTileSub } from '../game/puzzle';
 import { missionStatus, restartRun, resumeParked } from '../game/run';
 import { cuboLookFor } from '../mascot/looks';
@@ -31,6 +32,7 @@ import { Card } from '../ui/Card';
 import { ask } from '../ui/dialog';
 import { FreePickSheet } from '../ui/FreePickSheet';
 import { Flame, Icon, Star } from '../ui/Icon';
+import { KindIcon } from '../ui/KindIcon';
 import { Pips } from '../ui/Missions';
 import { MissionsSheet } from '../ui/MissionsSheet';
 import { Screen } from '../ui/Screen';
@@ -105,7 +107,9 @@ export function PlayScreen() {
   const maxStars = M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3;
   const heroWorld = next ? next[0] : lastOpenWorld(profile);
   const preview = useMemo(() => boardTheme(heroWorld, profile.equipped.blocks), [heroWorld, profile.equipped.blocks]);
+  const run = useGame((s) => s.saved.state);
   const day = today();
+  const events = eventRows(profile, run, day);
   const daily = M.dailyOf(profile, day);
   const streak = M.streakNow(profile, day);
   const dailySub = useGame((s) => tileSub(s.profile, s.saved.state, day));
@@ -177,6 +181,18 @@ export function PlayScreen() {
             <Text style={{ fontSize: 13, color: playing ? colors.text : colors.onAccent }}>{tr('Carte')}</Text>
           </Pressable>
         </View>
+
+        {events.map((row) => (
+          <Tap key={row.id} label={row.name} onPress={() => { if (row.playing) nav.navigate('Game'); else nav.navigate('Event', { id: row.id }); }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: radius.card - 2, backgroundColor: colors.panel2 }}>
+            <KindIcon kind={row.icon} size={30} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16 }}>{row.name}</Text>
+              <Text variant="muted" style={{ fontSize: 13 }}>{row.sub}</Text>
+            </View>
+            <Icon name="chevRight" size={16} color={colors.accent} />
+          </Tap>
+        ))}
 
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <Tap onPress={() => nav.navigate('Defis')} style={[tile, daily.stars !== undefined && { borderWidth: 2, borderColor: colors.good }]}>

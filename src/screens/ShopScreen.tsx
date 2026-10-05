@@ -14,7 +14,8 @@ import { drawCuboPreview } from '../render/cubo-preview';
 import { drawPreview } from '../render/preview';
 import { today } from '../state/persist';
 import { useGame } from '../state/store';
-import { colors, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
 import { DrawCanvas } from '../ui/DrawCanvas';
 import { showStickers } from '../ui/StickerBanner';
 import { IconCanvas } from '../ui/IconCanvas';
@@ -34,6 +35,7 @@ function withStickers(next: ReturnType<typeof M.buy>) {
 }
 
 function Price({ price, off }: { price: number; off: boolean }) {
+  const colors = useColors();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
       <Coin size={16} />
@@ -43,6 +45,7 @@ function Price({ price, off }: { price: number; off: boolean }) {
 }
 
 function SkinCard({ kind, skin, width }: { kind: SkinKind; skin: ReturnType<typeof skinsOf>[number]; width: number }) {
+  const colors = useColors();
   const profile = useGame((s) => s.profile);
   const setProfile = useGame((s) => s.setProfile);
   const owned = profile.owned[kind].includes(skin.id);
@@ -89,6 +92,7 @@ function SkinCard({ kind, skin, width }: { kind: SkinKind; skin: ReturnType<type
 const skinsOf = (kind: SkinKind) => M.SKINS[kind];
 
 function Upgrades() {
+  const colors = useColors();
   const profile = useGame((s) => s.profile);
   const setProfile = useGame((s) => s.setProfile);
   return (
@@ -139,6 +143,7 @@ function Upgrades() {
 }
 
 export function ShopScreen() {
+  const colors = useColors();
   const coins = useGame((s) => s.profile.coins);
   const [tab, setTab] = useState<Tab>('boards');
   const { width: W } = useWindowDimensions();

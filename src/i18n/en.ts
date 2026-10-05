@@ -480,6 +480,9 @@ add('en', {
   'Événement de saison jusqu’au {} : {} niveaux, {}. Finis-les pour gagner le thème {}, {} pour Cubo et le trophée {}. Tout repart à zéro l’an prochain.': 'Seasonal event until {}: {} levels, {}. Finish them to win the {} theme, a {} for Cubo and the {} trophy. Everything resets next year.',
   'Thème {}': '{} theme',
   '<span class="got">Gagné</span>': '<span class="got">Won</span>',
+  'Gagné': 'Won',
+  'Les mettre maintenant': 'Use them now',
+  'Argent': 'Silver',
   'Trophée {}': '{} trophy',
   'Argent · or avec 30 étoiles': 'Silver · gold with 30 stars',
   'Or avec 30 étoiles': 'Gold with 30 stars',
@@ -496,6 +499,8 @@ add('en', {
   // ----- game over
   'Record : ': 'Best: ',
   'Regarder une pub · +{}{}': 'Watch an ad · +{}{}',
+  'Regarder une pub · +{}': 'Watch an ad · +{}',
+  'Bonus pub': 'Ad bonus',
   'Lignes': 'Lines',
   'Combo max': 'Best combo',
   'D’un coup': 'At once',

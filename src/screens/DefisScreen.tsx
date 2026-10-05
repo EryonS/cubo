@@ -122,7 +122,6 @@ export function DefisScreen() {
           onPick={(day) => { setPick(pickDay(day, t)); sfx.turn(); }} />
         <DayCard day={pick.day} onPlay={() => { sfx.turn(); go(pick.day); }} />
         <StreakBlock />
-        {/* Season event rows (milestone 7 part B) come here. */}
         <MissionList status={missionStatus()} />
         <Text variant="muted" style={{ fontSize: 12, lineHeight: 16 }}>{tr('Elles avancent dans tous les modes. Trois nouvelles chaque jour.')}</Text>
       </Card>

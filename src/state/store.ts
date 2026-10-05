@@ -3,6 +3,8 @@
 import { create } from 'zustand';
 import { mmkv } from '../platform/kv';
 import type { Profile } from '../core/types';
+import { tutActive } from '../game/tut-state';
+import { notifySaved } from '../platform/saved';
 import { loadProfile, loadSaved, rollDay, saveProfile, saveRun, today, type Saved } from './persist';
 
 interface GameStore {
@@ -24,12 +26,13 @@ export const useGame = create<GameStore>((set, get) => ({
   profile: first.profile,
   refund: first.refund,
   setSaved(next) {
-    saveRun(mmkv, next);
+    if (!tutActive()) { saveRun(mmkv, next); notifySaved(); } // the scripted tutorial board is never saved
     set({ saved: next });
   },
   setProfile(next) {
     saveProfile(mmkv, next);
     set({ profile: next });
+    notifySaved();
   },
   rollDay() {
     const rolled = rollDay(get().profile, today());

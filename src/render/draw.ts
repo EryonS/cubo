@@ -22,6 +22,7 @@ import type { Theme } from './theme';
 import { hasClock, hasInventory, hintText, invView, ringEnding, ringFill, trashFill, trashLabel, trashView } from '../game/hud';
 import { TRASH_ARM_MS } from '../game/anim';
 import { keepsBest } from '../game/modes';
+import { tutActive } from '../game/tut-state';
 import { freeTray, isVoid, puzzleLabel } from '../game/puzzle';
 
 const SIZE = L.SIZE;
@@ -300,6 +301,7 @@ export function drawTray(g: G, th: Theme, lay: Layout, state: RunState, drag: Dr
 // Narrow column right of the tray: the piece that fills the next emptied slot. A dashed preview box
 // with a label chip on its top edge, so it never reads as a 4th playable pad.
 function drawNext(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
+  if (tutActive()) return;
   const { nextX, nextW, ty, trayH } = lay;
   const x = nextX + 6, w = nextW - 8;
   const h = Math.min(trayH - 28, w * 1.35);
@@ -328,7 +330,7 @@ interface Flag { beaten: boolean; fall: number; s: number; label: string; size: 
 
 // Free runs: a pennant planted in the band's left end, carrying the record the run started with.
 function recordFlag(g: G, lay: Layout, state: RunState, t: number): Flag | null {
-  if (!keepsBest(state) || !(anim.bestAtStart > 0)) return null;
+  if (!keepsBest(state) || !(anim.bestAtStart > 0) || tutActive()) return null;
   const beaten = state.score > anim.bestAtStart;
   const s = lay.band.h;
   const label = fmt(anim.bestAtStart);
@@ -349,6 +351,7 @@ function hudBand(g: G, lay: Layout, state: RunState, t: number) {
 }
 
 export function drawHUD(g: G, th: Theme, lay: Layout, state: RunState, best: number, t: number) {
+  if (tutActive()) return;
   anim.displayScore += (state.score - anim.displayScore) * 0.18;
   if (Math.abs(state.score - anim.displayScore) < 0.5) anim.displayScore = state.score;
   const p = th.plate;
@@ -432,7 +435,7 @@ export function drawRecordFlag(g: G, th: Theme, lay: Layout, state: RunState, t:
 // Cubo, standing at the right end of the score band, on the board frame's corner (legacy drawCubo(t)).
 // asleep: a sheet is open over the game. wear: the equipped wardrobe piece.
 export function drawMascot(g: G, th: Theme, lay: Layout, state: RunState, drag: DragState | null, asleep: boolean, wear: string, t: number) {
-  if (!anim.mascot) return;
+  if (!anim.mascot || tutActive()) return;
   const mood = cuboMoodAt(t, cuboBaseMood(state, asleep, !!drag));
   drawCubo(g, t, cuboSpot(lay, state), cuboLookFor(th.id, wear), mood, { calm: anim.calm, look: drag ? { x: drag.x, y: drag.y } : null, ink: th.ink });
 }
@@ -441,6 +444,7 @@ export function drawMascot(g: G, th: Theme, lay: Layout, state: RunState, drag: 
 // Combo: small pill hung from the band's bottom edge, over the frame's top margin. Drawn after the
 // board so the frame never covers it. Pops when it grows, drops away when it breaks.
 export function drawComboHang(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
+  if (tutActive()) return;
   const band = hudBand(g, lay, state, t);
   const tagY = band.y + band.h - 4;
   if (state.combo > 0) {
@@ -666,7 +670,7 @@ export function drawFlyers(g: G, lay: Layout, t: number) {
 
 // The bonus bar under the tray: five buttons with their count, timer ring, and a legend button.
 export function drawInventory(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
-  if (!hasInventory(state)) return;
+  if (!hasInventory(state) || tutActive()) return;
   const aiming = anim.aiming !== null;
   const a0 = g.alpha;
   for (const b of invBoxes(lay)) {

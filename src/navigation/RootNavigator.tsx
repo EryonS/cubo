@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AlbumScreen } from '../screens/album/AlbumScreen';
 import { AdventureScreen } from '../screens/AdventureScreen';
+import { EventScreen } from '../screens/EventScreen';
 import { GameScreen } from '../screens/GameScreen';
 import { tr } from '../core/i18n';
 import { DefisScreen } from '../screens/DefisScreen';
@@ -64,6 +65,7 @@ export function RootNavigator() {
       <Stack.Screen name="Tabs" component={Tabs} />
       <Stack.Screen name="Game" component={GameScreen} options={{ gestureEnabled: false, animation: 'fade' }} />
       <Stack.Screen name="Adventure" component={AdventureScreen} />
+      <Stack.Screen name="Event" component={EventScreen} />
       <Stack.Screen name="Puzzles" component={PuzzlesScreen} />
       <Stack.Screen name="Album" component={AlbumScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
