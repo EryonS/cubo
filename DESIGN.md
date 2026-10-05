@@ -79,10 +79,14 @@ HUD buttons row, then the score band right above the board (board-frame wide, 60
 ## Elevation & Depth
 Plates and the board slab cast an offset shadow (y 5-8px, blur 14-20px), tinted on light worlds (`shadow`). Neon worlds (Espace, Arcade, Volcan) may glow.
 
+Menus (React Native): no thick bottom edges. A surface on the background is raised by `raised()` (src/theme/elevation.ts): a soft shadow tinted with the theme ink on light worlds, black plus a hairline outline on dark worlds. A surface inside a card (`panel2`) is flat. Never a card inside a card.
+
 ## Shapes
 Round and soft: pills for score and combo, 22px cards, board radius 18-26px, cells with 16-24% radius. Only Rétro goes square.
 
 ## Components
+Menu building blocks live in `src/ui` and take every value from `src/theme/tokens.ts` (4 pt spacing grid, radii s/tile/card/pill, type scale display/title/headline/body/muted/caption/label, 44 pt touch targets): `Screen` + `ScreenHeader` (back, title, counters), `Card` (or `inset`), `ListRow`, `Segmented`, `Counter`, `StatTile`, `Toggle`, `Tap`, `SectionLabel`, `Button` (primary/secondary/ghost/danger, sizes m/s), `Sheet` + `SheetHeader`. `Text` re-centers Baloo 2 glyphs when a line height is tighter than the font's 1.6 em box (iOS otherwise draws them high). Theme menu colors keep muted text at 4.5:1 on bg/panel/panel2 and onAccent at 3:1 on accent.
+
 - **Score band** (drawn with the theme's plate style): "SCORE" / "RECORD n" subline and the score, record pennant on the left. Variants: marquee bulbs (Arcade), mushroom-cap dots (Forêt).
 - **Combo tag**: pill under the score with the grace dots.
 - **HUD buttons**: `--panel` + `--plate-edge`.
