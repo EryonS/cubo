@@ -777,4 +777,8 @@ add('en', {
   'Bientôt': 'Coming soon',
   'Menu': 'Menu',
   'Cette partie du jeu arrive dans une prochaine version.': 'This part of the game comes in a later version.',
+  '{} étoiles': (n) => `${n} ${plural(n, 'star', 'stars')}`,
+  '{} étoiles sur {}': '{} stars out of {}',
+  'Verrouillé': 'Locked',
+  'Acheter pour {} pièces': 'Buy for {} coins',
 });
