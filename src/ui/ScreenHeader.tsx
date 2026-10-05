@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { tr } from '../core/i18n';
-import { lip, radius, space, TOUCH } from '../theme/tokens';
+import { radius, space, TOUCH } from '../theme/tokens';
+import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
 import { Icon } from './Icon';
 import { Tap } from './Tap';
@@ -16,7 +17,7 @@ export function BackButton({ onPress }: { onPress?: () => void }) {
   const nav = useNavigation();
   return (
     <Tap label={tr('Retour')} onPress={onPress ?? (() => nav.goBack())}
-      style={{ width: TOUCH, height: TOUCH, borderRadius: radius.s + 4, backgroundColor: colors.panel, borderBottomWidth: lip.tile, borderBottomColor: colors.edge, alignItems: 'center', justifyContent: 'center' }}>
+      style={{ width: TOUCH, height: TOUCH, borderRadius: radius.s + 4, backgroundColor: colors.panel, ...raised(colors, 'low'), alignItems: 'center', justifyContent: 'center' }}>
       <Icon name="chevLeft" size={18} color={colors.text} />
     </Tap>
   );

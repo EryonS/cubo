@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { locale, tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
 import { radius, space } from '../theme/tokens';
+import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
 import { Button } from './Button';
 import { Text } from './Text';
@@ -38,7 +39,7 @@ function Card({ title, s, onPress }: { title: string; s: SideSummary; onPress: (
   );
   return (
     <Pressable accessibilityRole="button" onPress={onPress}
-      style={{ padding: 14, borderRadius: radius.card - 4, backgroundColor: colors.panel2, borderBottomWidth: 4, borderBottomColor: colors.edge }}>
+      style={{ padding: 14, borderRadius: radius.tile, backgroundColor: colors.panel2 }}>
       <Text variant="title" style={{ fontSize: 18, textTransform: 'uppercase' }}>{title}</Text>
       {row(tr('Pièces'), fmt(s.coins), true)}
       {row(tr('Étoiles'), fmt(s.stars))}
@@ -56,7 +57,7 @@ export function SyncChoiceHost() {
   return (
     <Modal visible transparent animationType="fade" onRequestClose={() => done(null)}>
       <Pressable accessibilityRole="button" onPress={() => done(null)} style={{ flex: 1, backgroundColor: 'rgba(74,58,102,0.45)', justifyContent: 'center', padding: space.xl }}>
-        <Pressable onPress={() => {}} style={{ backgroundColor: colors.panel, borderRadius: radius.card + 8, padding: space.xl, borderBottomWidth: 6, borderBottomColor: colors.edge, gap: 12 }}>
+        <Pressable onPress={() => {}} style={{ backgroundColor: colors.panel, borderRadius: radius.card + 8, padding: space.xl, ...raised(colors), gap: space.m }}>
           <Text variant="title" style={{ fontSize: 22, textTransform: 'uppercase', textAlign: 'center' }}>{tr('Quelle progression garder ?')}</Text>
           <Text variant="muted" style={{ fontSize: 14, lineHeight: 19, textAlign: 'center' }}>{tr('Cet appareil et ton compte n’ont pas la même progression. Choisis celle à garder : l’autre sera remplacée.')}</Text>
           <Card title={tr('Cet appareil')} s={choice.local} onPress={() => done('device')} />

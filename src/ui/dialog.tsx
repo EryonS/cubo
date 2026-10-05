@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
 import { radius, space } from '../theme/tokens';
+import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
 import { Button } from './Button';
 import { Text } from './Text';
@@ -49,7 +50,7 @@ export function AskHost() {
       <Animated.View
         entering={ZoomIn.duration(220)}
         accessibilityRole="alert"
-        style={{ width: '100%', maxWidth: 320, backgroundColor: colors.panel, borderRadius: radius.card + 8, padding: space.xl, borderBottomWidth: 6, borderBottomColor: colors.edge, gap: space.m }}
+        style={{ width: '100%', maxWidth: 320, backgroundColor: colors.panel, borderRadius: radius.card + 8, padding: space.xl, ...raised(colors), gap: space.m }}
       >
         <Text variant="title" style={{ textAlign: 'center', textTransform: 'uppercase' }}>{opts.title}</Text>
         <Text variant="muted" style={{ textAlign: 'center', fontSize: 15, lineHeight: 20 }}>{opts.text}</Text>

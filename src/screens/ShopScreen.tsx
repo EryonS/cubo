@@ -46,7 +46,7 @@ function SkinAction({ equipped, owned, price, cant, exclusive, onPress }: { equi
   const pill = { alignSelf: 'stretch' as const, height: 40, borderRadius: radius.pill, alignItems: 'center' as const, justifyContent: 'center' as const, flexDirection: 'row' as const, gap: space.xs, backgroundColor: colors.panel2, paddingHorizontal: space.s };
   if (equipped) return <View style={pill} accessible accessibilityLabel={tr('Équipé')}><Icon name="check" size={16} color={colors.good} /><Text variant="headline" style={{ color: colors.good }}>{tr('Équipé')}</Text></View>;
   if (owned) return <Button size="s" kind="ghost" label={tr('Équiper')} onPress={onPress} style={{ alignSelf: 'stretch' }} />;
-  if (price == null) return <View style={pill}><Text variant="caption" numberOfLines={1} adjustsFontSizeToFit>{exclusive}</Text></View>;
+  if (price == null) return <View style={pill}><Text variant="caption" numberOfLines={2} style={{ textAlign: 'center' }}>{exclusive}</Text></View>;
   return <Button size="s" kind={cant ? 'ghost' : 'primary'} disabled={cant} icon={<Coin size={16} />} label={fmt(price)} accessibilityLabel={tr`Acheter pour ${price} pièces`} onPress={onPress} style={{ alignSelf: 'stretch' }} />;
 }
 

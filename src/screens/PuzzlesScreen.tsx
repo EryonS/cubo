@@ -13,9 +13,9 @@ import { startPuzzle, startSurprise } from '../game/run';
 import { haptic } from '../platform/haptics';
 import { useGame } from '../state/store';
 import type { RootParams } from '../navigation/types';
-import { lip, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
-import { darker } from '../ui/Button';
 import { Counter } from '../ui/Counter';
 import { Icon } from '../ui/Icon';
 import { ListRow } from '../ui/ListRow';
@@ -66,7 +66,7 @@ function Cell({ n, cw }: { n: number; cw: number }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={tr`Puzzle ${n}` + (done ? ', ' + (PZ.puzzle(n)?.name ?? '') : '') + (open ? '' : tr(', verrouillé'))} onPress={go}
       style={({ pressed }) => ({ width: cw, height: 72, borderRadius: radius.tile, backgroundColor: done || !open ? colors.panel : colors.accent, opacity: open ? 1 : 0.6,
-        borderWidth: done ? 2 : 0, borderColor: colors.good, borderBottomWidth: done ? lip.tile : open ? lip.tile : 0, borderBottomColor: done ? colors.good : darker(colors.accent),
+        borderWidth: done ? 2 : 0, borderColor: colors.good, ...(open ? raised(colors, 'low') : null),
         alignItems: 'center', justifyContent: 'center', gap: space.xxs, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
       <View style={{ height: 32, alignItems: 'center', justifyContent: 'center' }}>
         {done ? <Thumb n={n} color={colors.accent} />

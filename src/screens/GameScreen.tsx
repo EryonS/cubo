@@ -48,6 +48,7 @@ import { sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
 import type { RootParams } from '../navigation/types';
 import { radius, space } from '../theme/tokens';
+import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
 import { fonts } from '../theme/fonts';
 import { ask, asking } from '../ui/dialog';
@@ -88,8 +89,8 @@ function HudBtn({ right, label, onPress, disabled, children }: { right: number; 
   return (
     <Pressable
       accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} onPress={onPress} hitSlop={4}
-      style={({ pressed }) => ({ position: 'absolute', top: insets.top + 12, right, width: HUD_BTN, height: HUD_BTN, borderRadius: radius.card - 4, backgroundColor: colors.panel,
-        borderBottomWidth: 3, borderBottomColor: colors.edge, alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.35 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] })}
+      style={({ pressed }) => ({ position: 'absolute', top: insets.top + 12, right, width: HUD_BTN, height: HUD_BTN, borderRadius: radius.tile, backgroundColor: colors.panel,
+        ...raised(colors, 'low'), alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.35 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] })}
     >
       {children}
     </Pressable>
@@ -542,7 +543,7 @@ export function GameScreen() {
       )}
       {!tutOn && <Animated.View style={[{ position: 'absolute', top, left: space.l }, walletStyle]}>
         <Pressable accessibilityRole="button" accessibilityLabel={tr('Pièces : ouvrir la Boutique')} onPress={goShop}
-          style={{ height: HUD_BTN, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, borderRadius: radius.card - 4, backgroundColor: colors.panel, borderBottomWidth: 3, borderBottomColor: colors.edge }}>
+          style={{ height: HUD_BTN, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, borderRadius: radius.tile, backgroundColor: colors.panel, ...raised(colors, 'low') }}>
           <Coin size={18} />
           <Text style={{ fontFamily: fonts.display, fontSize: 21, lineHeight: 26 }}>{fmt(coins)}</Text>
           {pending > 0 && <Text style={{ color: colors.good, fontSize: 16 }}>+{pending}</Text>}
@@ -568,7 +569,7 @@ export function GameScreen() {
       </>}
       {lay && !tutOn && stuck && !aiming && !puzzle && (
         <Pressable accessibilityRole="button" onPress={() => { giveUpRun(); dirty.current = true; }}
-          style={({ pressed }) => ({ position: 'absolute', left: lay.W / 2 - 110, width: 220, top: lay.ty + lay.trayH / 2 - 25, height: 50, borderRadius: radius.card, backgroundColor: colors.panel, borderBottomWidth: 4, borderBottomColor: colors.edge, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.96 : 1 }] })}>
+          style={({ pressed }) => ({ position: 'absolute', left: lay.W / 2 - 110, width: 220, top: lay.ty + lay.trayH / 2 - 25, height: 50, borderRadius: radius.card, backgroundColor: colors.panel, ...raised(colors), alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.96 : 1 }] })}>
           <Text variant="title" style={{ fontSize: 20, textTransform: 'uppercase' }}>{tr('Terminer la partie')}</Text>
         </Pressable>
       )}
@@ -576,7 +577,7 @@ export function GameScreen() {
         <Pressable
           accessibilityRole="button" accessibilityLabel={tr`Indice pour ${M.PUZZLE_HINT} pièces`} accessibilityState={{ disabled: hintOff }}
           onPress={() => { if (!lay || !hintPuzzle(lay)) nope(); dirty.current = true; }}
-          style={({ pressed }) => ({ position: 'absolute', left: lay.W / 2 - 62, width: 124, justifyContent: 'center', top: lay.ty + lay.trayH + 6, flexDirection: 'row', alignItems: 'center', gap: 8, height: 52, paddingHorizontal: 18, borderRadius: radius.pill, backgroundColor: colors.panel, borderBottomWidth: 4, borderBottomColor: colors.edge, opacity: hintOff ? 0.45 : 1, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
+          style={({ pressed }) => ({ position: 'absolute', left: lay.W / 2 - 62, width: 124, justifyContent: 'center', top: lay.ty + lay.trayH + 6, flexDirection: 'row', alignItems: 'center', gap: 8, height: 52, paddingHorizontal: 18, borderRadius: radius.pill, backgroundColor: colors.panel, ...raised(colors, 'low'), opacity: hintOff ? 0.45 : 1, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
           <Text variant="title" style={{ fontSize: 19, lineHeight: 24 }}>{tr('Indice')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
             <Text style={{ fontSize: 16, color: colors.muted }}>{M.PUZZLE_HINT}</Text><Coin size={15} />

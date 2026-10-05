@@ -18,7 +18,7 @@ export const colors = {
   danger: '#ff5d7a',
   dangerBtn: '#e5484d', // destructive confirm button (legacy #ask .btn.danger)
   scrim: 'rgba(74,58,102,0.45)',
-  edge: '#f3dce8', // the toy lip under a panel
+  edge: '#f3dce8', // soft line: tab bar top, sheet handle
   coin: '#ffd166',
   coinEdge: '#e0a43a',
   hairline: 'rgba(74,58,102,0.14)',
@@ -30,9 +30,6 @@ export const radius = { s: 10, tile: 16, card: 22, board: 26, pill: 999 } as con
 
 // 4 pt grid. Screen gutter = l, gap between cards = m, card padding = l, inside a row = m.
 export const space = { xxs: 2, xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 } as const;
-
-// Lip under raised surfaces: cards and big buttons get `card`, small tiles and pills `tile`.
-export const lip = { card: 5, tile: 3 } as const;
 
 // Smallest comfortable touch target (HIG 44 pt).
 export const TOUCH = 44;

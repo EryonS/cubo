@@ -2,7 +2,8 @@
 // On the screen background it is a small card; inside a card pass `inset`.
 import type { ReactNode } from 'react';
 import { View, type AccessibilityRole, type StyleProp, type ViewStyle } from 'react-native';
-import { lip, radius, space, TOUCH } from '../theme/tokens';
+import { radius, space, TOUCH } from '../theme/tokens';
+import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
 import { Icon } from './Icon';
 import { Tap } from './Tap';
@@ -31,8 +32,8 @@ export function ListRow({ title, sub, icon, right, onPress, inset, done, big, ro
   const box: StyleProp<ViewStyle> = [{
     flexDirection: 'row', alignItems: 'center', gap: space.m, minHeight: TOUCH + space.s, paddingVertical: space.m, paddingHorizontal: space.l,
     borderRadius: radius.tile, backgroundColor: inset ? colors.panel2 : colors.panel,
-    borderBottomWidth: inset ? 0 : lip.tile, borderBottomColor: colors.edge,
-  }, done && { borderWidth: 2, borderColor: colors.good, borderBottomWidth: inset ? 2 : lip.tile, borderBottomColor: colors.good }, style];
+    ...(inset ? null : raised(colors, 'low')),
+  }, done && { borderWidth: 2, borderColor: colors.good }, style];
   const body = (
     <>
       {icon}

@@ -10,7 +10,8 @@ import { sfx } from '../../audio/engine';
 import { albumPages, type StickerRow } from '../../game/album';
 import type { RootParams } from '../../navigation/types';
 import { useGame } from '../../state/store';
-import { lip, radius, space } from '../../theme/tokens';
+import { radius, space } from '../../theme/tokens';
+import { raised } from '../../theme/elevation';
 import { useColors } from '../../theme/useColors';
 import { Counter } from '../../ui/Counter';
 import { Screen } from '../../ui/Screen';
@@ -28,7 +29,7 @@ function Sticker({ sk, width, onOpen }: { sk: StickerRow; width: number; onOpen:
       disabled={!sk.on}
       onPress={() => { sfx.turn(); onOpen(sk.id); }}
       accessibilityLabel={`${sk.hidden ? tr('Secret') : sk.name}, ${sub}`}
-      style={({ pressed }) => ({ width, alignItems: 'center', gap: space.xs, paddingTop: space.m, paddingBottom: space.s, paddingHorizontal: space.xs, borderRadius: radius.tile, backgroundColor: colors.panel, borderBottomWidth: lip.tile, borderBottomColor: colors.edge, transform: [{ scale: pressed ? 0.95 : 1 }] })}
+      style={({ pressed }) => ({ width, alignItems: 'center', gap: space.xs, paddingTop: space.m, paddingBottom: space.s, paddingHorizontal: space.xs, borderRadius: radius.tile, backgroundColor: colors.panel, ...raised(colors, 'low'), transform: [{ scale: pressed ? 0.95 : 1 }] })}
     >
       <StickerBadge page={sk.page} color={sk.color} off={!sk.on} hidden={sk.hidden} />
       <Text numberOfLines={2} style={{ fontSize: 14, textAlign: 'center' }}>{sk.hidden ? tr('Secret') : sk.name}</Text>

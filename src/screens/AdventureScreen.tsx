@@ -21,7 +21,8 @@ import { nextAdventure } from '../state/progress';
 import { useGame } from '../state/store';
 import type { RootParams } from '../navigation/types';
 import { fonts } from '../theme/fonts';
-import { lip, radius, space, TOUCH } from '../theme/tokens';
+import { radius, space, TOUCH } from '../theme/tokens';
+import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
 import { BoardPreview } from '../ui/BoardPreview';
 import { Counter } from '../ui/Counter';
@@ -54,7 +55,7 @@ function SquareBtn({ icon, label, onPress, disabled }: { icon: 'chevLeft' | 'che
   const colors = useColors();
   return (
     <Tap label={label} disabled={disabled} onPress={onPress} quiet
-      style={{ width: TOUCH, height: TOUCH, borderRadius: radius.s + 4, backgroundColor: colors.panel, borderBottomWidth: lip.tile, borderBottomColor: colors.edge, alignItems: 'center', justifyContent: 'center' }}>
+      style={{ width: TOUCH, height: TOUCH, borderRadius: radius.s + 4, backgroundColor: colors.panel, ...raised(colors, 'low'), alignItems: 'center', justifyContent: 'center' }}>
       <Icon name={icon} size={16} color={colors.text} />
     </Tap>
   );
@@ -67,7 +68,7 @@ function WorldTile({ w, picked, onPick }: { w: string; picked: boolean; onPick: 
   const open = M.worldOpen(profile, w);
   return (
     <Pressable accessibilityRole="tab" accessibilityState={{ selected: picked }} onPress={onPick}
-      style={({ pressed }) => ({ width: 88, padding: space.xs, paddingBottom: space.s, borderRadius: radius.tile, backgroundColor: colors.panel, borderWidth: 3, borderColor: picked ? colors.accent : 'transparent', borderBottomWidth: 3 + lip.tile, borderBottomColor: picked ? colors.accent : colors.edge, alignItems: 'center', transform: [{ scale: pressed ? 0.95 : 1 }] })}>
+      style={({ pressed }) => ({ width: 88, padding: space.xs, paddingBottom: space.s, borderRadius: radius.tile, backgroundColor: colors.panel, ...raised(colors, 'low'), borderWidth: 3, borderColor: picked ? colors.accent : 'transparent', alignItems: 'center', transform: [{ scale: pressed ? 0.95 : 1 }] })}>
       <View style={{ opacity: open ? 1 : 0.5 }}><BoardPreview th={th} width={74} radius={radius.s} /></View>
       <Text variant="caption" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: fonts.display, color: colors.text, marginTop: space.xs }}>{WD.WORLDS[w].name}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xxs, height: 16 }}>

@@ -19,7 +19,7 @@ import { drawPreview } from '../render/preview';
 import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import { fonts } from '../theme/fonts';
-import { radius, space, TOUCH } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -28,7 +28,7 @@ import { DrawCanvas } from '../ui/DrawCanvas';
 import { ask } from '../ui/dialog';
 import { Icon, Star } from '../ui/Icon';
 import { Screen } from '../ui/Screen';
-import { Sheet } from '../ui/Sheet';
+import { Sheet, SheetHeader } from '../ui/Sheet';
 import { StarRow } from '../ui/Stars';
 import { Text } from '../ui/Text';
 import { Trophy } from '../ui/StickerArt';
@@ -88,7 +88,6 @@ function EventPath({ id, onPick }: { id: string; onPick: (n: number) => void }) 
 }
 
 function LevelSheet({ id, n, onClose, onPlay }: { id: string; n: number; onClose: () => void; onPlay: () => void }) {
-  const colors = useColors();
   const profile = useGame((s) => s.profile);
   const ev = M.eventById(id);
   const stage = LV.eventLevel(id, n);
@@ -100,13 +99,7 @@ function LevelSheet({ id, n, onClose, onPlay }: { id: string; n: number; onClose
   const boss = typeof stage.boss === 'object' ? stage.boss : null;
   return (
     <View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={tr('Retour à l’événement')} onPress={onClose}
-          style={{ width: TOUCH, height: TOUCH, borderRadius: radius.s + 4, backgroundColor: colors.panel2, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="chevLeft" size={16} color={colors.text} />
-        </Pressable>
-        <Text variant="title" style={{ flex: 1, textTransform: 'uppercase' }}>{eventLevelName(n)}</Text>
-      </View>
+      <SheetHeader title={eventLevelName(n)} onClose={onClose} closeLabel={tr('Retour à l’événement')} />
       <View style={{ alignItems: 'center', marginTop: 4 }}>
         <Text variant="muted">{ev.name} · {tr`niveau ${n}`}</Text>
         <Text style={{ fontFamily: fonts.display, fontSize: 18, marginTop: 6, textAlign: 'center' }}>{LV.goalText(stage.goal)}</Text>

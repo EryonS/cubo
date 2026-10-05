@@ -1,5 +1,5 @@
 // One choice among a few. "tabs": a track filling the width (Boutique tabs, language).
-// "chips": separate pills that scroll sideways when they run out of room (stats modes).
+// The caller plays the tick in onChange. "chips": separate pills that scroll sideways when they run out of room (stats modes).
 import { ScrollView, View } from 'react-native';
 import { radius, space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
@@ -13,9 +13,9 @@ export function Segmented<T extends string>({ options, value, onChange, kind = '
   const items = options.map(([id, name]) => {
     const on = id === value;
     return (
-      <Tap key={id} accessibilityRole={role} accessibilityState={{ selected: on }} label={name} quiet={on} onPress={() => { if (!on) onChange(id); }}
+      <Tap key={id} accessibilityRole={role} accessibilityState={{ selected: on }} label={name} quiet onPress={() => { if (!on) onChange(id); }}
         style={[{ height: 36, paddingHorizontal: space.m, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? colors.accent : kind === 'chips' ? (inset ? colors.panel2 : colors.panel) : 'transparent' }, kind === 'tabs' && { flex: 1 }]}>
-        <Text variant="body" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: on ? colors.onAccent : colors.muted }}>{name}</Text>
+        <Text variant="body" numberOfLines={1} adjustsFontSizeToFit={kind === 'tabs'} minimumFontScale={0.8} style={{ color: on ? colors.onAccent : colors.muted }}>{name}</Text>
       </Tap>
     );
   });

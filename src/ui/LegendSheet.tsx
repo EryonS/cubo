@@ -1,6 +1,6 @@
 // What every bonus icon does (legacy #legend): mobile has no hover.
 import { forwardRef } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { L } from '../core';
 import { tr } from '../core/i18n';
@@ -9,8 +9,7 @@ import { useGame } from '../state/store';
 import { space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
 import { IconCanvas } from './IconCanvas';
-import { Icon } from './Icon';
-import { Sheet } from './Sheet';
+import { Sheet, SheetHeader } from './Sheet';
 import { Text } from './Text';
 
 function Content({ onClose }: { onClose: () => void }) {
@@ -23,13 +22,7 @@ function Content({ onClose }: { onClose: () => void }) {
   ];
   return (
     <View style={{ gap: space.s }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text variant="title" style={{ textTransform: 'uppercase' }}>{tr('Bonus')}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={tr('Fermer')} onPress={onClose} hitSlop={8}
-          style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: colors.panel2, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="close" size={16} color={colors.text} />
-        </Pressable>
-      </View>
+      <SheetHeader title={tr('Bonus')} onClose={onClose} />
       {rows.map((r, i) => (
         <View key={r.type} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: i < rows.length - 1 ? 1 : 0, borderBottomColor: colors.hairline }}>
           <IconCanvas type={r.type} />

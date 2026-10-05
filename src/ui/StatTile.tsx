@@ -1,6 +1,7 @@
 // A number and what it counts (profile totals, stats per mode).
 import { View, type StyleProp, type ViewStyle } from 'react-native';
-import { lip, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
 import { Text } from './Text';
 
@@ -8,7 +9,7 @@ export function StatTile({ value, label, inset, style }: { value: string; label:
   const colors = useColors();
   return (
     <View accessible accessibilityLabel={`${value} ${label}`} style={[{ flex: 1, minWidth: 0, paddingVertical: space.m, paddingHorizontal: space.m, borderRadius: radius.tile,
-      backgroundColor: inset ? colors.panel2 : colors.panel, borderBottomWidth: inset ? 0 : lip.tile, borderBottomColor: colors.edge }, style]}>
+      backgroundColor: inset ? colors.panel2 : colors.panel, ...(inset ? null : raised(colors, 'low')) }, style]}>
       <Text variant="title" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontVariant: ['tabular-nums'] }}>{value}</Text>
       <Text variant="caption" numberOfLines={1}>{label}</Text>
     </View>

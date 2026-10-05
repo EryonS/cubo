@@ -149,7 +149,7 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
   return (
     <Animated.View entering={FadeIn.duration(200)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim, justifyContent: 'center', padding: space.m }}>
       <Animated.View entering={ZoomIn.duration(260)} style={{ maxHeight: '100%' }}>
-        <View style={{ backgroundColor: colors.panel, borderRadius: radius.card + 8, borderBottomWidth: 6, borderBottomColor: colors.edge, overflow: 'hidden', maxHeight: '100%' }}>
+        <View style={{ backgroundColor: colors.panel, borderRadius: radius.card + 8, overflow: 'hidden', maxHeight: '100%' }}>
           <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: space.m, alignItems: 'center', gap: 2 }}>
             {mascot && (
               <Animated.View entering={ZoomIn.duration(560)} style={{ marginTop: -12, marginBottom: -4, transformOrigin: 'bottom' }}>

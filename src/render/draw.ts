@@ -307,14 +307,16 @@ function drawNext(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
   const h = Math.min(trayH - 28, w * 1.35);
   const y = ty + (trayH - h) / 2 + 6;
   const r = Math.min(14, th.frame.r);
-  g.rrect(x, y, w, h, r, withAlpha(th.accent, 0.08));
-  g.rrect(x, y, w, h, r, withAlpha(th.accent, 0.55), { stroke: { width: 2, dash: [5, 5] } });
+  // On the theme's score-plate colors (made to read on its background), half see-through so it stays
+  // lighter than the three playable pads; the chip wears the combo tag colors.
+  g.rrect(x, y, w, h, r, th.plate.fill, { alpha: 0.55 });
+  g.rrect(x, y, w, h, r, th.plate.ink, { stroke: { width: 2, dash: [5, 5] }, alpha: 0.6 });
   const label = tr('SUIVANT');
   const size = g.fit(label, 10, w - 6);
   const cw = Math.min(w + 4, g.textWidth(label, size) + 14);
   const cx = x + w / 2;
-  g.rrect(cx - cw / 2, y - 9, cw, 18, 9, th.accent);
-  g.text(label, cx + 0.5, y + size * 0.36, size, '#ffffff', 'center');
+  g.rrect(cx - cw / 2, y - 9, cw, 18, 9, th.tag.fill, { shadow: { color: th.shadow, blur: 6, dy: 2 } });
+  g.text(label, cx + 0.5, y + size * 0.36, size, th.tag.ink, 'center');
   const piece = state.next;
   if (!piece) return;
   // Puzzle: how many more pieces are still to come after the next one.
@@ -675,8 +677,10 @@ export function drawInventory(g: G, th: Theme, lay: Layout, state: RunState, t: 
   const a0 = g.alpha;
   for (const b of invBoxes(lay)) {
     if (b.id === 'legend') {
-      g.rrect(b.x, b.y, b.w, b.h, 18, th.board, { shadow: { color: th.shadow, blur: 8, dy: 3 } });
-      g.text('?', b.x + b.w / 2, b.y + b.h / 2 + 24 * 0.35, 24, th.ink, 'center');
+      // Score-plate colors, so the help button reads on every background and apart from the bonuses.
+      g.rrect(b.x, b.y, b.w, b.h, Math.min(b.w, b.h) / 2, th.plate.fill, { shadow: { color: th.shadow, blur: 10, dy: 3 } });
+      if (th.plate.line) g.rrect(b.x + 1, b.y + 1, b.w - 2, b.h - 2, Math.min(b.w, b.h) / 2 - 1, th.plate.line, { stroke: { width: 2 } });
+      g.text('?', b.x + b.w / 2, b.y + b.h / 2 + 26 * 0.36, 26, th.plate.ink, 'center');
       continue;
     }
     const v = invView(state, b.id, aiming);

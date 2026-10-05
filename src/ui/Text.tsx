@@ -3,6 +3,7 @@
 // Baloo 2's line box is 1.6 em tall (ascent 1078, descent 524). When a style sets a tighter lineHeight,
 // iOS trims the line from the top, so the glyphs ride up out of their box (an 18 pt label in a 22 pt line
 // sits ~3 pt high). Every Text puts them back on center with a translate, which keeps the layout box as is.
+import { createContext, useContext } from 'react';
 import { StyleSheet, Text as RNText, useWindowDimensions, type TextProps, type TextStyle } from 'react-native';
 import { useColors } from '../theme/useColors';
 import { typeScale as scale, type TypeVariant } from '../theme/tokens';
@@ -22,6 +23,9 @@ export function centerShift(st: TextStyle, fontScale: number): number {
   return Math.max(0, (fs * BALOO_BOX - lh) / 2 + fs * CAP_NUDGE) * k;
 }
 
+// A Text inside a Text is a span: it never moves on its own (the outer one carries the shift).
+const Nested = createContext(false);
+
 export function Text({ variant = 'body', style, maxFontSizeMultiplier = MAX_FONT_SCALE, ...rest }: Props) {
   const colors = useColors();
   const { fontScale } = useWindowDimensions();
@@ -31,7 +35,9 @@ export function Text({ variant = 'body', style, maxFontSizeMultiplier = MAX_FONT
   // A style that only changes the size keeps the variant's leading.
   const lineHeight = own.lineHeight ?? Math.round((own.fontSize ?? base.fontSize) * lh);
   const flat = { ...base, color, ...own, lineHeight } as TextStyle;
-  const dy = centerShift(flat, fontScale);
+  const nested = useContext(Nested);
+  const dy = nested ? 0 : centerShift(flat, fontScale);
   const transform = dy ? [...((flat.transform as object[] | undefined) ?? []), { translateY: dy }] : flat.transform;
-  return <RNText maxFontSizeMultiplier={maxFontSizeMultiplier} {...rest} style={[flat, transform ? { transform } as TextStyle : null]} />;
+  const node = <RNText maxFontSizeMultiplier={maxFontSizeMultiplier} {...rest} style={[flat, !nested && transform ? { transform } as TextStyle : null]} />;
+  return nested ? node : <Nested.Provider value>{node}</Nested.Provider>;
 }

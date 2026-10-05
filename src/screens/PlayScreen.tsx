@@ -23,10 +23,11 @@ import { lastOpenWorld } from '../game/levelend';
 import { levelName, nextAdventure } from '../state/progress';
 import { useGame } from '../state/store';
 import type { RootParams, TabParams } from '../navigation/types';
-import { lip, radius, space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
+import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
 import { BoardPreview } from '../ui/BoardPreview';
-import { Button, darker } from '../ui/Button';
+import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Counter } from '../ui/Counter';
 import { ListRow } from '../ui/ListRow';
@@ -65,7 +66,7 @@ function CuboSay() {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel="Cubo" onPress={onTap} style={{ flexDirection: 'row', alignItems: 'center', gap: space.m }}>
       <Animated.View style={[{ transformOrigin: 'bottom' }, style]}><CuboPose width={76} lw={152} lh={160} s={100} foot={9} look={look} mood={mood ?? line.mood} /></Animated.View>
-      <View style={{ flex: 1, minWidth: 0, paddingVertical: space.m, paddingHorizontal: space.l, borderRadius: radius.tile, backgroundColor: colors.panel, borderBottomWidth: lip.tile, borderBottomColor: colors.edge }}>
+      <View style={{ flex: 1, minWidth: 0, paddingVertical: space.m, paddingHorizontal: space.l, borderRadius: radius.tile, backgroundColor: colors.panel, ...raised(colors, 'low') }}>
         <View style={{ position: 'absolute', left: -8, top: '50%', marginTop: -8, borderTopWidth: 8, borderBottomWidth: 8, borderRightWidth: 8, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderRightColor: colors.panel }} />
         <Text>{line.text}</Text>
       </View>
@@ -134,7 +135,7 @@ export function PlayScreen() {
 
       <Tap onPress={() => { if (level) play(); else nav.navigate('Adventure'); }}
         label={level ? tr`Aventure : reprendre ${WD.WORLDS[level[0]].name}, ${levelName(level[1])}` : next ? tr`Aventure : jouer ${WD.WORLDS[next[0]].name}, ${levelName(next[1])}` : tr('Aventure : carte des mondes')}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.m, borderRadius: radius.card, backgroundColor: playing ? colors.panel : colors.accent, borderBottomWidth: lip.card, borderBottomColor: playing ? colors.edge : darker(colors.accent) }}>
+        style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.m, borderRadius: radius.card, backgroundColor: playing ? colors.panel : colors.accent, ...(playing ? raised(colors) : { shadowColor: colors.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } }) }}>
         <View style={{ borderRadius: radius.tile, overflow: 'hidden', borderWidth: 3, borderColor: playing ? colors.panel2 : 'rgba(255,255,255,0.4)' }}>
           <BoardPreview th={preview} width={92} radius={13} />
         </View>
@@ -206,4 +207,4 @@ export function PlayScreen() {
   );
 }
 
-const tileStyle = (colors: ReturnType<typeof useColors>) => ({ flex: 1, minWidth: 0, padding: space.m, paddingHorizontal: space.l, borderRadius: radius.tile, backgroundColor: colors.panel, borderBottomWidth: lip.tile, borderBottomColor: colors.edge });
+const tileStyle = (colors: ReturnType<typeof useColors>) => ({ flex: 1, minWidth: 0, padding: space.m, paddingHorizontal: space.l, borderRadius: radius.tile, backgroundColor: colors.panel, ...raised(colors, 'low') });

@@ -12,9 +12,8 @@ import { radius, space } from '../../theme/tokens';
 import { useColors } from '../../theme/useColors';
 import { Button } from '../../ui/Button';
 import { ask } from '../../ui/dialog';
-import { Icon } from '../../ui/Icon';
 import { KindIcon } from '../../ui/KindIcon';
-import { Sheet } from '../../ui/Sheet';
+import { Sheet, SheetHeader } from '../../ui/Sheet';
 import { StarRow } from '../../ui/Stars';
 import { Text } from '../../ui/Text';
 import { Coin } from '../../ui/Wallet';
@@ -61,13 +60,7 @@ function Content({ w, n, onClose, onPlay }: { w: string; n: number; onClose: () 
   };
   return (
     <View style={{ alignItems: 'stretch' }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={tr('Retour au monde')} onPress={onClose} hitSlop={8}
-          style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: colors.panel2, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="chevLeft" size={16} color={colors.text} />
-        </Pressable>
-        <Text variant="title" style={{ flex: 1, textTransform: 'uppercase' }}>{levelName(n)}</Text>
-      </View>
+      <SheetHeader title={levelName(n)} onClose={onClose} closeLabel={tr('Retour au monde')} />
       <View style={{ alignItems: 'center', marginTop: 4 }}>
         <Text variant="muted">{sub}</Text>
         <Text style={{ fontFamily: 'Baloo2-ExtraBold', fontSize: 18, marginTop: 6, marginBottom: 2, textAlign: 'center' }}>{LV.goalText(stage.goal)}</Text>

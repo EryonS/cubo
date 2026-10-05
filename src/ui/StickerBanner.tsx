@@ -43,7 +43,7 @@ export function StickerBannerHost() {
         entering={ZoomIn.duration(260)}
         exiting={FadeOut.duration(200)}
         accessibilityRole="alert"
-        style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, paddingVertical: 10, paddingHorizontal: 16, paddingRight: 20, borderRadius: radius.card, backgroundColor: '#fff3c4', borderWidth: 2, borderColor: '#f5b700', borderBottomWidth: 5, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, paddingVertical: 10, paddingHorizontal: 16, paddingRight: 20, borderRadius: radius.card, backgroundColor: '#fff3c4', borderWidth: 2, borderColor: '#f5b700', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
       >
         <StickerBadge page={head.page} color={stickerColor(head)} size={46} />
         <View>
