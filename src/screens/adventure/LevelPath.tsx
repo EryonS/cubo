@@ -26,7 +26,7 @@ function Disc({ n, open, done, boss, trial }: { n: number; open: boolean; done: 
   const colors = useColors();
   const r = boss ? 16 : trial ? 14 : 24;
   const w = boss ? 54 : 48;
-  const bg = !open || done ? colors.panel2 : colors.accent;
+  const bg = !open || done ? colors.panel : colors.accent;
   const ring = trial ? '#ffd166' : done ? colors.good : !open ? colors.hairline : 'transparent';
   return (
     <View style={{ width: w, height: 52 }}>

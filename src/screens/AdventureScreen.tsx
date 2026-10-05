@@ -21,10 +21,14 @@ import { nextAdventure } from '../state/progress';
 import { useGame } from '../state/store';
 import type { RootParams } from '../navigation/types';
 import { fonts } from '../theme/fonts';
-import { radius, space } from '../theme/tokens';
+import { lip, radius, space, TOUCH } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
 import { BoardPreview } from '../ui/BoardPreview';
+import { Counter } from '../ui/Counter';
 import { ask } from '../ui/dialog';
+import { ListRow } from '../ui/ListRow';
+import { ScreenHeader } from '../ui/ScreenHeader';
+import { Tap } from '../ui/Tap';
 import { Icon } from '../ui/Icon';
 import { Crown, LStar } from '../ui/Stars';
 import { Text } from '../ui/Text';
@@ -46,23 +50,13 @@ function worldGateText(w: string) {
     : tr`Il te faut ${M.worldGate(w)} étoiles pour ouvrir ce monde.`;
 }
 
-function StarPill({ value, size = 18 }: { value: string; size?: number }) {
-  const colors = useColors();
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: colors.panel2 }}>
-      <LStar size={size} on />
-      <Text variant="title" style={{ fontSize: size, lineHeight: size + 6 }}>{value}</Text>
-    </View>
-  );
-}
-
 function SquareBtn({ icon, label, onPress, disabled }: { icon: 'chevLeft' | 'chevRight'; label: string; onPress: () => void; disabled?: boolean }) {
   const colors = useColors();
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} hitSlop={6}
-      style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 10, backgroundColor: colors.panel2, alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.35 : 1, transform: [{ scale: pressed ? 0.92 : 1 }] })}>
+    <Tap label={label} disabled={disabled} onPress={onPress} quiet
+      style={{ width: TOUCH, height: TOUCH, borderRadius: radius.s + 4, backgroundColor: colors.panel, borderBottomWidth: lip.tile, borderBottomColor: colors.edge, alignItems: 'center', justifyContent: 'center' }}>
       <Icon name={icon} size={16} color={colors.text} />
-    </Pressable>
+    </Tap>
   );
 }
 
@@ -73,11 +67,11 @@ function WorldTile({ w, picked, onPick }: { w: string; picked: boolean; onPick: 
   const open = M.worldOpen(profile, w);
   return (
     <Pressable accessibilityRole="tab" accessibilityState={{ selected: picked }} onPress={onPick}
-      style={({ pressed }) => ({ width: 82, padding: 4, paddingBottom: 6, borderRadius: radius.card - 2, backgroundColor: picked ? colors.panel : colors.panel2, borderWidth: 3, borderColor: picked ? colors.accent : 'transparent', alignItems: 'center', transform: [{ scale: pressed ? 0.95 : 1 }] })}>
-      <View style={{ opacity: open ? 1 : 0.5 }}><BoardPreview th={th} width={66} radius={radius.card - 8} /></View>
-      <Text numberOfLines={1} style={{ fontFamily: fonts.display, fontSize: 13, lineHeight: 18, marginTop: 4 }}>{WD.WORLDS[w].name}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, height: 16 }}>
-        {open ? <><LStar size={11} on /><Text variant="muted" style={{ fontSize: 12 }}>{M.worldStars(profile, w)}</Text></> : <Icon name="lock" size={12} color={colors.muted} />}
+      style={({ pressed }) => ({ width: 88, padding: space.xs, paddingBottom: space.s, borderRadius: radius.tile, backgroundColor: colors.panel, borderWidth: 3, borderColor: picked ? colors.accent : 'transparent', borderBottomWidth: 3 + lip.tile, borderBottomColor: picked ? colors.accent : colors.edge, alignItems: 'center', transform: [{ scale: pressed ? 0.95 : 1 }] })}>
+      <View style={{ opacity: open ? 1 : 0.5 }}><BoardPreview th={th} width={74} radius={radius.s} /></View>
+      <Text variant="caption" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: fonts.display, color: colors.text, marginTop: space.xs }}>{WD.WORLDS[w].name}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xxs, height: 16 }}>
+        {open ? <><LStar size={11} on /><Text variant="caption">{M.worldStars(profile, w)}</Text></> : <Icon name="lock" size={12} color={colors.muted} />}
       </View>
       {M.worldMastered(profile, w) && <View style={{ position: 'absolute', top: 2, right: 2 }} accessibilityLabel={tr('Monde maîtrisé')}><Crown size={18} /></View>}
     </Pressable>
@@ -131,33 +125,26 @@ export function AdventureScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: space.l, paddingTop: 8, paddingBottom: 6 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={tr('Retour')} onPress={() => { sfx.turn(); nav.goBack(); }} hitSlop={8}
-          style={({ pressed }) => ({ width: 38, height: 38, borderRadius: 10, backgroundColor: colors.panel, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.92 : 1 }] })}>
-          <Icon name="chevLeft" size={16} color={colors.text} />
-        </Pressable>
-        <Text variant="title" style={{ flex: 1, fontSize: 28, lineHeight: 34, textTransform: 'uppercase' }}>{tr('Aventure')}</Text>
-        <StarPill value={fmt(M.totalStars(profile))} />
+      <View style={{ paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: space.m }}>
+        <ScreenHeader title={tr('Aventure')} back={() => { sfx.turn(); nav.goBack(); }}
+          right={<Counter icon={<LStar size={18} on />} value={fmt(M.totalStars(profile))} label={tr`${M.totalStars(profile)} étoiles`} />} />
       </View>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: space.l, paddingVertical: 6 }} style={{ marginBottom: 8, flexGrow: 0 }} accessibilityRole="tablist">
+      <ScrollView contentContainerStyle={{ paddingBottom: space.xl }}>
+        <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.s, paddingHorizontal: space.l, paddingBottom: space.xs }} style={{ marginBottom: space.l, flexGrow: 0 }} accessibilityRole="tablist">
           {M.WORLD_ORDER.map((id) => <WorldTile key={id} w={id} picked={id === w} onPick={() => { if (id !== w) { sfx.turn(); go(id); } }} />)}
         </ScrollView>
         <GestureDetector gesture={swipe}>
-          <Animated.View key={w} entering={dir ? Enter.duration(240) : undefined} style={{ paddingHorizontal: space.l }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <Text variant="title" numberOfLines={1} style={{ flex: 1, fontSize: 26, lineHeight: 32, textTransform: 'uppercase', letterSpacing: 0.5 }}>{rules.name}</Text>
-              {open ? <StarPill value={`${M.worldStars(profile, w)} / ${WORLD_MAX}`} size={16} />
-                : <Icon name="lock" size={18} color={colors.muted} />}
+          <Animated.View key={w} entering={dir ? Enter.duration(240) : undefined} style={{ paddingHorizontal: space.l, gap: space.m }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="title" accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 26, textTransform: 'uppercase', letterSpacing: 0.5 }}>{rules.name}</Text>
+                {open ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}><LStar size={14} on /><Text variant="muted">{`${M.worldStars(profile, w)} / ${WORLD_MAX}`}</Text></View>
+                  : <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}><Icon name="lock" size={14} color={colors.muted} /><Text variant="muted">{tr('Verrouillé')}</Text></View>}
+              </View>
               <SquareBtn icon="chevLeft" label={tr('Monde précédent')} disabled={i === 0} onPress={() => step(-1)} />
               <SquareBtn icon="chevRight" label={tr('Monde suivant')} disabled={i === M.WORLD_ORDER.length - 1} onPress={() => step(1)} />
             </View>
-            {!open && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, marginBottom: 10, borderRadius: radius.card - 6, backgroundColor: colors.panel2 }}>
-                <Icon name="lock" size={18} color={colors.muted} />
-                <Text variant="muted" style={{ flex: 1, fontSize: 14 }}>{worldGateText(w)}</Text>
-              </View>
-            )}
+            {!open && <ListRow title={worldGateText(w)} icon={<Icon name="lock" size={18} color={colors.muted} />} />}
             <View style={{ opacity: open ? 1 : 0.55 }}><Rules w={w} /></View>
             {open && <Chests w={w} />}
             <LevelPath w={w} locked={!open} onPick={(n) => { setPick({ w, n }); sheetRef.current?.present(); }} />

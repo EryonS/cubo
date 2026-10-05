@@ -1,14 +1,14 @@
 // Compte block in Réglages (legacy renderAccount). Hidden until the Firebase config is filled.
 import { useSyncExternalStore } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { tr } from '../core/i18n';
-import { sfx } from '../audio/engine';
 import { accountInfo, deleteCloudAccount, signInWith, signOutCloud, subscribeAccount, syncedLabel } from '../game/account';
 import { available } from '../platform/cloud';
-import { radius, space } from '../theme/tokens';
+import { space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
 import { Icon } from './Icon';
+import { ListRow } from './ListRow';
 import { Text } from './Text';
 
 function GoogleMark() {
@@ -34,42 +34,22 @@ export function AccountBlock() {
   const colors = useColors();
   const info = useSyncExternalStore(subscribeAccount, accountInfo, accountInfo);
   if (!available()) return null;
-  const row = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, marginTop: space.s, paddingVertical: 12, paddingHorizontal: 14, borderRadius: radius.card - 4, backgroundColor: colors.panel2 };
   if (!info) {
     return (
-      <View>
-        <Text variant="muted" style={{ fontSize: 13, marginTop: space.s, marginBottom: 4 }}>{tr('Retrouve ta progression sur tous tes appareils.')}</Text>
-        <Pressable accessibilityRole="button" onPress={() => { sfx.turn(); void signInWith('google'); }} style={row}>
-          <GoogleMark />
-          <Text style={{ fontSize: 16, flex: 1 }}>{tr('Continuer avec Google')}</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => { sfx.turn(); void signInWith('apple'); }} style={row}>
-          <AppleMark color={colors.text} />
-          <Text style={{ fontSize: 16, flex: 1 }}>{tr('Continuer avec Apple')}</Text>
-        </Pressable>
+      <View style={{ gap: space.s }}>
+        <Text variant="muted" style={{ marginHorizontal: space.xs }}>{tr('Retrouve ta progression sur tous tes appareils.')}</Text>
+        <ListRow title={tr('Continuer avec Google')} icon={<GoogleMark />} onPress={() => { void signInWith('google'); }} />
+        <ListRow title={tr('Continuer avec Apple')} icon={<AppleMark color={colors.text} />} onPress={() => { void signInWith('apple'); }} />
       </View>
     );
   }
   const by = info.provider === 'apple' ? tr('Connecté avec Apple') : tr('Connecté avec Google');
   return (
-    <View>
-      <View style={row}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16 }}>{by}</Text>
-          <Text variant="muted" style={{ fontSize: 12 }}>{info.email ? `${info.email} · ${syncedLabel()}` : syncedLabel()}</Text>
-        </View>
-      </View>
-      <Pressable accessibilityRole="button" onPress={() => { sfx.turn(); void signOutCloud(); }} style={row}>
-        <Text style={{ fontSize: 16, flex: 1 }}>{tr('Se déconnecter')}</Text>
-        <Icon name="chevRight" size={16} color={colors.accent} />
-      </Pressable>
-      <Pressable accessibilityRole="button" onPress={() => { sfx.turn(); void deleteCloudAccount(); }} style={row}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, color: colors.danger }}>{tr('Supprimer mon compte')}</Text>
-          <Text variant="muted" style={{ fontSize: 12 }}>{tr('Efface ta sauvegarde en ligne')}</Text>
-        </View>
-        <Icon name="chevRight" size={16} color={colors.danger} />
-      </Pressable>
+    <View style={{ gap: space.s }}>
+      <ListRow title={by} sub={info.email ? `${info.email} · ${syncedLabel()}` : syncedLabel()} />
+      <ListRow title={tr('Se déconnecter')} right="chevron" onPress={() => { void signOutCloud(); }} />
+      <ListRow title={tr('Supprimer mon compte')} sub={tr('Efface ta sauvegarde en ligne')} onPress={() => { void deleteCloudAccount(); }}
+        right={<Icon name="chevRight" size={16} color={colors.danger} />} />
     </View>
   );
 }

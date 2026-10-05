@@ -2,7 +2,8 @@
 import { View } from 'react-native';
 import { LV, M, WD } from '../../core';
 import { tr } from '../../core/i18n';
-import { radius } from '../../theme/tokens';
+import { fonts } from '../../theme/fonts';
+import { lip, radius, space } from '../../theme/tokens';
 import { useColors } from '../../theme/useColors';
 import { KindIcon } from '../../ui/KindIcon';
 import { Text } from '../../ui/Text';
@@ -10,9 +11,9 @@ import { Text } from '../../ui/Text';
 function Row({ sign, bg, children }: { sign: string; bg: string; children: React.ReactNode }) {
   const colors = useColors();
   return (
-    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start', padding: 10, paddingHorizontal: 11, borderRadius: radius.card - 6, backgroundColor: colors.panel2 }}>
-      <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#fff', fontSize: 17, lineHeight: 22 }}>{sign}</Text>
+    <View style={{ flexDirection: 'row', gap: space.m, alignItems: 'center', paddingVertical: space.m, paddingHorizontal: space.l, borderRadius: radius.tile, backgroundColor: colors.panel, borderBottomWidth: lip.tile, borderBottomColor: colors.edge }}>
+      <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: '#fff', fontSize: 18, lineHeight: 22 }}>{sign}</Text>
       </View>
       <View style={{ flex: 1 }}>{children}</View>
     </View>
@@ -23,16 +24,16 @@ export function Rules({ w }: { w: string }) {
   const colors = useColors();
   const rules = WD.WORLDS[w];
   const tw = rules.twist;
-  const t = (s: string) => <Text style={{ fontSize: 14, lineHeight: 18 }}>{s}</Text>;
+  const t = (s: string) => <Text variant="muted" style={{ color: colors.text }}>{s}</Text>;
   return (
-    <View style={{ gap: 6, marginBottom: 14 }}>
+    <View style={{ gap: space.s }}>
       <Row sign="+" bg={colors.good}>{t(rules.plus)}</Row>
-      <Row sign="−" bg="#ff5d7a">{t(rules.minus)}</Row>
+      <Row sign="−" bg={colors.danger}>{t(rules.minus)}</Row>
       {tw && LV.TWISTS[w] && (
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', padding: 9, paddingHorizontal: 11, borderRadius: radius.card - 6, backgroundColor: colors.panel2 }}>
+        <View style={{ flexDirection: 'row', gap: space.m, alignItems: 'center', paddingVertical: space.m, paddingHorizontal: space.l, borderRadius: radius.tile, backgroundColor: colors.panel, borderBottomWidth: lip.tile, borderBottomColor: colors.edge }}>
           <KindIcon kind={LV.TWISTS[w].kind} size={32} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, lineHeight: 18, color: colors.accent, fontFamily: 'Baloo2-ExtraBold' }}>{tr`Dès le niveau ${M.TRIAL_LEVEL + 1} : ${tw.name}`}</Text>
+            <Text variant="body" style={{ color: colors.accent, fontFamily: fonts.display }}>{tr`Dès le niveau ${M.TRIAL_LEVEL + 1} : ${tw.name}`}</Text>
             {t(tw.text)}
           </View>
         </View>
