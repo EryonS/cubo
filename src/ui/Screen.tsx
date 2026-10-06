@@ -1,8 +1,9 @@
-// A screen: theme background, safe area on top (and bottom for stack screens, the tab bar covers it on
-// tabs), the header, then the content scrolling with the 16 pt gutter and 12 pt between blocks.
+// A screen: theme background, safe area on top, the header, then the content scrolling with the 16 pt
+// gutter and 12 pt between blocks. Stack screens scroll under the home indicator / Android button bar
+// and end with its height; on tabs the tab bar covers it.
 import type { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
 import { ScreenHeader } from './ScreenHeader';
@@ -19,11 +20,12 @@ type Props = {
 
 export function Screen({ children, title, back, lead, right, scroll = true, tab = !back }: Props) {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const header = title !== undefined ? <ScreenHeader title={title} back={back} lead={lead} right={right} /> : null;
   return (
-    <SafeAreaView edges={tab ? ['top'] : ['top', 'bottom']} style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView edges={tab || scroll ? ['top'] : ['top', 'bottom']} style={{ flex: 1, backgroundColor: colors.bg }}>
       {scroll ? (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: space.xl, gap: space.m }}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: space.xl + (tab ? 0 : insets.bottom), gap: space.m }}>
           {header}
           {children}
         </ScrollView>

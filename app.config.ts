@@ -47,6 +47,8 @@ const config: ExpoConfig = {
     ['expo-tracking-transparency', {
       userTrackingPermission: 'Your choice only changes which ads you see when you watch one for a reward. Cubo Blocks works the same either way.',
     }],
+    // Android 3-button bar: no white contrast scrim over the game; App.tsx sets the button color per theme.
+    ['expo-navigation-bar', { enforceContrast: false }],
     'expo-apple-authentication',
     'expo-web-browser',
   ],

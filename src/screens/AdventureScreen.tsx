@@ -8,7 +8,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { M, WD } from '../core';
 import { locale, tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
@@ -83,6 +83,7 @@ export function AdventureScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootParams>>();
   const route = useRoute<RouteProp<RootParams, 'Adventure'>>();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const profile = useGame((s) => s.profile);
   const [w, setW] = useState(() => route.params?.world ?? nextAdventure(profile)?.[0] ?? lastOpenWorld(profile));
   const [dir, setDir] = useState(0);
@@ -130,7 +131,7 @@ export function AdventureScreen() {
         <ScreenHeader title={tr('Aventure')} back={() => { sfx.turn(); nav.goBack(); }}
           right={<Counter icon={<LStar size={18} on />} value={fmt(M.totalStars(profile))} label={tr`${M.totalStars(profile)} étoiles`} />} />
       </View>
-      <ScrollView contentContainerStyle={{ paddingBottom: space.xl }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: space.xl + insets.bottom }}>
         <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.s, paddingHorizontal: space.l, paddingBottom: space.xs }} style={{ marginBottom: space.l, flexGrow: 0 }} accessibilityRole="tablist">
           {M.WORLD_ORDER.map((id) => <WorldTile key={id} w={id} picked={id === w} onPick={() => { if (id !== w) { sfx.turn(); go(id); } }} />)}
         </ScrollView>

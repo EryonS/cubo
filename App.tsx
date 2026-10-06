@@ -1,11 +1,12 @@
 // Cubo Blocks — Root: gestures, safe area, navigation. The language is already set (index.ts).
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { StatusBar } from 'expo-status-bar';
+import { NavigationBar } from 'expo-navigation-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { wireAudio } from './src/audio/engine';
@@ -17,15 +18,7 @@ import { AskHost } from './src/ui/dialog';
 import { SyncChoiceHost } from './src/ui/SyncChoice';
 import { ToastHost } from './src/ui/Toast';
 import { StickerBannerHost } from './src/ui/StickerBanner';
-import { colorsFor } from './src/theme/useColors';
-
-const darkBg = (hex: string) => {
-  const n = Number.parseInt(hex.slice(1), 16);
-  const r = (n >> 16) & 255;
-  const g = (n >> 8) & 255;
-  const b = n & 255;
-  return r * 0.299 + g * 0.587 + b * 0.114 < 150;
-};
+import { colorsFor, darkBg } from './src/theme/useColors';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -48,6 +41,8 @@ export default function App() {
         <BottomSheetModalProvider>
           <NavigationContainer theme={theme} initialState={firstGame ? { index: 1, routes: [{ name: 'Tabs' }, { name: 'Game' }] } : undefined} onReady={() => SplashScreen.hideAsync().catch(() => {})}>
             <StatusBar style={darkBg(menu.bg) ? 'light' : 'dark'} />
+            {/* Android button bar: style is the buttons' color, as for the status bar. */}
+            {Platform.OS === 'android' && <NavigationBar style={darkBg(menu.bg) ? 'light' : 'dark'} hidden={false} />}
             <RootNavigator />
           </NavigationContainer>
           <StickerBannerHost />

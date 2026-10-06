@@ -6,14 +6,16 @@
 // thread, so it stays glued to the finger even when the JS thread is busy (see the spec, Rendering).
 // The HUD buttons, the pause / missions / legend sheets and the end card are React Native.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, AppState, BackHandler, Pressable, View, type LayoutChangeEvent } from 'react-native';
+import { AccessibilityInfo, AppState, BackHandler, Platform, Pressable, View, type LayoutChangeEvent } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { NavigationBar } from 'expo-navigation-bar';
 import { Canvas, Group, Picture, Skia, type SkPicture, type SkTypeface } from '@shopify/react-native-skia';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, useAnimatedStyle, useDerivedValue, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CommonActions, useFocusEffect, useNavigation } from '@react-navigation/native';
+import { CommonActions, useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { L, M } from '../core';
 import { locale, tr } from '../core/i18n';
@@ -49,7 +51,7 @@ import { haptic } from '../platform/haptics';
 import type { RootParams } from '../navigation/types';
 import { radius, space } from '../theme/tokens';
 import { raised } from '../theme/elevation';
-import { useColors } from '../theme/useColors';
+import { darkBg, useColors } from '../theme/useColors';
 import { fonts } from '../theme/fonts';
 import { ask, asking } from '../ui/dialog';
 import { Icon } from '../ui/Icon';
@@ -110,6 +112,7 @@ function Badge({ children, color }: { children: React.ReactNode; color?: string 
 export function GameScreen() {
   const colors = useColors();
   const nav = useNavigation<NativeStackNavigationProp<RootParams>>();
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const typeface = useBaloo();
   const pixel = usePixel();
@@ -549,6 +552,10 @@ export function GameScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} onLayout={onLayout}>
+      {/* While the board is on screen: status bar text for the played theme, Android button bar hidden
+          (a swipe from the bottom shows it). */}
+      {isFocused && <StatusBar style={darkBg(th.base) ? 'light' : 'dark'} />}
+      {isFocused && Platform.OS === 'android' && <NavigationBar hidden />}
       {lay && background && (
         <GestureDetector gesture={pan}>
           <Canvas style={{ flex: 1 }}>

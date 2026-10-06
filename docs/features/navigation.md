@@ -18,6 +18,8 @@ Status: shipped (2026-09-30, UI/UX audit)
 - **Dialogs**: `ask({ title, text, ok, danger })` (`src/ui/dialog.tsx`, a native Modal, promise based). `guardFree` (`src/game/modes.ts`) tells when to ask before dropping a run in progress.
 - Close rules: stack screens have a back arrow (`src/ui/ScreenHeader.tsx`) that goes up one level (level sheet > world > map); the game's Menu goes back to the hubs.
 
+**Android** (2026-10-06): the back button closes the sheet on top (`ui/Sheet.tsx`), opens the pause on the board (`GameScreen`; nothing during the tutorial or under a result card), pops stack screens and goes back to Jouer from the other tabs (React Navigation). The button bar has no contrast scrim (`expo-navigation-bar` plugin, `enforceContrast: false`); its buttons follow the menu theme (`App.tsx`) and it is hidden while the board is on screen (a swipe shows it). The status bar follows the played theme on the board. Stack screens scroll under the bar and end with its height (`ui/Screen.tsx`).
+
 ## Files
 - `src/navigation/RootNavigator.tsx`, `src/navigation/types.ts`: tab bar and stack routes.
 - `src/ui/dialog.tsx` (`ask`), `src/ui/Screen.tsx`, `src/ui/ScreenHeader.tsx`, `src/ui/Sheet.tsx`, `src/screens/PlayScreen.tsx` (Jouer), `src/screens/DefisScreen.tsx`.
