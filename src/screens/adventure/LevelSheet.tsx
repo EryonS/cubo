@@ -65,7 +65,7 @@ function Content({ w, n, onClose, onPlay }: { w: string; n: number; onClose: () 
         <Text variant="muted">{sub}</Text>
         <Text style={{ fontFamily: 'Baloo2-ExtraBold', fontSize: 18, marginTop: 6, marginBottom: 2, textAlign: 'center' }}>{LV.goalText(stage.goal)}</Text>
         {typeof stage.boss === 'object' && note(tr`Il a ${stage.goal.target} PV : chaque ligne qui le traverse lui en retire 2. Tous les ${stage.boss.every} coups, il riposte en posant ${stage.boss.count > 1 ? stage.boss.count + ' ' + LV.KIND_NAMES[stage.boss.kind] : tr('un obstacle')}.`)}
-        {n === M.TRIAL_LEVEL && note(tr('Un niveau plus corsé au milieu du monde, mieux payé.'))}
+        {n === M.TRIAL_LEVEL && note(tr('Un niveau plus dur au milieu du monde. Il rapporte plus de pièces.'))}
         {stage.twist && rules.twist && (
           <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginTop: 10, maxWidth: 300, padding: 9, paddingHorizontal: 11, borderRadius: radius.card - 6, backgroundColor: colors.panel2 }}>
             <KindIcon kind={stage.twist.kind} size={28} />

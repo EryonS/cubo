@@ -33,7 +33,7 @@ function Content({ onClose }: { onClose: () => void }) {
         </View>
       ))}
       <Text variant="muted" style={{ fontSize: 12, lineHeight: 17, marginTop: 4 }}>
-        {tr("Efface un bloc qui porte une icône pour la ramasser. Les bonus vont dans ta barre (2 max par type), les pièces dans ton porte-monnaie. Une forme ne te plaît pas ? Maintiens-la tout en bas pour la jeter : 10 pièces, puis 5 de plus à chaque fois dans la partie. Un chrono se cumule sur deux utilisations et s'arrête quand un menu est ouvert. Améliore tes bonus dans la Boutique, onglet Bonus.")}
+        {tr('Efface un bloc qui porte une icône pour la ramasser. Les bonus vont dans ta barre (2 max par type), les pièces dans ton porte-monnaie. Une forme ne te plaît pas ? Maintiens-la tout en bas pour la jeter : 10 pièces, puis 5 de plus à chaque fois dans la partie. Un bonus à durée se cumule jusqu’à deux fois, et son chrono s’arrête quand un menu est ouvert. Améliore tes bonus dans la Boutique, onglet Bonus.')}
       </Text>
     </View>
   );

@@ -114,7 +114,7 @@ export function DefisScreen() {
       <DayCard day={pick.day} onPlay={() => { sfx.turn(); go(pick.day); }} />
       <StreakBlock />
       <MissionList status={missionStatus()} />
-      <Text variant="caption" style={{ marginHorizontal: space.xs }}>{tr('Elles avancent dans tous les modes. Trois nouvelles chaque jour.')}</Text>
+      <Text variant="caption" style={{ marginHorizontal: space.xs }}>{tr('Les missions avancent dans tous les modes. Trois nouvelles chaque jour.')}</Text>
     </Screen>
   );
 }

@@ -42,7 +42,7 @@ export function Endless({ w, onPlay }: { w: string; onPlay: () => void }) {
   return (
     <Card style={{ gap: space.xs, marginTop: space.s }}>
       <Text variant="headline">{tr('Partie sans fin')}</Text>
-      <Text variant="muted">{tr`Les règles de ${rules.name}, sans limite de coups. Chaque point rapporte une prime en pièces.` + note}</Text>
+      <Text variant="muted">{tr`Les règles de ${rules.name}, sans limite de coups. Plus tu marques, plus la prime en pièces grossit.` + note}</Text>
       <View style={{ flexDirection: 'row', gap: space.s, marginVertical: space.s }}>
         <Fact label={tr('Record')}><Text variant="headline">{fmt(best)}</Text></Fact>
         <Fact label={tr('Prime')}>

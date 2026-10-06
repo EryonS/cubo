@@ -17,7 +17,7 @@ function Content({ onClose }: { onClose: () => void }) {
     <View style={{ gap: space.m }}>
       <SheetHeader title={tr('Missions')} onClose={onClose} />
       <MissionList inset status={missionStatus()} />
-      <Text variant="caption">{tr('Elles avancent dans tous les modes. Trois nouvelles chaque jour.')}</Text>
+      <Text variant="caption">{tr('Les missions avancent dans tous les modes. Trois nouvelles chaque jour.')}</Text>
     </View>
   );
 }

@@ -92,7 +92,7 @@ function SurpriseCard() {
   };
   return (
     <ListRow big title={tr('Puzzle surprise')} onPress={go} quiet style={{ marginTop: space.s, opacity: open ? 1 : 0.7 }}
-      sub={open ? tr`Un dessin au hasard, ${PZ.SURPRISE_MIN} à ${PZ.SURPRISE_MAX} formes à placer toutes ensemble. Tu peux déplacer celles déjà posées.`
+      sub={open ? tr`Un dessin au hasard, avec ${PZ.SURPRISE_MIN} à ${PZ.SURPRISE_MAX} formes données d’un coup. Tu peux déplacer celles déjà posées.`
         : tr`Finis le pack ${PZ.PACKS[3].name} pour l’ouvrir : un dessin au hasard, toutes les formes d’un coup.`}
       icon={(
         <View style={{ width: 48, height: 48, borderRadius: radius.tile, backgroundColor: colors.panel2, alignItems: 'center', justifyContent: 'center' }}>

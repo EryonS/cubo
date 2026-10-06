@@ -15,13 +15,13 @@ export const LEVEL_NAMES: Record<string, string> = {
   get easy() { return tr('Facile'); }, get normal() { return tr('Normal'); }, get hard() { return tr('Difficile'); },
 };
 export const modeNote = (mode: string) => ({
-  classic: tr('Pose des formes sans limite de temps, jusqu’à ce que plus rien ne rentre.'),
-  chrono: tr('La partie tourne contre la montre : chaque ligne effacée rajoute du temps.'),
-  chill: tr('Touche une forme pour la tourner. Pas de bonus, pas de pression.'),
+  classic: tr('Prends ton temps : la partie s’arrête quand plus aucune forme ne rentre.'),
+  chrono: tr('Joue avant la fin du chrono : chaque ligne effacée te rend quelques secondes.'),
+  chill: tr('Touche une forme pour la faire tourner. Pas de chrono, pas de bonus : tu joues à ton rythme.'),
 } as Record<string, string>)[mode] || '';
 // The line under the mode on the home row and in the picker.
 export const modeSub = (mode: string) => ({
-  classic: tr('Sans limite'), chrono: tr('Contre la montre'), chill: tr('Rotation libre'),
+  classic: tr('Sans chrono'), chrono: tr('Contre la montre'), chill: tr('Rotation libre'),
 } as Record<string, string>)[mode] || '';
 
 // "Classique · Normal", or "Mondes · Glace".
@@ -33,10 +33,11 @@ export interface LevelInfo { kinds: string[]; pct: number; text: string }
 export function levelInfo(boardTheme: string, level: Level): LevelInfo {
   const obs = WD.freeObstacles(boardTheme, level);
   const pct = Math.round(M.DIFFICULTY_BONUS[obs.length] * 100);
-  if (!obs.length) return { kinds: [], pct, text: tr('<span>Aucun obstacle sur la grille. Normal en ajoute un (+20 % de pièces), Difficile deux (+50 %).</span>').replace(/<\/?span>/g, '') };
-  const names = obs.map((o) => LV.KIND_NAMES[o.kind]).join(tr(' et ')).replace(/^./, (c) => c.toUpperCase());
-  // The <b>…</b> part is shown bold (richText).
-  return { kinds: obs.map((o) => o.kind), pct, text: tr`${names} sur la grille (selon ton thème). <b>+${pct} % de pièces</b> en fin de partie.` };
+  if (!obs.length) return { kinds: [], pct, text: tr('<span>Pas d’obstacle et moins de grandes formes. Normal et Difficile ajoutent des obstacles et rapportent plus de pièces.</span>').replace(/<\/?span>/g, '') };
+  const names = obs.map((o) => LV.KIND_NAMES[o.kind]).join(tr(' et '));
+  // Difficile also brings big shapes sooner (logic LEVELS ramp). The <b>…</b> part is shown bold (richText).
+  const more = level === 'hard' ? tr('Plus de grandes formes. ') : '';
+  return { kinds: obs.map((o) => o.kind), pct, text: more + tr`Obstacles de ton thème : ${names}. <b>+${pct} % de pièces</b> en fin de partie.` };
 }
 
 // Splits "plain <b>bold</b> plain" into runs, for nested Text.

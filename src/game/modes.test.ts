@@ -15,15 +15,16 @@ test('modes and levels have names, notes and sub lines', () => {
 
 test('level info: Jouet has Plaine obstacles (crate, mole) and the coin bonus', () => {
   assert.deepEqual(levelInfo('toy', 'easy').kinds, []);
-  assert.match(levelInfo('toy', 'easy').text, /Aucun obstacle/);
+  assert.match(levelInfo('toy', 'easy').text, /Pas d’obstacle/);
   const normal = levelInfo('toy', 'normal');
   assert.deepEqual(normal.kinds, ['crate']);
   assert.equal(normal.pct, 20);
-  assert.match(normal.text, /Caisses sur la grille/);
+  assert.match(normal.text, /Obstacles de ton thème : caisses\./);
   const hard = levelInfo('toy', 'hard');
   assert.deepEqual(hard.kinds, ['crate', 'mole']);
   assert.equal(hard.pct, 50);
   assert.deepEqual(richRuns(hard.text).filter((r) => r.bold).map((r) => r.text), ['+50 % de pièces']);
+  assert.match(hard.text, /^Plus de grandes formes\. Obstacles de ton thème : caisses et taupes\./);
 });
 
 test('richRuns splits bold runs', () => {

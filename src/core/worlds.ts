@@ -48,17 +48,17 @@ const WORLDS: Record<string, WorldDef> = {
   plain: {
     name: tr('Plaine'),
     plus: tr('Plus de pièces sur les blocs'),
-    minus: tr('Aucun : le monde pour apprendre'),
+    minus: tr('Aucun piège : le monde idéal pour apprendre'),
     twist: { name: tr('Taupe'), text: tr("Une taupe sort de terre tous les 5 coups et repart après 4. Attrape-la dans une ligne : elle lâche une pièce.") },
     coinMul: 1.5,
   },
   sea: {
     name: tr('Sous-marin'),
-    plus: tr('Les bulles donnent un bonus quand elles éclatent'),
-    minus: tr('Tous les 10 coups, le courant décale une ligne'),
+    plus: tr('Une bulle effacée te donne un bonus'),
+    minus: tr('Tous les 10 coups, le courant fait glisser une ligne d’une case'),
     twist: { name: tr('Méduse'), text: tr("Les méduses dérivent d'une case tous les 2 coups.") },
     setup: scatter,
-    free: { setup: { kind: 'bubble', count: 3 }, every: 6, kind: 'bubble', note: tr('Partie sans fin : 3 bulles au départ, puis une nouvelle tous les 6 coups.') },
+    free: { setup: { kind: 'bubble', count: 3 }, every: 6, kind: 'bubble', note: tr('3 bulles au départ, puis une nouvelle tous les 6 coups.') },
     afterMove(state, api) {
       if (state.moves % 10) return [];
       const rows: number[] = [];
@@ -75,30 +75,30 @@ const WORLDS: Record<string, WorldDef> = {
   },
   space: {
     name: tr('Espace'),
-    plus: tr("L'Étoile tombe deux fois plus souvent"),
-    minus: tr('Tous les 7 coups, un astéroïde (2 coups pour le casser) tombe sur la grille'),
-    twist: { name: tr('Trou noir'), text: tr("Aucune ligne ne se complète à travers un trou noir. Il se referme après 8 coups.") },
+    plus: tr('Le bonus Étoile sort deux fois plus souvent'),
+    minus: tr('Tous les 7 coups, un astéroïde tombe sur la grille (2 lignes pour le casser)'),
+    twist: { name: tr('Trou noir'), text: tr('Une ligne qui passe sur un trou noir ne s’efface pas. Il disparaît après 8 coups.') },
     bonusWeights: { nitro: 2 },
     setup: scatter,
-    free: { setup: { kind: 'asteroid', count: 2 }, note: tr('Partie sans fin : 2 astéroïdes au départ, puis un tous les 7 coups.') },
+    free: { setup: { kind: 'asteroid', count: 2 }, note: tr('2 astéroïdes au départ, puis un tous les 7 coups.') },
     afterMove: dropEvery(7, 'asteroid'),
   },
   ice: {
     name: tr('Glace'),
-    plus: tr('Une ligne qui touche de la glace rapporte double'),
-    minus: tr('La glace se casse en 2 fois'),
+    plus: tr('Une ligne qui passe sur de la glace rapporte deux fois plus de points'),
+    minus: tr('Il faut 2 lignes pour casser un bloc de glace'),
     twist: { name: tr('Bonhomme de neige'), text: tr("Il faut 3 lignes pour faire fondre un bonhomme de neige.") },
     setup: scatter,
-    free: { setup: { kind: 'ice', count: 6 }, every: 8, kind: 'ice', note: tr('Partie sans fin : 6 blocs de glace au départ, puis un nouveau tous les 8 coups.') },
+    free: { setup: { kind: 'ice', count: 6 }, every: 8, kind: 'ice', note: tr('6 blocs de glace au départ, puis un nouveau tous les 8 coups.') },
     lineMul: (hit) => (touches(hit, 'ice') ? 2 : 1),
   },
   forest: {
     name: tr('Forêt'),
     plus: tr('Tous les 4 coups, une luciole dépose une pièce sur un bloc'),
     minus: tr('Tous les 8 coups, un champignon pousse sur une case vide'),
-    twist: { name: tr('Liane'), text: tr("Tous les 4 coups, une liane pousse sur une case voisine.") },
+    twist: { name: tr('Liane'), text: tr('Tous les 4 coups, une liane s’étend sur une case vide à côté.') },
     setup: scatter,
-    free: { setup: { kind: 'mushroom', count: 2 }, note: tr('Partie sans fin : 2 champignons au départ, puis un tous les 8 coups.') },
+    free: { setup: { kind: 'mushroom', count: 2 }, note: tr('2 champignons au départ, puis un tous les 8 coups.') },
     afterMove(state, api) {
       const out: WorldEvent[] = [];
       if (state.moves % 4 === 0) {
@@ -114,26 +114,26 @@ const WORLDS: Record<string, WorldDef> = {
   },
   retro: {
     name: tr('Rétro'),
-    plus: tr('Gravité : les blocs tombent et les lignes s’enchaînent en réaction'),
-    minus: tr('Écran 4 tons : les couleurs se ressemblent'),
-    twist: { name: tr('Bug'), text: tr("Les bugs se téléportent ailleurs tous les 3 coups.") },
+    plus: tr('Gravité : après chaque ligne, les blocs tombent et peuvent en effacer d’autres en chaîne'),
+    minus: tr('Écran à 4 couleurs : les blocs se ressemblent'),
+    twist: { name: tr('Bug'), text: tr('Tous les 3 coups, les bugs sautent sur une autre case.') },
     gravity: true,
   },
   arcade: {
     name: tr('Arcade'),
-    plus: tr('Tous les points ×1,5'),
-    minus: tr('Chrono permanent (les lignes rajoutent 3 s)'),
-    twist: { name: tr('Jeton'), text: tr("Un jeton se casse en 2 lignes et rend 4 secondes.") },
+    plus: tr('Tous les points comptent ×1,5'),
+    minus: tr('Un chrono tourne : chaque ligne effacée rajoute 3 s'),
+    twist: { name: tr('Jeton'), text: tr('Il faut 2 lignes pour casser un jeton. Il rajoute alors 4 s au chrono.') },
     scoreMul: 1.5,
-    free: { clock: 60000, note: tr('Partie sans fin : 60 s au départ, chaque ligne rajoute 3 s.') },
+    free: { clock: 60000, note: tr('60 s au départ, chaque ligne effacée rajoute 3 s.') },
   },
   volcano: {
     name: tr('Volcan'),
-    plus: tr('Une braise effacée explose en croix (ligne + colonne)'),
-    minus: tr('Tous les 6 coups, une braise tombe ; pas effacée en 8 coups, elle durcit en roche'),
-    twist: { name: tr('Lave'), text: tr("La lave tombe en haut de la grille et coule vers le bas.") },
+    plus: tr('Une braise effacée explose : toute sa ligne et sa colonne s’effacent'),
+    minus: tr('Tous les 6 coups, une braise tombe. Pas effacée en 8 coups, elle devient un rocher (2 lignes pour le casser)'),
+    twist: { name: tr('Lave'), text: tr('La lave apparaît en haut de la grille et coule vers le bas.') },
     setup: scatter,
-    free: { setup: { kind: 'ember', count: 1 }, note: tr('Partie sans fin : une braise au départ, puis une tous les 6 coups.') },
+    free: { setup: { kind: 'ember', count: 1 }, note: tr('Une braise au départ, puis une tous les 6 coups.') },
     afterMove: dropEvery(6, 'ember'),
   },
 };
@@ -141,7 +141,7 @@ const WORLDS: Record<string, WorldDef> = {
 // Not on the map: the October event's levels (levels.js eventLevel).
 WORLDS.halloween = {
   name: tr('Halloween'),
-  plus: tr('Une citrouille cassée lâche un sac de 5 pièces'),
+  plus: tr('Une citrouille cassée (2 lignes) lâche un sac de 5 pièces'),
   minus: tr('Tous les 6 coups, un fantôme apparaît ; il change de case tous les 2 coups'),
   setup: scatter,
   afterMove: dropEvery(6, 'ghost'),
@@ -185,8 +185,8 @@ function tide(state: RunState, api: WorldApi): WorldEvent[] {
 Object.assign(WORLDS, <Record<string, WorldDef>>{
   newyear: {
     name: tr('Nouvel An'),
-    plus: tr('Une fusée effacée explose en X sur ses diagonales'),
-    minus: tr('Chrono : minuit approche (les lignes rajoutent 3 s)'),
+    plus: tr('Une fusée effacée explose en X : ses deux diagonales s’effacent'),
+    minus: tr('Un chrono tourne jusqu’à minuit : chaque ligne effacée rajoute 3 s'),
     setup: scatter,
     afterMove: dropEvery(7, 'rocket'),
   },
@@ -213,8 +213,8 @@ Object.assign(WORLDS, <Record<string, WorldDef>>{
   },
   lunar: {
     name: tr('Nouvel An chinois'),
-    plus: tr('Les lanternes montent d’une case à chaque coup ; attrapée, une lanterne lâche une pièce'),
-    minus: tr('Tous les 6 coups, un pétard tombe ; pas effacé en 6 coups, il durcit en rocher'),
+    plus: tr('Les lanternes montent d’une case à chaque coup. Efface une lanterne : elle lâche une pièce'),
+    minus: tr('Tous les 6 coups, un pétard tombe. Pas effacé en 6 coups, il devient un rocher (2 lignes pour le casser)'),
     setup: scatter,
     afterMove(state, api) {
       const out = dropEvery(6, 'firecracker')(state, api);

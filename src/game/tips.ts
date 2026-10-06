@@ -56,7 +56,7 @@ export function modeTips(state: RunState) {
   if (state.mode === 'chrono') {
     tip('chrono', tr('Chrono'), tr('Le temps file ! Chaque ligne effacée te rend quelques secondes.'), 'chrono');
   } else if (state.mode === 'chill') {
-    tip('chill', tr('Chill'), tr('Touche une forme pour la tourner. Pas de bonus, pas de pression.'), 'tray');
+    tip('chill', tr('Chill'), tr('Touche une forme pour la faire tourner. Pas de chrono, pas de bonus : tu joues à ton rythme.'), 'tray');
   } else if (state.puzzle && state.puzzle.free) {
     tip('surprise', tr('Puzzle surprise'), tr('Toutes les formes sont là. Touche une forme pour la tourner, et reprends une forme déjà posée pour la déplacer.'), 'trayWide');
   } else if (state.mode === 'puzzle') {

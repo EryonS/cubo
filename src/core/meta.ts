@@ -733,8 +733,8 @@ const STICKERS: Sticker[] = [
   })),
   { id: 'stars120', page: 'collector', name: tr('120 étoiles'), hint: tr("Gagne 120 étoiles en Aventure"), test: (p) => totalStars(p) >= 120 },
   // Secret: name and hint stay hidden in the album until earned.
-  { id: 'bomb21', page: 'secret', secret: true, reward: 40, name: tr('Boum parfait'), hint: tr('Une Bombe fait sauter 21 blocs'), test: (p) => lt(p, 'bestBomb') >= 21 },
-  { id: 'clean3k', page: 'secret', secret: true, reward: 40, name: tr('Sans filet'), hint: tr('3 000 points sans annuler ni jeter'), test: (p) => lt(p, 'cleanScore') >= 3000 },
+  { id: 'bomb21', page: 'secret', secret: true, reward: 40, name: tr('Boum parfait'), hint: tr('Fais sauter 21 blocs avec une seule Bombe'), test: (p) => lt(p, 'bestBomb') >= 21 },
+  { id: 'clean3k', page: 'secret', secret: true, reward: 40, name: tr('Sans filet'), hint: tr('Fais 3 000 points sans annuler ni jeter de forme'), test: (p) => lt(p, 'cleanScore') >= 3000 },
   { id: 'perfect2', page: 'secret', secret: true, reward: 40, name: tr('Place nette'), hint: tr('Vide la grille 2 fois dans la même partie'), test: (p) => lt(p, 'bestPerfects') >= 2 },
   { id: 'hoard', page: 'secret', secret: true, reward: 40, name: tr('Coffre plein'), hint: tr('Garde 2 000 pièces en poche'), test: (p) => p.coins >= 2000 },
   { id: 'allmodes', page: 'secret', secret: true, reward: 40, name: tr('Curieux'), hint: tr('Joue en Classique, Chrono et Chill'), test: (p) => ['classic', 'chrono', 'chill'].every((m) => (((p.modes || {})[m] || {}).games || 0) > 0) },
