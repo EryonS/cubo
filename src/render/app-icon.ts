@@ -1,6 +1,6 @@
 // Cubo Blocks — The app icon of each theme: Cubo dressed for the theme, sitting on three blocks in the
 // theme's colors, over the theme's own background. Drawn by scripts/icons/app-icons.ts for the native
-// icons, and live in Réglages > Icône de l'app.
+// icons, and live in Paramètres > Icône de l'app.
 import { drawCubo } from '../mascot/body';
 import { cuboLookFor } from '../mascot/looks';
 import { boardTheme } from './board-themes';

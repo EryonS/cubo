@@ -1,4 +1,4 @@
-// Cubo Blocks — Picks the language: the player's choice (Réglages > Langue), else the device's.
+// Cubo Blocks — Picks the language: the player's choice (Paramètres > Langue), else the device's.
 // Runs before any core module is imported (index.ts): core tables call tr() as they load, so a
 // change saves the choice and reloads the app.
 import { DevSettings } from 'react-native';

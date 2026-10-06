@@ -1,6 +1,6 @@
 // Cubo Blocks — Sound on react-native-audio-api (WebAudio for React Native): the context, the Synth
 // behind sfx.ts and the music scheduler (legacy audio/sfx.js and audio/music.js, same synthesis).
-// Gated by Réglages > Sons / Musique; everything stops while the app is not in front.
+// Gated by Paramètres > Sons / Musique; everything stops while the app is not in front.
 import { AppState } from 'react-native';
 import { AudioContext, AudioManager, type AudioBuffer, type GainNode, type OscillatorNode } from 'react-native-audio-api';
 import { useGame } from '../state/store';
@@ -292,7 +292,7 @@ function retarget() {
   if (c && timer) freshSong(c);
 }
 
-// The game screen calls this with the run's theme while it is on screen (Pause and Réglages from
+// The game screen calls this with the run's theme while it is on screen (Pause and Paramètres from
 // the pause keep it), and null when back on the menus.
 export function musicScene(theme: string | null) {
   runTheme = theme;

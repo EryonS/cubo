@@ -1,4 +1,4 @@
-// Pause (legacy #pause): resume, start over, Réglages, Menu, quit.
+// Pause (legacy #pause): resume, start over, Paramètres, Menu, quit.
 import { forwardRef } from 'react';
 import { Pressable, View } from 'react-native';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
@@ -28,7 +28,7 @@ function Content({ onResume, onRestart, onSettings, onMenu, onQuit }: Actions & 
       <Button label={tr('Reprendre')} onPress={onResume} />
       {!noRestart && <Button kind="ghost" label={tr('Recommencer')} onPress={onRestart} />}
       <View style={{ flexDirection: 'row', gap: space.m }}>
-        <Button kind="ghost" label={tr('Réglages')} onPress={onSettings} style={{ flex: 1 }} />
+        <Button kind="ghost" label={tr('Paramètres')} onPress={onSettings} style={{ flex: 1 }} />
         <Button kind="ghost" label={tr('Menu')} onPress={onMenu} style={{ flex: 1 }} />
       </View>
       <Pressable accessibilityRole="button" onPress={onQuit} style={{ alignItems: 'center', padding: space.s }}>

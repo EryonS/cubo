@@ -100,6 +100,18 @@ export async function showRewarded(): Promise<boolean> {
   }
 }
 
+// At launch, without any form: whether Paramètres must offer the privacy options, so a consent can be
+// changed at any time, not only after an ad in this session.
+export async function checkPrivacy() {
+  try {
+    const { AdsConsent, AdsConsentPrivacyOptionsRequirementStatus } = await import('react-native-google-mobile-ads');
+    const info = await AdsConsent.requestInfoUpdate();
+    setPrivacy(info.privacyOptionsRequirementStatus === AdsConsentPrivacyOptionsRequirementStatus.REQUIRED);
+  } catch (err) {
+    if (__DEV__) console.warn(err);
+  }
+}
+
 export async function showPrivacyOptions() {
   try {
     const { AdsConsent } = await import('react-native-google-mobile-ads');

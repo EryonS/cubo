@@ -45,7 +45,7 @@ theme, else the equipped one).
 
 ## Hard rules
 - `src/core/` stays **pure**: no React, no native module, JSON-serializable state, seeded RNG only.
-- UI copy is written in **French** in the code and translated to English (device language by default, Réglages > Langue to change). A shape to place is a **forme** (EN "shape"), a **pièce** is always a coin. No emoji anywhere: draw icons with Skia or SVG paths (`ui/Icon.tsx`).
+- UI copy is written in **French** in the code and translated to English (device language by default, Paramètres > Langue to change). A shape to place is a **forme** (EN "shape"), a **pièce** is always a coin. No emoji anywhere: draw icons with Skia or SVG paths (`ui/Icon.tsx`).
 - Every player-facing string goes through `tr('…')` or `` tr`… ${x}` `` (core too), with its English in `src/i18n/en.ts` (key = French text). `npm run i18n` lists missing / unused keys. Dates and numbers use `locale()`, never a hard-coded `'fr-FR'`.
 - Any change to a saved shape (`cuboblocks.v2` run state, `cuboblocks.profile.v1` profile) needs a migration in `M.migrate` (or a default in `loadSaved`) + a test.
 - Menus go through the UI kit and tokens: soft shadows with `raised()`, no thick bottom borders. Check every theme (light, dark, Rétro). Visual work follows `DESIGN.md`; product scope follows `PRODUCT.md`.

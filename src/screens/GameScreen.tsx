@@ -286,7 +286,7 @@ export function GameScreen() {
     return () => sub.remove();
   }, []);
 
-  // Music: the played theme's song while the game is on screen (Réglages opened from the pause keeps it).
+  // Music: the played theme's song while the game is on screen (Paramètres opened from the pause keeps it).
   const focused = useRef(false);
   useEffect(() => { if (focused.current) musicScene(played); }, [played]);
   useFocusEffect(useCallback(() => {

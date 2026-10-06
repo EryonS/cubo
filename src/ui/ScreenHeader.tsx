@@ -12,7 +12,7 @@ import { Text } from './Text';
 
 type Props = { title: string; back?: boolean | (() => void); lead?: ReactNode; right?: ReactNode };
 
-// A square icon button on the header line (back, Réglages).
+// A square icon button on the header line (back, Paramètres).
 export function HeaderButton({ icon, size = 18, label, onPress }: { icon: IconName; size?: number; label: string; onPress: () => void }) {
   const colors = useColors();
   return (

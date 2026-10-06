@@ -1,4 +1,4 @@
-// Cubo Blocks — The home-screen icon (expo-alternate-app-icons): one per theme, chosen in Réglages.
+// Cubo Blocks — The home-screen icon (expo-alternate-app-icons): one per theme, chosen in Paramètres.
 // The system keeps the choice. Builds without the native module (an older dev client) have no choice.
 import { requireOptionalNativeModule } from 'expo';
 import { APP_ICONS, appIconName } from '../render/app-icon';

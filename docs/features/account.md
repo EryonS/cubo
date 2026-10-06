@@ -2,7 +2,7 @@
 Status: shipped, Firebase config filled (project `cubo-blocks`); not yet tried on a device
 
 ## What it does
-Optional. Profil > Sauvegarde en ligne links a Google or Apple account; the profile, settings, records (`bests`) and language then follow the player on every device (iOS, Android). Without an account nothing changes and saves stay on the device. The run in progress is never synced.
+Optional. Profil > Paramètres > Sauvegarde en ligne links a Google or Apple account; the profile, settings, records (`bests`) and language then follow the player on every device (iOS, Android). Without an account nothing changes and saves stay on the device. The run in progress is never synced.
 
 - Sign-in: no cloud copy → the device's is sent. Device with no progression (`isFresh`) → the account's is applied silently. Different → the choice dialog (`src/ui/SyncChoice.tsx`, `askSide`): two cards, then a confirm; the other side is replaced. Closing it at sign-in signs out again.
 - Signed in: every save to the MMKV keys (`src/state/persist.ts`) triggers a check 3 s later (`setOnSaved` hook, `src/platform/saved.ts`); if the synced parts differ from the last cloud copy seen, they are pushed. Pushed too when the app goes to the background or inactive (`AppState`). There is no `online` listener.
@@ -15,7 +15,7 @@ Optional. Profil > Sauvegarde en ligne links a Google or Apple account; the prof
 - `src/core/sync.ts`: pure rules (`payload`, `validate`, `tooNew`, `isFresh`, `summary`, `same`, `decide`), `src/core/sync.test.ts`.
 - `src/platform/cloud.ts`: Firebase JS SDK (lazy `import()`, React Native auth persistence on AsyncStorage), `CONFIG` (empty `apiKey` = feature hidden; `webClientId` / `iosClientId` for Google). Apple sign-in through `expo-apple-authentication` (iOS only, the Apple row is hidden on Android), Google through `@react-native-google-signin/google-signin` (native sheet, ID token whose audience is the Web client), then `signInWithCredential`. `src/platform/cloud-doc.ts` (`encodeDoc` / `decodeDoc`, test `cloud-doc.test.ts`).
 - `src/game/account.ts`: sign-in, push / pull, choice, sign-out, deletion (`signInWith`, `signOutCloud`, `deleteCloudAccount`, `syncedLabel`). `startAccount()` runs at launch from `App.tsx`.
-- `src/ui/AccountBlock.tsx`: Compte block on the Profil tab (`src/screens/ProfileScreen.tsx`), `src/ui/SyncChoice.tsx`: the choice dialog.
+- `src/ui/AccountBlock.tsx`: Compte block at the top of Paramètres (`src/screens/SettingsScreen.tsx`), `src/ui/SyncChoice.tsx`: the choice dialog.
 - `firestore.rules`.
 - Spec: `docs/superpowers/specs/2026-10-04-cloud-save-design.md`.
 

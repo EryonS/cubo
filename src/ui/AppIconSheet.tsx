@@ -1,4 +1,4 @@
-// Réglages > Icône de l'app: the icon of every theme in a grid. The owned themes' icons can be picked
+// Paramètres > Icône de l'app: the icon of every theme in a grid. The owned themes' icons can be picked
 // (the system keeps the choice); the others wait, dimmed and locked, for the Boutique or their event.
 import { forwardRef, useState } from 'react';
 import { Pressable, useWindowDimensions, View } from 'react-native';

@@ -1,4 +1,4 @@
-// Cubo Blocks — Vibrations on expo-haptics, gated by Réglages > Vibrations (legacy platform/haptics.js).
+// Cubo Blocks — Vibrations on expo-haptics, gated by Paramètres > Vibrations (legacy platform/haptics.js).
 import * as Haptics from 'expo-haptics';
 import { useGame } from '../state/store';
 import { HAPTICS, impactSchedule, linesPattern, type Impact, type Pattern } from './haptic-pattern';

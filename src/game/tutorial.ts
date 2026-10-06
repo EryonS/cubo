@@ -51,7 +51,7 @@ export function tutorialMoved(slot: number, moved: RunState) {
   }, 1900);
 }
 
-// Skip or "Continuer": the tutorial is seen, the run that was going on comes back (replay from Réglages),
+// Skip or "Continuer": the tutorial is seen, the run that was going on comes back (replay from Paramètres),
 // else a fresh game starts (fresh); the caller then shows the home menu.
 export function endTutorial(fresh: () => void) {
   const tut = tutor();

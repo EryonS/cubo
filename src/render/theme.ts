@@ -30,7 +30,7 @@ export interface Theme {
   paint?: Paint; // static background, recorded once per size
   animate?: Animate; // per-frame decor drawn over it
   skin?: string; // equipped block skin (classic, neon, pixel, gold)
-  patterns?: boolean; // color-blind marks on blocks (Réglages > Motifs)
+  patterns?: boolean; // color-blind marks on blocks (Paramètres > Motifs)
 }
 
 export const TOY: Theme = {

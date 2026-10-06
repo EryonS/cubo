@@ -23,6 +23,22 @@ const config: ExpoConfig = {
     // Signing team, so a prebuild keeps it in the Xcode project.
     appleTeamId: '853SGV2WKU',
     infoPlist: { ITSAppUsesNonExemptEncryption: false },
+    // Data the app's own code sends: the optional online save (Firebase JS SDK, which ships no
+    // manifest). AdMob declares its own in its pod. Keep in line with site/privacy.html and the
+    // App Store Connect privacy answers.
+    privacyManifests: {
+      NSPrivacyTracking: false,
+      NSPrivacyCollectedDataTypes: [
+        'NSPrivacyCollectedDataTypeEmailAddress',
+        'NSPrivacyCollectedDataTypeUserID',
+        'NSPrivacyCollectedDataTypeGameplayContent',
+      ].map((type) => ({
+        NSPrivacyCollectedDataType: type,
+        NSPrivacyCollectedDataTypeLinked: true,
+        NSPrivacyCollectedDataTypeTracking: false,
+        NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+      })),
+    },
   },
   android: {
     package: IDENTITY.bundleId,
@@ -55,7 +71,7 @@ const config: ExpoConfig = {
     // Android 3-button bar: no white contrast scrim over the game; App.tsx sets the button color per theme.
     ['expo-navigation-bar', { enforceContrast: false }],
     'expo-apple-authentication',
-    // One home-screen icon per theme (Réglages > Icône de l'app), drawn by scripts/icons/app-icons.ts.
+    // One home-screen icon per theme (Paramètres > Icône de l'app), drawn by scripts/icons/app-icons.ts.
     // Jouet is the app's own icon.
     ['expo-alternate-app-icons', ALT_ICONS.map((id) => ({
       name: id[0].toUpperCase() + id.slice(1), // appIconName in render/app-icon.ts

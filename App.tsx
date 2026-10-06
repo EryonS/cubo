@@ -12,6 +12,7 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { wireAudio } from './src/audio/engine';
 import { preloadFonts } from './src/render/font';
 import { startAccount } from './src/game/account';
+import { checkPrivacy } from './src/platform/ads';
 import { M } from './src/core';
 import { startTutorial } from './src/game/tutorial';
 import { useGame } from './src/state/store';
@@ -31,7 +32,7 @@ if (firstGame) startTutorial();
 export default function App() {
   const menu = colorsFor(useGame((s) => s.profile.equipped.boards));
   const theme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: menu.bg, primary: menu.accent, card: menu.panel, text: menu.text } };
-  useEffect(() => { wireAudio(); startAccount(); }, []);
+  useEffect(() => { wireAudio(); startAccount(); void checkPrivacy(); }, []);
   // Back from the background past midnight: today's missions.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') useGame.getState().rollDay(); });

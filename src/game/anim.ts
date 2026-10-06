@@ -63,7 +63,7 @@ export const anim = {
   flagDownAt: 0, // when the record pennant started to topple
   lastT: 0, // previous frame (particle physics)
   calm: false, // reduced motion: no shake, punch, sweeps, confetti, wobble
-  mascot: true, // Réglages > Mascotte: Cubo stands on the board (set by the game screen every frame)
+  mascot: true, // Paramètres > Mascotte: Cubo stands on the board (set by the game screen every frame)
 };
 
 export function resetAnim(t: number, score: number, best: number) {

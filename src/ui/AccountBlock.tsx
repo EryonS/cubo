@@ -1,4 +1,4 @@
-// Compte block on the Profil tab (legacy renderAccount). Hidden until the Firebase config is filled.
+// Compte block at the top of Paramètres (legacy renderAccount). Hidden until the Firebase config is filled.
 import { useSyncExternalStore } from 'react';
 import { Platform, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';

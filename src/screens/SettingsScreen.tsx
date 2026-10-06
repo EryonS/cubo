@@ -1,28 +1,42 @@
-// Réglages (legacy #settings): sounds, music, vibrations, color-blind marks, the app icon, language,
-// and the ad-privacy row. The cloud account lives on the Profil tab.
+// Paramètres (legacy #settings): the cloud account (hidden until Firebase is configured), sounds, music,
+// vibrations, color-blind marks, the app icon, language, help and contact, the privacy policy and
+// ad-privacy rows, and the app version at the bottom.
 import { useRef, useState, useSyncExternalStore } from 'react';
-import { View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
+import * as Application from 'expo-application';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { M } from '../core';
-import { tr } from '../core/i18n';
+import { lang, tr } from '../core/i18n';
 import { langPref, setLangPref, type LangPref } from '../i18n/lang';
 import { sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
 import { startTutorial } from '../game/tutorial';
 import { appIcon, canChangeAppIcon } from '../platform/app-icon';
 import { privacyRequired, showPrivacyOptions, subscribePrivacy } from '../platform/ads';
+import { available } from '../platform/cloud';
 import type { Settings } from '../state/persist';
 import { useGame } from '../state/store';
 import { space } from '../theme/tokens';
+import { AccountBlock } from '../ui/AccountBlock';
 import { AppIconSheet, AppIconThumb } from '../ui/AppIconSheet';
 import { ListRow } from '../ui/ListRow';
 import { Screen } from '../ui/Screen';
 import { SectionLabel } from '../ui/SectionLabel';
 import { Segmented } from '../ui/Segmented';
+import { Text } from '../ui/Text';
 import { Toggle } from '../ui/Toggle';
 
 const LANGS: [LangPref, string][] = [['auto', 'Auto'], ['fr', 'Français'], ['en', 'English']];
+const CONTACT = 'contact@slapps.dev';
+// "1.0.0 (12)": store version and build number, as App Store Connect and Play show them.
+const VERSION = `${Application.nativeApplicationVersion ?? '?'} (${Application.nativeBuildVersion ?? '?'})`;
+
+const open = (url: string) => { Linking.openURL(url).catch(() => {}); };
+// The policy opens in the app's language (site/lang.js reads ?lang=).
+const openPolicy = () => open(`https://cuboblocks.app/privacy.html?lang=${lang()}`);
+// The subject carries the version and the system, for the reply.
+const openContact = () => open(`mailto:${CONTACT}?subject=${encodeURIComponent(`Cubo Blocks ${VERSION} · ${Platform.OS} ${Platform.Version}`)}`);
 
 function Row({ id, label, sub }: { id: keyof Settings; label: string; sub: string }) {
   const on = useGame((s) => s.saved.settings[id]);
@@ -42,7 +56,13 @@ export function SettingsScreen() {
   const iconRef = useRef<BottomSheetModal>(null);
   const [icon, setIcon] = useState(appIcon);
   return (
-    <Screen title={tr('Réglages')} back>
+    <Screen title={tr('Paramètres')} back>
+      {available() && (
+        <View style={{ gap: space.s }}>
+          <SectionLabel>{tr('Sauvegarde en ligne')}</SectionLabel>
+          <AccountBlock />
+        </View>
+      )}
       <View style={{ gap: space.s }}>
         <SectionLabel>{tr('Son')}</SectionLabel>
         <Row id="sfx" label={tr('Sons')} sub={tr('Effets du jeu')} />
@@ -64,8 +84,14 @@ export function SettingsScreen() {
         <SectionLabel>{tr('Aide')}</SectionLabel>
         <ListRow title={tr('Revoir le tutoriel')} sub={tr('Une partie guidée en 3 étapes')} right="chevron"
           onPress={() => { startTutorial(); nav.dispatch(CommonActions.reset({ index: 1, routes: [{ name: 'Tabs' }, { name: 'Game' }] })); }} />
-        {privacy && <ListRow title={tr('Confidentialité des pubs')} right="chevron" onPress={() => { void showPrivacyOptions(); }} />}
+        <ListRow title={tr('Nous contacter')} sub={CONTACT} right="chevron" onPress={openContact} />
       </View>
+      <View style={{ gap: space.s }}>
+        <SectionLabel>{tr('Confidentialité')}</SectionLabel>
+        <ListRow title={tr('Politique de confidentialité')} sub={tr('Les données utilisées, et pourquoi')} right="chevron" onPress={openPolicy} />
+        {privacy && <ListRow title={tr('Confidentialité des pubs')} sub={tr('Changer ton choix de consentement')} right="chevron" onPress={() => { void showPrivacyOptions(); }} />}
+      </View>
+      <Text variant="caption" style={{ textAlign: 'center' }} selectable>{tr`Cubo Blocks, version ${VERSION}`}</Text>
       {canChangeAppIcon && <AppIconSheet ref={iconRef} onPicked={setIcon} />}
     </Screen>
   );

@@ -5,7 +5,7 @@ import type { RunState } from '../core/types';
 
 export interface Tut {
   step: number;
-  saved: RunState | null; // the run that was going on when the tutorial was replayed from Réglages
+  saved: RunState | null; // the run that was going on when the tutorial was replayed from Paramètres
   t0: number; // when the step started (the hand waits a moment)
   doneAt: number; // when the step's last piece landed (0 = still going)
   mood: '' | 'nope' | 'yay';
