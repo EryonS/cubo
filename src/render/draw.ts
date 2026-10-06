@@ -380,17 +380,20 @@ export function drawHUD(g: G, th: Theme, lay: Layout, state: RunState, best: num
     lowMoves = !stage.clock && stage.movesLeft <= 3 && !state.over;
   }
   const subSize = g.fit(sub, 11, cw);
-  g.text(sub, cx, y + h * 0.34 + subSize * 0.35, subSize, p.sub, 'center');
+  // The combo tag hangs on the plate's bottom edge. The pair sits 8 px higher so the
+  // score (and "nouveau record") keeps a gap above it.
+  const lift = 8;
+  g.text(sub, cx, y + h * 0.34 - lift + subSize * 0.35, subSize, p.sub, 'center');
   if (stage && band.movesW) {
     // Moves left: same label-over-number shape as the goal, split off by a hairline.
     const mx = x + 10 + band.movesW / 2;
     const label = stage.movesLeft > 1 ? tr('COUPS') : tr('COUP');
     const ls = g.fit(label, 11, band.movesW - 8);
-    g.text(label, mx, y + h * 0.34 + ls * 0.35, ls, p.sub, 'center');
+    g.text(label, mx, y + h * 0.34 - lift + ls * 0.35, ls, p.sub, 'center');
     const num = String(stage.movesLeft);
     const a0 = g.alpha;
     g.alpha = a0 * (lowMoves ? 0.7 + 0.3 * Math.sin(t / 120) : 1);
-    g.text(num, mx, y + h - h * 0.14, g.fit(num, Math.round(h * 0.46), band.movesW - 8), lowMoves ? th.danger : p.ink, 'center');
+    g.text(num, mx, y + h - h * 0.14 - lift, g.fit(num, Math.round(h * 0.46), band.movesW - 8), lowMoves ? th.danger : p.ink, 'center');
     g.alpha = a0 * 0.25;
     g.rect(x + 10 + band.movesW, y + h * 0.2, 1.5, h * 0.6, p.sub);
     g.alpha = a0;
@@ -398,7 +401,7 @@ export function drawHUD(g: G, th: Theme, lay: Layout, state: RunState, best: num
   if (stage && stage.goal.type === 'boss') drawBossBar(g, state, cx - cw / 2 - 14, y, cw + 28, h, t);
   else {
     if (p.glow) g.textGlow = { color: p.glow, blur: 12 };
-    g.text(main, cx, y + h - h * 0.14, g.fit(main, Math.round(h * (stage || state.puzzle ? 0.46 : 0.56) * bump), cw), p.ink, 'center');
+    g.text(main, cx, y + h - h * 0.14 - lift, g.fit(main, Math.round(h * (stage || state.puzzle ? 0.46 : 0.56) * bump), cw), p.ink, 'center');
     g.textGlow = null;
   }
 }

@@ -30,7 +30,9 @@ Fichiers installables écrits dans `output/` (ignoré par git), nommés `cubo-<v
   l'installer à la main). Demande JDK 17 (`JAVA_HOME`) et le SDK Android (`ANDROID_HOME`). Installer : `adb install -r output/cubo-*.apk`,
   ou ouvrir le fichier sur le téléphone (sources inconnues autorisées).
 - `npm run build:ipa` : archive Release puis export `.ipa` en signature automatique (équipe lue dans le projet Xcode, ou
-  `TEAM_ID=...`). Il faut Xcode connecté au compte Apple (Settings > Accounts). Sans option : IPA de développement pour les
+  `TEAM_ID=...`). Signature : Xcode connecté au compte Apple (Settings > Accounts), ou, plus fiable depuis un terminal,
+  une clé API App Store Connect (Utilisateurs et accès > Intégrations, rôle Admin ou App Manager) passée par
+  `ASC_KEY_PATH=~/.keys/AuthKey_XXXX.p8 ASC_KEY_ID=XXXX ASC_ISSUER_ID=... npm run build:ipa` (le `.p8` reste hors du dépôt). Sans option : IPA de développement pour les
   appareils enregistrés. Options (`npm run build:ipa -- --adhoc`) : `--adhoc` (release-testing), `--store` (IPA App Store
   Connect pour TestFlight, à envoyer avec Transporter), `--archive` (s'arrête à l'archive). Installer : Apple Configurator,
   fenêtre Devices and Simulators de Xcode, ou `xcrun devicectl device install app --device <id> output/cubo-*.ipa`.

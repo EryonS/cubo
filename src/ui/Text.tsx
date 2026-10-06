@@ -2,9 +2,10 @@
 //
 // Baloo 2's line box is 1.6 em tall (ascent 1078, descent 524). When a style sets a tighter lineHeight,
 // iOS trims the line from the top, so the glyphs ride up out of their box (an 18 pt label in a 22 pt line
-// sits ~3 pt high). Every Text puts them back on center with a translate, which keeps the layout box as is.
+// sits ~3 pt high). iOS Text puts them back on center with a translate, which keeps the layout box as is.
+// Android already draws the glyphs on the line's center; the same translate sits every label low.
 import { createContext, useContext } from 'react';
-import { StyleSheet, Text as RNText, useWindowDimensions, type TextProps, type TextStyle } from 'react-native';
+import { Platform, StyleSheet, Text as RNText, useWindowDimensions, type TextProps, type TextStyle } from 'react-native';
 import { useColors } from '../theme/useColors';
 import { typeScale as scale, type TypeVariant } from '../theme/tokens';
 
@@ -15,6 +16,7 @@ const CAP_NUDGE = 0.024; // caps and digits sit a hair above the line's center
 export const MAX_FONT_SCALE = 1.3; // Dynamic Type grows text up to here; past it the cards would break
 
 export function centerShift(st: TextStyle, fontScale: number): number {
+  if (Platform.OS === 'android') return 0;
   const fs = st.fontSize ?? 16;
   const lh = st.lineHeight;
   const family = st.fontFamily ?? '';

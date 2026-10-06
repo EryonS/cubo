@@ -8,8 +8,11 @@
 #   --store    App Store Connect IPA, ready to upload (Transporter or Xcode Organizer) for TestFlight
 #   --archive  stop after the archive (no export, so no distribution signing needed)
 # Team id: DEVELOPMENT_TEAM read from ios/Cubo.xcodeproj/project.pbxproj; override with TEAM_ID=XXXXXXXXXX.
-# Needs Xcode signed in to your Apple account (Settings > Accounts) and ios/Pods installed
-# (this script runs `pod install` if missing).
+# Signing: automatic, with -allowProvisioningUpdates. Either Xcode is signed in to your Apple account
+# (Settings > Accounts), or, more reliable from a terminal, an App Store Connect API key (Users and
+# Access > Integrations > App Store Connect API, role Admin or App Manager) given by three variables:
+#   ASC_KEY_PATH=/path/AuthKey_XXXX.p8 ASC_KEY_ID=XXXX ASC_ISSUER_ID=xxxxxxxx-... npm run build:ipa
+# Keep the .p8 outside the repo. ios/Pods is installed if missing.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -48,6 +51,16 @@ if [ -z "$VERSION" ]; then
 fi
 SHA="$(git rev-parse --short HEAD)"
 
+# App Store Connect API key, when given: xcodebuild signs and fetches profiles without an Xcode account.
+AUTH=()
+if [ -n "${ASC_KEY_PATH:-}" ]; then
+  if [ -z "${ASC_KEY_ID:-}" ] || [ -z "${ASC_ISSUER_ID:-}" ] || [ ! -f "$ASC_KEY_PATH" ]; then
+    echo "error: ASC_KEY_PATH needs ASC_KEY_ID and ASC_ISSUER_ID, and the .p8 file must exist." >&2
+    exit 1
+  fi
+  AUTH=(-authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+fi
+
 mkdir -p output
 ARCHIVE="output/Cubo.xcarchive"
 rm -rf "$ARCHIVE"
@@ -59,7 +72,7 @@ xcodebuild archive \
   -configuration Release \
   -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVE" \
-  -allowProvisioningUpdates \
+  -allowProvisioningUpdates ${AUTH[@]+"${AUTH[@]}"} \
   DEVELOPMENT_TEAM="$TEAM" \
   CODE_SIGN_STYLE=Automatic
 
@@ -91,7 +104,7 @@ xcodebuild -exportArchive \
   -archivePath "$ARCHIVE" \
   -exportPath "$EXPORT_DIR" \
   -exportOptionsPlist "$OPTIONS" \
-  -allowProvisioningUpdates
+  -allowProvisioningUpdates ${AUTH[@]+"${AUTH[@]}"}
 
 IPA="$(ls "$EXPORT_DIR"/*.ipa 2>/dev/null | head -1 || true)"
 if [ -z "$IPA" ]; then
