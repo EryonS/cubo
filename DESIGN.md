@@ -24,6 +24,31 @@ typography:
     fontFamily: "\"Baloo 2\", ui-rounded, \"SF Pro Rounded\", system-ui, sans-serif"
     fontSize: "14px"
     fontWeight: 700
+  # The app's type ramp (typeScale in src/theme/tokens.ts), also used by the site (site/style.css).
+  big:
+    fontFamily: "\"Baloo 2\", ui-rounded, \"SF Pro Rounded\", system-ui, sans-serif"
+    fontSize: "40px"
+    fontWeight: 800
+  title-xl:
+    fontFamily: "\"Baloo 2\", ui-rounded, \"SF Pro Rounded\", system-ui, sans-serif"
+    fontSize: "30px"
+    fontWeight: 800
+  title:
+    fontFamily: "\"Baloo 2\", ui-rounded, \"SF Pro Rounded\", system-ui, sans-serif"
+    fontSize: "22px"
+    fontWeight: 800
+  headline:
+    fontFamily: "\"Baloo 2\", ui-rounded, \"SF Pro Rounded\", system-ui, sans-serif"
+    fontSize: "18px"
+    fontWeight: 800
+  body:
+    fontFamily: "\"Baloo 2\", ui-rounded, \"SF Pro Rounded\", system-ui, sans-serif"
+    fontSize: "16px"
+    fontWeight: 700
+  caption:
+    fontFamily: "\"Baloo 2\", ui-rounded, \"SF Pro Rounded\", system-ui, sans-serif"
+    fontSize: "12px"
+    fontWeight: 600
 rounded:
   pill: "999px"
   card: "22px"
@@ -39,7 +64,7 @@ components:
     backgroundColor: "{colors.toy-mint}"
     textColor: "{colors.toy-mint-ink}"
     rounded: "{rounded.pill}"
-    height: "25px"
+    height: "22px"
   button-primary:
     backgroundColor: "{colors.toy-violet}"
     textColor: "{colors.toy-white}"
