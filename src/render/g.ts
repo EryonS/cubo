@@ -1,6 +1,6 @@
 // Cubo Blocks — A thin canvas-2D-like layer over Skia's SkCanvas, so the legacy drawing code
 // (ctx.roundRect, fillStyle, globalAlpha, shadows...) ports call for call.
-import { BlurStyle, ClipOp, PaintStyle, Skia, TileMode, type SkCanvas, type SkFont, type SkPaint, type SkPathBuilder, type SkShader, type SkTypeface } from '@shopify/react-native-skia';
+import { BlurStyle, ClipOp, FontHinting, PaintStyle, Skia, TileMode, type SkCanvas, type SkFont, type SkPaint, type SkPathBuilder, type SkShader, type SkTypeface } from '@shopify/react-native-skia';
 
 // Corner radii: one number, or [topLeft, topRight, bottomRight, bottomLeft] as canvas roundRect.
 export type Radii = number | [number, number, number, number];
@@ -40,6 +40,11 @@ export class G {
     if (!f) {
       const face = this.pixel ? this.pixelFace : this.typeface;
       f = Skia.Font(face ?? systemFace(), px);
+      // Unhinted, fractional advances: hinted integer advances space small text unevenly on Android ("mo ve").
+      // The native setSubpixel reads a number, whatever the typings say.
+      f.setSubpixel(1 as unknown as boolean);
+      f.setLinearMetrics(true);
+      f.setHinting(FontHinting.None);
       this.fonts.set(key, f);
     }
     return f;

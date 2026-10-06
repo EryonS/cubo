@@ -31,7 +31,8 @@ export function Text({ variant = 'body', style, maxFontSizeMultiplier = MAX_FONT
   const { fontScale } = useWindowDimensions();
   const { tone, lh, ...base } = scale[variant];
   const color = tone === 'muted' ? colors.muted : tone === 'accent' ? colors.accent : colors.text;
-  const own = (StyleSheet.flatten(style) ?? {}) as TextStyle;
+  // An undefined key must not wipe the variant's value: Android then falls back to the system font.
+  const own = Object.fromEntries(Object.entries(StyleSheet.flatten(style) ?? {}).filter(([, v]) => v !== undefined)) as TextStyle;
   // A style that only changes the size keeps the variant's leading.
   const lineHeight = own.lineHeight ?? Math.round((own.fontSize ?? base.fontSize) * lh);
   const flat = { ...base, color, ...own, lineHeight } as TextStyle;

@@ -2,7 +2,7 @@
 // one by one while the wallet counts up, next goal, today's missions, Rejouer / Menu.
 // Cubo's pose over the title (star on a record, happy past half of it, oops below). A rewarded ad doubles the run's coins once.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, Share, View, Pressable } from 'react-native';
+import { Platform, ScrollView, Share, View, Pressable } from 'react-native';
 import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { M } from '../core';
 import { locale, tr } from '../core/i18n';
@@ -147,7 +147,7 @@ export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () =>
               </Animated.View>
             )}
             <Text variant="title" style={{ fontSize: 30, textTransform: 'uppercase', textAlign: 'center' }}>{TITLES[end.title]()}</Text>
-            <Text variant="big" style={{ fontSize: 76, lineHeight: 94, paddingBottom: 4, marginTop: -10, marginBottom: -26, color: colors.text }}>{fmt(end.score)}</Text>
+            <Text variant="big" style={{ fontSize: 76, lineHeight: 94, paddingBottom: 4, marginTop: -10, marginBottom: Platform.OS === 'android' ? -14 : -26, color: colors.text }}>{fmt(end.score)}</Text>
             <Text variant="muted" style={{ fontSize: 15 }}>{tr('Record : ') + fmt(end.best)}</Text>
             {end.record && (
               <View style={{ marginTop: 8, paddingHorizontal: 14, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.accent }}>
