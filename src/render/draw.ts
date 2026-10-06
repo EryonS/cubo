@@ -450,20 +450,20 @@ export function drawMascot(g: G, th: Theme, lay: Layout, state: RunState, drag: 
 }
 
 // ---------- combo feel (render/hud.js, render/effects.js, render/loop.js) ----------
-// Combo: small pill sitting on the board frame's top line, clear of the score band. Opaque, so the
-// frame's combo glow stays behind it instead of under the text. Drawn after the board. Pops when it
-// grows, drops away when it breaks.
+// Combo: small pill sitting on the board frame's bottom line, centered on the board. Opaque, so the
+// frame's combo glow stays behind it. A hint line (stuck, bomb aiming) takes that spot while it shows.
+// Drawn after the board. Pops when it grows, drops away when it breaks.
 export function drawComboHang(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
-  if (tutActive()) return;
-  const band = hudBand(g, lay, state, t);
-  const tagY = lay.by - 10 - 11;
+  if (tutActive() || hintText(state, anim.aiming)) return;
+  const mid = lay.bx + lay.board / 2;
+  const tagY = lay.by + lay.board + 10 - 11;
   if (state.combo > 0) {
     const { left, pulse, scale } = comboTagLook(t, L.COMBO_GRACE, state.movesSinceClear, anim.comboAt, anim.calm);
-    drawComboTag(g, th, state.combo, left, tagY, pulse, scale, 0, false, t, band.cx);
+    drawComboTag(g, th, state.combo, left, tagY, pulse, scale, 0, false, t, mid);
   } else if (anim.comboBreak && !anim.calm) {
     const k = (t - anim.comboBreak.t0) / COMBO_BREAK_MS;
     if (k >= 1) anim.comboBreak = null;
-    else drawComboTag(g, th, anim.comboBreak.n, 0, tagY + k * k * lay.cell * 1.6, 1 - k, 1 - 0.2 * k, 0.3 * k, true, t, band.cx);
+    else drawComboTag(g, th, anim.comboBreak.n, 0, tagY + k * k * lay.cell * 1.6, 1 - k, 1 - 0.2 * k, 0.3 * k, true, t, mid);
   }
 }
 
