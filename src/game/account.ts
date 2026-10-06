@@ -5,7 +5,7 @@ import { DevSettings } from 'react-native';
 import { reloadAppAsync } from 'expo';
 import { S } from '../core';
 import type { SyncDoc } from '../core/sync';
-import { locale, tr } from '../core/i18n';
+import { tr } from '../core/i18n';
 import { langPref } from '../i18n/lang';
 import { mmkv } from '../platform/kv';
 import * as Cloud from '../platform/cloud';
@@ -222,12 +222,11 @@ export function syncedLabel() {
   if (!syncInfo || syncInfo.dirty || !syncInfo.syncedAt) return tr('Pas encore synchronisé');
   const min = Math.round((Date.now() - syncInfo.syncedAt) / 60000);
   if (min < 1) return tr('Synchronisé à l’instant');
-  const ago = min < 60
-    ? new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' }).format(-min, 'minute')
-    : min < 1440
-      ? new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' }).format(-Math.round(min / 60), 'hour')
-      : new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' }).format(-Math.round(min / 1440), 'day');
-  return tr`Synchronisé ${ago}`;
+  // Written out: Hermes has no Intl.RelativeTimeFormat.
+  if (min < 60) return tr`Synchronisé il y a ${min} min`;
+  if (min < 1440) return tr`Synchronisé il y a ${Math.round(min / 60)} h`;
+  const days = Math.round(min / 1440);
+  return days === 1 ? tr('Synchronisé hier') : tr`Synchronisé il y a ${days} jours`;
 }
 
 export function startAccount() {
