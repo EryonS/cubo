@@ -138,8 +138,9 @@ export class G {
 
   // Text at (x, y) on its alphabetic baseline; align as canvas textAlign. outline: a stroke drawn
   // under the fill (legacy strokeText then fillText).
-  // Press Start 2P has no narrow no-break space (the thousands separator): plain spaces there.
-  private plain(text: string) { return this.pixel ? text.replace(/[\u00a0\u202f]/g, ' ') : text; }
+  // Neither font has the narrow no-break space (French thousands separator) and Skia has no fallback
+  // face: a no-break space in Baloo, a plain space in Press Start 2P.
+  private plain(text: string) { return this.pixel ? text.replace(/[\u00a0\u202f]/g, ' ') : text.replace(/\u202f/g, '\u00a0'); }
 
   text(text: string, x: number, y: number, size: number, color: string, align: 'left' | 'center' | 'right' = 'left',
     outline?: { color: string; width: number }, gradient?: { colors: string[]; x0: number; x1: number }) {
