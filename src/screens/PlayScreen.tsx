@@ -134,7 +134,7 @@ export function PlayScreen() {
 
       {playing && <Button label={tr('Continuer')} sub={playingLabel} onPress={() => { sfx.turn(); play(); }} />}
 
-      <Tap onPress={() => { if (level) play(); else nav.navigate('Adventure'); }}
+      <Tap onPress={() => { if (level) play(); else nav.navigate('Adventure', next ? { world: next[0], level: next[1] } : undefined); }}
         label={level ? tr`Aventure : reprendre ${WD.WORLDS[level[0]].name}, ${levelName(level[1])}` : next ? tr`Aventure : jouer ${WD.WORLDS[next[0]].name}, ${levelName(next[1])}` : tr('Aventure : carte des mondes')}
         style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.m, borderRadius: radius.card, backgroundColor: playing ? colors.panel : colors.accent, ...(playing ? raised(colors) : { shadowColor: colors.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } }) }}>
         <View style={{ borderRadius: radius.tile, overflow: 'hidden', borderWidth: 3, borderColor: playing ? colors.panel2 : 'rgba(255,255,255,0.4)' }}>
