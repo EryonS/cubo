@@ -69,9 +69,12 @@ import { PuzzleEndCard, usePuzzleEnd } from './PuzzleEnd';
 const now = () => performance.now();
 const fmt = (n: number) => n.toLocaleString(locale());
 
-function record(lay: Layout, typeface: SkTypeface | null, paint: (g: G) => void, pixel: SkTypeface | null = null): SkPicture {
+// centered: the picture is drawn around (0, 0) (the dragged shape or bomb). Its bounds must then cover
+// negative coordinates too: iOS drops a picture whose shadowed content (bonus icons) falls outside them.
+function record(lay: Layout, typeface: SkTypeface | null, paint: (g: G) => void, pixel: SkTypeface | null = null, centered = false): SkPicture {
   const rec = Skia.PictureRecorder();
-  const g = new G(rec.beginRecording(Skia.XYWHRect(0, 0, lay.W, lay.H)), typeface, pixel);
+  const bounds = centered ? Skia.XYWHRect(-lay.W, -lay.H, lay.W * 2, lay.H * 2) : Skia.XYWHRect(0, 0, lay.W, lay.H);
+  const g = new G(rec.beginRecording(bounds), typeface, pixel);
   paint(g);
   return rec.finishRecordingAsPicture();
 }
@@ -346,7 +349,7 @@ export function GameScreen() {
           gest.current = { kind: 'bomb', sx: x, sy: y };
           setAiming({ drag: true, x, y, lift: lay.cell * 1.8 });
           sfx.pick();
-          dragPicture.value = record(lay, typeface, (g) => drawIcon(g, 'bomb', 0, 0, lay.cell * 1.1));
+          dragPicture.value = record(lay, typeface, (g) => drawIcon(g, 'bomb', 0, 0, lay.cell * 1.1), null, true);
           lift.value = lay.cell * 1.8;
           miniRatio.value = 1;
           liftK.value = 1;
@@ -364,7 +367,7 @@ export function GameScreen() {
         const o = liftOrigin(spot.cells, spot.piece.w, spot.piece.h);
         drag.current = { idx: slot, x, y, lift: 0, t0: now() - 200, sx: x, sy: y, fromBoard: true, ox: lay.bx + o.cx * lay.cell - x, oy: lay.by + o.cy * lay.cell - y };
         gest.current = { kind: 'piece', sx: x, sy: y };
-        dragPicture.value = record(lay, typeface, (g) => drawPiece(g, th, spot.piece, 0, 0, lay.cell));
+        dragPicture.value = record(lay, typeface, (g) => drawPiece(g, th, spot.piece, 0, 0, lay.cell), null, true);
         offX.value = drag.current.ox!;
         offY.value = drag.current.oy!;
         lift.value = 0;
@@ -385,7 +388,7 @@ export function GameScreen() {
     if (state.mode !== 'puzzle' && !tutActive()) anim.trash = { over: false, since: 0, armed: false };
     if (!L.canTurn(state)) sfx.pick();
     haptic('pick');
-    dragPicture.value = record(lay, typeface, (g) => drawPiece(g, th, piece, 0, 0, lay.cell));
+    dragPicture.value = record(lay, typeface, (g) => drawPiece(g, th, piece, 0, 0, lay.cell), null, true);
     lift.value = l;
     miniRatio.value = miniCell(lay, free) / lay.cell;
     liftK.value = 0;
