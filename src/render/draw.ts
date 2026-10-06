@@ -450,12 +450,13 @@ export function drawMascot(g: G, th: Theme, lay: Layout, state: RunState, drag: 
 }
 
 // ---------- combo feel (render/hud.js, render/effects.js, render/loop.js) ----------
-// Combo: small pill in the gap between the band and the frame, a little under the band so both
-// breathe. Drawn after the board. Pops when it grows, drops away when it breaks.
+// Combo: small pill sitting on the board frame's top line, clear of the score band. Opaque, so the
+// frame's combo glow stays behind it instead of under the text. Drawn after the board. Pops when it
+// grows, drops away when it breaks.
 export function drawComboHang(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
   if (tutActive()) return;
   const band = hudBand(g, lay, state, t);
-  const tagY = band.y + band.h + 5;
+  const tagY = lay.by - 10 - 11;
   if (state.combo > 0) {
     const { left, pulse, scale } = comboTagLook(t, L.COMBO_GRACE, state.movesSinceClear, anim.comboAt, anim.calm);
     drawComboTag(g, th, state.combo, left, tagY, pulse, scale, 0, false, t, band.cx);
