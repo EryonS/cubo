@@ -11,6 +11,7 @@
     "@react-navigation/native-stack": "^7.20.0",
     "@shopify/react-native-skia": "2.6.2",
     "expo": "~57.0.26",
+    "expo-alternate-app-icons": "^8.0.0",
     "expo-apple-authentication": "~57.0.2",
     "expo-crypto": "~57.0.3",
     "expo-dev-client": "~57.0.19",
@@ -58,6 +59,7 @@
     "check:unit": "TZ=Europe/Paris tsx --test \"src/**/*.test.ts\"",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "i18n": "tsx scripts/i18n-keys.ts",
+    "icons": "tsx --tsconfig scripts/icons/tsconfig.json scripts/icons/app-icons.ts",
     "balance": "tsx scripts/balance.ts 10"
   },
   "private": true,

@@ -1,17 +1,21 @@
-// Réglages (legacy #settings): sounds, music, vibrations, color-blind marks, language,
+// Réglages (legacy #settings): sounds, music, vibrations, color-blind marks, the app icon, language,
 // and the ad-privacy row. The cloud account lives on the Profil tab.
-import { useSyncExternalStore } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
 import { View } from 'react-native';
 import { CommonActions, useNavigation } from '@react-navigation/native';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { M } from '../core';
 import { tr } from '../core/i18n';
 import { langPref, setLangPref, type LangPref } from '../i18n/lang';
 import { sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
 import { startTutorial } from '../game/tutorial';
+import { appIcon, canChangeAppIcon } from '../platform/app-icon';
 import { privacyRequired, showPrivacyOptions, subscribePrivacy } from '../platform/ads';
 import type { Settings } from '../state/persist';
 import { useGame } from '../state/store';
 import { space } from '../theme/tokens';
+import { AppIconSheet, AppIconThumb } from '../ui/AppIconSheet';
 import { ListRow } from '../ui/ListRow';
 import { Screen } from '../ui/Screen';
 import { SectionLabel } from '../ui/SectionLabel';
@@ -35,6 +39,8 @@ export function SettingsScreen() {
   const nav = useNavigation();
   const pref = langPref();
   const privacy = useSyncExternalStore(subscribePrivacy, privacyRequired, privacyRequired);
+  const iconRef = useRef<BottomSheetModal>(null);
+  const [icon, setIcon] = useState(appIcon);
   return (
     <Screen title={tr('Réglages')} back>
       <View style={{ gap: space.s }}>
@@ -47,6 +53,8 @@ export function SettingsScreen() {
         <SectionLabel>{tr('Affichage')}</SectionLabel>
         <Row id="patterns" label={tr('Motifs sur les blocs')} sub={tr('Un symbole par couleur, pour mieux les distinguer')} />
         <Row id="mascot" label={tr('Mascotte')} sub={tr('Cubo, perché sur le plateau, réagit à ta partie')} />
+        {canChangeAppIcon && <ListRow title={tr('Icône de l’app')} sub={M.SKINS.boards.find((sk) => sk.id === icon)?.name} icon={<AppIconThumb id={icon} size={40} />}
+          right="chevron" onPress={() => iconRef.current?.present()} />}
       </View>
       <View style={{ gap: space.s }}>
         <SectionLabel>{tr('Langue')}</SectionLabel>
@@ -58,6 +66,7 @@ export function SettingsScreen() {
           onPress={() => { startTutorial(); nav.dispatch(CommonActions.reset({ index: 1, routes: [{ name: 'Tabs' }, { name: 'Game' }] })); }} />
         {privacy && <ListRow title={tr('Confidentialité des pubs')} right="chevron" onPress={() => { void showPrivacyOptions(); }} />}
       </View>
+      {canChangeAppIcon && <AppIconSheet ref={iconRef} onPicked={setIcon} />}
     </Screen>
   );
 }

@@ -1,4 +1,5 @@
-// A small Skia canvas drawn once with a draw function (Boutique previews).
+// A small Skia canvas drawn once with a draw function (Boutique previews; height: the preview's
+// proportions when not given).
 import { useMemo } from 'react';
 import { View } from 'react-native';
 import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
@@ -6,9 +7,9 @@ import { G } from '../render/g';
 import { useBaloo } from '../render/font';
 import { PREVIEW_H, PREVIEW_W } from '../render/preview';
 
-export function DrawCanvas({ draw, width, radius = 12, deps }: { draw: (g: G, w: number, h: number) => void; width: number; radius?: number; deps: unknown[] }) {
+export function DrawCanvas({ draw, width, height: h, radius = 12, deps }: { draw: (g: G, w: number, h: number) => void; width: number; height?: number; radius?: number; deps: unknown[] }) {
   const typeface = useBaloo();
-  const height = Math.round((width * PREVIEW_H) / PREVIEW_W);
+  const height = h ?? Math.round((width * PREVIEW_H) / PREVIEW_W);
   const picture = useMemo(() => {
     if (!typeface) return null;
     const rec = Skia.PictureRecorder();

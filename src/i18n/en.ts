@@ -708,6 +708,8 @@ add('en', {
   'Un symbole par couleur, pour mieux les distinguer': 'One symbol per color, to tell them apart',
   'Mascotte': 'Mascot',
   'Cubo, perché sur le plateau, réagit à ta partie': 'Cubo sits on the board and reacts to your game',
+  'Icône de l’app': 'App icon',
+  'Chaque thème débloqué dans la Boutique ou pendant un événement ajoute son icône.': 'Every theme you unlock in the Shop or during an event adds its icon.',
   'Langue': 'Language',
   'Aide': 'Help',
   'Revoir le tutoriel': 'Replay the tutorial',
