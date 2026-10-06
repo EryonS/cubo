@@ -136,6 +136,11 @@ export class G {
     return this.font(size).getTextWidth(this.plain(text));
   }
 
+  // How far the text's ink rises above its baseline (caps and digits), to center text on its glyphs.
+  inkAbove(text: string, size: number) {
+    return -this.font(size).measureText(this.plain(text)).y;
+  }
+
   // Text at (x, y) on its alphabetic baseline; align as canvas textAlign. outline: a stroke drawn
   // under the fill (legacy strokeText then fillText).
   // Neither font has the narrow no-break space (French thousands separator) and Skia has no fallback

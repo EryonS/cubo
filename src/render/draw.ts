@@ -380,17 +380,24 @@ export function drawHUD(g: G, th: Theme, lay: Layout, state: RunState, best: num
     lowMoves = !stage.clock && stage.movesLeft <= 3 && !state.over;
   }
   const subSize = g.fit(sub, 11, cw);
-  g.text(sub, cx, y + h * 0.34 + subSize * 0.35, subSize, p.sub, 'center');
+  const mainSize = g.fit(main, Math.round(h * (stage || state.puzzle ? 0.46 : 0.56) * bump), cw);
+  // Label over number, the pair centered on its ink in the band (caps and digits, no descenders).
+  const gap = Math.round(h * 0.09);
+  const above = g.inkAbove(sub, subSize);
+  const pair = above + gap + g.inkAbove(main, mainSize);
+  const subBase = y + (h - pair) / 2 + above;
+  const mainBase = y + (h + pair) / 2;
+  g.text(sub, cx, subBase, subSize, p.sub, 'center');
   if (stage && band.movesW) {
     // Moves left: same label-over-number shape as the goal, split off by a hairline.
     const mx = x + 10 + band.movesW / 2;
     const label = stage.movesLeft > 1 ? tr('COUPS') : tr('COUP');
     const ls = g.fit(label, 11, band.movesW - 8);
-    g.text(label, mx, y + h * 0.34 + ls * 0.35, ls, p.sub, 'center');
+    g.text(label, mx, subBase, ls, p.sub, 'center');
     const num = String(stage.movesLeft);
     const a0 = g.alpha;
     g.alpha = a0 * (lowMoves ? 0.7 + 0.3 * Math.sin(t / 120) : 1);
-    g.text(num, mx, y + h - h * 0.14, g.fit(num, Math.round(h * 0.46), band.movesW - 8), lowMoves ? th.danger : p.ink, 'center');
+    g.text(num, mx, mainBase, g.fit(num, Math.round(h * 0.46), band.movesW - 8), lowMoves ? th.danger : p.ink, 'center');
     g.alpha = a0 * 0.25;
     g.rect(x + 10 + band.movesW, y + h * 0.2, 1.5, h * 0.6, p.sub);
     g.alpha = a0;
@@ -398,7 +405,7 @@ export function drawHUD(g: G, th: Theme, lay: Layout, state: RunState, best: num
   if (stage && stage.goal.type === 'boss') drawBossBar(g, state, cx - cw / 2 - 14, y, cw + 28, h, t);
   else {
     if (p.glow) g.textGlow = { color: p.glow, blur: 12 };
-    g.text(main, cx, y + h - h * 0.14, g.fit(main, Math.round(h * (stage || state.puzzle ? 0.46 : 0.56) * bump), cw), p.ink, 'center');
+    g.text(main, cx, mainBase, mainSize, p.ink, 'center');
     g.textGlow = null;
   }
 }
