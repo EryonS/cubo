@@ -37,6 +37,12 @@ Fichiers installables écrits dans `output/` (ignoré par git), nommés `cubo-<v
   Connect pour TestFlight, à envoyer avec Transporter), `--archive` (s'arrête à l'archive). Installer : Apple Configurator,
   fenêtre Devices and Simulators de Xcode, ou `xcrun devicectl device install app --device <id> output/cubo-*.ipa`.
 
+## Site
+
+`site/` est publié sur https://cuboblocks.app (GitHub Pages, `.github/workflows/pages.yml`, à chaque push sur `main`
+qui touche `site/`) : page d'accueil et politique de confidentialité (`privacy.html`, FR / EN), à garder à jour avec ce
+que l'app collecte (pubs AdMob, sauvegarde Firebase).
+
 ## Vérifier
 
 ```
