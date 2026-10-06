@@ -26,7 +26,7 @@ import { triesAfter } from '../game/daily';
 import { ambientGap, anim, animating, TRASH_ARM_MS, type DragState } from '../game/anim';
 import { cuboHit, cuboSpot } from '../mascot/state';
 import { dragGeometry, easeOut, LIFT_MS } from '../game/drag';
-import { dismissTip, hideTips, pumpTips } from '../game/tips';
+import { dismissTip, hideTips, pumpTips, useTips } from '../game/tips';
 import { endTutorial } from '../game/tutorial';
 import { tutActive, tutor, useTut } from '../game/tut-state';
 import { hasInventory, trashView, undoView } from '../game/hud';
@@ -203,11 +203,13 @@ export function GameScreen() {
     // Timers: every frame while something moves, else 30 times a second.
     const tut = tutor();
     const busy = !!d || !!aim || animating(t);
-    if (!blocked() && !tut && (busy || acc.current >= 33)) {
+    // A tip bubble takes the touches until it is closed: the clock and bonuses wait for it too.
+    const tipUp = !!useTips.getState().shown;
+    if (!blocked() && !tut && !tipUp && (busy || acc.current >= 33)) {
       syncBudget(t);
       tickRun(acc.current, t);
       acc.current = 0;
-    } else if (blocked()) acc.current = 0;
+    } else if (blocked() || tipUp) acc.current = 0;
     stepFlyers(lay, t);
     if (th.animate && t - lastDecor.current >= 40) {
       lastDecor.current = t;

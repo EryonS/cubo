@@ -47,6 +47,8 @@ function Tabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
+        // Rétro's 4-tone screen: the accent is the text color, so the tint alone can't show the active tab.
+        tabBarActiveBackgroundColor: (colors.accent as string) === colors.text ? colors.sunken : undefined,
         tabBarStyle: { backgroundColor: colors.panel, borderTopColor: colors.edge },
         tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 12 },
       }}
