@@ -39,6 +39,12 @@
 				<string>exp+cuboblocks</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.779075128285-9ajv2baduf9tdherm72d9qnn5ahkihh8</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>

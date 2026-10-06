@@ -17,6 +17,8 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: IDENTITY.bundleId,
+    // Signing team, so a prebuild keeps it in the Xcode project.
+    appleTeamId: '853SGV2WKU',
     infoPlist: { ITSAppUsesNonExemptEncryption: false },
   },
   android: {
