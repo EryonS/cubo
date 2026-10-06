@@ -16,6 +16,12 @@ export const colorsFor = (board: string) => ({ ...colors, ...(MENU_OVERRIDES[boa
 const Played = createContext<string | null>(null);
 export const PlayedTheme = Played.Provider;
 
+// The theme on screen: the played one inside the game screen, else the equipped one.
+export function usePlayedTheme(): string {
+  const equipped = useGame((s) => s.profile.equipped.boards);
+  return useContext(Played) ?? equipped;
+}
+
 export function useColors(): typeof colors {
   const equipped = useGame((s) => s.profile.equipped.boards);
   const board = useContext(Played) ?? equipped;

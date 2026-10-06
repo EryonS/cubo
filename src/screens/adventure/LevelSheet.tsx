@@ -7,6 +7,7 @@ import { tr } from '../../core/i18n';
 import { sfx } from '../../audio/engine';
 import { startLevel } from '../../game/run';
 import { levelName } from '../../state/progress';
+import { guardFree, inProgress, isFree } from '../../game/modes';
 import { useGame } from '../../state/store';
 import { radius, space } from '../../theme/tokens';
 import { useColors } from '../../theme/useColors';
@@ -91,7 +92,10 @@ export const LevelSheet = forwardRef<BottomSheetModal, { pick: { w: string; n: n
   const close = () => (ref as React.RefObject<BottomSheetModal>).current?.dismiss();
   return (
     <Sheet ref={ref}>
-      {pick && <Content w={pick.w} n={pick.n} onClose={close} onPlay={(bomb) => {
+      {pick && <Content w={pick.w} n={pick.n} onClose={close} onPlay={async (bomb) => {
+        // Another level in progress is dropped (a free run is parked, not dropped), as on Défis.
+        const { saved } = useGame.getState();
+        if (inProgress(saved.state) && !isFree(saved.state) && !(await ask({ title: tr('Abandonner ?'), text: guardFree(saved.state, saved.parked).text, ok: tr('Abandonner'), danger: true }))) return;
         if (!startLevel(pick.w, pick.n, { bomb })) return;
         close();
         onGame();

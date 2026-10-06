@@ -21,7 +21,7 @@ import { fonts } from '../theme/fonts';
 import { levelName } from '../state/progress';
 import { useGame } from '../state/store';
 import { radius, space } from '../theme/tokens';
-import { useColors } from '../theme/useColors';
+import { useColors, usePlayedTheme } from '../theme/useColors';
 import { Button } from '../ui/Button';
 import { CuboPose } from '../ui/CuboPose';
 import { StarRow } from '../ui/Stars';
@@ -85,7 +85,8 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
   const colors = useColors();
   const profile = useGame((s) => s.profile);
   const mascot = useGame((s) => s.saved.settings.mascot);
-  const look = useMemo(() => cuboLookFor('toy', profile.equipped.cubo), [profile.equipped.cubo]);
+  const played = usePlayedTheme();
+  const look = useMemo(() => cuboLookFor(played, profile.equipped.cubo), [played, profile.equipped.cubo]);
   const { end, report, eventPay, lines, total } = card;
   const { stage, won, outOfMoves } = end;
   const { world: w, n } = stage;

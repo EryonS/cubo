@@ -13,7 +13,7 @@ import { modeLabel } from '../game/modes';
 import type { RunEnd } from '../game/run';
 import { useGame } from '../state/store';
 import { radius, space } from '../theme/tokens';
-import { useColors } from '../theme/useColors';
+import { useColors, usePlayedTheme } from '../theme/useColors';
 import { cuboLookFor } from '../mascot/looks';
 import { Button } from '../ui/Button';
 import { CuboPose } from '../ui/CuboPose';
@@ -100,7 +100,8 @@ export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () =>
   const colors = useColors();
   const profile = useGame((s) => s.profile);
   const mascot = useGame((s) => s.saved.settings.mascot);
-  const look = useMemo(() => cuboLookFor('toy', profile.equipped.cubo), [profile.equipped.cubo]);
+  const played = usePlayedTheme();
+  const look = useMemo(() => cuboLookFor(played, profile.equipped.cubo), [played, profile.equipped.cubo]);
   const tiles = useMemo(() => runSummary(end), [end]);
   const [shown, setShown] = useState(end.coinsBefore);
   const [lines, setLines] = useState(0);

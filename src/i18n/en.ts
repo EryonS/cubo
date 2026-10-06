@@ -488,7 +488,6 @@ add('en', {
   'Or avec 30 étoiles': 'Gold with 30 stars',
   '<small>Boss</small>': '<small>Boss</small>',
   'Retour à l’événement': 'Back to the event',
-  'niveau {}': 'level {}',
   '{} PV : chaque ligne qui le traverse en retire 2. Tous les {} coups, il riposte avec des {}.': '{} HP: each line through it takes off 2. Every {} moves, it strikes back with {}.',
   '{} pour Cubo !': '{} for Cubo!',
   '<button class="opt" data-act="wear"><span>Les mettre maintenant</span><span class="price">Équiper</span></button>': '<button class="opt" data-act="wear"><span>Use them now</span><span class="price">Equip</span></button>',

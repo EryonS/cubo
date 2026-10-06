@@ -9,7 +9,7 @@ import { LV, M, WD } from '../core';
 import { tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
 import { eventDate, eventLevelName, hatName } from '../game/events';
-import { guardFree } from '../game/modes';
+import { guardFree, inProgress, isFree } from '../game/modes';
 import { startEventLevel } from '../game/run';
 import { haptic } from '../platform/haptics';
 import type { RootParams } from '../navigation/types';
@@ -101,7 +101,7 @@ function LevelSheet({ id, n, onClose, onPlay }: { id: string; n: number; onClose
     <View>
       <SheetHeader title={eventLevelName(n)} onClose={onClose} closeLabel={tr('Retour à l’événement')} />
       <View style={{ alignItems: 'center', marginTop: 4 }}>
-        <Text variant="muted">{ev.name} · {tr`niveau ${n}`}</Text>
+        <Text variant="muted">{ev.name}</Text>
         <Text style={{ fontFamily: fonts.display, fontSize: 18, marginTop: 6, textAlign: 'center' }}>{LV.goalText(stage.goal)}</Text>
         {boss && (
           <Text variant="muted" style={{ fontSize: 13, lineHeight: 18, textAlign: 'center', marginTop: 8, maxWidth: 300 }}>
@@ -159,8 +159,11 @@ export function EventScreen() {
   const play = async () => {
     if (!n) return;
     const { saved } = useGame.getState();
-    const g = guardFree(saved.state, saved.parked);
-    if (g.needed && !(await ask({ title: tr('Abandonner ?'), text: g.text, ok: tr('Abandonner'), danger: true }))) return;
+    // Another level in progress is dropped (a free run is parked, not dropped), as on Défis.
+    if (inProgress(saved.state) && !isFree(saved.state)) {
+      const g = guardFree(saved.state, saved.parked);
+      if (!(await ask({ title: tr('Abandonner ?'), text: g.text, ok: tr('Abandonner'), danger: true }))) return;
+    }
     if (!startEventLevel(id, n, today())) { sfx.nope(); haptic('nope'); return; }
     sheetRef.current?.dismiss();
     nav.navigate('Game');

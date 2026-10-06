@@ -13,7 +13,7 @@ import { cuboLookFor } from '../mascot/looks';
 import { haptic } from '../platform/haptics';
 import { useGame } from '../state/store';
 import { radius, space } from '../theme/tokens';
-import { useColors } from '../theme/useColors';
+import { useColors, usePlayedTheme } from '../theme/useColors';
 import { Button } from '../ui/Button';
 import { CuboPose } from '../ui/CuboPose';
 import { StarRow } from '../ui/Stars';
@@ -38,7 +38,8 @@ export function PuzzleEndCard({ card, onList, onMore, onAgain, onNext }: Props) 
   const equipped = useGame((s) => s.profile.equipped.cubo);
   const mascot = useGame((s) => s.saved.settings.mascot);
   const solved = useGame((s) => M.surprisesSolved(s.profile));
-  const look = useMemo(() => cuboLookFor('toy', equipped), [equipped]);
+  const played = usePlayedTheme();
+  const look = useMemo(() => cuboLookFor(played, equipped), [played, equipped]);
   const { pz, lines, total } = card;
   const next = nextPuzzle(pz);
   const hints = pz.hints;
