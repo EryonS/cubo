@@ -15,8 +15,9 @@ About 7% of tray pieces carry a bonus icon on one block. Clearing that block sto
 Timed bonuses stack up to two uses and only tick while playing. Durations, Étoile multiplier, Bombe area and Tornade draws grow with upgrades: see upgrades.md.
 
 ## Files
-- `www/src/core/logic.js`: `BONUSES`, spawn rate, `use(state, type, target?)`, `tick`.
-- `www/src/app/base.js`, `www/src/ui/icons.js`: `BONUS_UI` (French name, hint, legend text), `ICON_COLORS`, `GLYPHS` (canvas icons), inventory bar.
+- `src/core/logic.ts`: `BONUSES`, spawn rate, `use(state, type, target?)`, `tick`.
+- `src/game/bonus-ui.ts`: `BONUS_UI` (French name, hint, legend text; English in `src/i18n/en.ts`), test `bonus-ui.test.ts`.
+- `src/render/icons.ts`: `ICON_COLORS`, `GLYPHS` (icons drawn through `G`), `drawIcon`. Inventory bar: state in `src/game/hud.ts` (`invView`), drawn in `src/render/draw.ts`, buttons laid out by `invBoxes` in `src/render/layout.ts`; legend sheet `src/ui/LegendSheet.tsx`.
 
 ## Saved state
 `state.inventory`, `state.effects` (keyed by internal id).

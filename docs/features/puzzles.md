@@ -2,7 +2,7 @@
 Status: shipped
 
 ## What it does
-Menu row "Puzzles" opens 60 puzzles in 6 packs of 10 (Débutant, Malin, Expert, Maître, Virtuose, Légende; the last two added 2026-10-01), unlocked one after the other, then the Puzzle surprise card. A puzzle is a drawing (heart, house, rocket...) mostly filled with pieces already in place. The player gets a quota of pieces (3 at the start, 8 at puzzle 40, 8 to 10 in packs 5-6), dealt in a fixed order to the tray (next piece + count in the "Suivant" column), and must fill every empty cell of the drawing.
+The Puzzles tile on Jouer (`src/screens/PuzzlesScreen.tsx`, stack route `Puzzles`) opens 60 puzzles in 6 packs of 10 (Débutant, Malin, Expert, Maître, Virtuose, Légende; the last two added 2026-10-01), unlocked one after the other, then the Puzzle surprise card. A puzzle is a drawing (heart, house, rocket...) mostly filled with pieces already in place. The player gets a quota of pieces (3 at the start, 8 at puzzle 40, 8 to 10 in packs 5-6), dealt in a fixed order to the tray (next piece + count in the "Suivant" column), and must fill every empty cell of the drawing.
 
 - Free rotation (tap a piece), no line clears, no bonuses, no bin.
 - Undo is free and goes back as far as wanted.
@@ -17,11 +17,12 @@ Last card of the list, opens once pack Maître (puzzles 31-40) is done. Each gam
 - Pays 25 coins, 10 if a hint was used. No stars; `profile.surprises` counts the ones solved. "Un autre" deals a new one; Recommencer replays the same seed.
 
 ## Files
-- `www/src/core/puzzles.js`: `DRAWINGS` (hand-made 8x8 silhouettes, 25), `PACKS`, `quotaOf`, `puzzle(n)`, `surprise(seed)` (tiles the drawing with game shapes, takes out a contiguous group of pieces as the quota, turns and shuffles them), `tile`.
-- `www/src/core/logic.js`: mode `'puzzle'`, kind `void` (outside the drawing), `setupPuzzle`, `placePuzzle`, `puzzleHint`, `liftPuzzle` (surprise), puzzle branches in `refillSlot`, `settle`, `undo`, `canTurn`, `canDiscard`, `undoCost`.
-- `www/src/core/meta.js`: `applyPuzzle`, `puzzleOpen`, `puzzleStarsOf`, `puzzlesSolved`, `PUZZLE_*` constants; `applySurprise`, `surpriseOpen`, `surprisesSolved`, `SURPRISE_*`.
-- `www/src/render/helpers.js`, `www/src/game/drag.js`, `www/src/screens/puzzles.js` (surprise): `freeTray` / `slotBox` (tray grid), `liftFromBoard`, `surpriseCard`, `launchSurprise`, `puzzleTitle`.
-- `www/src/screens/puzzles.js`, `www/src/render/board.js`, `www/src/render/hud.js`: section `Puzzles` (`openPuzzles`, `startPuzzle`, hint button, `endPuzzle`, `showPuzzleEnd`), `isVoid` in `drawBoard`, puzzle plate in `drawHUD`, count in `drawNext`. `www/index.html`: `#menu-puzzles`, `#puzzles`, `.hint-btn`, `body.puzzle`.
+- `src/core/puzzles.ts`: `DRAWINGS` (hand-made 8x8 silhouettes, 25), `PACKS`, `quotaOf`, `puzzle(n)`, `surprise(seed)` (tiles the drawing with game shapes, takes out a contiguous group of pieces as the quota, turns and shuffles them), `tile`.
+- `src/core/logic.ts`: mode `'puzzle'`, kind `void` (outside the drawing), `setupPuzzle`, `placePuzzle`, `puzzleHint`, `liftPuzzle` (surprise), puzzle branches in `refillSlot`, `settle`, `undo`, `canTurn`, `canDiscard`, `undoCost`.
+- `src/core/meta.ts`: `applyPuzzle`, `puzzleOpen`, `puzzleStarsOf`, `puzzlesSolved`, `PUZZLE_*` constants; `applySurprise`, `surpriseOpen`, `surprisesSolved`, `SURPRISE_*`.
+- `src/game/puzzle.ts` (pure, `puzzle.test.ts`): `freeTray`, `isVoid`, `puzzleTitle` / `puzzleLabel`, pack rows, `settlePuzzle`. `src/game/run.ts`: `startPuzzle`, `startSurprise`, `hintPuzzle`, `liftPuzzlePiece`, `endPuzzle`. `src/game/drag.ts`: the `DragState.ox/oy` of a piece lifted from the board.
+- `src/screens/PuzzlesScreen.tsx` (packs, drawing thumbnails, stars, Puzzle surprise card), `src/screens/PuzzleEnd.tsx` (result card), hint button in `src/screens/GameScreen.tsx`.
+- `src/render/layout.ts` (`slotBox` and friends take a `free` argument: the surprise tray's two rows), `src/render/draw.ts` (void cells, `drawShapedFrame`, puzzle plate in `drawHUD`, count in the Suivant column).
 
 ## Saved state
 - Profile: `puzzles: { [n]: stars }`, optional; `surprises: n` (Puzzle surprise solved), optional.
@@ -29,6 +30,6 @@ Last card of the list, opens once pack Maître (puzzles 31-40) is done. Each gam
 
 ## Gotchas
 - Puzzles 1-40 only use the first 12 `DRAWINGS` (`FIRST_DRAWINGS`) and their original quotas: append new drawings at the end, never reorder. Puzzles 41+ and surprises retile a drawing too small for the quota.
-- Puzzles are generated from fixed seeds: changing `DRAWINGS`, `quotaOf`, the tiling order or `L.SHAPES` changes every puzzle (stars already earned stay on their number). `tests/puzzles.test.js` checks all 40 are solvable.
+- Puzzles are generated from fixed seeds: changing `DRAWINGS`, `quotaOf`, the tiling order or `L.SHAPES` changes every puzzle (stars already earned stay on their number). `src/core/puzzles.test.ts` checks all 40 are solvable.
 - The board frame follows the drawing (`drawShapedFrame`: one padded tile per cell, one path, no frame line).
 - Void cells are `SPECIAL` on the board: never run line clears in puzzle mode (a row of voids + blocks would count as full).

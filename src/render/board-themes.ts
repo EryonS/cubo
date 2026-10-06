@@ -1,6 +1,5 @@
-// Cubo Blocks — The colors of every board theme (legacy themes/worlds.js and themes/events.js), for
-// previews in the Boutique. In game, board themes other than Jouet come with milestone 6: until
-// then the run keeps the Jouet look. Generated once from the legacy tables; decor is not ported.
+// Cubo Blocks — Every board theme (legacy themes/worlds.js and themes/events.js): colors, fonts and
+// the decor painted behind the board (render/decor/), for the game and the Boutique previews.
 import { EVENT_DECOR } from './decor/events';
 import { WORLD_DECOR } from './decor/worlds';
 import { TOY, TOY_PALETTE, type Theme } from './theme';

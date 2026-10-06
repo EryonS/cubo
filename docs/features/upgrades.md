@@ -15,14 +15,15 @@ Boutique, tab "Bonus": each of the 5 bonuses goes from level 1 to 3. Upgrades co
 A timed bonus stacks up to two uses (2 × its duration).
 
 ## Files
-- `www/src/core/logic.js`: `EFFECT_BY_LEVEL`, `NITRO_BY_LEVEL`, `upLevel`, `effectMs`, `nitroMul`, `bombArea(r, c, level)`, `reroll`.
-- `www/src/core/meta.js`: `UPGRADE_PRICES`, `upgradeLevel`, `upgradePrice`, `buyUpgrade`.
-- `www/src/app/base.js`, `www/src/screens/shop.js`, `www/src/ui/inventory.js`: `BONUS_UI` (`hint(lv)`, `desc(lv)`, `levels`), `renderUpgrades`, `refreshBonusTexts` (tooltips + legend).
+- `src/core/logic.ts`: `EFFECT_BY_LEVEL`, `NITRO_BY_LEVEL`, `upLevel`, `effectMs`, `nitroMul`, `bombArea(r, c, level)`, `reroll`.
+- `src/core/meta.ts`: `UPGRADE_PRICES`, `upgradeLevel`, `upgradePrice`, `buyUpgrade`.
+- `src/game/bonus-ui.ts` (`BONUS_UI`: `hint(lv)`, `desc(lv)`, `levels`), the `Upgrades` list in `src/screens/ShopScreen.tsx`, legend in `src/ui/LegendSheet.tsx`.
+- Tests: `src/core/upgrades.test.ts`.
 
 ## Saved state
 - Profile: `upgrades: { [bonus]: 2 | 3 }`, optional (absent = level 1).
 - Run: `state.upgrades`, copied from the profile by `createGame` (and on purchase). Old runs without it play at level 1.
 
 ## Gotchas
-- The Aventure bot (`tools/bot.js`) never fires bonuses, so upgrades don't change the balanced move budgets.
+- The Aventure bot (`scripts/bot.ts`) never fires bonuses, so upgrades don't change the balanced move budgets.
 - Tornade level 2/3 draws up to 30 times per slot, then keeps the last draw.

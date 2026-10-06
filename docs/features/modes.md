@@ -12,17 +12,17 @@ Each has Facile / Normal / Difficile, and its own record.
 **Run theme** (2026-10-06, user's request): the Partie libre sheet has a row of the owned themes, preselected on the equipped one. The pick is the run's own (`RunState.theme`, its look and obstacles); the app's theme does not change. "Rejouer" keeps it; the home "Jouer" button uses the equipped theme.
 
 ## Files
-- `www/src/core/logic.js`: `MODES`, `LEVELS`, `createGame(seed, { mode, level, budget, obstacles })`, `obstacleSpawn`; `runStats` reports `obstacles` (count).
-- `www/src/core/worlds.js`: `FREE_OBSTACLES`, `freeObstacles(theme, level)`.
-- `www/src/core/meta.js`: `DIFFICULTY_BONUS`, bonus line in `runCoins`.
-- `www/index.html`: Partie libre sheet `#free` (`#menu-mode`, `#menu-level`), opened from the home row.
-- `www/src/screens/home.js`, `www/src/game/undo.js`, `www/src/platform/storage.js`: `MODE_NAMES`, `LEVEL_NAMES`, `syncMode`, `renderMenu`, `bests`.
+- `src/core/logic.ts`: `MODES`, `LEVELS`, `createGame(seed, { mode, level, budget, obstacles })`, `obstacleSpawn`; `runStats` reports `obstacles` (count).
+- `src/core/worlds.ts`: `FREE_OBSTACLES`, `freeObstacles(theme, level)`.
+- `src/core/meta.ts`: `DIFFICULTY_BONUS`, bonus line in `runCoins`.
+- `src/ui/FreePickSheet.tsx`: the Partie libre sheet (mode, level, run theme), opened from the home row in `src/screens/PlayScreen.tsx`.
+- `src/game/modes.ts` (`MODE_NAMES`, `LEVEL_NAMES`), `bests` in `src/state/persist.ts` / `src/game/run.ts` (`bestOf`, `recordKey`).
 
 ## Saved state
-`cuboblocks.v2`: `{ state, bests: { [mode]: n }, settings, prefs: { mode, level } }`. An unfinished run is saved on `visibilitychange` and resumed at launch.
+`cuboblocks.v2`: `{ state, bests: { [mode]: n }, settings, prefs: { mode, level } }`. An unfinished run is saved when the app goes to the background (`AppState`, `src/screens/GameScreen.tsx`) and resumed at launch.
 
 ## Gotchas
 - World rules never apply in these modes: only the obstacle cells (their KINDS behaviors: embers harden, vines spread...).
 - Records stay per mode (not per level), as before; the obstacles make Difficile harder to score in.
 - Runs saved before 2026-10-01 have no `state.obstacles` and get no bonus.
-- Adding a mode: add it to `MODES`, the menu, `MODE_NAMES` and `bests`.
+- Adding a mode: add it to `MODES`, `FreePickSheet`, `MODE_NAMES` and `bests`.

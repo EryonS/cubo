@@ -18,7 +18,7 @@ Secret stickers in the album, per-mode stats with the last scores.
 Planned (see `docs/CLAUDE.md`): polish, React Native port.
 
 ## Constraints
-- Web first (vanilla JS canvas, no build, offline PWA); React Native port planned. `www/src/core/logic.js` and `www/src/core/meta.js` stay pure.
+- Native app (React Native / Expo, Skia board), iOS first; the web version was dropped on 2026-10-06. `src/core/` stays pure.
 - French UI copy.
 - No emoji anywhere in the UI: icons are drawn (canvas or SVG).
 - In Classique, Chrono, Chill and the daily level, cosmetics never change gameplay. World rules only apply inside Aventure.

@@ -4,9 +4,8 @@ Puzzle de blocs 8×8 : pose les pièces, remplis lignes/colonnes, enchaîne les 
 
 Nom : **Cubo Blocks** (stores), **Cubo** sous l'icône, d'après la mascotte. appId `com.slapps.cubo`, domaine `cuboblocks.app`.
 
-App native iOS / Android en **React Native (Expo SDK 57)**. Le port depuis la version web + Capacitor est en cours,
-jalon par jalon : voir `docs/superpowers/specs/2026-10-04-react-native-port-design.md`. L'ancienne version reste dans
-`legacy/` comme référence (`npm run legacy` puis http://localhost:8000) jusqu'à la fin du port.
+App native en **React Native (Expo SDK 57)**, iOS pour l'instant. L'ancienne version web + Capacitor a été portée
+puis supprimée le 2026-10-06 (elle reste dans l'historique git, commit `e86a443`).
 
 ## Lancer
 
@@ -61,13 +60,12 @@ Dans le code les ids restent `rotate`, `nitro`, `shield`, `bomb`, `reroll` (comp
 
 ## Aventure
 
-Menu > Aventure : 8 mondes de 10 niveaux (Plaine, Sous-marin, Espace, Glace, Forêt, Rétro, Arcade, Volcan).
+Menu > Aventure : 8 mondes de 20 niveaux (Plaine, Sous-marin, Espace, Glace, Forêt, Rétro, Arcade, Volcan).
 Chaque niveau a un objectif (lignes, points ou cases spéciales à détruire) et un nombre de coups (un chrono en Arcade).
 1 à 3 étoiles selon les coups restants. Chaque monde a un avantage et un inconvénient (voir `docs/features/worlds.md`).
-Battre le boss (niveau 10) offre le thème du monde et, avec assez d'étoiles, ouvre le monde suivant.
+Battre le boss (niveau 20) offre le thème du monde et, avec assez d'étoiles, ouvre le monde suivant.
 Pièces : +5 coups quand on n'en a plus (20, 40, 80…), partir avec une Bombe (30), passer un niveau (250).
-Équilibrage : `node tools/balance.js 10` fait jouer un bot sur les 80 niveaux.
-Icônes : `python3 tools/make_icons.py` redessine `icons/*.png` depuis `tools/icons.html`.
+Équilibrage : `npm run balance` fait jouer un bot sur tous les niveaux.
 
 ## Niveau du jour, série et Profil
 
@@ -82,8 +80,8 @@ Icônes : `python3 tools/make_icons.py` redessine `icons/*.png` depuis `tools/ic
   En fin de partie s'ajoutent : +10 par grille vide, +5 si combo ×5, +5 si une bombe fait sauter 15 blocs, + missions.
   Recommencer en cours de partie verse aussi les pièces.
 - **Pub récompensée** : bouton « Regarder une pub » en fin de partie, double les gains (une fois par partie).
-  Dans l'app native : AdMob (`@capacitor-community/admob`) avec le formulaire de consentement Google ; sur le web, une pub simulée. IDs de test Google pour l'instant, voir `docs/features/economy.md`.
-- **Légende** : bouton « ? » à côté de l'inventaire, et infobulle au survol sur ordinateur.
+  AdMob (`react-native-google-mobile-ads`) avec le formulaire de consentement Google et la demande de suivi iOS. IDs de test Google pour l'instant, voir `docs/features/economy.md`.
+- **Légende** : bouton « ? » à côté de l'inventaire.
 - **Missions du jour** : 3 missions différentes par jour (même tirage pour tout le monde ce jour-là), renouvelées à minuit.
   Une mission réussie reste « Terminée » jusqu'au lendemain. Difficulté qui monte toutes les 6 missions réussies.
   Annoncées en jeu quand l'objectif est atteint, payées en fin de partie.
@@ -94,28 +92,12 @@ Icônes : `python3 tools/make_icons.py` redessine `icons/*.png` depuis `tools/ic
     Les thèmes gardent l'id `boards` dans la sauvegarde. Voir `DESIGN.md`.
   - Les anciens thèmes « route » et les blocs Bonbon ont été retirés : `M.migrate` les rembourse au prix d'achat.
 
-## App native (Capacitor)
-
-`npm install` une fois, puis :
-
-- `npm run ios` / `npm run android` : copie `www/` dans le projet natif et l'ouvre dans Xcode / Android Studio.
-- `npm run sync` : recopie seulement `www/` après une modif du jeu.
-- `npm run assets` : régénère icônes et splash natifs depuis `resources/` (eux-mêmes produits par `tools/make_icons.py`).
-
-iOS : Xcode (les dépendances passent par Swift Package Manager, pas de CocoaPods). Android : Android Studio (JDK 21).
-
-## Tests
-
-`npm test` depuis la racine (Node 18+ ; lance `tests/*.test.js`).
-
 ## Architecture
 
 Pour ajouter une fonctionnalité : lire `docs/CLAUDE.md`.
 
-- `www/src/core/logic.js` — règles pures, zéro DOM. `createGame(seed)`, `place(state, trayIndex, row, col)` → `{ state, events }`,
-  `rotate(state, trayIndex)`, `use(state, type, target?)` pour l'inventaire, `tick(state, dtMs)` pour les chronos.
-  State sérialisable en JSON, RNG seedé dans le state. Réutilisable tel quel dans un `useReducer`.
-- `www/src/core/worlds.js` / `www/src/core/levels.js` — règles des mondes et génération des niveaux de l'Aventure (purs).
-- `www/src/core/meta.js` — progression pure : `migrate`, `applyLevel`, `worldOpen`, `applyRun(profile, runStats)`, `missionStatus`, `buy`, `equip`, `nextGoal`.
-- `www/src/` (hors `core/`) — l'app : rendu canvas, drag, sons (WebAudio), vibrations, sauvegarde `localStorage`,
-  un fichier par entité (`themes/`, `mascot/`, `screens/`, `render/`, `game/`, `ui/`...). Ordre de chargement dans `docs/CLAUDE.md`.
+- `src/core/` : règles et progression, pures (pas de React ni de module natif), testées sous Node.
+  `logic.ts` (`createGame(seed)`, `place(state, trayIndex, row, col)` → `{ state, events }`, `rotate`, `use`, `tick`),
+  `worlds.ts` / `levels.ts` (mondes et niveaux de l'Aventure), `meta.ts` (profil, pièces, missions, Boutique, autocollants).
+- `src/screens/`, `src/ui/` : écrans et kit d'interface. `src/render/` : dessin Skia du plateau et des thèmes.
+  `src/game/run.ts` : la partie en cours. `src/state/` : store zustand et sauvegardes (MMKV).

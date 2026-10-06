@@ -6,9 +6,8 @@ Boutique tab Cubo: head pieces Cubo wears in every theme, instead of the theme's
 Cards show Cubo wearing the piece on the equipped theme's background.
 
 ## Files
-- `www/src/core/meta.js`: `SKINS.cubo` (bought / equipped like the other skin kinds).
-- `www/src/mascot/cubo.js`, `www/src/mascot/hats.js`, `www/src/screens/shop.js`, `www/src/mascot/body.js`: `cuboLookFor(theme, wear)`, `drawWardrobeHat`, `drawCuboPreview`, `drawCubo(t, pose)` (pose draws a still Cubo elsewhere).
-- `www/index.html`: tab `data-tab="cubo"`.
+- `src/core/meta.ts`: `SKINS.cubo` (bought / equipped like the other skin kinds).
+- `src/mascot/looks.ts` (`cuboLookFor(theme, wear)`), `src/mascot/hats.ts` (`drawWardrobeHat`), `src/mascot/body.ts` (`drawCubo(..., pose)`: a still Cubo elsewhere), `src/render/cubo-preview.ts` (`drawCuboPreview`, the Boutique cards), `src/ui/CuboPose.tsx`, tab Cubo in `src/screens/ShopScreen.tsx`.
 
 ## Saved state
 `profile.owned.cubo`, `profile.equipped.cubo` (profile v5, added by `M.migrate`).

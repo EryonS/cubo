@@ -1,6 +1,6 @@
 rules_version = '2';
 // Cubo Blocks cloud save: one document per player, readable and writable only by that player.
-// profile, settings and bests are JSON text (see www/src/platform/cloud.js).
+// profile, settings and bests are JSON text (see src/platform/cloud-doc.ts).
 service cloud.firestore {
   match /databases/{db}/documents {
     match /users/{uid} {
