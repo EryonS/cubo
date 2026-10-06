@@ -380,22 +380,17 @@ export function drawHUD(g: G, th: Theme, lay: Layout, state: RunState, best: num
     lowMoves = !stage.clock && stage.movesLeft <= 3 && !state.over;
   }
   const subSize = g.fit(sub, 11, cw);
-  // The combo tag hangs on the plate's bottom edge: while it shows, the label and score slide up a
-  // little so the score keeps a gap above it; without it they sit centered.
-  // (eased back down while a broken tag falls away).
-  const falling = anim.comboBreak && !anim.calm ? Math.min(1, (t - anim.comboBreak.t0) / COMBO_BREAK_MS) : 1;
-  const lift = tutActive() ? 0 : state.combo > 0 ? 6 : 6 * (1 - falling) * (1 - falling);
-  g.text(sub, cx, y + h * 0.34 - lift + subSize * 0.35, subSize, p.sub, 'center');
+  g.text(sub, cx, y + h * 0.34 + subSize * 0.35, subSize, p.sub, 'center');
   if (stage && band.movesW) {
     // Moves left: same label-over-number shape as the goal, split off by a hairline.
     const mx = x + 10 + band.movesW / 2;
     const label = stage.movesLeft > 1 ? tr('COUPS') : tr('COUP');
     const ls = g.fit(label, 11, band.movesW - 8);
-    g.text(label, mx, y + h * 0.34 - lift + ls * 0.35, ls, p.sub, 'center');
+    g.text(label, mx, y + h * 0.34 + ls * 0.35, ls, p.sub, 'center');
     const num = String(stage.movesLeft);
     const a0 = g.alpha;
     g.alpha = a0 * (lowMoves ? 0.7 + 0.3 * Math.sin(t / 120) : 1);
-    g.text(num, mx, y + h - h * 0.14 - lift, g.fit(num, Math.round(h * 0.46), band.movesW - 8), lowMoves ? th.danger : p.ink, 'center');
+    g.text(num, mx, y + h - h * 0.14, g.fit(num, Math.round(h * 0.46), band.movesW - 8), lowMoves ? th.danger : p.ink, 'center');
     g.alpha = a0 * 0.25;
     g.rect(x + 10 + band.movesW, y + h * 0.2, 1.5, h * 0.6, p.sub);
     g.alpha = a0;
@@ -403,7 +398,7 @@ export function drawHUD(g: G, th: Theme, lay: Layout, state: RunState, best: num
   if (stage && stage.goal.type === 'boss') drawBossBar(g, state, cx - cw / 2 - 14, y, cw + 28, h, t);
   else {
     if (p.glow) g.textGlow = { color: p.glow, blur: 12 };
-    g.text(main, cx, y + h - h * 0.14 - lift, g.fit(main, Math.round(h * (stage || state.puzzle ? 0.46 : 0.56) * bump), cw), p.ink, 'center');
+    g.text(main, cx, y + h - h * 0.14, g.fit(main, Math.round(h * (stage || state.puzzle ? 0.46 : 0.56) * bump), cw), p.ink, 'center');
     g.textGlow = null;
   }
 }
@@ -448,12 +443,12 @@ export function drawMascot(g: G, th: Theme, lay: Layout, state: RunState, drag: 
 }
 
 // ---------- combo feel (render/hud.js, render/effects.js, render/loop.js) ----------
-// Combo: small pill hung from the band's bottom edge, over the frame's top margin. Drawn after the
-// board so the frame never covers it. Pops when it grows, drops away when it breaks.
+// Combo: small pill in the gap between the band and the frame, a little under the band so both
+// breathe. Drawn after the board. Pops when it grows, drops away when it breaks.
 export function drawComboHang(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
   if (tutActive()) return;
   const band = hudBand(g, lay, state, t);
-  const tagY = band.y + band.h - 7;
+  const tagY = band.y + band.h + 5;
   if (state.combo > 0) {
     const { left, pulse, scale } = comboTagLook(t, L.COMBO_GRACE, state.movesSinceClear, anim.comboAt, anim.calm);
     drawComboTag(g, th, state.combo, left, tagY, pulse, scale, 0, false, t, band.cx);

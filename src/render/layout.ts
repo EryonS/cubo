@@ -22,7 +22,7 @@ export interface Layout {
 export function computeLayout({ W, H, safeTop }: { W: number; H: number; safeTop: number }): Layout {
   // HUD buttons, then the score band right above the board frame.
   const bandH = H < 760 ? 50 : 60;
-  const bandGap = 14; // room under the band for the combo tag hung from it
+  const bandGap = 32; // room under the band for the combo tag, with air above and below it
   const topH = safeTop + 66 + bandH + bandGap + 10;
   const invH = 64;
   const maxBoard = Math.min(W - 32, 440);
