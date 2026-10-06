@@ -2,8 +2,9 @@
 // one by one while the wallet counts up, next goal, today's missions, Rejouer / Menu.
 // Cubo's pose over the title (star on a record, happy past half of it, oops below). A rewarded ad doubles the run's coins once.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, ScrollView, Share, View, Pressable } from 'react-native';
+import { Platform, ScrollView, Share, View, Pressable, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { M } from '../core';
 import { locale, tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
@@ -24,10 +25,14 @@ import { Coin } from '../ui/Wallet';
 
 const fmt = (n: number) => n.toLocaleString(locale());
 
+// 0 on a short phone (SE: ~650 pt between the safe areas), 1 from ~840 pt (Pro Max): the header shrinks between.
+const fit = (h: number) => Math.max(0, Math.min(1, (h - 620) / 220));
+const lerp = (a: number, b: number, k: number) => Math.round(a + (b - a) * k);
+
 const TITLES = { over: () => tr('Plus de place !'), time: () => tr('Temps écoulé !'), quit: () => tr('Partie terminée') };
 
 // Rewarded ad: doubles this run's coins once (legacy #over-ad).
-function DoubleCoinsAd({ total, visible, onDoubled }: { total: number; visible: boolean; onDoubled: (n: number) => void }) {
+function DoubleCoinsAd({ total, visible, tight, onDoubled }: { total: number; visible: boolean; tight: boolean; onDoubled: (n: number) => void }) {
   const [busy, setBusy] = useState(false);
   const [got, setGot] = useState(false);
   if (!visible) return null;
@@ -55,7 +60,7 @@ function DoubleCoinsAd({ total, visible, onDoubled }: { total: number; visible: 
   };
   return (
     <ListRow inset title={tr`Regarder une pub · +${fmt(total)}`} disabled={busy} quiet onPress={() => { void press(); }}
-      style={{ alignSelf: 'stretch', marginTop: space.s }} right={<Text variant="headline">{tr('Pub')}</Text>} />
+      style={[{ alignSelf: 'stretch', marginTop: space.s }, tight && { minHeight: 44, paddingVertical: space.s }]} right={<Text variant="headline">{tr('Pub')}</Text>} />
   );
 }
 
@@ -81,13 +86,13 @@ function Goal({ coins, delay }: { coins: number; delay: number }) {
   );
 }
 
-function MissionsLine() {
+function MissionsLine({ pad }: { pad: number }) {
   const colors = useColors();
   const profile = useGame((s) => s.profile);
   const status = M.missionStatus(profile, {});
   const done = status.filter((m) => m.done).length;
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 10, paddingHorizontal: 12, borderRadius: radius.card - 6, backgroundColor: colors.panel2 }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: pad, paddingHorizontal: 12, borderRadius: radius.card - 6, backgroundColor: colors.panel2 }}>
       <Text variant="muted" style={{ fontSize: 13 }}>{tr`Missions du jour · ${done}/${status.length}`}</Text>
       <View style={{ flexDirection: 'row', gap: 4 }}>
         {status.map((m, i) => <View key={i} style={{ width: 14, height: 6, borderRadius: 3, backgroundColor: m.done ? colors.good : colors.hairline }} />)}
@@ -98,6 +103,12 @@ function MissionsLine() {
 
 export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () => void; onMenu: () => void }) {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const k = fit(height - insets.top - insets.bottom);
+  const scoreSize = lerp(54, 76, k);
+  const ss = scoreSize / 76;
+  const linePad = lerp(2, 5, k);
   const profile = useGame((s) => s.profile);
   const mascot = useGame((s) => s.saved.settings.mascot);
   const played = usePlayedTheme();
@@ -138,39 +149,39 @@ export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () =>
   };
 
   return (
-    <Animated.View entering={FadeIn.duration(200)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim, justifyContent: 'center', padding: space.m }}>
+    <Animated.View entering={FadeIn.duration(200)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim, justifyContent: 'center', paddingHorizontal: space.m, paddingTop: insets.top + space.s, paddingBottom: insets.bottom + space.s }}>
       <Animated.View entering={ZoomIn.duration(260)} style={{ maxHeight: '100%' }}>
         <View style={{ backgroundColor: colors.panel, borderRadius: radius.card + 8, overflow: 'hidden', maxHeight: '100%' }}>
-          <ScrollView contentContainerStyle={{ padding: space.xl, alignItems: 'center', gap: 4 }}>
+          <ScrollView style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ paddingHorizontal: space.xl, paddingTop: lerp(space.l, space.xl, k), paddingBottom: space.xs, alignItems: 'center', gap: 4 }}>
             {mascot && (
               <Animated.View entering={ZoomIn.duration(560)} style={{ marginTop: -12, marginBottom: -4, transformOrigin: 'bottom' }}>
-                <CuboPose width={112} lw={224} lh={236} s={150} foot={13} look={look} mood={end.record ? 'star' : end.score >= end.best / 2 ? 'happy' : 'oops'} />
+                <CuboPose width={lerp(76, 112, k)} lw={224} lh={236} s={150} foot={13} look={look} mood={end.record ? 'star' : end.score >= end.best / 2 ? 'happy' : 'oops'} />
               </Animated.View>
             )}
-            <Text variant="title" style={{ fontSize: 30, textTransform: 'uppercase', textAlign: 'center' }}>{TITLES[end.title]()}</Text>
-            <Text variant="big" style={{ fontSize: 76, lineHeight: 94, paddingBottom: 4, marginTop: -10, marginBottom: Platform.OS === 'android' ? -14 : -26, color: colors.text }}>{fmt(end.score)}</Text>
+            <Text variant="title" style={{ fontSize: lerp(23, 30, k), textTransform: 'uppercase', textAlign: 'center' }}>{TITLES[end.title]()}</Text>
+            <Text variant="big" style={{ fontSize: scoreSize, lineHeight: Math.round(94 * ss), paddingBottom: 4, marginTop: Math.round(-10 * ss), marginBottom: Math.round((Platform.OS === 'android' ? -14 : -26) * ss), color: colors.text }}>{fmt(end.score)}</Text>
             <Text variant="muted" style={{ fontSize: 15 }}>{tr('Record : ') + fmt(end.best)}</Text>
             {end.record && (
-              <View style={{ marginTop: 8, paddingHorizontal: 14, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.accent }}>
-                <Text variant="title" style={{ fontSize: 17, color: colors.onAccent, letterSpacing: 1 }}>{tr('NOUVEAU RECORD')}</Text>
+              <View style={{ marginTop: lerp(4, 8, k), paddingHorizontal: 14, paddingVertical: lerp(2, 4, k), borderRadius: radius.pill, backgroundColor: colors.accent }}>
+                <Text variant="title" style={{ fontSize: lerp(15, 17, k), color: colors.onAccent, letterSpacing: 1 }}>{tr('NOUVEAU RECORD')}</Text>
               </View>
             )}
-            <View style={{ flexDirection: 'row', gap: 6, marginTop: 12, alignSelf: 'stretch' }}>
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: lerp(8, 12, k), alignSelf: 'stretch' }}>
               {tiles.map((x, i) => (
-                <View key={i} style={{ flex: 1, minWidth: 0, paddingVertical: 7, paddingHorizontal: 4, borderRadius: radius.card - 8, backgroundColor: colors.panel2, alignItems: 'center', borderWidth: 2, borderColor: x.best ? colors.accent : 'transparent' }}>
+                <View key={i} style={{ flex: 1, minWidth: 0, paddingVertical: lerp(4, 7, k), paddingHorizontal: 4, borderRadius: radius.card - 8, backgroundColor: colors.panel2, alignItems: 'center', borderWidth: 2, borderColor: x.best ? colors.accent : 'transparent' }}>
                   <Text variant="title" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 17, lineHeight: 22 }}>{x.value}</Text>
                   <Text variant="muted" numberOfLines={1} style={{ fontSize: 11, color: x.best ? colors.accent : colors.muted }}>{x.best ? tr('Record !') : x.label}</Text>
                 </View>
               ))}
             </View>
-            <Pressable accessibilityRole="button" onPress={share} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.panel2, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
+            <Pressable accessibilityRole="button" onPress={share} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: lerp(4, 6, k), paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.panel2, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
               <Icon name="share" size={16} color={colors.text} />
               <Text style={{ fontSize: 13 }}>{flash ?? tr('Partager le résumé')}</Text>
             </Pressable>
-            <View style={{ alignSelf: 'stretch', marginTop: 10, minHeight: end.earned.length * 30 }}>
+            <View style={{ alignSelf: 'stretch', marginTop: lerp(4, 10, k), minHeight: end.earned.length * (20 + linePad * 2) }}>
               {end.earned.slice(0, lines).map((line, i) => (
-                <Animated.View key={i} entering={FadeInDown.duration(250)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 2 }}>
-                  <Text variant="muted" style={{ fontSize: 14, flex: 1 }}>{line.label}</Text>
+                <Animated.View key={i} entering={FadeInDown.duration(250)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: linePad, paddingHorizontal: 2 }}>
+                  <Text variant="muted" numberOfLines={1} style={{ fontSize: 14, flex: 1 }}>{line.label}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                     <Text style={{ fontSize: 14 }}>+{line.coins}</Text>
                     <Coin size={14} />
@@ -178,27 +189,28 @@ export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () =>
                 </Animated.View>
               ))}
             </View>
-            <View style={{ alignSelf: 'stretch', marginTop: 4, paddingVertical: 11, paddingHorizontal: 14, borderRadius: radius.card - 4, backgroundColor: colors.panel2, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ alignSelf: 'stretch', marginTop: 4, paddingVertical: lerp(6, 11, k), paddingHorizontal: 14, borderRadius: radius.card - 4, backgroundColor: colors.panel2, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text>{tr('Pièces')}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Coin size={20} />
                 <Text variant="title" style={{ fontSize: 26, lineHeight: 30 }}>{fmt(shown)}</Text>
               </View>
             </View>
-            <DoubleCoinsAd total={end.total} visible={end.total > 0} onDoubled={(n) => {
+            <DoubleCoinsAd total={end.total} visible={end.total > 0} tight={k < 0.5} onDoubled={(n) => {
               const from = shown;
               const steps = Math.min(12, n);
               for (let i = 1; i <= steps; i++) timers.current.push(setTimeout(() => setShown(Math.round(from + (n * i) / steps)), i * 28));
             }} />
-            <View style={{ alignSelf: 'stretch', marginTop: 10 }}>
+            <View style={{ alignSelf: 'stretch', marginTop: lerp(6, 10, k) }}>
               <Goal key={profile.coins} coins={profile.coins} delay={linesDone} />
             </View>
-            <View style={{ alignSelf: 'stretch', marginTop: 8 }}><MissionsLine /></View>
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16, alignSelf: 'stretch' }}>
-              <Button kind="ghost" label={tr('Menu')} onPress={onMenu} style={{ flex: 1, paddingHorizontal: 8 }} />
-              <Button label={tr('Rejouer')} onPress={onAgain} style={{ flex: 1.4, paddingHorizontal: 8 }} />
-            </View>
+            <View style={{ alignSelf: 'stretch', marginTop: lerp(6, 8, k) }}><MissionsLine pad={lerp(7, 10, k)} /></View>
           </ScrollView>
+          {/* Outside the scroll: Rejouer stays on screen however long the coin list is. */}
+          <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: space.xl, paddingTop: lerp(space.s, space.m, k), paddingBottom: lerp(space.l, space.xl, k) }}>
+            <Button kind="ghost" label={tr('Menu')} onPress={onMenu} style={{ flex: 1, paddingHorizontal: 8 }} />
+            <Button label={tr('Rejouer')} onPress={onAgain} style={{ flex: 1.4, paddingHorizontal: 8 }} />
+          </View>
         </View>
       </Animated.View>
     </Animated.View>
