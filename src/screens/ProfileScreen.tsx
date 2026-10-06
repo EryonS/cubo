@@ -51,7 +51,13 @@ export function ProfileScreen() {
     [tr('Autocollants'), `${count} / ${total}`],
   ];
   return (
-    <Screen title={tr('Profil')} lead={<CuboPose width={64} lw={128} lh={134} s={84} foot={8} look={look} mood="party" />}>
+    // The canvas keeps room for the sprout above the body: the body's middle sits 12 pt under the canvas middle and
+    // 11 pt of air on each side. The margins put the body on the title's line and its left edge on the screen gutter.
+    <Screen title={tr('Profil')} lead={(
+      <View style={{ marginTop: -24, marginLeft: -11, marginRight: -8 }}>
+        <CuboPose width={64} lw={128} lh={134} s={84} foot={8} look={look} mood="party" />
+      </View>
+    )}>
       <View style={{ flexDirection: 'row', gap: space.m }}>
         {totals.map(([k, v]) => <StatTile key={k} value={v} label={k} />)}
       </View>
