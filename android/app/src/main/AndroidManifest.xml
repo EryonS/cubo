@@ -33,5 +33,95 @@
         <data android:scheme="exp+cuboblocks"/>
       </intent-filter>
     </activity>
+    <activity-alias android:name=".MainActivityPlain" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_plain" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivitySea" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_sea" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivitySpace" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_space" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityIce" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_ice" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityForest" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_forest" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityRetro" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_retro" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityArcade" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_arcade" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityVolcano" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_volcano" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityNewyear" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_newyear" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityLunar" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_lunar" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityValentine" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_valentine" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityEaster" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_easter" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityBeach" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_beach" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityXmas" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_xmas" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MainActivityHalloween" android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_halloween" android:targetActivity=".MainActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity-alias>
   </application>
 </manifest>

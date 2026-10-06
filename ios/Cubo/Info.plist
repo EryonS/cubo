@@ -30,7 +30,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>cuboblocks</string>
-				<string>com.slapps.cubo</string>
+				<string>com.slapps.cuboblocks</string>
 			</array>
 		</dict>
 		<dict>

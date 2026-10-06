@@ -3,7 +3,7 @@
 Read this before adding or changing a feature. It routes you to the right feature file and module.
 
 ## Name
-- Name: **Cubo Blocks** (store), **Cubo** under the icon, appId `com.slapps.cubo`, domain `cuboblocks.app`, repo `EryonS/cubo`. Internal ids use `cuboblocks` (save keys `cuboblocks.v2`, `cuboblocks.profile.v1`).
+- Name: **Cubo Blocks** (store), **Cubo** under the icon, appId `com.slapps.cuboblocks`, domain `cuboblocks.app`, repo `EryonS/cubo`. Internal ids use `cuboblocks` (save keys `cuboblocks.v2`, `cuboblocks.profile.v1`).
 
 ## Stack
 Native app with Expo (SDK 57), React Native and TypeScript. iOS only for now (no Android work yet).

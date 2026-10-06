@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.slapps.cubo'
+    namespace 'com.slapps.cuboblocks'
     defaultConfig {
-        applicationId 'com.slapps.cubo'
+        applicationId 'com.slapps.cuboblocks'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

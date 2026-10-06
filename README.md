@@ -2,7 +2,7 @@
 
 Puzzle de blocs 8×8 : pose les pièces, remplis lignes/colonnes, enchaîne les combos.
 
-Nom : **Cubo Blocks** (stores), **Cubo** sous l'icône, d'après la mascotte. appId `com.slapps.cubo`, domaine `cuboblocks.app`.
+Nom : **Cubo Blocks** (stores), **Cubo** sous l'icône, d'après la mascotte. appId `com.slapps.cuboblocks`, domaine `cuboblocks.app`.
 
 App native en **React Native (Expo SDK 57)**, iOS pour l'instant. L'ancienne version web + Capacitor a été portée
 puis supprimée le 2026-10-06 (elle reste dans l'historique git, commit `e86a443`).

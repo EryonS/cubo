@@ -3,4 +3,19 @@
   <color name="iconBackground">#ffe3ee</color>
   <color name="colorPrimary">#023c69</color>
   <color name="activityBackground">#ffeef4</color>
+  <color name="iconBackgroundHalloween">#FFFFFF</color>
+  <color name="iconBackgroundXmas">#FFFFFF</color>
+  <color name="iconBackgroundBeach">#FFFFFF</color>
+  <color name="iconBackgroundEaster">#FFFFFF</color>
+  <color name="iconBackgroundValentine">#FFFFFF</color>
+  <color name="iconBackgroundLunar">#FFFFFF</color>
+  <color name="iconBackgroundNewyear">#FFFFFF</color>
+  <color name="iconBackgroundVolcano">#FFFFFF</color>
+  <color name="iconBackgroundArcade">#FFFFFF</color>
+  <color name="iconBackgroundRetro">#FFFFFF</color>
+  <color name="iconBackgroundForest">#FFFFFF</color>
+  <color name="iconBackgroundIce">#FFFFFF</color>
+  <color name="iconBackgroundSpace">#FFFFFF</color>
+  <color name="iconBackgroundSea">#FFFFFF</color>
+  <color name="iconBackgroundPlain">#FFFFFF</color>
 </resources>

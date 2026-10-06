@@ -1,4 +1,4 @@
-package com.slapps.cubo
+package com.slapps.cuboblocks
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

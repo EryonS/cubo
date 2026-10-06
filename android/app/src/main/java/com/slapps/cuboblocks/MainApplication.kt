@@ -1,4 +1,4 @@
-package com.slapps.cubo
+package com.slapps.cuboblocks
 import com.facebook.react.common.assets.ReactFontManager
 
 import android.app.Application

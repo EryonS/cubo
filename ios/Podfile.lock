@@ -195,6 +195,8 @@ PODS:
     - GoogleUtilities/UserDefaults
     - React-Core
     - RecaptchaInterop
+  - ExpoAlternateAppIcons (8.0.0):
+    - ExpoModulesCore
   - ExpoAppleAuthentication (57.0.2):
     - ExpoModulesCore
   - ExpoAsset (57.0.18):
@@ -2731,6 +2733,7 @@ DEPENDENCIES:
   - expo-dev-menu (from `../node_modules/expo-dev-menu`)
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
   - "ExpoAdapterGoogleSignIn (from `../node_modules/@react-native-google-signin/google-signin/expo/ios`)"
+  - ExpoAlternateAppIcons (from `../node_modules/expo-alternate-app-icons/ios`)
   - ExpoAppleAuthentication (from `../node_modules/expo-apple-authentication/ios`)
   - ExpoAsset (from `../node_modules/expo/node_modules/expo-asset/ios`)
   - ExpoCrypto (from `../node_modules/expo-crypto/ios`)
@@ -2872,6 +2875,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-dev-menu-interface/ios"
   ExpoAdapterGoogleSignIn:
     :path: "../node_modules/@react-native-google-signin/google-signin/expo/ios"
+  ExpoAlternateAppIcons:
+    :path: "../node_modules/expo-alternate-app-icons/ios"
   ExpoAppleAuthentication:
     :path: "../node_modules/expo-apple-authentication/ios"
   ExpoAsset:
@@ -3098,6 +3103,7 @@ SPEC CHECKSUMS:
   expo-dev-menu: 272e23ced973a0e401c2b9a679595ea6c7c05d78
   expo-dev-menu-interface: 7a59e803916fbfd1b96c75ff91ea8dddac7e722f
   ExpoAdapterGoogleSignIn: dd506e5b1d8b9a172843ff6fc72875e0a9d241e1
+  ExpoAlternateAppIcons: 8a7cb9b311700b92fb13652d1087beb2efdb9d84
   ExpoAppleAuthentication: 16c2955d33ec7315e5a99d17fb5d62ed33cdb5b9
   ExpoAsset: a917b756b2e4fe12cef1ac3bca5fd849ddb2b919
   ExpoCrypto: 3ba3d7fcf244a3ae8cb888c5759e0db70ecc236d

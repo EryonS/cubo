@@ -1,9 +1,12 @@
 import type { ExpoConfig } from 'expo/config';
 
 // The only place the store identity is written.
-const IDENTITY = { name: 'Cubo', slug: 'cuboblocks', bundleId: 'com.slapps.cubo' } as const;
+const IDENTITY = { name: 'Cubo', slug: 'cuboblocks', bundleId: 'com.slapps.cuboblocks' } as const;
 // Toy pink (DESIGN.md toy-pink): splash, window and launch background.
 const BG = '#ffeef4';
+// Themes with their own app icon (APP_ICONS in src/render/app-icon.ts, minus Jouet).
+const ALT_ICONS = ['plain', 'sea', 'space', 'ice', 'forest', 'retro', 'arcade', 'volcano',
+  'newyear', 'lunar', 'valentine', 'easter', 'beach', 'xmas', 'halloween'];
 
 const config: ExpoConfig = {
   name: IDENTITY.name,
@@ -52,6 +55,13 @@ const config: ExpoConfig = {
     // Android 3-button bar: no white contrast scrim over the game; App.tsx sets the button color per theme.
     ['expo-navigation-bar', { enforceContrast: false }],
     'expo-apple-authentication',
+    // One home-screen icon per theme (Réglages > Icône de l'app), drawn by scripts/icons/app-icons.ts.
+    // Jouet is the app's own icon.
+    ['expo-alternate-app-icons', ALT_ICONS.map((id) => ({
+      name: id[0].toUpperCase() + id.slice(1), // appIconName in render/app-icon.ts
+      ios: `./assets/icons/${id}.png`,
+      android: { foregroundImage: `./assets/icons/android/${id}-fg.png`, backgroundImage: `./assets/icons/android/${id}-bg.png` },
+    }))],
     // Google sign-in on iOS returns to the reversed iOS OAuth client id (CONFIG.iosClientId in platform/cloud.ts).
     ['@react-native-google-signin/google-signin', { iosUrlScheme: 'com.googleusercontent.apps.779075128285-9ajv2baduf9tdherm72d9qnn5ahkihh8' }],
   ],
