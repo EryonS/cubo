@@ -51,7 +51,7 @@ import { haptic } from '../platform/haptics';
 import type { RootParams } from '../navigation/types';
 import { radius, space } from '../theme/tokens';
 import { raised } from '../theme/elevation';
-import { darkBg, useColors } from '../theme/useColors';
+import { colorsFor, darkBg, PlayedTheme, useColors } from '../theme/useColors';
 import { fonts } from '../theme/fonts';
 import { ask, asking } from '../ui/dialog';
 import { Icon } from '../ui/Icon';
@@ -110,7 +110,6 @@ function Badge({ children, color }: { children: React.ReactNode; color?: string 
 }
 
 export function GameScreen() {
-  const colors = useColors();
   const nav = useNavigation<NativeStackNavigationProp<RootParams>>();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
@@ -134,6 +133,7 @@ export function GameScreen() {
   const board = useGame((s) => s.profile.equipped.boards);
   // An Aventure level or a Mondes run wears its world's theme, a free run its own, else the equipped one.
   const played = useGame((s) => playedTheme(s.saved.state, board));
+  const colors = useMemo(() => colorsFor(played), [played]);
   const th = useMemo(() => themeFor({ theme: played }, board, skin, patterns), [played, board, skin, patterns]);
 
   const background = useMemo(() => (lay ? record(lay, null, (g) => paintBackground(g, th, lay.W, lay.H)) : null), [lay, th]);
@@ -551,6 +551,7 @@ export function GameScreen() {
   const top = insets.top + 12;
 
   return (
+    <PlayedTheme value={played}>
     <View style={{ flex: 1, backgroundColor: colors.bg }} onLayout={onLayout}>
       {/* While the board is on screen: status bar text for the played theme, Android button bar hidden
           (a swipe from the bottom shows it). */}
@@ -636,5 +637,6 @@ export function GameScreen() {
       <TutorialOverlay onEnd={leaveTutorial} />
       {end && <GameOver end={end} onAgain={again} onMenu={() => { setEnd(null); leave(); }} />}
     </View>
+    </PlayedTheme>
   );
 }
