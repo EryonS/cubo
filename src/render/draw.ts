@@ -461,7 +461,6 @@ export function drawComboHang(g: G, th: Theme, lay: Layout, state: RunState, t: 
 
 function drawComboTag(g: G, th: Theme, combo: number, left: number, ty: number, alpha: number, scale: number, rot: number, broken: boolean, t: number, mid: number) {
   const tag = th.tag;
-  const tier = broken ? 0 : comboTier(combo);
   const label = tr('COMBO ×') + combo;
   const fs = 15;
   const tw = g.textWidth(label, fs) + 20 + L.COMBO_GRACE * 10 + 8;
@@ -473,9 +472,8 @@ function drawComboTag(g: G, th: Theme, combo: number, left: number, ty: number, 
   g.scale(scale);
   g.translate(-mid, -(ty + 11));
   g.alpha = a0 * alpha;
-  const glow = tier >= 2 ? { color: tierHex(tier, t, th.accent), blur: 8 + 6 * tier } : tag.glow ? { color: tag.glow, blur: 10 } : undefined;
-  // 22 tall; the label's caps and the grace dots share the pill's middle line.
-  g.rrect(tx, ty, tw, 22, 11, broken ? '#9b93aa' : tag.fill, { shadow: glow });
+  // 22 tall, flat (no glow); the label's caps and the grace dots share the pill's middle line.
+  g.rrect(tx, ty, tw, 22, 11, broken ? '#9b93aa' : tag.fill);
   if (tag.line && !broken) g.rrect(tx + 2.5, ty + 2.5, tw - 5, 17, 4, tag.line, { stroke: { width: 1.5 } });
   const ink = broken ? '#ffffff' : tag.ink;
   g.text(label, tx + 11, ty + 11 + fs * 0.33, fs, ink, 'left');
