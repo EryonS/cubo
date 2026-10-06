@@ -44,7 +44,7 @@ import { useBaloo, usePixel } from '../render/font';
 import { Ctx } from '../render/ctx2d';
 import { drawTutorialCells, drawTutorialHand } from '../render/tutorial';
 import { playedTheme, themeFor } from '../render/board-themes';
-import { sfx } from '../audio/engine';
+import { musicScene, sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
 import type { RootParams } from '../navigation/types';
 import { radius, space } from '../theme/tokens';
@@ -275,6 +275,16 @@ export function GameScreen() {
     });
     return () => sub.remove();
   }, []);
+
+  // Music: the played theme's song while the game is on screen (Réglages opened from the pause keeps it).
+  const focused = useRef(false);
+  useEffect(() => { if (focused.current) musicScene(played); }, [played]);
+  useFocusEffect(useCallback(() => {
+    focused.current = true;
+    const { saved, profile } = useGame.getState();
+    musicScene(playedTheme(saved.state, profile.equipped.boards));
+    return () => { focused.current = false; if (!reopenPause.current) musicScene(null); };
+  }, []));
 
   // Entering the screen starts (or resumes) the run once per focus. Kept apart from the frame
   // loop below, which restarts whenever frame changes (layout, font loaded): re-entering the run

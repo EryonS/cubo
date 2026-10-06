@@ -35,27 +35,40 @@ test('sparkle grows with the tier and starts after the clear run', () => {
   assert.equal(r.calls[0][4], 0.12);
 });
 
-test('every song is well formed', () => {
+test('every song is well formed and soft (sine or triangle only)', () => {
   for (const [id, s] of Object.entries(SONGS)) {
     assert.equal(s.arp.length, 8, id);
+    assert.equal(s.lead.length, 16, id);
+    assert.ok(s.lead[0] >= 0, id); // a phrase starts on a note
     assert.ok(s.chords.length === 4, id);
-    for (const [, tones] of s.chords) assert.ok(tones.length >= 3, id);
-    for (const a of s.arp) assert.ok(a < s.chords[0][1].length, id);
+    for (const [, tones] of s.chords) assert.ok(tones.length >= 4, id);
+    for (const a of [...s.arp, ...s.lead]) assert.ok(a < 4, id);
+    for (const v of [s.pad, s.bass, s.bell]) if (v) assert.ok(v.type === 'sine' || v.type === 'triangle', id);
   }
   assert.ok(SONGS.toy && SONGS.xmas && SONGS.halloween);
 });
 
-test('step planner: pad on the downbeat, bass on its steps, arp thinned every 4th bar', () => {
+test('step planner: pad on the downbeat, bass, bell and lead, arp thinned every 4th bar', () => {
   const toy = SONGS.toy;
   const first = stepPlan(toy, 0);
-  assert.equal(first.filter((p) => p.kind === 'voice').length, 3 + 1 + 1); // 3 pad tones, bass, bell
+  assert.deepEqual(first.map((p) => (p.kind === 'voice' ? p.role : p.drum)), ['pad', 'pad', 'pad', 'bass', 'bell', 'lead']);
   assert.equal((first[3] as { freq: number }).freq, hz(50));
-  assert.equal(stepPlan(toy, 1).length, 1); // arp[1] = 2
-  // Bar 4 of 4 (steps 24..31): odd steps rest.
-  assert.equal(stepPlan(toy, 24 + 1).length, 0);
-  assert.equal(stepPlan(toy, 24 + 2).length, 1);
-  assert.ok(Math.abs(stepSeconds(toy) - 60 / 92 / 2) < 1e-12);
-  const arcade = stepPlan(SONGS.arcade, 4);
+  // The lead plays the chord tone an octave up and holds through the -1 steps after it.
+  const lead = first[5] as { freq: number; steps: number };
+  assert.equal(lead.freq, hz(69 + 12));
+  assert.equal(lead.steps, 2);
+  assert.equal(stepPlan(toy, 1).length, 0);
+  // Bar 4 of 4 (steps 24..31): odd steps of the arp rest.
+  assert.equal(stepPlan(toy, 24 + 3).filter((p) => p.kind === 'voice' && p.role === 'bell').length, 0);
+  assert.equal(stepPlan(toy, 24 + 2).filter((p) => p.kind === 'voice' && p.role === 'bell').length, 1);
+  assert.ok(Math.abs(stepSeconds(toy) - 60 / 84 / 2) < 1e-12);
+});
+
+test('calm (menus): no drums, a lighter lead', () => {
+  const arcade = stepPlan(SONGS.arcade, 0);
+  const calm = stepPlan(SONGS.arcade, 0, true);
   assert.ok(arcade.some((p) => p.kind === 'hit' && p.drum === 'kick'));
-  assert.ok(arcade.some((p) => p.kind === 'hit' && p.drum === 'snare') === false);
+  assert.ok(!calm.some((p) => p.kind === 'hit'));
+  const vol = (ps: typeof arcade) => (ps.find((p) => p.kind === 'voice' && p.role === 'lead') as { vol: number }).vol;
+  assert.ok(vol(calm) < vol(arcade));
 });

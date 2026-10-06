@@ -1,6 +1,6 @@
 // Cubo Blocks — Sound effects as scores over a Synth, pure (legacy audio/sfx.js). The Synth
 // (engine.ts) turns each call into WebAudio nodes; here only the notes are written down.
-import type { Wave } from './songs';
+type Wave = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
 export interface Synth {
   // Xylophone / music-box bar: a fundamental and a bright partial that dies fast.

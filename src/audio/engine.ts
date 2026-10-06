@@ -2,7 +2,7 @@
 // behind sfx.ts and the music scheduler (legacy audio/sfx.js and audio/music.js, same synthesis).
 // Gated by Réglages > Sons / Musique; everything stops while the app is not in front.
 import { AppState } from 'react-native';
-import { AudioContext, AudioManager, type AudioBuffer, type GainNode } from 'react-native-audio-api';
+import { AudioContext, AudioManager, type AudioBuffer, type GainNode, type OscillatorNode } from 'react-native-audio-api';
 import { useGame } from '../state/store';
 import { createSfx, type BiquadType, type Synth } from './sfx';
 import { SONGS, stepPlan, stepSeconds, type Drum, type Plan, type Wave } from './songs';
@@ -91,43 +91,126 @@ export const sfx = createSfx(synth);
 
 // ---------- music ----------
 // Scheduled ahead by a small lookahead timer so it keeps time while the JS thread is busy drawing.
+// Chain: each song on its own gain (so a new song crossfades over the old one's tails) → the music
+// bus → a gentle lowpass → speakers, plus a send into a soft reverb.
 const LOOKAHEAD = 0.35;
+const LEVEL = 0.5;
+const CALM_LEVEL = 0.38; // menus play softer
 let bus: GainNode | null = null;
+let songBus: GainNode | null = null;
 let timer: ReturnType<typeof setInterval> | null = null;
 let step = 0;
 let nextAt = 0;
 let songId = 'toy';
+let calm = true;
 let hiss: AudioBuffer | null = null;
 
-function voice(c: AudioContext, b: GainNode, p: Extract<Plan, { kind: 'voice' }>, at: number, stepSec: number) {
-  const dur = p.steps * stepSec;
-  const attack = p.attack ?? Math.min(0.4, dur * 0.3);
+// A soft hall: two seconds of decaying stereo noise.
+function hall(c: AudioContext): AudioBuffer {
+  const len = Math.floor(c.sampleRate * 2.2);
+  const buf = c.createBuffer(2, len, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = new Float32Array(len);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    buf.copyToChannel(d, ch);
+  }
+  return buf;
+}
+
+function musicBus(c: AudioContext): GainNode {
+  if (bus) return bus;
+  bus = c.createGain();
+  bus.gain.value = 0;
+  const tone = c.createBiquadFilter();
+  tone.type = 'lowpass';
+  tone.frequency.value = 5200;
+  bus.connect(tone).connect(c.destination);
+  try {
+    const verb = c.createConvolver();
+    verb.buffer = hall(c);
+    const wet = c.createGain();
+    wet.gain.value = 0.32;
+    tone.connect(verb).connect(wet).connect(c.destination);
+  } catch { /* dry only */ }
+  return bus;
+}
+
+// An envelope: attack to vol, hold, release to silence; returns the end time.
+function envelope(g: GainNode, at: number, vol: number, attack: number, hold: number, release: number) {
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(vol, at + attack);
+  if (hold > attack) g.gain.setValueAtTime(vol, at + hold);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + Math.max(hold, attack) + release);
+  return at + Math.max(hold, attack) + release;
+}
+
+function osc(c: AudioContext, type: Wave, freq: number, at: number) {
   const o = c.createOscillator();
-  const g = c.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, at);
+  return o;
+}
+
+// One note, voiced by its role: pad = two detuned voices swelling in, bass = round sine, bell = music
+// box (fundamental + a quick octave shimmer), lead = flute with a late vibrato.
+function voice(c: AudioContext, out: GainNode, p: Extract<Plan, { kind: 'voice' }>, at: number, stepSec: number) {
+  const dur = p.steps * stepSec;
   const f = c.createBiquadFilter();
   f.type = 'lowpass';
   f.frequency.value = p.cut;
-  o.type = p.type as Wave;
-  o.frequency.value = p.freq;
-  g.gain.setValueAtTime(0.0001, at);
-  g.gain.exponentialRampToValueAtTime(p.vol, at + attack);
-  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-  o.connect(f).connect(g).connect(b);
-  o.start(at);
-  o.stop(at + dur + 0.05);
+  const g = c.createGain();
+  f.connect(g).connect(out);
+  const oscs: OscillatorNode[] = []; // into the filter
+  const mods: OscillatorNode[] = []; // modulators: started and stopped with the note
+  let end = at + dur;
+  if (p.role === 'pad') {
+    for (const cents of [-7, 7]) {
+      const o = osc(c, p.type, p.freq, at);
+      o.detune.value = cents;
+      oscs.push(o);
+    }
+    end = envelope(g, at, p.vol, Math.min(1.2, dur * 0.4), dur, 0.9);
+  } else if (p.role === 'bass') {
+    oscs.push(osc(c, p.type, p.freq, at));
+    end = envelope(g, at, p.vol, 0.03, dur * 0.5, dur * 0.6);
+  } else if (p.role === 'bell') {
+    oscs.push(osc(c, p.type, p.freq, at));
+    const shimmer = osc(c, 'sine', p.freq * 2, at);
+    const sg = c.createGain();
+    envelope(sg, at, p.vol * 0.25, 0.004, 0, 0.25);
+    shimmer.connect(sg).connect(out);
+    shimmer.start(at);
+    shimmer.stop(at + 0.3);
+    end = envelope(g, at, p.vol, 0.004, 0, dur);
+  } else {
+    const o = osc(c, p.type, p.freq, at);
+    const lfo = osc(c, 'sine', 5, at);
+    const depth = c.createGain();
+    depth.gain.setValueAtTime(0, at);
+    depth.gain.linearRampToValueAtTime(p.freq * 0.006, at + Math.min(0.35, dur * 0.6));
+    lfo.connect(depth).connect(o.frequency);
+    oscs.push(o);
+    mods.push(lfo);
+    end = envelope(g, at, p.vol, 0.06, dur * 0.85, 0.3);
+  }
+  for (const o of oscs) o.connect(f);
+  for (const o of [...oscs, ...mods]) {
+    o.start(at);
+    o.stop(end + 0.05);
+  }
 }
 
-// Drums: kick = pitch drop, snare / hat = filtered noise bursts.
-function hit(c: AudioContext, b: GainNode, kind: Drum, at: number) {
+// Soft drums: kick = low thump, snare = brush, hat = shaker.
+function hit(c: AudioContext, out: GainNode, kind: Drum, at: number) {
   if (kind === 'kick') {
     const o = c.createOscillator();
     const g = c.createGain();
-    o.frequency.setValueAtTime(140, at);
-    o.frequency.exponentialRampToValueAtTime(45, at + 0.12);
-    g.gain.setValueAtTime(0.22, at);
-    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.2);
-    o.connect(g).connect(b);
-    o.start(at); o.stop(at + 0.25);
+    o.frequency.setValueAtTime(110, at);
+    o.frequency.exponentialRampToValueAtTime(48, at + 0.14);
+    g.gain.setValueAtTime(0.13, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
+    o.connect(g).connect(out);
+    o.start(at); o.stop(at + 0.26);
     return;
   }
   hiss ??= whiteNoise(c, 0.3);
@@ -136,39 +219,52 @@ function hit(c: AudioContext, b: GainNode, kind: Drum, at: number) {
   const g = c.createGain();
   src.buffer = hiss;
   f.type = kind === 'hat' ? 'highpass' : 'bandpass';
-  f.frequency.value = kind === 'hat' ? 7000 : 1800;
-  const dur = kind === 'hat' ? 0.05 : 0.16;
-  g.gain.setValueAtTime(kind === 'hat' ? 0.03 : 0.07, at);
+  f.frequency.value = kind === 'hat' ? 6000 : 1200;
+  const dur = kind === 'hat' ? 0.04 : 0.18;
+  g.gain.setValueAtTime(kind === 'hat' ? 0.012 : 0.03, at);
   g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-  src.connect(f).connect(g).connect(b);
+  src.connect(f).connect(g).connect(out);
   src.start(at); src.stop(at + dur + 0.02);
 }
 
 function schedule() {
   const c = ac;
-  if (!c || !bus) return;
+  if (!c || !songBus) return;
   const song = SONGS[songId];
   const stepSec = stepSeconds(song);
   while (nextAt < c.currentTime + LOOKAHEAD) {
-    for (const p of stepPlan(song, step)) {
-      if (p.kind === 'voice') voice(c, bus, p, nextAt, stepSec); else hit(c, bus, p.drum, nextAt);
+    for (const p of stepPlan(song, step, calm)) {
+      if (p.kind === 'voice') voice(c, songBus, p, nextAt, stepSec); else hit(c, songBus, p.drum, nextAt);
     }
     nextAt += stepSec;
     step += 1;
   }
 }
 
+// Starts the current song from its first bar on a fresh gain; the old one fades under it.
+function freshSong(c: AudioContext) {
+  const t = c.currentTime;
+  const old = songBus;
+  if (old) {
+    old.gain.cancelScheduledValues(t);
+    old.gain.setTargetAtTime(0, t, 0.25);
+    setTimeout(() => old.disconnect(), 3000);
+  }
+  songBus = c.createGain();
+  songBus.gain.setValueAtTime(0.0001, t);
+  songBus.gain.setTargetAtTime(1, t + 0.1, 0.35);
+  songBus.connect(musicBus(c));
+  step = 0;
+  nextAt = t + 0.08;
+}
+
 function startMusic() {
   const c = context();
   if (timer || !c) return;
-  if (!bus) {
-    bus = c.createGain();
-    bus.gain.value = 0;
-    bus.connect(c.destination);
-  }
-  bus.gain.cancelScheduledValues(c.currentTime);
-  bus.gain.setTargetAtTime(0.5, c.currentTime, 0.4);
-  nextAt = c.currentTime + 0.1;
+  const b = musicBus(c);
+  b.gain.cancelScheduledValues(c.currentTime);
+  b.gain.setTargetAtTime(calm ? CALM_LEVEL : LEVEL, c.currentTime, 0.4);
+  freshSong(c);
   timer = setInterval(schedule, 90);
   schedule();
 }
@@ -180,12 +276,27 @@ function stopMusic() {
   if (ac && bus) bus.gain.setTargetAtTime(0, ac.currentTime, 0.15);
 }
 
-// A new world: switch song from its first bar (the menus play the equipped theme's song).
-export function pickSong(id: string) {
+// Which song plays: in a run, the theme being played; on the menus, the equipped theme's, calm.
+let runTheme: string | null = null;
+function retarget() {
+  const id = runTheme ?? useGame.getState().profile.equipped.boards;
   const next = SONGS[id] ? id : 'toy';
+  const nextCalm = runTheme == null;
+  const c = ac;
+  if (nextCalm !== calm) {
+    calm = nextCalm;
+    if (c && bus && timer) bus.gain.setTargetAtTime(calm ? CALM_LEVEL : LEVEL, c.currentTime, 0.5);
+  }
   if (next === songId) return;
   songId = next;
-  step = 0;
+  if (c && timer) freshSong(c);
+}
+
+// The game screen calls this with the run's theme while it is on screen (Pause and Réglages from
+// the pause keep it), and null when back on the menus.
+export function musicScene(theme: string | null) {
+  runTheme = theme;
+  retarget();
 }
 
 let adHold = false;
@@ -218,10 +329,13 @@ export function wireAudio() {
   wired = true;
   AppState.addEventListener('change', syncAudio);
   let last = settings();
+  let board = useGame.getState().profile.equipped.boards;
   useGame.subscribe((s) => {
     const next = s.saved.settings;
     if (next.music !== last.music || next.sfx !== last.sfx) syncAudio();
     last = next;
+    if (s.profile.equipped.boards !== board) { board = s.profile.equipped.boards; retarget(); }
   });
+  retarget();
   syncAudio();
 }
