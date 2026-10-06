@@ -730,6 +730,7 @@ add('en', {
   'Boutique': 'Shop',
   'Thèmes': 'Themes',
   'Thème': 'Theme',
+  'Récompense d’événement': 'Event reward',
   'Blocs': 'Blocks',
   'Annuler': 'Cancel',
   'Pièces : ouvrir la Boutique': 'Coins: open the Shop',

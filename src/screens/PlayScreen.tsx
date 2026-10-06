@@ -25,7 +25,7 @@ import { useGame } from '../state/store';
 import type { RootParams, TabParams } from '../navigation/types';
 import { radius, space } from '../theme/tokens';
 import { raised } from '../theme/elevation';
-import { useColors } from '../theme/useColors';
+import { darkBg, useColors } from '../theme/useColors';
 import { BoardPreview } from '../ui/BoardPreview';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -145,7 +145,7 @@ export function PlayScreen() {
           <Text variant="title" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: heroInk }}>{next ? levelName(next[1]) : tr('Carte des mondes')}</Text>
           {level ? <Text variant="caption" numberOfLines={1} style={{ color: heroSub }}>{levelGoal}</Text> : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
-              <Star size={14} />
+              <Star size={14} edge={playing || darkBg(colors.accent) ? undefined : heroInk} />
               <Text variant="caption" style={{ color: heroSub }}>{fmt(stars)} / {maxStars}</Text>
             </View>
           )}

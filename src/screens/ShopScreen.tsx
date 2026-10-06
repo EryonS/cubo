@@ -79,7 +79,8 @@ function SkinCard({ kind, skin, width }: { kind: SkinKind; skin: ReturnType<type
         <Text numberOfLines={1}>{skin.name}</Text>
         {via && <Text variant="caption">{tr('Ou bats son boss')}</Text>}
       </View>
-      <SkinAction equipped={equipped} owned={owned} price={skin.price} cant={cant} exclusive={skin.exclusive} onPress={act} />
+      <SkinAction equipped={equipped} owned={owned} price={skin.price} cant={cant} onPress={act}
+        exclusive={skin.exclusive === skin.name ? tr('Récompense d’événement') : skin.exclusive} />
     </Card>
   );
 }

@@ -78,10 +78,11 @@ export function Icon({ name, size = 24, color }: { name: IconName; size?: number
 }
 
 const STAR = 'M12 2.6l2.8 5.8 6.4.9-4.6 4.5 1.1 6.3L12 17.1l-5.7 3 1.1-6.3L2.8 9.3l6.4-.9z';
-export function Star({ size = 16, on = true, color = '#ffd23f' }: { size?: number; on?: boolean; color?: string }) {
+// edge: an outline around a lit star, for light or yellow backgrounds.
+export function Star({ size = 16, on = true, color = '#ffd23f', edge }: { size?: number; on?: boolean; color?: string; edge?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path d={STAR} fill={on ? color : 'none'} stroke={on ? 'none' : color} strokeWidth={1.8} strokeLinejoin="round" opacity={on ? 1 : 0.45} />
+      <Path d={STAR} fill={on ? color : 'none'} stroke={on ? edge ?? 'none' : color} strokeWidth={on ? 2 : 1.8} strokeLinejoin="round" opacity={on ? 1 : 0.45} />
     </Svg>
   );
 }
