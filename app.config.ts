@@ -20,6 +20,8 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: IDENTITY.bundleId,
+    // One per upload to App Store Connect: bump it (and CURRENT_PROJECT_VERSION in the Xcode project) before each archive.
+    buildNumber: '2',
     // Signing team, so a prebuild keeps it in the Xcode project.
     appleTeamId: '853SGV2WKU',
     infoPlist: { ITSAppUsesNonExemptEncryption: false },
@@ -57,7 +59,12 @@ const config: ExpoConfig = {
     }],
     'expo-localization',
     // Sounds only while the app is in front: no background audio mode, no foreground service, no FFmpeg (nothing is decoded).
-    ['react-native-audio-api', { iosBackgroundMode: false, androidForegroundService: false, androidPermissions: [], disableFFmpeg: true }],
+    // The microphone text is never shown (Cubo never records), but the library links the recording API and
+    // App Store processing rejects a build without it (ITMS-90683).
+    ['react-native-audio-api', {
+      iosBackgroundMode: false, androidForegroundService: false, androidPermissions: [], disableFFmpeg: true,
+      iosMicrophonePermission: 'Cubo Blocks never records sound. Its audio library asks this of every app that uses it.',
+    }],
     ['expo-splash-screen', { backgroundColor: BG, image: './assets/splash.png', imageWidth: 220 }],
     // Google's test app ids until the AdMob account exists. Replace them, and the unit ids in
     // platform/ads.ts, before release.
