@@ -7,7 +7,7 @@ import { BackHandler, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tr } from '../core/i18n';
 import { radius, space, TOUCH } from '../theme/tokens';
-import { useColors } from '../theme/useColors';
+import { PlayedTheme, useColors, usePlayedTheme } from '../theme/useColors';
 import { Icon } from './Icon';
 import { Tap } from './Tap';
 import { Text } from './Text';
@@ -17,6 +17,9 @@ interface Props { children: ReactNode; onOpen?: () => void; onClose?: () => void
 export const Sheet = forwardRef<BottomSheetModal, Props>(function Sheet({ children, onOpen, onClose }, ref) {
   const insets = useSafeAreaInsets();
   const colors = useColors();
+  // The modal renders its content in the provider's portal, outside this tree: the played theme is
+  // handed over again, or the content would wear the equipped theme on this theme's panel.
+  const played = usePlayedTheme();
   const inner = useRef<BottomSheetModal>(null);
   useImperativeHandle(ref, () => inner.current as BottomSheetModal);
   // Android back button: closes the sheet on top (the newest listener runs first).
@@ -41,7 +44,7 @@ export const Sheet = forwardRef<BottomSheetModal, Props>(function Sheet({ childr
       onDismiss={() => { setShown(false); onClose?.(); }}
     >
       <BottomSheetView style={{ paddingHorizontal: space.l, paddingBottom: insets.bottom + space.l, paddingTop: space.xs }}>
-        {children}
+        <PlayedTheme value={played}>{children}</PlayedTheme>
       </BottomSheetView>
     </BottomSheetModal>
   );

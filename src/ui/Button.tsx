@@ -45,9 +45,11 @@ export function Button({ label, sub, kind = 'primary', size = 'm', icon, style, 
         opacity: disabled ? 0.5 : 1,
       }, typeof style === 'function' ? style(s) : style]}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
+      {/* A long label (a narrow dialog button, English) shrinks to fit instead of running past the pill. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s, maxWidth: '100%' }}>
         {icon}
-        <Text variant={small ? 'headline' : 'title'} numberOfLines={1} style={{ color: ink }}>{label}</Text>
+        <Text variant={small ? 'headline' : 'title'} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}
+          style={{ color: ink, flexShrink: 1 }}>{label}</Text>
       </View>
       {sub ? <Text variant="caption" numberOfLines={1} style={{ color: ink, opacity: 0.85 }}>{sub}</Text> : null}
     </Pressable>
