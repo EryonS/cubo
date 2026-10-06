@@ -35,7 +35,7 @@ import {
   bestOf, commit, discardPiece, enterRun, newRun, fireBonus, giveUpRun, hintPuzzle, liftPuzzlePiece, startPuzzle, startSurprise, liveRun, persistRun, quitRun, restartRun, rotateTray, restartCurrent,
   setAiming, setEndHandler, stepFlyers, syncBudget, tapCubo, tickRun, undoMove, useRunHud, type RunEnd,
 } from '../game/run';
-import { boardCellAt, computeLayout, invAt, miniCell, overTrash, slotAt, HUD_BTN, type Layout } from '../render/layout';
+import { boardCellAt, computeLayout, invAt, miniCell, overTrash, slotAt, HUD_BTN, INV_TOP, type Layout } from '../render/layout';
 import { G } from '../render/g';
 import {
   drawAim, drawBanner, drawBoard, drawChrono, drawComboGlow, drawComboHang, drawFades, drawFlyers, drawFloaters, drawHint, drawHUD,
@@ -612,7 +612,7 @@ export function GameScreen() {
         <Pressable
           accessibilityRole="button" accessibilityLabel={tr`Indice pour ${M.PUZZLE_HINT} pièces`} accessibilityState={{ disabled: hintOff }}
           onPress={() => { if (!lay || !hintPuzzle(lay)) nope(); dirty.current = true; }}
-          style={({ pressed }) => ({ position: 'absolute', left: lay.W / 2 - 62, width: 124, justifyContent: 'center', top: lay.ty + lay.trayH + 6, flexDirection: 'row', alignItems: 'center', gap: 8, height: 52, paddingHorizontal: 18, borderRadius: radius.pill, backgroundColor: colors.panel, ...raised(colors, 'low'), opacity: hintOff ? 0.45 : 1, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
+          style={({ pressed }) => ({ position: 'absolute', left: lay.W / 2 - 62, width: 124, justifyContent: 'center', top: lay.ty + lay.trayH + INV_TOP, flexDirection: 'row', alignItems: 'center', gap: 8, height: 52, paddingHorizontal: 18, borderRadius: radius.pill, backgroundColor: colors.panel, ...raised(colors, 'low'), opacity: hintOff ? 0.45 : 1, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
           <Text variant="title" style={{ fontSize: 19, lineHeight: 24 }}>{tr('Indice')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
             <Text style={{ fontSize: 16, color: colors.muted }}>{M.PUZZLE_HINT}</Text><Coin size={15} />

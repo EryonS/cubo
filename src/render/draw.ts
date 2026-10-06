@@ -450,13 +450,13 @@ export function drawMascot(g: G, th: Theme, lay: Layout, state: RunState, drag: 
 }
 
 // ---------- combo feel (render/hud.js, render/effects.js, render/loop.js) ----------
-// Combo: small pill sitting on the board frame's bottom line, centered on the board. Opaque, so the
+// Combo: small pill just under the board frame's bottom line, centered on the board. Opaque, so the
 // frame's combo glow stays behind it. A hint line (stuck, bomb aiming) takes that spot while it shows.
 // Drawn after the board. Pops when it grows, drops away when it breaks.
 export function drawComboHang(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
   if (tutActive() || hintText(state, anim.aiming)) return;
   const mid = lay.bx + lay.board / 2;
-  const tagY = lay.by + lay.board + 10 - 11;
+  const tagY = lay.by + lay.board + 10 - 4;
   if (state.combo > 0) {
     const { left, pulse, scale } = comboTagLook(t, L.COMBO_GRACE, state.movesSinceClear, anim.comboAt, anim.calm);
     drawComboTag(g, th, state.combo, left, tagY, pulse, scale, 0, false, t, mid);

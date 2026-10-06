@@ -32,7 +32,7 @@ export function computeLayout({ W, H, safeTop }: { W: number; H: number; safeTop
   const bx = Math.round((W - board) / 2);
   const used = board + cell * 3.7 + invH;
   const by = Math.round(topH + Math.max(0, (H - topH - used) * 0.5));
-  const ty = by + board + cell;
+  const ty = by + board + cell - 4; // the gap holds hints, the chrono bar and the combo tag
   // Three tray slots, then a narrow column announcing the next piece.
   const slotW = board / 3.6;
   return {
@@ -87,6 +87,7 @@ export function boardCellAt(lay: Layout, x: number, y: number): [number, number]
 export const BONUS_ORDER = ['rotate', 'nitro', 'shield', 'bomb', 'reroll'] as const;
 export type InvId = (typeof BONUS_ORDER)[number] | 'legend';
 export const INV_SIZE = 52;
+export const INV_TOP = 10; // air between the tray and the bonus row (and the bin in its place)
 export const INV_GAP = 8;
 export const LEGEND_W = 42;
 export interface InvBox extends Box { id: InvId }
@@ -97,7 +98,7 @@ export function invBoxes(lay: Layout): InvBox[] {
   const widths = ids.map((id) => (id === 'legend' ? LEGEND_W : INV_SIZE));
   const total = widths.reduce((a, b) => a + b, 0) + INV_GAP * (ids.length - 1);
   let x = (lay.W - total) / 2;
-  const y = lay.ty + lay.trayH;
+  const y = lay.ty + lay.trayH + INV_TOP;
   return ids.map((id, i) => {
     const box = { id, x, y, w: widths[i], h: INV_SIZE };
     x += widths[i] + INV_GAP;
@@ -118,7 +119,7 @@ export const invCenter = (lay: Layout, id: InvId): [number, number] => {
 
 // The bin appears where the inventory is: the board's width, 56 high.
 export const TRASH_H = 56;
-export const trashBox = (lay: Layout): Box => ({ x: lay.bx, y: lay.ty + lay.trayH, w: lay.board, h: TRASH_H });
+export const trashBox = (lay: Layout): Box => ({ x: lay.bx, y: lay.ty + lay.trayH + INV_TOP - 2, w: lay.board, h: TRASH_H });
 // A finger counts as over the bin from its top to 24 px under it.
 export function overTrash(lay: Layout, x: number, y: number): boolean {
   const b = trashBox(lay);
@@ -135,4 +136,4 @@ export const hintY = (lay: Layout, chrono: boolean) => {
   const gapTop = lay.by + lay.board + 10;
   return chrono ? gapTop + 2 : gapTop + (lay.ty - gapTop) / 2;
 };
-export const chronoBar = (lay: Layout): [number, number] => [lay.bx, lay.by + lay.board + 10 + (lay.ty - lay.by - lay.board - 10) * 0.62];
+export const chronoBar = (lay: Layout): [number, number] => [lay.bx, lay.by + lay.board + 10 + (lay.ty - lay.by - lay.board - 10) * 0.74]; // under the combo tag
