@@ -6,7 +6,7 @@
 // thread, so it stays glued to the finger even when the JS thread is busy (see the spec, Rendering).
 // The HUD buttons, the pause / missions / legend sheets and the end card are React Native.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, AppState, Pressable, View, type LayoutChangeEvent } from 'react-native';
+import { AccessibilityInfo, AppState, BackHandler, Pressable, View, type LayoutChangeEvent } from 'react-native';
 import { Canvas, Group, Picture, Skia, type SkPicture, type SkTypeface } from '@shopify/react-native-skia';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -284,6 +284,16 @@ export function GameScreen() {
     const { saved, profile } = useGame.getState();
     musicScene(playedTheme(saved.state, profile.equipped.boards));
     return () => { focused.current = false; if (!reopenPause.current) musicScene(null); };
+  }, []));
+
+  // Android back button on the board: opens the pause (a sheet on top closes itself first; a result
+  // card waits for a choice).
+  useFocusEffect(useCallback(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!cards.current && !tutActive() && open.current.size === 0 && !asking()) { sfx.turn(); setAiming(false); pauseRef.current?.present(); }
+      return true;
+    });
+    return () => sub.remove();
   }, []));
 
   // Entering the screen starts (or resumes) the run once per focus. Kept apart from the frame

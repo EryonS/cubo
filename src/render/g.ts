@@ -14,6 +14,11 @@ export function withAlpha(hex: string, a: number) {
   return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
 }
 
+// Text before the bundled fonts load (or on canvases without one): Android has no default face for
+// Skia.Font(undefined), so take the system sans-serif.
+let sysFace: SkTypeface | null = null;
+const systemFace = () => (sysFace ??= Skia.FontMgr.System().matchFamilyStyle('sans-serif', { weight: 700 }));
+
 export class G {
   // globalAlpha: multiplies every color drawn (the legacy ctx.globalAlpha).
   alpha = 1;
@@ -34,7 +39,7 @@ export class G {
     let f = this.fonts.get(key);
     if (!f) {
       const face = this.pixel ? this.pixelFace : this.typeface;
-      f = face ? Skia.Font(face, px) : Skia.Font(undefined, px);
+      f = Skia.Font(face ?? systemFace(), px);
       this.fonts.set(key, f);
     }
     return f;

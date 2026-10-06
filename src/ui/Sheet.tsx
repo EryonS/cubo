@@ -1,9 +1,9 @@
 // A bottom sheet in the toy style (legacy .overlay > .card): scrim, rounded panel with the thick
 // bottom edge, content sized to itself. Built on @gorhom/bottom-sheet's modal; the parent drives it
 // with a ref (present / dismiss). onOpen / onClose tell the game when to pause its timers.
-import { forwardRef, useCallback, type ReactNode } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from 'react';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
-import { View } from 'react-native';
+import { BackHandler, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tr } from '../core/i18n';
 import { radius, space, TOUCH } from '../theme/tokens';
@@ -17,19 +17,28 @@ interface Props { children: ReactNode; onOpen?: () => void; onClose?: () => void
 export const Sheet = forwardRef<BottomSheetModal, Props>(function Sheet({ children, onOpen, onClose }, ref) {
   const insets = useSafeAreaInsets();
   const colors = useColors();
+  const inner = useRef<BottomSheetModal>(null);
+  useImperativeHandle(ref, () => inner.current as BottomSheetModal);
+  // Android back button: closes the sheet on top (the newest listener runs first).
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (!shown) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { inner.current?.dismiss(); return true; });
+    return () => sub.remove();
+  }, [shown]);
   const backdrop = useCallback((p: BottomSheetBackdropProps) => (
     <BottomSheetBackdrop {...p} appearsOnIndex={0} disappearsOnIndex={-1} opacity={1} pressBehavior="close" style={[p.style, { backgroundColor: colors.scrim }]} />
   ), [colors.scrim]);
   return (
     <BottomSheetModal
-      ref={ref}
+      ref={inner}
       enableDynamicSizing
       maxDynamicContentSize={760}
       backdropComponent={backdrop}
       backgroundStyle={{ backgroundColor: colors.panel, borderTopLeftRadius: radius.card + 8, borderTopRightRadius: radius.card + 8 }}
       handleIndicatorStyle={{ backgroundColor: colors.edge, width: 44 }}
-      onChange={(i) => { if (i >= 0) onOpen?.(); }}
-      onDismiss={onClose}
+      onChange={(i) => { if (i >= 0) { setShown(true); onOpen?.(); } }}
+      onDismiss={() => { setShown(false); onClose?.(); }}
     >
       <BottomSheetView style={{ paddingHorizontal: space.l, paddingBottom: insets.bottom + space.l, paddingTop: space.xs }}>
         {children}
