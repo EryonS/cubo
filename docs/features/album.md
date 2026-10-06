@@ -6,7 +6,7 @@ Profil tab (`src/screens/ProfileScreen.tsx`), one scrolling page, no tabs:
 - Totals (games, stars, stickers), an **Album** row that opens the Album screen, then the **trophy shelves** (months from `DAILY_START` to now, plus season trophies; the streak card and freeze are on the Défis tab).
 - **Album** (`src/screens/album/AlbumScreen.tsx`, stack route `Album`): the stickers by page (see the table). Unearned stickers are grey with their hint. The legacy peel animation for newly earned stickers is not ported; `showStickers` (`src/ui/StickerBanner.tsx`) announces fresh ones in the Boutique.
 - The calendar is on the Défis screen (see [daily.md](daily.md)).
-- **Stats** (`src/screens/profile/StatsBlock.tsx`): pills for Classique / Chrono / Chill, each with 4 tiles (games, record, average, best combo) and a bar chart of the last 20 scores (tap a bar for its value; no hover on a phone); then lifetime counters, Aventure stars, dailies cleared, longest streak. Réglages is a row at the bottom.
+- **Stats** (`src/screens/profile/StatsBlock.tsx`): pills for Classique / Chrono / Chill, each with 4 tiles (games, record, average, best combo) and a bar chart of the last 20 scores (tap a bar for its value; no hover on a phone); then lifetime counters, Aventure stars, dailies cleared, longest streak. Réglages is the gear button on the header's right.
 
 ## Stickers
 | Page | Stickers |

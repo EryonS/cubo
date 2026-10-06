@@ -6,21 +6,26 @@ import { tr } from '../core/i18n';
 import { radius, space, TOUCH } from '../theme/tokens';
 import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { Tap } from './Tap';
 import { Text } from './Text';
 
 type Props = { title: string; back?: boolean | (() => void); lead?: ReactNode; right?: ReactNode };
 
-export function BackButton({ onPress }: { onPress?: () => void }) {
+// A square icon button on the header line (back, Réglages).
+export function HeaderButton({ icon, size = 18, label, onPress }: { icon: IconName; size?: number; label: string; onPress: () => void }) {
   const colors = useColors();
-  const nav = useNavigation();
   return (
-    <Tap label={tr('Retour')} onPress={onPress ?? (() => nav.goBack())}
+    <Tap label={label} onPress={onPress}
       style={{ width: TOUCH, height: TOUCH, borderRadius: radius.s + 4, backgroundColor: colors.panel, ...raised(colors, 'low'), alignItems: 'center', justifyContent: 'center' }}>
-      <Icon name="chevLeft" size={18} color={colors.text} />
+      <Icon name={icon} size={size} color={colors.text} />
     </Tap>
   );
+}
+
+export function BackButton({ onPress }: { onPress?: () => void }) {
+  const nav = useNavigation();
+  return <HeaderButton icon="chevLeft" label={tr('Retour')} onPress={onPress ?? (() => nav.goBack())} />;
 }
 
 export function ScreenHeader({ title, back, lead, right }: Props) {

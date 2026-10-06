@@ -1,5 +1,5 @@
 // Profil tab (legacy #profile): Cubo and the totals, trophies, the sticker album entry, stats per mode and
-// lifetime counters, Réglages.
+// lifetime counters, the cloud account. Réglages sits on the header's right.
 import { useMemo } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
@@ -8,13 +8,17 @@ import { locale, tr } from '../core/i18n';
 import { albumPages, monthShelf, seasonShelf, type Trophy as T } from '../game/album';
 import { cuboLookFor } from '../mascot/looks';
 import type { RootParams } from '../navigation/types';
+import { available } from '../platform/cloud';
 import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import { space } from '../theme/tokens';
+import { AccountBlock } from '../ui/AccountBlock';
 import { Card } from '../ui/Card';
 import { CuboPose } from '../ui/CuboPose';
 import { ListRow } from '../ui/ListRow';
 import { Screen } from '../ui/Screen';
+import { HeaderButton } from '../ui/ScreenHeader';
+import { SectionLabel } from '../ui/SectionLabel';
 import { StatTile } from '../ui/StatTile';
 import { StickerBadge, Trophy } from '../ui/StickerArt';
 import { Text } from '../ui/Text';
@@ -57,7 +61,7 @@ export function ProfileScreen() {
       <View style={{ marginTop: -24, marginLeft: -11, marginRight: -8 }}>
         <CuboPose width={64} lw={128} lh={134} s={84} foot={8} look={look} mood="party" />
       </View>
-    )}>
+    )} right={<HeaderButton icon="gear" size={22} label={tr('Réglages')} onPress={() => nav.navigate('Settings')} />}>
       <View style={{ flexDirection: 'row', gap: space.m }}>
         {totals.map(([k, v]) => <StatTile key={k} value={v} label={k} />)}
       </View>
@@ -68,7 +72,12 @@ export function ProfileScreen() {
         {season.length > 0 && <Shelf title={tr('Trophées de saison')} items={season} />}
       </Card>
       <Card><StatsBlock /></Card>
-      <ListRow big title={tr('Réglages')} onPress={() => nav.navigate('Settings')} right="chevron" />
+      {available() && (
+        <View style={{ gap: space.s }}>
+          <SectionLabel>{tr('Sauvegarde en ligne')}</SectionLabel>
+          <AccountBlock />
+        </View>
+      )}
     </Screen>
   );
 }

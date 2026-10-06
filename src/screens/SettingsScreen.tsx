@@ -1,5 +1,5 @@
 // Réglages (legacy #settings): sounds, music, vibrations, color-blind marks, language,
-// the cloud account (hidden until Firebase is configured) and the ad-privacy row.
+// and the ad-privacy row. The cloud account lives on the Profil tab.
 import { useSyncExternalStore } from 'react';
 import { View } from 'react-native';
 import { CommonActions, useNavigation } from '@react-navigation/native';
@@ -9,11 +9,9 @@ import { sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
 import { startTutorial } from '../game/tutorial';
 import { privacyRequired, showPrivacyOptions, subscribePrivacy } from '../platform/ads';
-import { available } from '../platform/cloud';
 import type { Settings } from '../state/persist';
 import { useGame } from '../state/store';
 import { space } from '../theme/tokens';
-import { AccountBlock } from '../ui/AccountBlock';
 import { ListRow } from '../ui/ListRow';
 import { Screen } from '../ui/Screen';
 import { SectionLabel } from '../ui/SectionLabel';
@@ -37,7 +35,6 @@ export function SettingsScreen() {
   const nav = useNavigation();
   const pref = langPref();
   const privacy = useSyncExternalStore(subscribePrivacy, privacyRequired, privacyRequired);
-  const cloud = available();
   return (
     <Screen title={tr('Réglages')} back>
       <View style={{ gap: space.s }}>
@@ -55,12 +52,6 @@ export function SettingsScreen() {
         <SectionLabel>{tr('Langue')}</SectionLabel>
         <Segmented options={LANGS} value={pref} onChange={(id) => { sfx.turn(); setLangPref(id); }} />
       </View>
-      {cloud && (
-        <View style={{ gap: space.s }}>
-          <SectionLabel>{tr('Sauvegarde en ligne')}</SectionLabel>
-          <AccountBlock />
-        </View>
-      )}
       <View style={{ gap: space.s }}>
         <SectionLabel>{tr('Aide')}</SectionLabel>
         <ListRow title={tr('Revoir le tutoriel')} sub={tr('Une partie guidée en 3 étapes')} right="chevron"
