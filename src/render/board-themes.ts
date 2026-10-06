@@ -220,14 +220,16 @@ export function boardTheme(id: string, skin = 'classic'): Theme {
 // Rétro levels squash every shape family into three LCD greens (the world's drawback).
 const RETRO4: readonly (string | null)[] = [null, ...Array.from({ length: 14 }, (_, i) => ['#0f380f', '#306230', '#4d7a1e'][i % 3])];
 
-// The theme being played: the world of an Aventure level / Mondes run, else the equipped board,
-// with the equipped block skin and the Motifs setting (legacy themes/current.js).
-export const worldOf = (st: { stage?: { world: string } | null; world?: string | null }) => (st.stage ? st.stage.world : st.world) || null;
-export function themeFor(st: { stage?: { world: string } | null; world?: string | null }, board: string, skin: string, patterns: boolean): Theme {
-  const id = worldOf(st) || board;
+// The theme being played: the world of an Aventure level / Mondes run, else the free run's own
+// theme, else the equipped board, with the equipped block skin and the Motifs setting (legacy themes/current.js).
+type Played = { stage?: { world: string } | null; world?: string | null; theme?: string };
+export const worldOf = (st: Played) => (st.stage ? st.stage.world : st.world) || null;
+export const playedTheme = (st: Played, board: string) => worldOf(st) || st.theme || board;
+export function themeFor(st: Played, board: string, skin: string, patterns: boolean): Theme {
+  const id = playedTheme(st, board);
   const th = boardTheme(LOOKS[id] ? id : 'toy', skin);
   return { ...th, patterns, palette: id === 'retro' ? RETRO4 : th.palette };
 }
 
 // Block colors of the theme being played (confetti, specks).
-export const paletteFor = (st: { stage?: { world: string } | null; world?: string | null }, board: string) => themeFor(st, board, 'classic', false).palette;
+export const paletteFor = (st: Played, board: string) => themeFor(st, board, 'classic', false).palette;

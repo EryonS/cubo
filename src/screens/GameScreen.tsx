@@ -43,7 +43,7 @@ import { drawIcon } from '../render/icons';
 import { useBaloo, usePixel } from '../render/font';
 import { Ctx } from '../render/ctx2d';
 import { drawTutorialCells, drawTutorialHand } from '../render/tutorial';
-import { themeFor, worldOf } from '../render/board-themes';
+import { playedTheme, themeFor } from '../render/board-themes';
 import { sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
 import type { RootParams } from '../navigation/types';
@@ -129,9 +129,9 @@ export function GameScreen() {
   const mascot = useGame((s) => s.saved.settings.mascot);
   const wear = useGame((s) => s.profile.equipped.cubo);
   const board = useGame((s) => s.profile.equipped.boards);
-  // An Aventure level or a Mondes run wears its world's theme, else the equipped one.
-  const world = useGame((s) => worldOf(s.saved.state));
-  const th = useMemo(() => themeFor({ world }, board, skin, patterns), [world, board, skin, patterns]);
+  // An Aventure level or a Mondes run wears its world's theme, a free run its own, else the equipped one.
+  const played = useGame((s) => playedTheme(s.saved.state, board));
+  const th = useMemo(() => themeFor({ theme: played }, board, skin, patterns), [played, board, skin, patterns]);
 
   const background = useMemo(() => (lay ? record(lay, null, (g) => paintBackground(g, th, lay.W, lay.H)) : null), [lay, th]);
   const runPicture = useSharedValue<SkPicture>(emptyPicture());
@@ -282,7 +282,7 @@ export function GameScreen() {
   useFocusEffect(useCallback(() => {
     setRunOpen(true);
     const { state, prefs } = useGame.getState().saved;
-    if (state.over) restartRun(prefs);
+    if (state.over) restartRun({ ...prefs, theme: state.theme });
     else enterRun();
     dirty.current = true;
     if (reopenPause.current) { reopenPause.current = false; setTimeout(() => pauseRef.current?.present(), 250); }

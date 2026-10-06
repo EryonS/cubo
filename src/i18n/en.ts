@@ -728,6 +728,7 @@ add('en', {
   'Stats': 'Stats',
   'Boutique': 'Shop',
   'Thèmes': 'Themes',
+  'Thème': 'Theme',
   'Blocs': 'Blocks',
   'Annuler': 'Cancel',
   'Pièces : ouvrir la Boutique': 'Coins: open the Shop',

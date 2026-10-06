@@ -109,9 +109,10 @@ export function PlayScreen() {
   const freeSub = parked ? tr`${fmt(parked.score)} pts` : modeSub(prefs.mode);
 
   const play = () => nav.navigate('Game');
-  const playFree = () => {
+  // theme: the one picked on the Partie libre sheet (else the equipped one).
+  const playFree = (theme?: string) => {
     const g = guardFree(useGame.getState().saved.state, useGame.getState().saved.parked);
-    const go = () => { restartRun({ mode: prefs.mode, level: prefs.level }); play(); };
+    const go = () => { restartRun({ mode: prefs.mode, level: prefs.level, theme }); play(); };
     if (!g.needed) { go(); return; }
     ask({ title: tr('Abandonner ?'), text: g.text, ok: tr('Abandonner'), danger: true }).then((yes) => { if (yes) go(); });
   };
@@ -201,7 +202,7 @@ export function PlayScreen() {
         right={<View style={{ flexDirection: 'row', alignItems: 'center', gap: space.m }}><Pips status={status} /><Icon name="chevRight" size={16} color={colors.muted} /></View>}
         onPress={() => missionsRef.current?.present()} />
 
-      <FreePickSheet ref={pickRef} parked={!!parked} onPlay={onFreePlay} />
+      <FreePickSheet ref={pickRef} parked={!!parked} onPlay={playFree} />
       <MissionsSheet ref={missionsRef} />
     </Screen>
   );

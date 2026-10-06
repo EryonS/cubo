@@ -137,17 +137,22 @@ export interface StartOpts {
   world?: string; // Mondes: the world of the run
   seed?: number; // a daily level's fixed seed
   puzzle?: PuzzleSetup;
+  theme?: string; // free play: the run's theme (default: the equipped one)
 }
 
-// opts: mode and level of the game (legacy newGame). Free play takes its obstacles from the equipped theme.
+// opts: mode and level of the game (legacy newGame). Free play wears its own theme (picked on the
+// sheet, else the equipped one) and takes its obstacles from it.
 function newGame(opts: StartOpts) {
   const store = useGame.getState();
   const fresh = M.ensureDay(store.profile, today());
   if (fresh !== store.profile) store.setProfile(fresh);
-  const obstacles = ['classic', 'chrono', 'chill'].includes(opts.mode) && !opts.stage && !opts.puzzle ? WD.freeObstacles(fresh.equipped.boards, opts.level) : undefined;
+  const free = ['classic', 'chrono', 'chill'].includes(opts.mode) && !opts.stage && !opts.puzzle;
+  const theme = free ? (opts.theme && fresh.owned.boards.includes(opts.theme) ? opts.theme : fresh.equipped.boards) : undefined;
+  const obstacles = theme ? WD.freeObstacles(theme, opts.level) : undefined;
   const world = opts.world || null;
   startCount++;
   const state = L.createGame(opts.seed ?? Date.now(), { mode: opts.mode, level: opts.level, budget: fresh.coins, stage: opts.stage, world, upgrades: fresh.upgrades, puzzle: opts.puzzle, obstacles });
+  if (theme) state.theme = theme;
   const { saved, setSaved } = useGame.getState();
   setSaved({ ...saved, state, startBest: keepsBest(state) ? bestOf(state) : 0 });
   enterRun();
@@ -283,7 +288,7 @@ export function restartCurrent(): boolean {
   if (stage && stage.event) return startEventLevel(stage.event, stage.n, stage.eventDay);
   if (stage) return startLevel(stage.world, stage.n);
   if (st.mode === 'worlds' && st.world) startWorldRun(st.world);
-  else restartRun({ mode: st.mode, level: st.level });
+  else restartRun({ mode: st.mode, level: st.level, theme: st.theme });
   return true;
 }
 
