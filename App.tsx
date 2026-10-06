@@ -10,6 +10,7 @@ import { NavigationBar } from 'expo-navigation-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { wireAudio } from './src/audio/engine';
+import { preloadFonts } from './src/render/font';
 import { startAccount } from './src/game/account';
 import { M } from './src/core';
 import { startTutorial } from './src/game/tutorial';
@@ -21,6 +22,7 @@ import { StickerBannerHost } from './src/ui/StickerBanner';
 import { colorsFor, darkBg } from './src/theme/useColors';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+preloadFonts();
 
 // First launch: the guided first game, on the game screen above the home tabs (legacy boot.js).
 const firstGame = M.needsTutorial(useGame.getState().profile);
