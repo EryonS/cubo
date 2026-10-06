@@ -56,9 +56,8 @@
     "check:unit": "TZ=Europe/Paris tsx --test \"src/**/*.test.ts\"",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "i18n": "tsx scripts/i18n-keys.ts",
-    "balance": "tsx scripts/balance.ts 10",
-    "legacy": "python3 -m http.server 8000 --directory legacy/www"
+    "balance": "tsx scripts/balance.ts 10"
   },
   "private": true,
-  "description": "Cubo Blocks, puzzle de blocs : app native iOS / Android (Expo). Ancienne version Capacitor dans legacy/."
+  "description": "Cubo Blocks, puzzle de blocs : app native iOS / Android (Expo)."
 }
