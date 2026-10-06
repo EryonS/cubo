@@ -50,7 +50,8 @@ const config: ExpoConfig = {
     // Android 3-button bar: no white contrast scrim over the game; App.tsx sets the button color per theme.
     ['expo-navigation-bar', { enforceContrast: false }],
     'expo-apple-authentication',
-    'expo-web-browser',
+    // Google sign-in on iOS returns to the reversed iOS OAuth client id (CONFIG.iosClientId in platform/cloud.ts).
+    ['@react-native-google-signin/google-signin', { iosUrlScheme: 'com.googleusercontent.apps.779075128285-9ajv2baduf9tdherm72d9qnn5ahkihh8' }],
   ],
 };
 

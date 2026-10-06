@@ -23,3 +23,5 @@ npm-debug.*
 
 # Device builds (scripts/build-*.sh)
 output/
+
+firebase.json

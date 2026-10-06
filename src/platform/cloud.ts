@@ -1,5 +1,7 @@
 // Firebase for the cloud save (legacy platform/cloud.js). Empty apiKey = the feature stays hidden.
 // Fill CONFIG from the Firebase web app, plus the Google OAuth client ids, before it can sign in.
+// Google: webClientId is the project's Web client (the ID token's audience, which Firebase accepts);
+// Android also needs an Android OAuth client (package + SHA-1) in the same project, not passed here.
 // No game logic here: core/sync.ts decides, game/account.ts drives.
 import { Platform } from 'react-native';
 import type { Auth, Persistence, User } from 'firebase/auth';
@@ -11,12 +13,12 @@ import type { Firestore } from 'firebase/firestore';
 import { decodeDoc, encodeDoc } from './cloud-doc';
 
 export const CONFIG = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  appId: '',
-  iosClientId: '',
-  androidClientId: '',
+  apiKey: 'AIzaSyCIyc-oEMqIUf8Tf5i_dm-zyaLg6NAfMuY',
+  authDomain: 'cubo-blocks.firebaseapp.com',
+  projectId: 'cubo-blocks',
+  appId: '1:779075128285:web:5972bb48525421bc32c434',
+  webClientId: '779075128285-o4022si566gbo2ib9d4l8u55bh77bb8d.apps.googleusercontent.com',
+  iosClientId: '779075128285-9ajv2baduf9tdherm72d9qnn5ahkihh8.apps.googleusercontent.com',
 };
 
 export const available = () => CONFIG.apiKey.length > 0;
@@ -72,18 +74,13 @@ async function nativeCredential(provider: 'google' | 'apple', authMod: AuthMod) 
     const oauth = new authMod.OAuthProvider('apple.com');
     return { credential: oauth.credential({ idToken: cred.identityToken, rawNonce: raw }), revokeToken: cred.authorizationCode };
   }
-  const clientId = Platform.OS === 'ios' ? CONFIG.iosClientId : CONFIG.androidClientId;
-  if (!clientId) throw coded('off');
-  const AuthSession = await import('expo-auth-session');
-  const request = new AuthSession.AuthRequest({
-    clientId,
-    redirectUri: AuthSession.makeRedirectUri({ scheme: 'cuboblocks' }),
-    scopes: ['openid', 'profile', 'email'],
-    responseType: AuthSession.ResponseType.IdToken,
-  });
-  const result = await request.promptAsync({ authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth' });
-  if (result.type !== 'success' || !result.params.id_token) throw coded('cancelled');
-  return { credential: authMod.GoogleAuthProvider.credential(result.params.id_token), revokeToken: null as string | null };
+  if (!CONFIG.webClientId || (Platform.OS === 'ios' && !CONFIG.iosClientId)) throw coded('off');
+  const { GoogleSignin, isSuccessResponse } = await import('@react-native-google-signin/google-signin');
+  GoogleSignin.configure({ webClientId: CONFIG.webClientId, iosClientId: CONFIG.iosClientId || undefined });
+  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  const result = await GoogleSignin.signIn();
+  if (!isSuccessResponse(result) || !result.data.idToken) throw coded('cancelled');
+  return { credential: authMod.GoogleAuthProvider.credential(result.data.idToken), revokeToken: null as string | null };
 }
 
 // Signs in. Rejects with code 'cancelled' when the player backs out.
@@ -104,6 +101,8 @@ export async function signOut() {
   const authMod = await authApi();
   const { auth } = await load();
   await authMod.signOut(auth);
+  // Forget the Google account too, so the next sign-in shows the account picker.
+  if (CONFIG.webClientId) await import('@react-native-google-signin/google-signin').then(({ GoogleSignin }) => GoogleSignin.signOut()).catch(() => {});
 }
 
 export async function user(): Promise<CloudUser | null> {

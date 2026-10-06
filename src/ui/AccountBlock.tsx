@@ -1,6 +1,6 @@
 // Compte block on the Profil tab (legacy renderAccount). Hidden until the Firebase config is filled.
 import { useSyncExternalStore } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { tr } from '../core/i18n';
 import { accountInfo, deleteCloudAccount, signInWith, signOutCloud, subscribeAccount, syncedLabel } from '../game/account';
@@ -39,7 +39,8 @@ export function AccountBlock() {
       <View style={{ gap: space.s }}>
         <Text variant="muted" style={{ marginHorizontal: space.xs }}>{tr('Retrouve ta progression sur tous tes appareils.')}</Text>
         <ListRow title={tr('Continuer avec Google')} icon={<GoogleMark />} onPress={() => { void signInWith('google'); }} />
-        <ListRow title={tr('Continuer avec Apple')} icon={<AppleMark color={colors.text} />} onPress={() => { void signInWith('apple'); }} />
+        {/* expo-apple-authentication is the native iOS sheet: no Apple sign-in on Android. */}
+        {Platform.OS === 'ios' && <ListRow title={tr('Continuer avec Apple')} icon={<AppleMark color={colors.text} />} onPress={() => { void signInWith('apple'); }} />}
       </View>
     );
   }
