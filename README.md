@@ -22,6 +22,19 @@ npm start            # Metro seul, une fois l'app installée
 plugin natif ; ajouter `-- --clean` si un plugin change), puis `npm run xcode` : Product > Archive, puis Distribute App.
 Pas d'EAS. `ios/` et `android/` sont committés mais jamais modifiés à la main.
 
+## Builds pour appareils
+
+Fichiers installables écrits dans `output/` (ignoré par git), nommés `cubo-<version>-<sha git>`.
+
+- `npm run build:apk` : APK release arm64-v8a, bundle JS embarqué (pas de Metro), signé avec la clé debug (suffisant pour
+  l'installer à la main). Demande JDK 17 (`JAVA_HOME`) et le SDK Android (`ANDROID_HOME`). Installer : `adb install -r output/cubo-*.apk`,
+  ou ouvrir le fichier sur le téléphone (sources inconnues autorisées).
+- `npm run build:ipa` : archive Release puis export `.ipa` en signature automatique (équipe lue dans le projet Xcode, ou
+  `TEAM_ID=...`). Il faut Xcode connecté au compte Apple (Settings > Accounts). Sans option : IPA de développement pour les
+  appareils enregistrés. Options (`npm run build:ipa -- --adhoc`) : `--adhoc` (release-testing), `--store` (IPA App Store
+  Connect pour TestFlight, à envoyer avec Transporter), `--archive` (s'arrête à l'archive). Installer : Apple Configurator,
+  fenêtre Devices and Simulators de Xcode, ou `xcrun devicectl device install app --device <id> output/cubo-*.ipa`.
+
 ## Vérifier
 
 ```

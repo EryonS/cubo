@@ -20,3 +20,6 @@ expo-env.d.ts
 npm-debug.*
 .env*.local
 *.tsbuildinfo
+
+# Device builds (scripts/build-*.sh)
+output/

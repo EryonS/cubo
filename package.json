@@ -53,6 +53,8 @@
     "android": "expo run:android",
     "prebuild": "expo prebuild",
     "xcode": "open ios/Cubo.xcworkspace",
+    "build:apk": "bash scripts/build-android.sh",
+    "build:ipa": "bash scripts/build-ios.sh",
     "check:types": "tsc --noEmit",
     "check:unit": "TZ=Europe/Paris tsx --test \"src/**/*.test.ts\"",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
