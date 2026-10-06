@@ -380,9 +380,11 @@ export function drawHUD(g: G, th: Theme, lay: Layout, state: RunState, best: num
     lowMoves = !stage.clock && stage.movesLeft <= 3 && !state.over;
   }
   const subSize = g.fit(sub, 11, cw);
-  // The combo tag hangs on the plate's bottom edge. The pair sits 8 px higher so the
-  // score (and "nouveau record") keeps a gap above it.
-  const lift = 8;
+  // The combo tag hangs on the plate's bottom edge: while it shows, the label and score slide up a
+  // little so the score keeps a gap above it; without it they sit centered.
+  // (eased back down while a broken tag falls away).
+  const falling = anim.comboBreak && !anim.calm ? Math.min(1, (t - anim.comboBreak.t0) / COMBO_BREAK_MS) : 1;
+  const lift = tutActive() ? 0 : state.combo > 0 ? 6 : 6 * (1 - falling) * (1 - falling);
   g.text(sub, cx, y + h * 0.34 - lift + subSize * 0.35, subSize, p.sub, 'center');
   if (stage && band.movesW) {
     // Moves left: same label-over-number shape as the goal, split off by a hairline.
@@ -451,7 +453,7 @@ export function drawMascot(g: G, th: Theme, lay: Layout, state: RunState, drag: 
 export function drawComboHang(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
   if (tutActive()) return;
   const band = hudBand(g, lay, state, t);
-  const tagY = band.y + band.h - 4;
+  const tagY = band.y + band.h - 7;
   if (state.combo > 0) {
     const { left, pulse, scale } = comboTagLook(t, L.COMBO_GRACE, state.movesSinceClear, anim.comboAt, anim.calm);
     drawComboTag(g, th, state.combo, left, tagY, pulse, scale, 0, false, t, band.cx);
@@ -466,22 +468,24 @@ function drawComboTag(g: G, th: Theme, combo: number, left: number, ty: number, 
   const tag = th.tag;
   const tier = broken ? 0 : comboTier(combo);
   const label = tr('COMBO ×') + combo;
-  const tw = g.textWidth(label, 17) + 20 + L.COMBO_GRACE * 11 + 8;
+  const fs = 15;
+  const tw = g.textWidth(label, fs) + 20 + L.COMBO_GRACE * 10 + 8;
   const tx = mid - tw / 2;
   const a0 = g.alpha;
   g.save();
-  g.translate(mid, ty + 12.5);
+  g.translate(mid, ty + 11);
   g.rotate(rot);
   g.scale(scale);
-  g.translate(-mid, -(ty + 12.5));
+  g.translate(-mid, -(ty + 11));
   g.alpha = a0 * alpha;
   const glow = tier >= 2 ? { color: tierHex(tier, t, th.accent), blur: 8 + 6 * tier } : tag.glow ? { color: tag.glow, blur: 10 } : undefined;
-  g.rrect(tx, ty, tw, 25, 12.5, broken ? '#9b93aa' : tag.fill, { shadow: glow });
-  if (tag.line && !broken) g.rrect(tx + 2.5, ty + 2.5, tw - 5, 20, 4, tag.line, { stroke: { width: 1.5 } });
+  // 22 tall; the label's caps and the grace dots share the pill's middle line.
+  g.rrect(tx, ty, tw, 22, 11, broken ? '#9b93aa' : tag.fill, { shadow: glow });
+  if (tag.line && !broken) g.rrect(tx + 2.5, ty + 2.5, tw - 5, 17, 4, tag.line, { stroke: { width: 1.5 } });
   const ink = broken ? '#ffffff' : tag.ink;
-  g.text(label, tx + 11, ty + 14 + 17 * 0.35, 17, ink, 'left');
+  g.text(label, tx + 11, ty + 11 + fs * 0.33, fs, ink, 'left');
   for (let i = 0; i < L.COMBO_GRACE; i++) {
-    g.circle(tx + tw - 12 - (L.COMBO_GRACE - 1 - i) * 11, ty + 12.5, 3.6, ink, { alpha: i < left ? 1 : 0.25 });
+    g.circle(tx + tw - 12 - (L.COMBO_GRACE - 1 - i) * 10, ty + 11, 3.2, ink, { alpha: i < left ? 1 : 0.25 });
   }
   g.restore();
   g.alpha = a0;

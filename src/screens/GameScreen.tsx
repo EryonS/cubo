@@ -98,10 +98,12 @@ function HudBtn({ right, label, onPress, disabled, children }: { right: number; 
     </Pressable>
   );
 }
+// A count or price centered over a HUD button's top edge: the buttons sit 8 pt apart, so a badge on a
+// corner ran into the next one's ("2/3" next to "Gratuit").
 function Badge({ children, color }: { children: React.ReactNode; color?: string }) {
   const colors = useColors();
   return (
-    <View pointerEvents="none" style={{ position: 'absolute', top: -6, right: -8, width: 120, alignItems: 'flex-end' }}>
+    <View pointerEvents="none" style={{ position: 'absolute', top: -9, left: -30, right: -30, alignItems: 'center' }}>
       <View style={{ minWidth: 19, height: 19, paddingHorizontal: 5, borderRadius: 6, backgroundColor: color ?? colors.accent, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 2 }}>
         {children}
       </View>
