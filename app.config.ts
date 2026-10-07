@@ -66,11 +66,9 @@ const config: ExpoConfig = {
       iosMicrophonePermission: 'Cubo Blocks never records sound. Its audio library asks this of every app that uses it.',
     }],
     ['expo-splash-screen', { backgroundColor: BG, image: './assets/splash.png', imageWidth: 220 }],
-    // Google's test app ids until the AdMob account exists. Replace them, and the unit ids in
-    // platform/ads.ts, before release.
     ['react-native-google-mobile-ads', {
-      androidAppId: 'ca-app-pub-3940256099942544~3347511713',
-      iosAppId: 'ca-app-pub-3940256099942544~1458002511',
+      androidAppId: 'ca-app-pub-5131625589164824~3826688574',
+      iosAppId: 'ca-app-pub-5131625589164824~6867784884',
     }],
     ['expo-tracking-transparency', {
       userTrackingPermission: 'Your choice only changes which ads you see when you watch one for a reward. Cubo Blocks works the same either way.',

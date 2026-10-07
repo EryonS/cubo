@@ -101,7 +101,7 @@ Pièces : +5 coups quand on n'en a plus (20, 40, 80…), partir avec une Bombe (
   En fin de partie s'ajoutent : +10 par grille vide, +5 si combo ×5, +5 si une bombe fait sauter 15 blocs, + missions.
   Recommencer en cours de partie verse aussi les pièces.
 - **Pub récompensée** : bouton « Regarder une pub » en fin de partie, double les gains (une fois par partie).
-  AdMob (`react-native-google-mobile-ads`) avec le formulaire de consentement Google et la demande de suivi iOS. IDs de test Google pour l'instant, voir `docs/features/economy.md`.
+  AdMob (`react-native-google-mobile-ads`) avec le formulaire de consentement Google et la demande de suivi iOS. Vrais IDs AdMob, IDs de test Google en dev, voir `docs/features/economy.md`.
 - **Légende** : bouton « ? » à côté de l'inventaire.
 - **Missions du jour** : 3 missions différentes par jour (même tirage pour tout le monde ce jour-là), renouvelées à minuit.
   Une mission réussie reste « Terminée » jusqu'au lendemain. Difficulté qui monte toutes les 6 missions réussies.

@@ -1,16 +1,18 @@
 // Rewarded ads (legacy platform/ads.js). showRewarded() resolves true when the reward is earned,
 // false when the player closes the ad early or none could be shown. Google's consent form (UMP)
 // runs where the law asks for it, then the iOS tracking prompt, both before the first ad.
-// Google's test ad units until the AdMob account exists. Replace them, and the app ids in
-// app.config.ts, before release.
+// Dev builds keep Google's test units: AdMob suspends accounts that view or click their own live ads.
 import { Platform } from 'react-native';
 import { tr } from '../core/i18n';
 import { holdAudio } from '../audio/engine';
 import { toast } from '../ui/Toast';
 
-const UNITS = {
+const UNITS = __DEV__ ? {
   ios: 'ca-app-pub-3940256099942544/1712485313',
   android: 'ca-app-pub-3940256099942544/5224354917',
+} : {
+  ios: 'ca-app-pub-5131625589164824/9079015257',
+  android: 'ca-app-pub-5131625589164824/6466575616',
 };
 
 let ready: Promise<boolean> | null = null;
