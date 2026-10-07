@@ -41,7 +41,8 @@ Fichiers installables écrits dans `output/` (ignoré par git), nommés `cubo-<v
 
 `site/` est publié sur https://cuboblocks.app (GitHub Pages, `.github/workflows/pages.yml`, à chaque push sur `main`
 qui touche `site/`) : page d'accueil et politique de confidentialité (`privacy.html`, FR / EN), à garder à jour avec ce
-que l'app collecte (pubs AdMob, sauvegarde Firebase).
+que l'app collecte (pubs AdMob, sauvegarde Firebase). `app-ads.txt` déclare le compte AdMob (AdMob le vérifie sur le site
+indiqué dans les fiches App Store et Play).
 
 ## Vérifier
 
