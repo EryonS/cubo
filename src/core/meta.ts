@@ -3,6 +3,7 @@
  * A profile is a plain JSON object; every function returns a new one.
  */
 import * as I18N from './i18n';
+import { quotaOf } from './puzzles';
 import type { RunStats } from './logic';
 import type { BonusType, DailyDay, Lifetime, Mission, ModeStats, Profile, SeasonProgress, SkinKind, Streak } from './types';
 
@@ -73,20 +74,20 @@ const RETIRED: Record<string, Record<string, number>> = {
   blocks: { candy: 400 },
   boards: { night: 0, sunset: 300, desert: 500, mountain: 800, dash: 1200 },
 };
-const PROFILE_VERSION = 6;
+const PROFILE_VERSION = 7;
 
 // stat: key in the run stats. mode 'best' = within one game, 'total' = accumulates across games.
-// tiers: [target, reward], harder tiers unlock as more missions get completed.
+// tiers: [target, reward], harder tiers unlock as more missions get completed. Rewards 5 / 8 / 10.
 const MISSIONS: { key: string; stat: string; mode: 'total' | 'best'; text: (n: number) => string; tiers: [number, number][] }[] = [
-  { key: 'lines', stat: 'lines', mode: 'total', text: (n) => tr`Efface ${n} lignes`, tiers: [[20, 20], [40, 30], [80, 50]] },
-  { key: 'combo', stat: 'bestCombo', mode: 'best', text: (n) => tr`Atteins un combo ×${n}`, tiers: [[3, 20], [4, 30], [6, 50]] },
-  { key: 'multi', stat: 'bestMulti', mode: 'best', text: (n) => tr`Efface ${n} lignes d'un coup`, tiers: [[2, 20], [3, 35], [4, 60]] },
-  { key: 'score', stat: 'score', mode: 'best', text: (n) => tr`Fais ${n.toLocaleString(I18N.locale())} points en une partie`, tiers: [[1000, 20], [2500, 35], [5000, 60]] },
-  { key: 'bonus', stat: 'bonusUsed', mode: 'total', text: (n) => tr`Utilise ${n} bonus`, tiers: [[3, 20], [6, 30], [12, 50]] },
-  { key: 'bomb', stat: 'bombCells', mode: 'total', text: (n) => tr`Fais sauter ${n} blocs à la bombe`, tiers: [[20, 20], [45, 35], [90, 50]] },
-  { key: 'perfect', stat: 'perfects', mode: 'total', text: () => tr('Vide toute la grille'), tiers: [[1, 40], [1, 40], [1, 50]] },
-  { key: 'games', stat: 'games', mode: 'total', text: (n) => tr`Joue ${n} parties`, tiers: [[3, 20], [5, 30], [8, 40]] },
-  { key: 'pieces', stat: 'pieces', mode: 'total', text: (n) => tr`Pose ${n} formes`, tiers: [[80, 20], [150, 30], [300, 50]] },
+  { key: 'lines', stat: 'lines', mode: 'total', text: (n) => tr`Efface ${n} lignes`, tiers: [[20, 5], [40, 8], [80, 10]] },
+  { key: 'combo', stat: 'bestCombo', mode: 'best', text: (n) => tr`Atteins un combo ×${n}`, tiers: [[3, 5], [4, 8], [6, 10]] },
+  { key: 'multi', stat: 'bestMulti', mode: 'best', text: (n) => tr`Efface ${n} lignes d'un coup`, tiers: [[2, 5], [3, 8], [4, 10]] },
+  { key: 'score', stat: 'score', mode: 'best', text: (n) => tr`Fais ${n.toLocaleString(I18N.locale())} points en une partie`, tiers: [[1000, 5], [2500, 8], [5000, 10]] },
+  { key: 'bonus', stat: 'bonusUsed', mode: 'total', text: (n) => tr`Utilise ${n} bonus`, tiers: [[3, 5], [6, 8], [12, 10]] },
+  { key: 'bomb', stat: 'bombCells', mode: 'total', text: (n) => tr`Fais sauter ${n} blocs à la bombe`, tiers: [[20, 5], [45, 8], [90, 10]] },
+  { key: 'perfect', stat: 'perfects', mode: 'total', text: () => tr('Vide toute la grille'), tiers: [[1, 10], [1, 10], [1, 10]] },
+  { key: 'games', stat: 'games', mode: 'total', text: (n) => tr`Joue ${n} parties`, tiers: [[3, 5], [5, 8], [8, 10]] },
+  { key: 'pieces', stat: 'pieces', mode: 'total', text: (n) => tr`Pose ${n} formes`, tiers: [[80, 5], [150, 8], [300, 10]] },
 ];
 const TEMPLATE = Object.fromEntries(MISSIONS.map((m) => [m.key, m]));
 
@@ -148,13 +149,23 @@ function migrate(prev: Profile): { profile: Profile; refund: number } {
   const adventure = version < 3 ? migrateAdventure(skins.profile) : skins.profile;
   const dailies = version < 4 ? refundDailyAttempts(adventure) : adventure;
   const wardrobe = version < 5 ? addWardrobe(dailies) : dailies;
-  return { profile: { ...moveHalloween(wardrobe), version: PROFILE_VERSION }, refund: skins.refund };
+  const halloween = moveHalloween(wardrobe);
+  const stock = version < 7 ? moveChestBombs(halloween) : halloween;
+  return { profile: { ...stock, version: PROFILE_VERSION }, refund: skins.refund };
 }
 
 function moveHalloween(prev: Profile): Profile {
   if (!prev.halloween) return prev;
   const { halloween, ...rest } = prev;
   return { ...rest, seasons: { ...(prev.seasons || {}), halloween } };
+}
+
+// Version 7 (2026-10-07): the Bombes won in star chests join the bonus reserve.
+function moveChestBombs(prev: Profile): Profile {
+  const adv = prev.adventure;
+  if (!adv || !adv.bombs) return prev;
+  const { bombs, ...rest } = adv;
+  return { ...prev, adventure: rest, stock: { ...(prev.stock || {}), bomb: ((prev.stock && prev.stock.bomb) || 0) + bombs } };
 }
 
 function addWardrobe(prev: Profile) {
@@ -275,25 +286,24 @@ const recentScores = (profile: Profile, mode: string, n: number) => (profile.his
 // A world opens when the previous boss is cleared and enough stars are collected overall
 // (adventure.opened: worlds opened before v2, see migrate). Beating a world's boss gives its theme
 // for free (it is also sold in the Boutique). adventure.chests: { "<world>-<i>": true } opened star
-// chests; adventure.bombs: free starting Bombes won in chests.
+// chests (their Bombes go to the bonus reserve, profile.stock).
 const WORLD_ORDER: string[] = ['plain', 'sea', 'space', 'ice', 'forest', 'retro', 'arcade', 'volcano'];
 const WORLD_NAMES: Record<string, string> = { plain: tr('Plaine'), sea: tr('Sous-marin'), space: tr('Espace'), ice: tr('Glace'), forest: tr('Forêt'), retro: tr('Rétro'), arcade: tr('Arcade'), volcano: tr('Volcan') };
 const LEVELS_PER_WORLD = 20;
 const TRIAL_LEVEL = 10;
 const STARS_PER_GATE = 36; // world k needs 36 x k stars (60% of a world's 60)
-const FIRST_CLEAR = 10;
-const TRIAL_CLEAR = 25;
-const BOSS_CLEAR = 60;
-const PER_NEW_STAR = 5;
+const FIRST_CLEAR = 3;
+const TRIAL_CLEAR = 10;
+const BOSS_CLEAR = 20;
+const PER_NEW_STAR = 3; // Aventure, season events and puzzles
 const EXTRA_MOVES = 5;
-const START_BONUS_COST = 30;
 const SKIP_COST = 250;
 const extraMovesCost = (times: number) => 20 * 2 ** times; // 20, 40, 80... within one attempt
 // Star chests on each world screen, opened once.
 const CHESTS: { stars: number; coins?: number; bombs?: number }[] = [
-  { stars: 15, coins: 40 },
+  { stars: 15, coins: 20 },
   { stars: 35, bombs: 2 },
-  { stars: 55, coins: 150 },
+  { stars: 55, coins: 50 },
 ];
 
 const levelKey = (world: string, n: number) => `${world}-${n}`;
@@ -382,11 +392,10 @@ function openChest(prev: Profile, world: string, i: number) {
   const adv = adventureOf(prev);
   const p = earn(prev, reward.coins || 0);
   return {
-    profile: { ...p, adventure: { ...adv, chests: { ...(adv.chests || {}), [levelKey(world, i)]: true }, bombs: (adv.bombs || 0) + (reward.bombs || 0) } },
+    profile: addStock({ ...p, adventure: { ...adv, chests: { ...(adv.chests || {}), [levelKey(world, i)]: true } } }, 'bomb', reward.bombs || 0),
     reward,
   };
 }
-const freeBombs = (profile: Profile) => adventureOf(profile).bombs || 0;
 // ---------- Mondes (endless runs under one world's rules) ----------
 // A world opens in the Mondes mode once its trial (Aventure level 10) is cleared. Runs pay a prime
 // on the score, bigger in later worlds: 1 coin per 200 points in Plaine, up to x2.75 in Volcan.
@@ -396,11 +405,13 @@ const worldPrime = (world: string, score?: number) => (WORLD_ORDER.includes(worl
 
 // ---------- Puzzles ----------
 // profile.puzzles: { [n]: stars 1..3 }. Puzzles open one after the other. First solve pays
-// PUZZLE_FIRST, each new star PER_NEW_STAR, a finished pack PUZZLE_PACK. Hints cost PUZZLE_HINT.
-const PUZZLE_FIRST = 15;
-const PUZZLE_PACK = 60;
+// PUZZLE_PER_PIECE per piece to place (6 for puzzle 1, 20 at the end), each new star PER_NEW_STAR,
+// a finished pack PUZZLE_PACK. Hints cost PUZZLE_HINT.
+const PUZZLE_PER_PIECE = 2;
+const PUZZLE_PACK = 10;
 const PUZZLE_HINT = 30;
 const PUZZLES_PER_PACK = 10;
+const puzzleFirst = (n: number) => PUZZLE_PER_PIECE * quotaOf(n);
 const puzzleStarsOf = (profile: Profile, n: number) => (profile.puzzles || {})[n];
 const puzzleOpen = (profile: Profile, n: number) => n === 1 || !!profile.dev || puzzleStarsOf(profile, n - 1) !== undefined;
 const puzzlesSolved = (profile: Profile) => Object.keys(profile.puzzles || {}).length;
@@ -412,7 +423,7 @@ const packDone = (profile: Profile, pack: number) => {
 function applyPuzzle(prev: Profile, n: number, stars: number) {
   const before = puzzleStarsOf(prev, n);
   const earned: Earned[] = [];
-  if (before === undefined) earned.push({ label: tr('Puzzle résolu'), coins: PUZZLE_FIRST });
+  if (before === undefined) earned.push({ label: tr('Puzzle résolu'), coins: puzzleFirst(n) });
   const fresh = stars - (before || 0);
   if (fresh > 0) earned.push({ label: fresh > 1 ? tr`${fresh} nouvelles étoiles` : tr('Nouvelle étoile'), coins: fresh * PER_NEW_STAR });
   let p: Profile = { ...prev, puzzles: { ...(prev.puzzles || {}), [n]: Math.max(stars, before || 0) } };
@@ -424,16 +435,21 @@ function applyPuzzle(prev: Profile, n: number, stars: number) {
 }
 
 // Puzzle surprise: opens once pack Maître (puzzles 31-40) is done. profile.surprises counts the ones
-// solved (optional, absent = 0). Each pays SURPRISE_COINS, SURPRISE_HINTED when a hint was used.
+// solved (optional, absent = 0). The first SURPRISE_DAILY of a day pay SURPRISE_COINS each (hints
+// already cost theirs); the next ones pay nothing. profile.surpriseDay: { day, paid }.
 const SURPRISE_PACK = 3;
-const SURPRISE_COINS = 25;
-const SURPRISE_HINTED = 10;
+const SURPRISE_COINS = 5;
+const SURPRISE_DAILY = 5;
 const surpriseOpen = (profile: Profile) => !!profile.dev || packDone(profile, SURPRISE_PACK);
 const surprisesSolved = (profile: Profile) => profile.surprises || 0;
-function applySurprise(prev: Profile, hints: number) {
-  const earned = [{ label: tr('Puzzle surprise'), coins: hints ? SURPRISE_HINTED : SURPRISE_COINS }];
-  const total = earned[0].coins;
-  const p = earn({ ...prev, surprises: surprisesSolved(prev) + 1 }, total);
+// Paid surprises left on `day`.
+const surprisesPaidLeft = (profile: Profile, day: string) =>
+  SURPRISE_DAILY - (profile.surpriseDay && profile.surpriseDay.day === day ? profile.surpriseDay.paid : 0);
+function applySurprise(prev: Profile, day: string) {
+  const left = surprisesPaidLeft(prev, day);
+  const earned = left > 0 ? [{ label: tr('Puzzle surprise'), coins: SURPRISE_COINS }] : [];
+  const total = earned.reduce((a, l) => a + l.coins, 0);
+  const p = earn({ ...prev, surprises: surprisesSolved(prev) + 1, surpriseDay: { day, paid: Math.min(SURPRISE_DAILY, SURPRISE_DAILY - left + 1) } }, total);
   return { profile: p, report: { earned, total } };
 }
 
@@ -456,11 +472,22 @@ function buyUpgrade(prev: Profile, type: BonusType) {
   return paid && { ...paid, upgrades: { ...(prev.upgrades || {}), [type]: upgradeLevel(prev, type) + 1 } };
 }
 
-// Uses a free starting Bombe won in a chest. Returns the profile or null.
-function useFreeBomb(prev: Profile) {
-  const n = freeBombs(prev);
-  return n > 0 ? { ...prev, adventure: { ...adventureOf(prev), bombs: n - 1 } } : null;
+// ---------- bonus reserve ----------
+// profile.stock: { [bonus]: n } bonuses bought in the Boutique (or won in chests). In a run, a bonus
+// button with none left in the run takes one from the reserve. The price grows with the bonus's
+// upgrade level: BONUS_PRICES[level - 1].
+const BONUS_PRICES = [25, 40, 60];
+const STOCK_MAX = 9;
+const bonusStock = (profile: Profile, type: BonusType) => (profile.stock && profile.stock[type]) || 0;
+const bonusPrice = (profile: Profile, type: BonusType) => BONUS_PRICES[upgradeLevel(profile, type) - 1];
+const addStock = (p: Profile, type: BonusType, n: number): Profile => (n ? { ...p, stock: { ...(p.stock || {}), [type]: bonusStock(p, type) + n } } : p);
+function buyBonus(prev: Profile, type: BonusType) {
+  if (bonusStock(prev, type) >= STOCK_MAX) return null;
+  const paid = spend(prev, bonusPrice(prev, type));
+  return paid && addStock(paid, type, 1);
 }
+// Takes one bonus out of the reserve. Returns the profile or null.
+const takeStock = (prev: Profile, type: BonusType) => (bonusStock(prev, type) > 0 ? addStock(prev, type, -1) : null);
 
 
 // ---------- season events ----------
@@ -499,9 +526,9 @@ const EVENTS: EventDef[] = ([
   { id: 'halloween', name: tr('Halloween'), window: months('10'), hat: 'witch', icon: 'pumpkin', blurb: tr('des citrouilles et des fantômes') },
   { id: 'xmas', name: tr('Noël'), window: months('12'), hat: 'santa', icon: 'present', blurb: tr('des cadeaux sous la neige') },
 ] as Omit<EventDef, 'theme' | 'levels'>[]).map((e) => ({ ...e, theme: e.id, levels: 10 }));
-const EVENT_FIRST = 15;
-const EVENT_BOSS = 50;
-const EVENT_DONE_COINS = 200; // the rewards are already owned (a later year)
+const EVENT_FIRST = FIRST_CLEAR;
+const EVENT_BOSS = BOSS_CLEAR;
+const EVENT_DONE_COINS = 50; // the rewards are already owned (a later year)
 const eventById = (id: string) => EVENTS.find((e) => e.id === id) || null;
 const eventYear = (day: string) => day.slice(0, 4);
 const windowOf = (ev: EventDef, day: string) => ev.window(+eventYear(day));
@@ -797,9 +824,10 @@ export {
   addDays, dayDiff, monthDays,
   DAILY_ATTEMPTS, FREEZE_COST, FREEZE_MAX, STREAK_SKIN, dailyOf, streakOf, dailyAttemptsLeft, countDaily, canRefillDaily, dailyTryCost, dailyAdReady, buyDailyTry, adDailyRefill, streakNow,
   applyDaily, buyFreeze, monthTrophy, STICKER_PAGES, STICKERS, STICKER_REWARD, checkStickers,
-  PUZZLE_FIRST, PUZZLE_PACK, PUZZLE_HINT, puzzleStarsOf, puzzleOpen, puzzlesSolved, applyPuzzle,
-  SURPRISE_COINS, SURPRISE_HINTED, surpriseOpen, surprisesSolved, applySurprise,
+  PUZZLE_PER_PIECE, puzzleFirst, PUZZLE_PACK, PUZZLE_HINT, puzzleStarsOf, puzzleOpen, puzzlesSolved, applyPuzzle,
+  SURPRISE_COINS, SURPRISE_DAILY, surpriseOpen, surprisesSolved, surprisesPaidLeft, applySurprise,
   WORLD_NAMES, worldFreeOpen, worldPrimeRate, worldPrime, UPGRADE_PRICES, upgradeLevel, upgradePrice, buyUpgrade,
-  WORLD_ORDER, LEVELS_PER_WORLD, TRIAL_LEVEL, CHESTS, chestState, openChest, freeBombs, useFreeBomb, bossBeaten, EXTRA_MOVES, START_BONUS_COST, SKIP_COST, SKIP_AFTER, levelFails, recordFail, canSkip, extraMovesCost,
+  BONUS_PRICES, STOCK_MAX, bonusStock, bonusPrice, buyBonus, takeStock,
+  WORLD_ORDER, LEVELS_PER_WORLD, TRIAL_LEVEL, CHESTS, chestState, openChest, bossBeaten, EXTRA_MOVES, SKIP_COST, SKIP_AFTER, levelFails, recordFail, canSkip, extraMovesCost,
   levelStars, levelCleared, totalStars, worldStars, worldMastered, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,
   PROFILE_VERSION, SKINS, MISSIONS, createProfile, migrate, ensureDay, missionStatus, missionText, runCoins, applyRun, doubleRun, spend, buy, equip, nextGoal };

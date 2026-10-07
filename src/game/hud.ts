@@ -7,13 +7,17 @@ import { tr } from '../core/i18n';
 import type { MissionView } from '../core/meta';
 import type { BonusType, RunState } from '../core/types';
 
+// The bonus reserve bought in the Boutique (profile.stock), usable once a run has none of a bonus left.
+export type Stock = Partial<Record<BonusType, number>> | undefined;
+// Bonuses of a type the player can fire: the run's own, then the reserve's.
+export const bonusLeft = (state: RunState, stock: Stock, type: BonusType) => (state.inventory[type] || 0) + ((stock && stock[type]) || 0);
+
 // The line between board and tray: aiming instructions, or why the player is stuck.
-export function hintText(state: RunState, aiming: { drag: boolean } | null): { text: string; danger: boolean } | null {
+export function hintText(state: RunState, aiming: { drag: boolean } | null, stock?: Stock): { text: string; danger: boolean } | null {
   if (aiming && aiming.drag) return { text: tr('Lâche la bombe sur la grille'), danger: true };
   if (aiming) return { text: tr('Touche la grille pour viser · ailleurs pour annuler'), danger: true };
   if (!state.stuck) return null;
-  const inv = state.inventory;
-  if (inv.bomb > 0 || inv.reroll > 0 || inv.rotate > 0) return { text: tr('Bloqué ! Utilise un bonus ou termine la partie'), danger: false };
+  if ((['bomb', 'reroll', 'rotate'] as const).some((k) => bonusLeft(state, stock, k) > 0)) return { text: tr('Bloqué ! Utilise un bonus ou termine la partie'), danger: false };
   if (L.canUndo(state)) return { text: tr('Bloqué ! Annule ton coup ou jette une forme'), danger: false };
   return { text: tr('Bloqué ! Maintiens une forme en bas pour la jeter'), danger: false };
 }
@@ -46,16 +50,19 @@ export const ringEnding = (state: RunState, type: BonusType) => {
   return ms > 0 && ms < 5000;
 };
 
-export interface InvButtonView { count: number; empty: boolean; active: boolean; aiming: boolean; help: boolean }
-export function invView(state: RunState, type: BonusType, aiming: boolean): InvButtonView {
+// count: the run's own; reserve: the Boutique's, shown once the run has none.
+export interface InvButtonView { count: number; reserve: number; empty: boolean; active: boolean; aiming: boolean; help: boolean }
+export function invView(state: RunState, type: BonusType, aiming: boolean, stock?: Stock): InvButtonView {
   const count = state.inventory[type] || 0;
+  const reserve = count ? 0 : (stock && stock[type]) || 0;
   const helps = type === 'bomb' || type === 'reroll' || type === 'rotate';
   return {
     count,
-    empty: count === 0 || state.over,
+    reserve,
+    empty: count + reserve === 0 || state.over,
     active: ((state.effects as Record<string, number>)[type] || 0) > 0,
     aiming: type === 'bomb' && aiming,
-    help: state.stuck && count > 0 && helps && !aiming,
+    help: state.stuck && count + reserve > 0 && helps && !aiming,
   };
 }
 // Chill and puzzles have no bonuses: no inventory bar.

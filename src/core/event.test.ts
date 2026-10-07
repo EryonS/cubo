@@ -94,7 +94,7 @@ test('event levels open one after the other and pay like Aventure levels', () =>
   assert.equal(M.eventLevelOpen(p, H, OCT, 2), false);
   const res = M.applyEvent(p, H, OCT, 1, 3);
   p = res.profile;
-  assert.equal(res.report.total, 15 + 3 * 5);
+  assert.equal(res.report.total, 3 + 3 * 3);
   assert.equal(M.eventLevelOpen(p, H, OCT, 2), true);
   // A locked level is not recorded.
   assert.equal(M.applyEvent(p, H, OCT, 5, 3).report.total, 0);
@@ -140,7 +140,7 @@ test('profile v5: old saves get a wardrobe with the theme look', () => {
   const old = { ...M.createProfile(OCT), version: 4 };
   delete old.owned.cubo; delete old.equipped.cubo;
   const { profile } = M.migrate(old);
-  assert.equal(profile.version, 6);
+  assert.equal(profile.version, 7);
   assert.deepEqual(profile.owned.cubo, ['auto']);
   assert.equal(profile.equipped.cubo, 'auto');
   // Daily attempts are not refunded again for v4 saves.

@@ -79,3 +79,25 @@ test('buying upgrades: prices, levels, top level and short wallet', () => {
   assert.equal(M.buyUpgrade({ ...p, coins: 9999 }, 'bomb'), null);
   assert.equal(M.buyUpgrade({ ...p, coins: 10 }, 'rotate'), null);
 });
+
+test('bonus reserve: bought one by one, dearer once upgraded, capped, taken back out', () => {
+  let p = { ...M.createProfile('2026-10-07'), coins: 1000 };
+  assert.equal(M.bonusPrice(p, 'bomb'), M.BONUS_PRICES[0]);
+  p = M.buyBonus(p, 'bomb');
+  assert.equal(M.bonusStock(p, 'bomb'), 1);
+  assert.equal(p.coins, 1000 - M.BONUS_PRICES[0]);
+  p = M.buyUpgrade(p, 'bomb');
+  assert.equal(M.bonusPrice(p, 'bomb'), M.BONUS_PRICES[1]);
+  p = { ...p, coins: 10000, stock: { bomb: M.STOCK_MAX } };
+  assert.equal(M.buyBonus(p, 'bomb'), null);
+  assert.equal(M.buyBonus({ ...p, coins: 0 }, 'rotate'), null);
+  assert.equal(M.bonusStock(M.takeStock(p, 'bomb'), 'bomb'), M.STOCK_MAX - 1);
+  assert.equal(M.takeStock(p, 'rotate'), null);
+});
+
+test('profile v7: chest Bombes move to the reserve', () => {
+  const old = { ...M.createProfile('2026-10-07'), version: 6, adventure: { stars: {}, bombs: 2 } };
+  const { profile } = M.migrate(old);
+  assert.equal(profile.adventure.bombs, undefined);
+  assert.equal(M.bonusStock(profile, 'bomb'), 2);
+});

@@ -68,6 +68,7 @@ export function PuzzleEndCard({ card, onList, onMore, onAgain, onNext }: Props) 
               ? <Text variant="muted" style={{ marginTop: 8, textAlign: 'center' }}>{tr`${fmt(solved)} puzzle${solved > 1 ? 's' : ''} surprise réussi${solved > 1 ? 's' : ''}`}</Text>
               : <View style={{ marginVertical: 12 }}><StarRow n={pz.stars} size={44} gap={6} animate /></View>}
             <Text variant="muted" style={{ textAlign: 'center' }}>{hints ? tr`${hints} indice${hints > 1 ? 's' : ''} utilisé${hints > 1 ? 's' : ''}` : tr('Sans indice')}</Text>
+            {pz.free && !lines.length && <Text variant="muted" style={{ marginTop: 8, textAlign: 'center' }}>{tr`Les ${M.SURPRISE_DAILY} puzzles surprise payés du jour sont faits : reviens demain pour des pièces.`}</Text>}
             <View style={{ alignSelf: 'stretch', marginTop: 14 }}>
               {lines.map((l, i) => (
                 <Animated.View key={i} entering={FadeInDown.delay(i * 90).duration(250)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 2 }}>

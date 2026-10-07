@@ -3,7 +3,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 export type TabParams = {
   Play: undefined;
   Defis: undefined;
-  Shop: undefined;
+  Shop: { tab?: 'bonus' } | undefined;
   Profile: undefined;
 };
 

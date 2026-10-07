@@ -73,10 +73,9 @@ test('lifting a placed surprise piece: its spot and origin', () => {
 test('settling a puzzle pays the first solve, a surprise pays its own coins', () => {
   const one = settlePuzzle(p0, { n: 1, hints: 0, stars: 3 }, '2026-10-04');
   assert.equal(one.profile.puzzles![1], 3);
-  assert.ok(one.lines.some((l) => l.coins === M.PUZZLE_FIRST));
+  assert.ok(one.lines.some((l) => l.coins === M.puzzleFirst(1)));
   assert.ok(one.profile.coins > p0.coins);
   const sur = settlePuzzle(p0, { free: true, n: 0, hints: 0, stars: 0 }, '2026-10-04');
   assert.equal(sur.profile.surprises, 1);
   assert.equal(sur.lines[0].coins, M.SURPRISE_COINS);
-  assert.equal(settlePuzzle(p0, { free: true, n: 0, hints: 2, stars: 0 }, '2026-10-04').lines[0].coins, M.SURPRISE_HINTED);
 });

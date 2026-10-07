@@ -60,7 +60,7 @@ export const maskOf = (n: number) => PZ.puzzle(n)!.mask;
 // A solved puzzle's result: first solve / new stars / pack bonus (puzzle) or the surprise coins, then stickers
 // the profile just earned. Pure; the caller keeps the profile and shows the lines.
 export function settlePuzzle(profile: Profile, pz: { free?: boolean; n: number; hints: number; stars: number }, day: string): { profile: Profile; lines: Earned[] } {
-  const res = pz.free ? M.applySurprise(profile, pz.hints) : M.applyPuzzle(profile, pz.n, pz.stars);
+  const res = pz.free ? M.applySurprise(profile, day) : M.applyPuzzle(profile, pz.n, pz.stars);
   const lines = [...res.report.earned];
   const st = M.checkStickers(res.profile, day);
   for (const s of st.fresh) lines.push({ label: tr('Autocollant : ') + s.name, coins: s.reward || M.STICKER_REWARD });

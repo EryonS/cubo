@@ -19,7 +19,7 @@ import { drawIcon, drawMark, iconScale } from './icons';
 import { chronoBar, cellCenter, hintY, invBoxes, invCenter, miniCell, slotBox, slotCenter, trashBox, walletTarget, type InvBox, type Layout } from './layout';
 import { blockSkin, isNeon } from './skins';
 import type { Theme } from './theme';
-import { hasClock, hasInventory, hintText, invView, ringEnding, ringFill, trashFill, trashLabel, trashView } from '../game/hud';
+import { hasClock, hasInventory, hintText, invView, ringEnding, ringFill, trashFill, trashLabel, trashView, type Stock } from '../game/hud';
 import { TRASH_ARM_MS } from '../game/anim';
 import { keepsBest } from '../game/modes';
 import { tutActive } from '../game/tut-state';
@@ -453,8 +453,8 @@ export function drawMascot(g: G, th: Theme, lay: Layout, state: RunState, drag: 
 // Combo: small pill just under the board frame's bottom line, centered on the board. Opaque, so the
 // frame's combo glow stays behind it. A hint line (stuck, bomb aiming) takes that spot while it shows.
 // Drawn after the board. Pops when it grows, drops away when it breaks.
-export function drawComboHang(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
-  if (tutActive() || hintText(state, anim.aiming)) return;
+export function drawComboHang(g: G, th: Theme, lay: Layout, state: RunState, t: number, stock?: Stock) {
+  if (tutActive() || hintText(state, anim.aiming, stock)) return;
   const mid = lay.bx + lay.board / 2;
   const tagY = lay.by + lay.board + 10 - 4;
   if (state.combo > 0) {
@@ -637,8 +637,8 @@ export function drawChrono(g: G, th: Theme, lay: Layout, state: RunState, t: num
 }
 
 // The instruction line between the board and the tray.
-export function drawHint(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
-  const hint = hintText(state, anim.aiming);
+export function drawHint(g: G, th: Theme, lay: Layout, state: RunState, t: number, stock?: Stock) {
+  const hint = hintText(state, anim.aiming, stock);
   if (!hint) return;
   const size = hasClock(state) ? 13 : 15;
   const a = g.alpha;
@@ -679,7 +679,8 @@ export function drawFlyers(g: G, lay: Layout, t: number) {
 }
 
 // The bonus bar under the tray: five buttons with their count, timer ring, and a legend button.
-export function drawInventory(g: G, th: Theme, lay: Layout, state: RunState, t: number) {
+// A button with none left in the run shows the reserve's count instead, on the plate colors.
+export function drawInventory(g: G, th: Theme, lay: Layout, state: RunState, t: number, stock?: Stock) {
   if (!hasInventory(state) || tutActive()) return;
   const aiming = anim.aiming !== null;
   const a0 = g.alpha;
@@ -691,7 +692,7 @@ export function drawInventory(g: G, th: Theme, lay: Layout, state: RunState, t: 
       g.text('?', b.x + b.w / 2, b.y + b.h / 2 + 26 * 0.36, 26, th.plate.ink, 'center');
       continue;
     }
-    const v = invView(state, b.id, aiming);
+    const v = invView(state, b.id, aiming, stock);
     const help = v.help ? 0.5 - 0.5 * Math.cos((t / 700) * Math.PI * 2) : 0;
     const y = b.y - 4 * help;
     const cx = b.x + b.w / 2, cy = y + b.h / 2;
@@ -714,10 +715,10 @@ export function drawInventory(g: G, th: Theme, lay: Layout, state: RunState, t: 
     drawIcon(g, b.id, cx, cy, 30);
     g.alpha = a0;
     if (!v.empty) {
-      const label = String(v.count);
+      const label = String(v.count || v.reserve);
       const w = Math.max(21, g.textWidth(label, 15) + 10);
-      g.rrect(b.x + b.w + 6 - w, y - 6, w, 21, 6, th.accent, { shadow: { color: 'rgba(0,0,0,0.35)', blur: 6, dy: 2 } });
-      g.text(label, b.x + b.w + 6 - w / 2, y - 6 + 15.5, 15, '#ffffff', 'center');
+      g.rrect(b.x + b.w + 6 - w, y - 6, w, 21, 6, v.count ? th.accent : th.plate.fill, { shadow: { color: 'rgba(0,0,0,0.35)', blur: 6, dy: 2 } });
+      g.text(label, b.x + b.w + 6 - w / 2, y - 6 + 15.5, 15, v.count ? '#ffffff' : th.plate.ink, 'center');
     }
   }
 }

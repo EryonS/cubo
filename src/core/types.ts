@@ -192,7 +192,7 @@ export interface Adventure {
   opened?: string[];
   fails?: Record<string, number>;
   chests?: Record<string, boolean>;
-  bombs?: number;
+  bombs?: number; // before v7: chest Bombes, now in Profile.stock
 }
 
 export interface Profile {
@@ -210,7 +210,9 @@ export interface Profile {
   adventure?: Adventure;
   puzzles?: Record<string, number>;
   surprises?: number;
+  surpriseDay?: { day: string; paid: number };
   upgrades?: Partial<Record<BonusType, number>>;
+  stock?: Partial<Record<BonusType, number>>;
   seasons?: Record<string, SeasonProgress>;
   trophies?: Record<string, 'silver' | 'gold'>;
   daily?: Record<string, DailyDay>;

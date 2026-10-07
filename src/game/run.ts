@@ -197,20 +197,10 @@ export function resumeParked() {
 // ---------- stage runs: Aventure, Mondes, season events ----------
 // The screens call these (then navigate to the game screen). A free run in progress is parked, not dropped.
 
-// Starts a stage (level or event level): opts.bomb = the "start with a Bombe" option (a free one from the
-// profile, else paid M.START_BONUS_COST); intro = the banner announcing it.
-export function startStage(stage: StageDef, opts: { bomb?: boolean; seed?: number; intro?: { text: string; sub?: string; tier?: number } } = {}) {
+// Starts a stage (level or event level); intro = the banner announcing it.
+export function startStage(stage: StageDef, opts: { seed?: number; intro?: { text: string; sub?: string; tier?: number } } = {}) {
   const prefs = useGame.getState().saved.state;
-  const { profile } = useGame.getState();
-  const freeBomb = !!opts.bomb && M.freeBombs(profile) > 0;
-  const bomb = freeBomb || (!!opts.bomb && profile.coins >= M.START_BONUS_COST);
   restartRun({ mode: 'adventure', level: prefs.level, stage, seed: opts.seed });
-  if (bomb) {
-    const { profile: p0, setProfile, saved, setSaved } = useGame.getState();
-    setProfile((freeBomb ? M.useFreeBomb(p0) : M.spend(p0, M.START_BONUS_COST)) || p0);
-    const state = saved.state;
-    setSaved({ ...saved, state: { ...state, inventory: { ...state.inventory, bomb: state.inventory.bomb + 1 } } });
-  }
   const intro = opts.intro || { text: levelName(stage.n), sub: LV.goalText(stage.goal) };
   anim.banners.push({ text: intro.text, sub: intro.sub || '', tier: intro.tier || 0, gold: true });
   // First level with the world's second obstacle: introduce it once.
@@ -224,10 +214,10 @@ export function startStage(stage: StageDef, opts: { bomb?: boolean; seed?: numbe
 }
 
 // Aventure level n of a world (1..20); the boss is the last one.
-export function startLevel(world: string, n: number, opts: { bomb?: boolean } = {}): boolean {
+export function startLevel(world: string, n: number): boolean {
   const stage = LV.level(world, n);
   if (!stage) return false;
-  startStage(stage, { bomb: opts.bomb, intro: { text: n === M.LEVELS_PER_WORLD ? tr('Boss !') : levelName(n), sub: LV.goalText(stage.goal), tier: n === M.LEVELS_PER_WORLD ? 2 : 0 } });
+  startStage(stage, { intro: { text: n === M.LEVELS_PER_WORLD ? tr('Boss !') : levelName(n), sub: LV.goalText(stage.goal), tier: n === M.LEVELS_PER_WORLD ? 2 : 0 } });
   return true;
 }
 
@@ -663,10 +653,17 @@ function payCoins(lay: Layout, cost: number) {
   anim.floaters.push({ text: '-' + cost, x: wx, y: hudTop(lay) + 42 + 34, t0: now() });
 }
 
+// With none of `type` left in the run, one comes out of the Boutique reserve (only once it fired).
 export function fireBonus(lay: Layout, type: BonusType, target?: { r: number; c: number }): boolean {
-  const before = useGame.getState().saved.state;
+  const run = useGame.getState().saved.state;
+  const fromStock = !(run.inventory[type] > 0) && M.bonusStock(useGame.getState().profile, type) > 0;
+  const before = fromStock ? { ...run, inventory: { ...run.inventory, [type]: 1 } } : run;
   const res = L.use(before, type, target);
   if (!res) return false;
+  if (fromStock) {
+    const { profile, setProfile } = useGame.getState();
+    setProfile(M.takeStock(profile, type) || profile);
+  }
   const ev = res.events;
   const t = now();
   react('wow', 900, 0.5);

@@ -19,6 +19,7 @@ import { CommonActions, useFocusEffect, useIsFocused, useNavigation } from '@rea
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { L, M } from '../core';
 import { locale, tr } from '../core/i18n';
+import type { BonusType } from '../core/types';
 import { useGame } from '../state/store';
 import { today } from '../state/persist';
 import { setRunOpen } from '../game/hub';
@@ -29,7 +30,7 @@ import { dragGeometry, easeOut, LIFT_MS } from '../game/drag';
 import { dismissTip, hideTips, pumpTips, useTips } from '../game/tips';
 import { endTutorial } from '../game/tutorial';
 import { tutActive, tutor, useTut } from '../game/tut-state';
-import { hasInventory, trashView, undoView } from '../game/hud';
+import { bonusLeft, hasInventory, trashView, undoView } from '../game/hud';
 import { freeTray, hintDisabled, liftOrigin, spotAt } from '../game/puzzle';
 import {
   bestOf, commit, discardPiece, enterRun, newRun, fireBonus, giveUpRun, hintPuzzle, liftPuzzlePiece, startPuzzle, startSurprise, liveRun, persistRun, quitRun, restartRun, rotateTray, restartCurrent,
@@ -235,7 +236,7 @@ export function GameScreen() {
     const dt = Math.min(0.05, (t - anim.lastT) / 1000);
     anim.lastT = t;
     const best = bestOf(st);
-    const coins = useGame.getState().profile.coins;
+    const { coins, stock } = useGame.getState().profile;
     runPicture.value = record(lay, typeface, (g) => {
       g.face(th);
       drawHUD(g, th, lay, st, best, t);
@@ -252,12 +253,12 @@ export function GameScreen() {
       drawAim(g, th, lay, st, t);
       g.restore();
       drawRecordFlag(g, th, lay, st, t);
-      drawComboHang(g, th, lay, st, t);
+      drawComboHang(g, th, lay, st, t, stock);
       drawMascot(g, th, lay, st, d, open.current.size > 0 || asking(), wear, t);
       drawTray(g, th, lay, st, d, t);
       drawChrono(g, th, lay, st, t);
-      drawHint(g, th, lay, st, t);
-      if (anim.trash) drawTrash(g, th, lay, st, coins, t); else drawInventory(g, th, lay, st, t);
+      drawHint(g, th, lay, st, t, stock);
+      if (anim.trash) drawTrash(g, th, lay, st, coins, t); else drawInventory(g, th, lay, st, t, stock);
       drawReturning(g, th, lay, st, t);
       drawParticles(g, t, dt);
       drawFloaters(g, th, lay, t);
@@ -345,7 +346,7 @@ export function GameScreen() {
       const id = invAt(lay, x, y);
       if (id) {
         if (id === 'bomb') {
-          if (!(state.inventory.bomb > 0)) return;
+          if (!(bonusLeft(state, useGame.getState().profile.stock, 'bomb') > 0)) return;
           gest.current = { kind: 'bomb', sx: x, sy: y };
           setAiming({ drag: true, x, y, lift: lay.cell * 1.8 });
           sfx.pick();
@@ -420,7 +421,7 @@ export function GameScreen() {
       if (!released || moved) return;
       const state = useGame.getState().saved.state;
       if (gs.id === 'legend') { setAiming(false); legendRef.current?.present(); return; }
-      if (state.over || !(state.inventory[gs.id as keyof typeof state.inventory] > 0)) return;
+      if (state.over || !(bonusLeft(state, useGame.getState().profile.stock, gs.id as BonusType) > 0)) return;
       setAiming(false);
       fireBonus(lay, gs.id as 'rotate');
       return;

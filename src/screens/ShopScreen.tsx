@@ -1,8 +1,10 @@
 // Boutique tab (legacy screens/shop.js): Thèmes / Blocs / Cubo / Bonus. Skin cards with a preview,
 // price, owned / equipped / exclusive states; Bonus = upgrades. Theme previews show the board colors
 // (full world themes come with milestone 6).
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { L, M } from '../core';
 import { locale, tr } from '../core/i18n';
 import type { BonusType, SkinKind } from '../core/types';
@@ -13,6 +15,7 @@ import { boardTheme } from '../render/board-themes';
 import { drawCuboPreview } from '../render/cubo-preview';
 import { drawPreview } from '../render/preview';
 import { today } from '../state/persist';
+import type { TabParams } from '../navigation/types';
 import { useGame } from '../state/store';
 import { radius, space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
@@ -26,6 +29,7 @@ import { Segmented } from '../ui/Segmented';
 import { showStickers } from '../ui/StickerBanner';
 import { IconCanvas } from '../ui/IconCanvas';
 import { Screen } from '../ui/Screen';
+import { SectionLabel } from '../ui/SectionLabel';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
 
@@ -87,6 +91,39 @@ function SkinCard({ kind, skin, width }: { kind: SkinKind; skin: ReturnType<type
 
 const skinsOf = (kind: SkinKind) => M.SKINS[kind];
 
+// Bonuses bought one by one into the reserve; the price follows the bonus's upgrade level.
+function Reserve() {
+  const colors = useColors();
+  const profile = useGame((s) => s.profile);
+  const setProfile = useGame((s) => s.setProfile);
+  return (
+    <View style={{ gap: space.s }}>
+      {BONUS_TYPES.map((type: BonusType) => {
+        const ui = BONUS_UI[type];
+        const n = M.bonusStock(profile, type);
+        const price = M.bonusPrice(profile, type);
+        const full = n >= M.STOCK_MAX;
+        const off = full || profile.coins < price;
+        const buy = () => {
+          const next = M.buyBonus(useGame.getState().profile, type);
+          if (!next) return;
+          setProfile(next);
+          sfx.buy(); haptic('buy');
+        };
+        return (
+          <ListRow key={type} title={ui.name} icon={<IconCanvas type={type} size={40} />}
+            sub={tr`En réserve : ${n} · niveau ${M.upgradeLevel(profile, type)}`}
+            label={tr`${ui.name}, ${n} en réserve`}
+            right={full
+              ? <View style={{ height: 40, paddingHorizontal: space.l, borderRadius: radius.pill, backgroundColor: colors.panel2, justifyContent: 'center' }}><Text variant="headline" style={{ color: colors.muted }}>{tr('Plein')}</Text></View>
+              : <Button size="s" kind={off ? 'ghost' : 'primary'} disabled={off} icon={<Coin size={16} />} label={fmt(price)} accessibilityLabel={tr`Acheter ${ui.name} pour ${price} pièces`} onPress={buy} />} />
+        );
+      })}
+      <Text variant="caption" style={{ marginHorizontal: space.xs }}>{tr`Quand une partie n’a plus ce bonus, son bouton puise dans ta réserve (${M.STOCK_MAX} au plus de chaque). Plus le bonus est amélioré, plus il coûte.`}</Text>
+    </View>
+  );
+}
+
 function Upgrades() {
   const colors = useColors();
   const profile = useGame((s) => s.profile);
@@ -128,13 +165,29 @@ function Upgrades() {
 export function ShopScreen() {
   const coins = useGame((s) => s.profile.coins);
   const [tab, setTab] = useState<Tab>('boards');
+  // Opened from elsewhere on a given tab (the level sheet's "Acheter un bonus").
+  // The param is cleared once applied, so the same link works again after switching tabs.
+  const nav = useNavigation<BottomTabNavigationProp<TabParams, 'Shop'>>();
+  const asked = useRoute<RouteProp<TabParams, 'Shop'>>().params?.tab;
+  useEffect(() => {
+    if (!asked) return;
+    setTab(asked);
+    nav.setParams({ tab: undefined });
+  }, [asked, nav]);
   const { width: W } = useWindowDimensions();
   // Two columns between the 16 pt gutters, 12 pt apart.
   const cardW = Math.floor((W - 2 * space.l - space.m) / 2);
   return (
     <Screen title={tr('Boutique')} right={<Counter icon={<Coin size={20} />} value={fmt(coins)} label={tr`${coins} pièces`} />}>
       <Segmented role="tab" options={TABS.map(([id, label]) => [id, label()] as [Tab, string])} value={tab} onChange={(v) => { sfx.turn(); setTab(v); }} />
-      {tab === 'bonus' ? <Upgrades /> : (
+      {tab === 'bonus' ? (
+        <>
+          <SectionLabel>{tr('Réserve')}</SectionLabel>
+          <Reserve />
+          <SectionLabel>{tr('Améliorations')}</SectionLabel>
+          <Upgrades />
+        </>
+      ) : (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.m }}>
           {skinsOf(tab).map((skin) => <SkinCard key={tab + skin.id} kind={tab} skin={skin} width={cardW} />)}
         </View>

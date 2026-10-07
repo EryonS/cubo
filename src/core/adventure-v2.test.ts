@@ -119,7 +119,7 @@ test('migrate keeps worlds opened under the v1 rules', () => {
     adventure: { stars: Object.fromEntries([...Array(10)].map((_, i) => [`plain-${i + 1}`, 2]).concat([...Array(10)].map((_, i) => [`sea-${i + 1}`, 1]))) },
   };
   const { profile } = M.migrate(v2);
-  assert.equal(profile.version, 6);
+  assert.equal(profile.version, 7);
   assert.deepEqual(profile.adventure.opened, ['sea']); // space needed 36 stars in v1: 30 here
   assert.equal(M.worldOpen(profile, 'sea'), true);
   assert.equal(M.worldOpen(profile, 'space'), false);
@@ -149,11 +149,9 @@ test('star chests open once, when the world has enough stars', () => {
   assert.equal(M.chestState(p, 'plain', 1), 'ready');
   assert.equal(M.chestState(p, 'plain', 2), 'locked');
   const a = M.openChest(p, 'plain', 0);
-  assert.equal(a.profile.coins, 40);
+  assert.equal(a.profile.coins, 20);
   assert.equal(M.chestState(a.profile, 'plain', 0), 'open');
   assert.equal(M.openChest(a.profile, 'plain', 0), null);
   const b = M.openChest(a.profile, 'plain', 1);
-  assert.equal(M.freeBombs(b.profile), 2);
-  assert.equal(M.freeBombs(M.useFreeBomb(b.profile)), 1);
-  assert.equal(M.useFreeBomb(p), null);
+  assert.equal(M.bonusStock(b.profile, 'bomb'), 2); // chest Bombes go to the reserve
 });

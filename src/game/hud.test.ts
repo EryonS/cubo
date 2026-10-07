@@ -47,6 +47,18 @@ test('timer ring: fraction of the effect left, "ending" in the last 5 s', () => 
   assert.equal(ringEnding({ ...on, effects: { ...on.effects, nitro: 4000 } }, 'nitro'), true);
 });
 
+test('inventory buttons: the reserve shows once the run has none, and helps when stuck', () => {
+  const st = { ...fresh(), inventory: { rotate: 1, nitro: 0, shield: 0, bomb: 0, reroll: 0 }, stuck: true };
+  const stock = { bomb: 3, rotate: 4 };
+  assert.deepEqual([invView(st, 'bomb', false, stock).count, invView(st, 'bomb', false, stock).reserve], [0, 3]);
+  assert.equal(invView(st, 'bomb', false, stock).empty, false);
+  assert.equal(invView(st, 'bomb', false, stock).help, true);
+  assert.equal(invView(st, 'rotate', false, stock).reserve, 0); // the run's own go first
+  assert.equal(invView(st, 'nitro', false, stock).empty, true);
+  const bare = { ...st, inventory: { rotate: 0, nitro: 0, shield: 0, bomb: 0, reroll: 0 } };
+  assert.match(hintText(bare, null, stock)!.text, /bonus/);
+});
+
 test('inventory buttons: empty, active, aiming, and the help pulse when stuck', () => {
   const st = { ...fresh(), inventory: { rotate: 1, nitro: 0, shield: 0, bomb: 2, reroll: 0 }, stuck: true };
   assert.equal(invView(st, 'nitro', false).empty, true);

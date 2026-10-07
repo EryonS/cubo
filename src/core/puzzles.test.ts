@@ -131,14 +131,14 @@ test('puzzle progress: open in order, coins once, stars kept, pack bonus', () =>
   assert.ok(M.puzzleOpen(p, 1));
   assert.equal(M.puzzleOpen(p, 2), false);
   let r = M.applyPuzzle(p, 1, 2);
-  assert.equal(r.report.total, 15 + 10);
+  assert.equal(r.report.total, 3 * 2 + 2 * 3); // 3 pieces, 2 stars
   p = r.profile;
   assert.ok(M.puzzleOpen(p, 2));
   r = M.applyPuzzle(p, 1, 1);
   assert.equal(r.report.total, 0);
   assert.equal(M.puzzleStarsOf(r.profile, 1), 2);
   r = M.applyPuzzle(p, 1, 3);
-  assert.equal(r.report.total, 5);
+  assert.equal(r.report.total, 3);
   for (let n = 2; n <= 9; n++) p = M.applyPuzzle(p, n, 1).profile;
   r = M.applyPuzzle(p, 10, 3);
   assert.deepEqual(r.report.earned.map((l) => l.label), ['Puzzle résolu', '3 nouvelles étoiles', 'Pack terminé']);
@@ -198,8 +198,25 @@ test('puzzle surprise: hints solve it; reward and unlock', () => {
   assert.equal(M.surpriseOpen({ puzzles: { 1: 3 } }), false);
   assert.equal(M.surpriseOpen(done), true);
   const p = { coins: 0, lifetime: {}, ...done };
-  const a = M.applySurprise(p, 0);
+  const a = M.applySurprise(p, '2026-10-07');
   assert.equal(a.report.total, M.SURPRISE_COINS);
   assert.equal(M.surprisesSolved(a.profile), 1);
-  assert.equal(M.applySurprise(a.profile, 2).report.total, M.SURPRISE_HINTED);
+});
+
+test('puzzle surprise: only the first ones of a day pay', () => {
+  let p = { coins: 0, lifetime: {} };
+  for (let k = 0; k < M.SURPRISE_DAILY; k++) p = M.applySurprise(p, '2026-10-07').profile;
+  assert.equal(p.coins, M.SURPRISE_DAILY * M.SURPRISE_COINS);
+  assert.equal(M.surprisesPaidLeft(p, '2026-10-07'), 0);
+  const over = M.applySurprise(p, '2026-10-07');
+  assert.equal(over.report.total, 0);
+  assert.deepEqual(over.report.earned, []);
+  assert.equal(M.surprisesSolved(over.profile), M.SURPRISE_DAILY + 1);
+  assert.equal(M.surprisesPaidLeft(over.profile, '2026-10-08'), M.SURPRISE_DAILY);
+  assert.equal(M.applySurprise(over.profile, '2026-10-08').report.total, M.SURPRISE_COINS);
+});
+
+test('a puzzle pays by the pieces it has to place', () => {
+  assert.equal(M.puzzleFirst(1), 3 * M.PUZZLE_PER_PIECE);
+  assert.equal(M.puzzleFirst(60), 10 * M.PUZZLE_PER_PIECE);
 });

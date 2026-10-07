@@ -11,6 +11,7 @@ import { sfx } from '../audio/engine';
 import { allStars, maskOf, packRows } from '../game/puzzle';
 import { startPuzzle, startSurprise } from '../game/run';
 import { haptic } from '../platform/haptics';
+import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import type { RootParams } from '../navigation/types';
 import { radius, space } from '../theme/tokens';
@@ -84,6 +85,7 @@ function SurpriseCard() {
   const profile = useGame((s) => s.profile);
   const open = M.surpriseOpen(profile);
   const solved = M.surprisesSolved(profile);
+  const paidLeft = M.surprisesPaidLeft(profile, today());
   const go = () => {
     if (!open) { sfx.nope(); haptic('nope'); return; }
     sfx.turn();
@@ -92,7 +94,7 @@ function SurpriseCard() {
   };
   return (
     <ListRow big title={tr('Puzzle surprise')} onPress={go} quiet style={{ marginTop: space.s, opacity: open ? 1 : 0.7 }}
-      sub={open ? tr`Un dessin au hasard, avec ${PZ.SURPRISE_MIN} à ${PZ.SURPRISE_MAX} formes données d’un coup. Tu peux déplacer celles déjà posées.`
+      sub={open ? tr`Un dessin au hasard, avec ${PZ.SURPRISE_MIN} à ${PZ.SURPRISE_MAX} formes données d’un coup. Tu peux déplacer celles déjà posées. Les ${M.SURPRISE_DAILY} premiers du jour rapportent des pièces.`
         : tr`Finis le pack ${PZ.PACKS[3].name} pour l’ouvrir : un dessin au hasard, toutes les formes d’un coup.`}
       icon={(
         <View style={{ width: 48, height: 48, borderRadius: radius.tile, backgroundColor: colors.panel2, alignItems: 'center', justifyContent: 'center' }}>
@@ -102,7 +104,9 @@ function SurpriseCard() {
       right={open ? (
         <View style={{ alignItems: 'flex-end', gap: space.xxs }}>
           <Text variant="caption">{solved ? tr`${fmt(solved)} réussi${solved > 1 ? 's' : ''}` : tr('Nouveau')}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}><Text variant="headline">+{M.SURPRISE_COINS}</Text><Coin size={14} /></View>
+          {paidLeft > 0
+            ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}><Text variant="headline">+{M.SURPRISE_COINS}</Text><Coin size={14} /><Text variant="caption">×{paidLeft}</Text></View>
+            : <Text variant="caption">{tr('Pièces : demain')}</Text>}
         </View>
       ) : undefined} />
   );

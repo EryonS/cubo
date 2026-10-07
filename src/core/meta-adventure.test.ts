@@ -19,9 +19,9 @@ test('only the first world and its first level are open at start', () => {
 
 test('first clear pays, new stars pay, replays without progress pay nothing', () => {
   let r = M.applyLevel(fresh(), 'plain', 1, 1);
-  assert.equal(r.report.total, 10 + 5);
+  assert.equal(r.report.total, 3 + 3);
   r = M.applyLevel(r.profile, 'plain', 1, 3);
-  assert.equal(r.report.total, 10);
+  assert.equal(r.report.total, 2 * 3);
   assert.equal(M.levelStars(r.profile, 'plain', 1), 3);
   r = M.applyLevel(r.profile, 'plain', 1, 2);
   assert.equal(r.report.total, 0);
