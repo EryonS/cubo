@@ -4,7 +4,9 @@
 // iOS trims the line from the top, so the glyphs ride up out of their box (an 18 pt label in a 22 pt line
 // sits ~3 pt high). iOS Text puts them back on center with a translate, which keeps the layout box as is.
 // Android already draws the glyphs on the line's center; the same translate sits every label low.
-import { createContext, useContext } from 'react';
+// A label that shrinks to fit (adjustsFontSizeToFit) keeps the full size's line height, so its smaller
+// glyphs sit at the bottom of the line: its translate is worked out from the size iOS drew it at.
+import { createContext, useContext, useState } from 'react';
 import { Platform, StyleSheet, Text as RNText, useWindowDimensions, type TextProps, type TextStyle } from 'react-native';
 import { useColors } from '../theme/useColors';
 import { typeScale as scale, type TypeVariant } from '../theme/tokens';
@@ -12,23 +14,27 @@ import { typeScale as scale, type TypeVariant } from '../theme/tokens';
 type Props = TextProps & { variant?: TypeVariant };
 
 const BALOO_BOX = 1.602;
+const BALOO_CAP = 0.602; // cap height, in em
 const CAP_NUDGE = 0.024; // caps and digits sit a hair above the line's center
 export const MAX_FONT_SCALE = 1.3; // Dynamic Type grows text up to here; past it the cards would break
 
-export function centerShift(st: TextStyle, fontScale: number): number {
+// drawn: the size iOS drew a shrunk label at, in points (Dynamic Type included).
+export function centerShift(st: TextStyle, fontScale: number, drawn?: number): number {
   if (Platform.OS === 'android') return 0;
   const fs = st.fontSize ?? 16;
   const lh = st.lineHeight;
   const family = st.fontFamily ?? '';
   if (!lh || (family && !family.startsWith('Baloo'))) return 0;
   const k = Math.min(fontScale, MAX_FONT_SCALE);
+  // Shrunk: the line box (lh) did not shrink with the glyphs, the shift may go up.
+  if (drawn && drawn < fs * k - 0.5) return (drawn * BALOO_BOX - lh * k) / 2 + drawn * CAP_NUDGE;
   return Math.max(0, (fs * BALOO_BOX - lh) / 2 + fs * CAP_NUDGE) * k;
 }
 
 // A Text inside a Text is a span: it never moves on its own (the outer one carries the shift).
 const Nested = createContext(false);
 
-export function Text({ variant = 'body', style, maxFontSizeMultiplier = MAX_FONT_SCALE, ...rest }: Props) {
+export function Text({ variant = 'body', style, maxFontSizeMultiplier = MAX_FONT_SCALE, onTextLayout, ...rest }: Props) {
   const colors = useColors();
   const { fontScale } = useWindowDimensions();
   const { tone, lh, ...base } = scale[variant];
@@ -39,8 +45,15 @@ export function Text({ variant = 'body', style, maxFontSizeMultiplier = MAX_FONT
   const lineHeight = own.lineHeight ?? Math.round((own.fontSize ?? base.fontSize) * lh);
   const flat = { ...base, color, ...own, lineHeight } as TextStyle;
   const nested = useContext(Nested);
-  const dy = nested ? 0 : centerShift(flat, fontScale);
+  const [drawn, setDrawn] = useState<number>();
+  const fits = Platform.OS === 'ios' && !nested && !!rest.adjustsFontSizeToFit;
+  const onLines: TextProps['onTextLayout'] = fits ? (e) => {
+    onTextLayout?.(e);
+    const cap = e.nativeEvent.lines[0]?.capHeight;
+    if (cap) setDrawn(cap / BALOO_CAP);
+  } : onTextLayout;
+  const dy = nested ? 0 : centerShift(flat, fontScale, fits ? drawn : undefined);
   const transform = dy ? [...((flat.transform as object[] | undefined) ?? []), { translateY: dy }] : flat.transform;
-  const node = <RNText maxFontSizeMultiplier={maxFontSizeMultiplier} {...rest} style={[flat, !nested && transform ? { transform } as TextStyle : null]} />;
+  const node = <RNText maxFontSizeMultiplier={maxFontSizeMultiplier} {...rest} onTextLayout={onLines} style={[flat, !nested && transform ? { transform } as TextStyle : null]} />;
   return nested ? node : <Nested.Provider value>{node}</Nested.Provider>;
 }
