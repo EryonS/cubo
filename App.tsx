@@ -19,6 +19,7 @@ import { useGame } from './src/state/store';
 import { AskHost } from './src/ui/dialog';
 import { SyncChoiceHost } from './src/ui/SyncChoice';
 import { ToastHost } from './src/ui/Toast';
+import { TestBadge } from './src/ui/TestBadge';
 import { StickerBannerHost } from './src/ui/StickerBanner';
 import { colorsFor, darkBg } from './src/theme/useColors';
 
@@ -52,6 +53,7 @@ export default function App() {
           <AskHost />
           <SyncChoiceHost />
           <ToastHost />
+          <TestBadge />
         </BottomSheetModalProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

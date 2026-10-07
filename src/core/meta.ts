@@ -314,11 +314,11 @@ const bossBeaten = (profile: Profile, world: string) => levelCleared(profile, wo
 
 function worldOpen(profile: Profile, world: string) {
   const w = WORLD_ORDER.indexOf(world);
-  if (w <= 0) return w === 0;
+  if (w <= 0 || profile.dev) return w >= 0;
   if ((adventureOf(profile).opened || []).includes(world)) return true;
   return bossBeaten(profile, WORLD_ORDER[w - 1]) && totalStars(profile) >= worldGate(world);
 }
-const levelOpen = (profile: Profile, world: string, n: number) => worldOpen(profile, world) && (n === 1 || levelCleared(profile, world, n - 1));
+const levelOpen = (profile: Profile, world: string, n: number) => worldOpen(profile, world) && (n === 1 || !!profile.dev || levelCleared(profile, world, n - 1));
 
 // Records a finished level. Returns { profile, report: { earned, total, themeUnlocked } }.
 function applyLevel(prev: Profile, world: string, n: number, stars: number) {
@@ -390,7 +390,7 @@ const freeBombs = (profile: Profile) => adventureOf(profile).bombs || 0;
 // ---------- Mondes (endless runs under one world's rules) ----------
 // A world opens in the Mondes mode once its trial (Aventure level 10) is cleared. Runs pay a prime
 // on the score, bigger in later worlds: 1 coin per 200 points in Plaine, up to x2.75 in Volcan.
-const worldFreeOpen = (profile: Profile, world: string) => WORLD_ORDER.includes(world) && levelCleared(profile, world, TRIAL_LEVEL);
+const worldFreeOpen = (profile: Profile, world: string) => WORLD_ORDER.includes(world) && (!!profile.dev || levelCleared(profile, world, TRIAL_LEVEL));
 const worldPrimeRate = (world: string) => 1 + 0.25 * WORLD_ORDER.indexOf(world);
 const worldPrime = (world: string, score?: number) => (WORLD_ORDER.includes(world) ? Math.floor(((score || 0) / 200) * worldPrimeRate(world)) : 0);
 
@@ -402,7 +402,7 @@ const PUZZLE_PACK = 60;
 const PUZZLE_HINT = 30;
 const PUZZLES_PER_PACK = 10;
 const puzzleStarsOf = (profile: Profile, n: number) => (profile.puzzles || {})[n];
-const puzzleOpen = (profile: Profile, n: number) => n === 1 || puzzleStarsOf(profile, n - 1) !== undefined;
+const puzzleOpen = (profile: Profile, n: number) => n === 1 || !!profile.dev || puzzleStarsOf(profile, n - 1) !== undefined;
 const puzzlesSolved = (profile: Profile) => Object.keys(profile.puzzles || {}).length;
 const packDone = (profile: Profile, pack: number) => {
   for (let n = pack * PUZZLES_PER_PACK + 1; n <= (pack + 1) * PUZZLES_PER_PACK; n++) if (puzzleStarsOf(profile, n) === undefined) return false;
@@ -428,7 +428,7 @@ function applyPuzzle(prev: Profile, n: number, stars: number) {
 const SURPRISE_PACK = 3;
 const SURPRISE_COINS = 25;
 const SURPRISE_HINTED = 10;
-const surpriseOpen = (profile: Profile) => packDone(profile, SURPRISE_PACK);
+const surpriseOpen = (profile: Profile) => !!profile.dev || packDone(profile, SURPRISE_PACK);
 const surprisesSolved = (profile: Profile) => profile.surprises || 0;
 function applySurprise(prev: Profile, hints: number) {
   const earned = [{ label: tr('Puzzle surprise'), coins: hints ? SURPRISE_HINTED : SURPRISE_COINS }];

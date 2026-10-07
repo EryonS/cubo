@@ -102,3 +102,16 @@ test('a world with every star is mastered and earns its sticker once', () => {
   assert.equal(st.page, 'master');
   assert.ok(!M.checkStickers(res.profile, '2026-10-02').fresh.some((s) => s.id === 'master-plain'));
 });
+
+test('a test-mode profile (dev) opens every world, level, free world and puzzle', () => {
+  const p = { ...fresh(), dev: true };
+  for (const w of M.WORLD_ORDER) {
+    assert.ok(M.worldOpen(p, w), w);
+    assert.ok(M.levelOpen(p, w, M.LEVELS_PER_WORLD), w);
+    assert.ok(M.worldFreeOpen(p, w), w);
+  }
+  assert.equal(M.worldOpen(p, 'nowhere'), false);
+  assert.ok(M.puzzleOpen(p, 50));
+  assert.ok(M.surpriseOpen(p));
+  assert.equal(M.levelOpen(fresh(), 'plain', 2), false);
+});

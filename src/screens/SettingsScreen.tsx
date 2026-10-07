@@ -1,6 +1,7 @@
 // Paramètres (legacy #settings): the cloud account (hidden until Firebase is configured), sounds, music,
 // vibrations, color-blind marks, the app icon, language, help and contact, the privacy policy and
-// ad-privacy rows, and the app version at the bottom.
+// ad-privacy rows, and the app version at the bottom. Tapping the version 7 times shows Développeur
+// (test mode, game/devmode.ts); a dev build always shows it.
 import { useRef, useState, useSyncExternalStore } from 'react';
 import { Linking, Platform, View } from 'react-native';
 import * as Application from 'expo-application';
@@ -15,6 +16,8 @@ import { startTutorial } from '../game/tutorial';
 import { appIcon, canChangeAppIcon } from '../platform/app-icon';
 import { privacyRequired, showPrivacyOptions, subscribePrivacy } from '../platform/ads';
 import { available } from '../platform/cloud';
+import { devShown, showDev, testMode } from '../platform/kv';
+import { addTestCoins, resetTestProfile, switchTestMode } from '../game/devmode';
 import type { Settings } from '../state/persist';
 import { useGame } from '../state/store';
 import { space } from '../theme/tokens';
@@ -31,6 +34,8 @@ const LANGS: [LangPref, string][] = [['auto', 'Auto'], ['fr', 'Français'], ['en
 const CONTACT = 'contact@slapps.dev';
 // "1.0.0 (12)": store version and build number, as App Store Connect and Play show them.
 const VERSION = `${Application.nativeApplicationVersion ?? '?'} (${Application.nativeBuildVersion ?? '?'})`;
+
+const DEV_TAPS = 7;
 
 const open = (url: string) => { Linking.openURL(url).catch(() => {}); };
 // The policy opens in the app's language (site/lang.js reads ?lang=).
@@ -55,9 +60,17 @@ export function SettingsScreen() {
   const privacy = useSyncExternalStore(subscribePrivacy, privacyRequired, privacyRequired);
   const iconRef = useRef<BottomSheetModal>(null);
   const [icon, setIcon] = useState(appIcon);
+  const [dev, setDev] = useState(devShown);
+  const taps = useRef(0);
+  const tapVersion = () => {
+    if (dev || ++taps.current < DEV_TAPS) return;
+    showDev();
+    setDev(true);
+    haptic('pick');
+  };
   return (
     <Screen title={tr('Paramètres')} back>
-      {available() && (
+      {available() && !testMode && (
         <View style={{ gap: space.s }}>
           <SectionLabel>{tr('Sauvegarde en ligne')}</SectionLabel>
           <AccountBlock />
@@ -91,7 +104,16 @@ export function SettingsScreen() {
         <ListRow title={tr('Politique de confidentialité')} sub={tr('Les données utilisées, et pourquoi')} right="chevron" onPress={openPolicy} />
         {privacy && <ListRow title={tr('Confidentialité des pubs')} sub={tr('Changer ton choix de consentement')} right="chevron" onPress={() => { void showPrivacyOptions(); }} />}
       </View>
-      <Text variant="caption" style={{ textAlign: 'center' }} selectable>{tr`Cubo Blocks, version ${VERSION}`}</Text>
+      {dev && (
+        <View style={{ gap: space.s }}>
+          <SectionLabel>{tr('Développeur')}</SectionLabel>
+          <ListRow title={tr('Mode test')} sub={tr('Profil séparé, tout ouvert, sans synchro')} role="switch" state={{ checked: testMode }}
+            onPress={() => { void switchTestMode(); }} quiet right={<Toggle on={testMode} />} />
+          {testMode && <ListRow title={tr('Ajouter des pièces')} sub={tr('Au profil de test')} right="chevron" onPress={addTestCoins} />}
+          {testMode && <ListRow title={tr('Réinitialiser le profil de test')} sub={tr('Il repart de zéro, tout ouvert')} right="chevron" onPress={() => { void resetTestProfile(); }} />}
+        </View>
+      )}
+      <Text variant="caption" style={{ textAlign: 'center' }} onPress={tapVersion} suppressHighlighting>{tr`Cubo Blocks, version ${VERSION}`}</Text>
       {canChangeAppIcon && <AppIconSheet ref={iconRef} onPicked={setIcon} />}
     </Screen>
   );

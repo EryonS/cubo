@@ -1,7 +1,7 @@
 // Cubo Blocks — App state: the saves (persist.ts) in one zustand store. Every setter saves at once,
 // as the web build did after each move. Animation state never goes through here (see the spec).
 import { create } from 'zustand';
-import { mmkv } from '../platform/kv';
+import { mmkv, testMode } from '../platform/kv';
 import type { Profile } from '../core/types';
 import { tutActive } from '../game/tut-state';
 import { notifySaved } from '../platform/saved';
@@ -18,7 +18,10 @@ interface GameStore {
   rollDay(): void;
 }
 
+// Test mode's profile opens everything and starts rich (game/devmode.ts).
+export const TEST_COINS = 100000;
 const first = loadProfile(mmkv, today());
+if (testMode && !first.profile.dev) first.profile = { ...first.profile, dev: true, coins: Math.max(first.profile.coins, TEST_COINS) };
 saveProfile(mmkv, first.profile);
 
 export const useGame = create<GameStore>((set, get) => ({

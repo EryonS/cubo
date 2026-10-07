@@ -7,7 +7,7 @@ import { S } from '../core';
 import type { SyncDoc } from '../core/sync';
 import { tr } from '../core/i18n';
 import { langPref } from '../i18n/lang';
-import { mmkv } from '../platform/kv';
+import { bootKv, mmkv, testMode } from '../platform/kv';
 import * as Cloud from '../platform/cloud';
 import { setOnSaved } from '../platform/saved';
 import { PROFILE_KEY, RUN_KEY } from '../state/persist';
@@ -105,7 +105,7 @@ async function applyCloud(doc: SyncDoc) {
   try { saved = raw ? JSON.parse(raw) : {}; } catch { saved = {}; }
   mmkv.set(RUN_KEY, JSON.stringify({ ...saved, settings: doc.settings, bests: doc.bests }));
   mmkv.set(PROFILE_KEY, JSON.stringify(doc.profile));
-  mmkv.set('cuboblocks.lang', doc.lang);
+  bootKv.set('cuboblocks.lang', doc.lang);
   if (syncInfo) syncInfo = { ...syncInfo, syncedAt: doc.updatedAt, dirty: false };
   saveSyncInfo();
   mmkv.set(SYNCED_FLAG, '1');
@@ -230,6 +230,7 @@ export function syncedLabel() {
 }
 
 export function startAccount() {
+  if (testMode) return; // the test profile never reaches the account
   setOnSaved(noteSaved);
   if (!Cloud.available()) return;
   if (mmkv.get(SYNCED_FLAG)) {

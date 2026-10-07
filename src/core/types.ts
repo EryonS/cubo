@@ -217,5 +217,7 @@ export interface Profile {
   streak?: Streak;
   stickers?: Record<string, string>;
   tips?: Record<string, boolean>;
+  // Test mode's profile (Paramètres > Développeur): every world, level and puzzle open.
+  dev?: boolean;
   halloween?: SeasonProgress; // before v6
 }
