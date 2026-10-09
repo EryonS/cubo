@@ -5,11 +5,12 @@ import { Pressable, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { M, LV, WD } from '../core';
+import { M, WD } from '../core';
 import { locale, tr } from '../core/i18n';
-import { freeInProgress, guardFree, inProgress, LEVEL_NAMES, MODE_NAMES, modeLabel, modeSub } from '../game/modes';
+import { guardFree, inProgress, LEVEL_NAMES, MODE_NAMES, modeLabel, modeSub } from '../game/modes';
 import { tileSub } from '../game/daily';
 import { eventRows } from '../game/events';
+import { resumeOf } from '../game/home';
 import { puzzleInProgress, puzzleTileSub } from '../game/puzzle';
 import { missionStatus, restartRun, resumeParked } from '../game/run';
 import { cuboLookFor } from '../mascot/looks';
@@ -82,21 +83,18 @@ export function PlayScreen() {
   const prefs = useGame((s) => s.saved.prefs);
   const parked = useGame((s) => s.saved.parked);
   useGame((s) => s.saved.state.stats); // missions progress with the run
-  const playing = useGame((s) => freeInProgress(s.saved.state));
-  const playingLabel = useGame((s) => `${modeLabel(s.saved.state)} · ${fmt(s.saved.state.score)} pts`);
   const pickRef = useRef<BottomSheetModal>(null);
   const missionsRef = useRef<BottomSheetModal>(null);
 
-  // A level in progress resumes from the hero card; else the next level to play (legacy home.js renderMenu).
-  const levelKey = useGame((s) => (inProgress(s.saved.state) && s.saved.state.stage && !s.saved.state.stage.daily && !s.saved.state.stage.event ? `${s.saved.state.stage.world}:${s.saved.state.stage.n}` : ''));
-  const level = useMemo(() => (levelKey ? ([levelKey.split(':')[0], +levelKey.split(':')[1]] as [string, number]) : null), [levelKey]);
-  const levelGoal = useGame((s) => (s.saved.state.stage ? LV.goalText(s.saved.state.stage.goal) : ''));
-  const next = level || nextAdventure(profile);
+  // The run on the board is resumed from the Continuer hero (any kind); the Aventure card shows the next level.
+  const run = useGame((s) => s.saved.state);
+  const resume = useMemo(() => resumeOf(run), [run]);
+  const playing = !!resume;
+  const next = nextAdventure(profile);
   const stars = M.totalStars(profile);
   const maxStars = M.WORLD_ORDER.length * M.LEVELS_PER_WORLD * 3;
   const heroWorld = next ? next[0] : lastOpenWorld(profile);
   const preview = useMemo(() => boardTheme(heroWorld, profile.equipped.blocks), [heroWorld, profile.equipped.blocks]);
-  const run = useGame((s) => s.saved.state);
   const day = today();
   const events = eventRows(profile, run, day);
   const daily = M.dailyOf(profile, day);
@@ -132,10 +130,15 @@ export function PlayScreen() {
     <Screen title="Cubo Blocks" right={<Counter icon={<Coin size={20} />} value={fmt(profile.coins)} label={tr('Pièces : ouvrir la Boutique')} onPress={() => nav.navigate('Shop')} />}>
       <CuboSay />
 
-      {playing && <Button label={tr('Continuer')} sub={playingLabel} onPress={() => { sfx.turn(); play(); }} />}
+      {resume && (
+        <View style={{ gap: space.xs }}>
+          <Button label={tr('Continuer')} sub={resume.kind === 'free' || resume.kind === 'puzzle' ? `${resume.title} · ${resume.sub}` : resume.title} onPress={() => { sfx.turn(); play(); }} />
+          {resume.kind !== 'free' && resume.kind !== 'puzzle' && <Text variant="muted" numberOfLines={1} style={{ textAlign: 'center' }}>{resume.sub}</Text>}
+        </View>
+      )}
 
-      <Tap onPress={() => { if (level) play(); else nav.navigate('Adventure', next ? { world: next[0], level: next[1] } : undefined); }}
-        label={level ? tr`Aventure : reprendre ${WD.WORLDS[level[0]].name}, ${levelName(level[1])}` : next ? tr`Aventure : jouer ${WD.WORLDS[next[0]].name}, ${levelName(next[1])}` : tr('Aventure : carte des mondes')}
+      <Tap onPress={() => nav.navigate('Adventure', next ? { world: next[0], level: next[1] } : undefined)}
+        label={next ? tr`Aventure : jouer ${WD.WORLDS[next[0]].name}, ${levelName(next[1])}` : tr('Aventure : carte des mondes')}
         style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.m, borderRadius: radius.card, backgroundColor: playing ? colors.panel : colors.accent, ...(playing ? raised(colors) : { shadowColor: colors.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } }) }}>
         <View style={{ borderRadius: radius.tile, overflow: 'hidden', borderWidth: 3, borderColor: playing ? colors.panel2 : 'rgba(255,255,255,0.4)' }}>
           <BoardPreview th={preview} width={92} radius={13} />
@@ -143,12 +146,10 @@ export function PlayScreen() {
         <View style={{ flex: 1, minWidth: 0, gap: space.xxs }}>
           <Text variant="label" numberOfLines={1} style={{ color: heroSub, opacity: 0.9 }}>{next ? `${tr('Aventure')} · ${WD.WORLDS[next[0]].name}` : tr('Aventure')}</Text>
           <Text variant="title" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: heroInk }}>{next ? levelName(next[1]) : tr('Carte des mondes')}</Text>
-          {level ? <Text variant="caption" numberOfLines={1} style={{ color: heroSub }}>{levelGoal}</Text> : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
-              <Star size={14} edge={playing || darkBg(colors.accent) ? undefined : heroInk} />
-              <Text variant="caption" style={{ color: heroSub }}>{fmt(stars)} / {maxStars}</Text>
-            </View>
-          )}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
+            <Star size={14} edge={playing || darkBg(colors.accent) ? undefined : heroInk} />
+            <Text variant="caption" style={{ color: heroSub }}>{fmt(stars)} / {maxStars}</Text>
+          </View>
         </View>
         <View style={{ alignSelf: 'stretch', justifyContent: 'space-between', alignItems: 'flex-end', gap: space.s }}>
           <Tap label={tr('Carte')} onPress={() => nav.navigate('Adventure')} hitSlop={4}
@@ -156,13 +157,13 @@ export function PlayScreen() {
             <Icon name="map" size={18} color={heroInk} />
           </Tap>
           <View style={{ height: 36, justifyContent: 'center', paddingHorizontal: space.m, borderRadius: radius.pill, backgroundColor: playing ? colors.accent : colors.onAccent }}>
-            <Text variant="headline" style={{ color: playing ? colors.onAccent : colors.accent }}>{level ? tr('Reprendre') : next ? tr('Jouer') : tr('Voir')}</Text>
+            <Text variant="headline" style={{ color: playing ? colors.onAccent : colors.accent }}>{next ? tr('Jouer') : tr('Voir')}</Text>
           </View>
         </View>
       </Tap>
 
       {events.map((row) => (
-        <ListRow key={row.id} title={row.name} sub={row.sub} icon={<KindIcon kind={row.icon} size={32} />} right="chevron"
+        <ListRow big key={row.id} title={row.name} sub={row.sub} icon={<KindIcon kind={row.icon} size={32} />} right="chevron"
           onPress={() => { if (row.playing) nav.navigate('Game'); else nav.navigate('Event', { id: row.id }); }} />
       ))}
 

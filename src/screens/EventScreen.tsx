@@ -9,6 +9,7 @@ import { LV, M, WD } from '../core';
 import { tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
 import { eventDate, eventLevelName, hatName } from '../game/events';
+import { eventNext } from '../game/home';
 import { guardFree, inProgress, isFree } from '../game/modes';
 import { startEventLevel } from '../game/run';
 import { haptic } from '../platform/haptics';
@@ -140,6 +141,7 @@ export function EventScreen() {
   const [n, setN] = useState<number | null>(route.params.level ?? null);
   const day = today();
   const ev = M.eventById(id);
+  const going = useGame((s) => (inProgress(s.saved.state) && s.saved.state.stage?.event === id ? s.saved.state.stage.n : 0));
 
   useEffect(() => {
     if (!ev || !M.eventActive(day, id)) { nav.goBack(); return; }
@@ -154,6 +156,7 @@ export function EventScreen() {
   const year = M.eventYear(day);
   const trophy = M.seasonTrophy(profile, id, year);
   const owned = (kind: 'boards' | 'cubo', sid: string) => (profile.owned[kind] || []).includes(sid);
+  const next = eventNext(profile, id, day);
   const trophyLine = trophy === 'gold' ? tr('Or') : trophy === 'silver' ? tr('Argent · or avec 30 étoiles') : tr('Or avec 30 étoiles');
   const open = (level: number) => { setN(level); sheetRef.current?.present(); };
   const play = async () => {
@@ -175,6 +178,10 @@ export function EventScreen() {
         <Text variant="muted" style={{ marginHorizontal: space.xs }}>
           {tr`Événement de saison jusqu’au ${eventDate(M.eventEnd(id, day))} : ${ev.levels} niveaux, ${ev.blurb}. Finis-les pour gagner le thème ${ev.name}, ${hatName(ev.hat).toLowerCase()} pour Cubo et le trophée ${year}. Tout repart à zéro l’an prochain.`}
         </Text>
+        {(going || next) ? (
+          <Button label={going ? tr`Continuer : ${eventLevelName(going)}` : next === ev.levels ? tr('Affronter le boss') : tr`Jouer le niveau ${next}`}
+            onPress={() => { sfx.turn(); if (going) nav.navigate('Game'); else open(next!); }} />
+        ) : null}
         {WD.WORLDS[id] && <Rules w={id} />}
         <View style={{ flexDirection: 'row', gap: space.s }}>
           <Reward label={tr`Thème ${ev.name}`} got={owned('boards', ev.theme) ? tr('Gagné') : undefined}>
