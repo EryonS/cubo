@@ -1,6 +1,6 @@
 # Friends, weekly leagues and friend rankings — design
 
-Date: 2026-10-09. Status: draft, to review with the owner before any code.
+Date: 2026-10-09. Status: decisions taken with the owner (2026-10-09), ready to plan.
 
 ## Goal
 Give Cubo Blocks a light community layer: a player has a **pseudo** and a **friend code**, adds friends with
@@ -13,40 +13,37 @@ offline and without an account as today.
 - « Un classement hebdomadaire des meilleurs scores avec des récompenses à la clé, ou des ligues, de ceux qui marquent le plus de points. »
 - « Des classements entre amis aussi, pour se tirer la bourre, comme le classement hebdo mais entre potes. »
 
-## Decisions proposed (to confirm)
+## Decisions (owner, 2026-10-09)
 1. **Backend: Firebase only, Spark plan, no Cloud Functions.** Cloud Functions need the paid Blaze plan; every
    rule below works with Firestore rules + client logic. Cheating stays possible (client-reported scores) and is
    bounded by rules; acceptable for a casual game with coin rewards only.
-2. **Identity: Firebase anonymous auth** the first time a player opens the community features, so nobody needs a
-   Google / Apple account to have friends. A player who already uses the cloud save keeps their uid. Signing in
-   to Google / Apple later **links** the anonymous account (`linkWithCredential`), so friends and league follow.
-   An anonymous player who reinstalls loses their pseudo and friends (said in the UI, with a nudge to link an
-   account).
-3. **Opt-in.** Profil gets a "Communauté" entry; first open asks for a pseudo (and shows the privacy line). No
-   pseudo = nothing is sent, no league.
-4. **Pseudo: free text, filtered** (3-16 characters, letters / digits / space / `-_`, a FR + EN word blocklist,
-   unique not required: display is `Pseudo#K7Q` with the code's first 3 characters when two collide).
-   Apple guideline 1.2 (user-generated content) then requires: a filter, a way to **report** a pseudo, a way to
-   **block** a player, and the owner acting on reports. See Moderation.
-   Alternative to decide: **generated pseudos** (adjective + animal + number, "Renard Malin 42", picked from 3
-   proposals, can reroll): zero moderation, kid-safe, store-safe. Owner asked for a « surnom »; free text is the
-   default here, generated names are the fallback if moderation feels too heavy.
-5. **Friend code**: 6 characters from an unambiguous alphabet (no 0/O/1/I), shown as `K7Q-4MP`, shareable with
-   the share sheet. Adding a code makes the friendship **mutual at once** (no request to accept): knowing the code
-   means the other player shared it. Remove and block are always possible. Max 50 friends.
-6. **What the week counts: points.** Owner: « ceux qui marquent le plus de points ». The weekly total is the sum
-   of the scores of every finished run in **Classique, Chrono and Mondes** (not Chill: it does not end on its own
-   and would be farmed; not Aventure / daily / events / puzzles: their scores are not comparable). Weeks run
-   Monday 00:00 to Sunday 23:59, **Paris time** for everyone (one shared week, simpler than per-device weeks).
-   Alternative: best single Classique score of the week (skill over time spent). Leagues work better with a
-   cumulative total; the friends ranking shows both (week total, and all-time best Classique).
-7. **Leagues** (Duolingo-like): Bronze, Argent, Or, Saphir, Rubis, Diamant. Each week a player who scored at
-   least once is put in a **group of up to 30** of their league. End of week: top 5 go up, bottom 5 go down
+2. **Identity: a Google / Apple account is required** (the cloud save account, `src/game/account.ts`). Owner:
+   the friend code is tied to the user, so the player must be signed in. No anonymous auth. The community entry
+   shows "Connecte-toi pour avoir un pseudo et des amis" with the existing sign-in rows when signed out. The
+   pseudo, code, friends and league follow the account on every device.
+3. **Opt-in.** Signed in is not enough: the first open of the community asks for a pseudo. No pseudo = nothing is
+   sent, no league.
+4. **Pseudo: free text, filtered** (3-16 characters, letters / digits / space / `-_`, a FR + EN word blocklist;
+   not unique: two equal pseudos show `Pseudo#K7Q` with the code's first 3 characters). Changeable (once a week).
+   Apple guideline 1.2 then requires a filter, **report**, **block**, and the owner acting on reports. See Moderation.
+5. **Friend code**: generated once per account, 6 characters from an unambiguous alphabet (no 0/O/1/I), shown
+   as `K7Q-4MP`, copy / share sheet. Adding a code makes the friendship **mutual at once** (no request to
+   accept): knowing the code means the other player shared it. Remove and block always possible. Max 50 friends.
+6. **Two weekly rankings** (owner: « presque double classement »):
+   - **Points de la semaine**: the sum of the scores of every finished run in Classique, Chrono and Mondes (not
+     Chill: no natural end, farmable; not Aventure / daily / events / puzzles: not comparable).
+   - **Meilleur score de la semaine**: the best single run, **Classique only** (owner).
+   Weeks run Monday 00:00 to Sunday 23:59, **Paris time** for everyone.
+7. **Leagues on the points ranking**: Bronze, Argent, Or, Saphir, Rubis, Diamant. Each week a player who scored
+   at least once is put in a **group of up to 30** of their league. End of week: top 5 go up, bottom 5 go down
    (none down from Bronze, none up from Diamant), the rest stay. A week without any run keeps the league.
-   Rewards (coins, in line with the lowered economy): 1st 60, 2nd 40, 3rd 30, 4th-10th 15, promotion +20.
+   **Both rankings of the group pay** (owner): points 1st 60, 2nd 40, 3rd 30, 4th-10th 15, promotion +20;
+   best score 1st 40, 2nd 25, 3rd 15. In line with the lowered economy; tune with `npm run balance` habits.
    A sticker page "Ligues" later (first promotion, reach Or, reach Diamant, win a group).
-8. **Friends ranking**: the same weekly total among friends + me, plus a tab for all-time best Classique.
-   No rewards there (it is for bragging), but a toast / Cubo line when a friend passes you.
+8. **Friends ranking**: the same two weekly rankings among friends + me, plus all-time best Classique. No
+   rewards (bragging), a toast / Cubo line when a friend passes you.
+9. **Where**: Défis tab (league card on top, screen with `Segmented` Ligue / Amis and Points / Meilleur score)
+   and Profil (pseudo, code, friends). No new tab.
 
 ## Data model (Firestore)
 | Path | Content | Rules |
@@ -56,7 +53,7 @@ offline and without an account as today.
 | `players/{uid}/friends/{fid}` | `{ since }` | read / write: owner only |
 | `inbox/{uid}/adds/{fid}` | `{ at }` | create: `fid == auth.uid`; read / delete: `uid` only. The added player's app moves these into its own `friends` at launch (mutual friendship without server code) |
 | `weeks/{week}/groups/{league}-{n}` | `{ size }` | joined by transaction: first group of the league with `size < 30`, else a new one |
-| `weeks/{week}/groups/{g}/scores/{uid}` | `{ name, look, points, best, runs, at }` | read: signed in; write own; `points` only grows, by at most a cap per write (e.g. 60 000), writes at least 10 s apart (`at` checked against `request.time`) |
+| `weeks/{week}/groups/{g}/scores/{uid}` | `{ name, look, points, best, runs, at }` | read: signed in; write own; `points` only grows, by at most a cap per write (e.g. 60 000); `best` only grows and stays under a plausibility cap; writes at least 10 s apart (`at` checked against `request.time`) |
 | `weeks/{week}/players/{uid}` | `{ group }` | where a player is this week (friends ranking reads these) |
 | `reports/{id}` | `{ from, target, reason, at }` | create only |
 
@@ -86,13 +83,13 @@ offline and without an account as today.
 - New week: a sheet with last week's result, reward and promotion (like the level end card).
 
 ## Privacy and stores
-- New data: anonymous user id, pseudo, scores, friend links. Update the privacy policy, App Store privacy labels
+- New data: account user id, pseudo, scores, friend links. Update the privacy policy, App Store privacy labels
   (User ID, Gameplay content, linked to the user), Play Data safety, and account deletion (delete `players/`,
   `codes/`, friends, inbox, this week's score docs).
 - Age rating questionnaire: user-generated content = yes (pseudos), unrestricted communication = no.
 
 ## Milestones
-1. Identity: anonymous auth, pseudo sheet + filter, friend code, Communauté entry in Profil. Rules + tests.
+1. Identity: sign-in gate, pseudo sheet + filter, friend code, Communauté entry in Profil. Rules + tests.
 2. Friends: add by code, inbox sync, list, remove, block, share code.
 3. Weekly score push + friends ranking (week total, all-time best).
 4. Leagues: groups, ranking screen, end-of-week claim, rewards, promotion sheet.
@@ -100,10 +97,7 @@ offline and without an account as today.
 Pure rules (week id, league moves, rewards, pseudo validation, ranking with ties) in `src/core/social.ts`
 with tests; Firebase calls in `src/platform/social.ts`; app glue in `src/game/social.ts`.
 
-## Open questions for the owner
-1. Free-text pseudo with report / block (as asked) or generated pseudos (no moderation)?
-2. Week metric: total points (Classique + Chrono + Mondes), or best single Classique score?
-3. Reward amounts and league names OK?
-4. Where: Défis tab (proposed) or a new 5th tab "Amis"?
-5. Leagues need enough active players to fill groups; until then, should the league be a single global weekly
-   ranking (top 100) and switch to groups later?
+## Still open
+- Exact reward amounts and league names: defaults above, adjust after a week of real play.
+- Before leagues have enough players, groups may be small (a group of 3 still works; promotion uses top 5 /
+  bottom 5 only when the group has 15+ players, else top 1 / bottom 1).
