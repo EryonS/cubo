@@ -48,7 +48,7 @@ function End({ onEnd }: { onEnd: () => void }) {
   return (
     <Animated.View entering={FadeIn.duration(250)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim, justifyContent: 'center', padding: space.m }}>
       <Animated.View entering={ZoomIn.duration(300)} style={{ width: '100%', maxWidth: 360, alignSelf: 'center', padding: space.xl, borderRadius: radius.card + 8, backgroundColor: colors.panel, ...raised(colors), alignItems: 'center' }}>
-        <Text variant="title" style={{ fontSize: 30, lineHeight: 32, textTransform: 'uppercase' }}>{tr('Bien joué !')}</Text>
+        <Text variant="title" style={{ fontSize: 30, lineHeight: 42, textTransform: 'uppercase' }}>{tr('Bien joué !')}</Text>
         <Text style={{ marginTop: 10, color: colors.muted, lineHeight: 21 }}>{tr("Tu connais l'essentiel.")}</Text>
         <View style={{ alignSelf: 'stretch', gap: 8, marginTop: 16 }}>
           {rules.map((r) => (
