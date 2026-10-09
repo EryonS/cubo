@@ -27,7 +27,8 @@ function Content({ onClose, onShop }: { onClose: () => void; onShop: () => void 
     if (id === equipped) return;
     sfx.turn();
     const { profile, setProfile } = useGame.getState();
-    if (profile) setProfile(M.equip(profile, 'boards', id));
+    const next = profile && M.equip(profile, 'boards', id);
+    if (next) setProfile(next);
   };
   const mine = M.SKINS.boards.filter((sk) => owned.includes(sk.id));
   const more = M.SKINS.boards.length - mine.length;
