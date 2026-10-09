@@ -6,11 +6,13 @@ import { colors, radius, space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
 import { Text } from './Text';
 
-export function Coin({ size = 18 }: { size?: number }) {
+// ring: an outline in that color, for a coin on a filled button (a gold coin vanishes on a yellow accent).
+export function Coin({ size = 18, ring }: { size?: number; ring?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 20 20">
       <Circle cx={10} cy={10} r={8.5} fill={colors.coin} stroke={colors.coinEdge} strokeWidth={2} />
       <Circle cx={10} cy={10} r={4.5} fill="none" stroke={colors.coinEdge} strokeWidth={1.6} />
+      {ring ? <Circle cx={10} cy={10} r={9.1} fill="none" stroke={ring} strokeWidth={1.8} /> : null}
     </Svg>
   );
 }

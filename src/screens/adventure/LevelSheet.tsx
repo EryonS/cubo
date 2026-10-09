@@ -65,7 +65,7 @@ function Content({ w, n, onClose, onPlay, onShop }: { w: string; n: number; onCl
         {typeof stage.boss === 'object' && note(tr`Il a ${stage.goal.target} PV : chaque ligne qui le traverse lui en retire 2. Tous les ${stage.boss.every} coups, il riposte en posant ${stage.boss.count > 1 ? stage.boss.count + ' ' + LV.KIND_NAMES[stage.boss.kind] : tr('un obstacle')}.`)}
         {n === M.TRIAL_LEVEL && note(tr('Un niveau plus dur au milieu du monde. Il rapporte plus de pièces.'))}
         {stage.twist && rules.twist && (
-          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginTop: 10, maxWidth: 300, padding: 9, paddingHorizontal: 11, borderRadius: radius.card - 6, backgroundColor: colors.panel2 }}>
+          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', alignSelf: 'stretch', marginTop: 10, padding: 9, paddingHorizontal: 11, borderRadius: radius.card - 6, backgroundColor: colors.panel2 }}>
             <KindIcon kind={stage.twist.kind} size={28} />
             <Text style={{ flex: 1, fontSize: 13, lineHeight: 18 }}><Text style={{ fontSize: 13, color: colors.accent, fontFamily: 'Baloo2-ExtraBold' }}>{rules.twist.name} </Text>{rules.twist.text}</Text>
           </View>

@@ -1,6 +1,6 @@
 // Jouer tab (legacy #menu): Continuer, the Aventure card, the event rows, the free game row (mode and
 // level, Jouer), Défi du jour and Puzzles tiles, Missions with their pips, and the wallet.
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
@@ -151,13 +151,13 @@ export function PlayScreen() {
       </Tap>
 
       {events.map((row) => (
-        <ListRow big key={row.id} title={row.name} sub={row.sub} icon={<KindIcon kind={row.icon} size={32} />} right="chevron"
+        <ListRow big key={row.id} title={row.name} sub={row.sub} icon={<RowIcon><KindIcon kind={row.icon} size={32} /></RowIcon>} right="chevron"
           onPress={() => { if (row.playing) nav.navigate('Game'); else nav.navigate('Event', { id: row.id }); }} />
       ))}
 
       <ListRow big title={parked ? tr('Partie en cours') : tr('Partie libre')} right="chevron" onPress={() => pickRef.current?.present()}
         sub={parked ? `${modeLabel(parked)} · ${tr`${fmt(parked.score)} pts`}` : `${MODE_NAMES[prefs.mode]} · ${LEVEL_NAMES[prefs.level]}`}
-        icon={<Icon name="play" size={26} color={colors.accent} />} />
+        icon={<RowIcon><Icon name="play" size={26} color={colors.accent} /></RowIcon>} />
 
       <View style={{ flexDirection: 'row', gap: space.m }}>
         <Tap onPress={() => nav.navigate('Defis')} label={`${tr('Défi du jour')}, ${dailySub}`} style={[tile, daily.stars !== undefined && { borderWidth: 2, borderColor: colors.good, borderBottomColor: colors.good }]}>
@@ -179,7 +179,7 @@ export function PlayScreen() {
       </View>
 
       <ListRow big title={tr('Missions')} sub={done === status.length ? tr('Toutes faites') : tr`${done}/${status.length} faites aujourd’hui`}
-        icon={<Icon name="target" size={26} color={colors.accent} />}
+        icon={<RowIcon><Icon name="target" size={26} color={colors.accent} /></RowIcon>}
         right={<View style={{ flexDirection: 'row', alignItems: 'center', gap: space.m }}><Pips status={status} /><Icon name="chevRight" size={16} color={colors.muted} /></View>}
         onPress={() => missionsRef.current?.present()} />
 
@@ -188,5 +188,8 @@ export function PlayScreen() {
     </Screen>
   );
 }
+
+// The home rows' icons share one column, so their titles line up whatever the icon's size.
+const RowIcon = ({ children }: { children: ReactNode }) => <View style={{ width: 32, alignItems: 'center' }}>{children}</View>;
 
 const tileStyle = (colors: ReturnType<typeof useColors>) => ({ flex: 1, minWidth: 0, padding: space.m, paddingHorizontal: space.l, borderRadius: radius.tile, backgroundColor: colors.panel, ...raised(colors, 'low') });

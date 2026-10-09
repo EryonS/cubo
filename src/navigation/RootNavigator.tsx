@@ -25,17 +25,28 @@ import type { RootParams, TabParams } from './types';
 const Tab = createBottomTabNavigator<TabParams>();
 const Stack = createNativeStackNavigator<RootParams>();
 
-const icon = (name: IconName) => ({ color, size }: { color: string; size: number }) => <Icon name={name} color={color} size={size} />;
+type TabIconProps = { color: string; size: number; focused: boolean };
+
+// The active tab sits on a soft accent pill: on some worlds the accent and the muted ink are too close in
+// tone for the tint alone (Rétro's accent is its text color, Nouvel An chinois' gold is near its peach).
+function Pill({ focused, children }: { focused: boolean; children: React.ReactNode }) {
+  const colors = useColors();
+  return <View style={{ width: 52, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: focused ? `${colors.accent}2e` : 'transparent' }}>{children}</View>;
+}
+
+const icon = (name: IconName) => ({ color, size, focused }: TabIconProps) => <Pill focused={focused}><Icon name={name} color={color} size={size} /></Pill>;
 
 // Défis tab icon with a dot while today's daily level is open (legacy #tabbar .dot).
-function DefisIcon({ color, size }: { color: string; size: number }) {
+function DefisIcon({ color, size, focused }: TabIconProps) {
   const colors = useColors();
   const dot = useGame((s) => defisDot(s.profile, today()));
   return (
-    <View>
-      <Icon name="defis" color={color} size={size} />
-      {dot && <View style={{ position: 'absolute', top: -1, right: -3, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent, borderWidth: 1.5, borderColor: colors.panel }} />}
-    </View>
+    <Pill focused={focused}>
+      <View>
+        <Icon name="defis" color={color} size={size} />
+        {dot && <View style={{ position: 'absolute', top: -1, right: -3, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent, borderWidth: 1.5, borderColor: colors.panel }} />}
+      </View>
+    </Pill>
   );
 }
 
@@ -47,8 +58,6 @@ function Tabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
-        // Rétro's 4-tone screen: the accent is the text color, so the tint alone can't show the active tab.
-        tabBarActiveBackgroundColor: (colors.accent as string) === colors.text ? colors.sunken : undefined,
         tabBarStyle: { backgroundColor: colors.panel, borderTopColor: colors.edge },
         tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 12 },
       }}

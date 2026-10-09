@@ -71,9 +71,12 @@ export function LevelPath({ w, locked, onPick }: { w: string; locked: boolean; o
             onPress={() => { if (open) { sfx.turn(); onPick(n); } else { sfx.nope(); haptic('nope'); } }}
             style={({ pressed }) => ({ position: 'absolute', left: p.col * (cw + GAP), top: p.row * ROW_H, width: cw, alignItems: 'center', gap: 3, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
             <Disc n={n} open={open} done={stars !== undefined} hot={open && stars === undefined && (n === 1 || M.levelCleared(profile, w, n - 1))} boss={boss} trial={trial} />
-            {(boss || trial) && stars === undefined
-              ? <Text variant="muted" style={{ fontSize: 12, marginTop: -2, textTransform: 'uppercase', letterSpacing: 0.6, lineHeight: 14 }}>{boss ? tr('Boss') : tr('Épreuve')}</Text>
-              : <StarRow n={stars || 0} size={12} />}
+            {/* On the screen color, so the line turning down to the next row passes behind the stars. */}
+            <View style={{ backgroundColor: colors.bg, borderRadius: 8, paddingHorizontal: 3 }}>
+              {(boss || trial) && stars === undefined
+                ? <Text variant="muted" style={{ fontSize: 12, marginTop: -2, textTransform: 'uppercase', letterSpacing: 0.6, lineHeight: 14 }}>{boss ? tr('Boss') : tr('Épreuve')}</Text>
+                : <StarRow n={stars || 0} size={12} />}
+            </View>
           </Pressable>
         );
       })}

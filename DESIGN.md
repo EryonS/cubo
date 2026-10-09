@@ -110,12 +110,15 @@ Menus (React Native): no thick bottom edges. A surface on the background is rais
 Round and soft: pills for score and combo, 22px cards, board radius 18-26px, cells with 16-24% radius. Only Rétro goes square.
 
 ## Components
-Menu building blocks live in `src/ui` and take every value from `src/theme/tokens.ts` (4 pt spacing grid, radii s/tile/card/pill, type scale display/title/headline/body/muted/caption/label, 44 pt touch targets): `Screen` + `ScreenHeader` (back, title, counters), `Card` (or `inset`), `ListRow`, `Segmented`, `Counter`, `StatTile`, `Toggle`, `Tap`, `SectionLabel`, `Button` (primary/secondary/ghost/danger, sizes m/s), `Sheet` + `SheetHeader`. `Text` re-centers Baloo 2 glyphs when a line height is tighter than the font's 1.6 em box (iOS otherwise draws them high). Theme menu colors keep muted text at 4.5:1 on bg/panel/panel2 and onAccent at 3:1 on accent.
+Menu building blocks live in `src/ui` and take every value from `src/theme/tokens.ts` (4 pt spacing grid, radii s/tile/card/pill, type scale display/title/headline/body/muted/caption/label, 44 pt touch targets): `Screen` + `ScreenHeader` (back, title, counters), `Card` (or `inset`), `ListRow`, `Group` (a list of rows in one card, split by hairlines: Paramètres, Boutique bonus, Défis série and missions, world rules), `Segmented`, `Counter`, `StatTile`, `Toggle`, `Tap`, `SectionLabel`, `Button` (primary/secondary/ghost/danger, sizes m/s), `Sheet` + `SheetHeader`. `Text` re-centers Baloo 2 glyphs when a line height is tighter than the font's 1.6 em box (iOS otherwise draws them high). Theme menu colors keep muted text at 4.5:1 on bg/panel/panel2 and onAccent at 3:1 on accent.
 
+- **End cards** (game over, level end, puzzle end): `EndShell` in `src/ui/EndCard.tsx` (scrim, card inside the safe area, scrolls when long), `CoinLines`, `CoinTotal`, `Unlock` notes, and `EndActions`, which always leaves one primary button.
+- **Tab bar**: the active tab's icon sits on a soft accent pill (the tint alone is too close to the muted ink on Rétro and Nouvel An chinois).
+- **Boutique**: the equipped skin's card wears an accent ring.
 - **Score band** (drawn with the theme's plate style): "SCORE" / "RECORD n" subline and the score, record pennant on the left. Variants: marquee bulbs (Arcade), mushroom-cap dots (Forêt).
 - **Combo tag**: pill under the score with the grace dots.
 - **HUD buttons**: `--panel` + `--plate-edge`.
-- **Inventory buttons**: `--slot` tiles, accent count badge, conic timer ring when active.
+- **Inventory buttons**: `--slot` tiles, accent count badge, conic timer ring when active. An empty one is drawn like an empty board cell (board color, then the empty-cell hollow), opaque so the background never shows through; only its icon is dimmed.
 - **Bonus icons** (drawn in `GLYPHS`): Toupie, Étoile, Bulle, Bombe, Tornade on a white badge ringed with their color.
 - **Cards** (menu, game over, boutique, legend): `--panel` with `--card-edge`.
 - **Boutique theme preview**: mini plate + board patch drawn with the real theme code.

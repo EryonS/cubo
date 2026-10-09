@@ -2,8 +2,8 @@
 // one by one while the wallet counts up, next goal, today's missions, Rejouer / Menu.
 // Cubo's pose over the title (star on a record, happy past half of it, oops below). A rewarded ad doubles the run's coins once.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, ScrollView, Share, View, Pressable, useWindowDimensions } from 'react-native';
-import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
+import { Platform, Share, View, Pressable, useWindowDimensions } from 'react-native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { M } from '../core';
 import { locale, tr } from '../core/i18n';
@@ -20,6 +20,8 @@ import { Button } from '../ui/Button';
 import { CuboPose } from '../ui/CuboPose';
 import { Icon } from '../ui/Icon';
 import { ListRow } from '../ui/ListRow';
+import { Pips } from '../ui/Missions';
+import { CoinLines, CoinTotal, EndShell } from '../ui/EndCard';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
 
@@ -92,11 +94,9 @@ function MissionsLine({ pad }: { pad: number }) {
   const status = M.missionStatus(profile, {});
   const done = status.filter((m) => m.done).length;
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: pad, paddingHorizontal: 12, borderRadius: radius.card - 6, backgroundColor: colors.panel2 }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: pad, paddingHorizontal: space.m, borderRadius: radius.tile, backgroundColor: colors.panel2 }}>
       <Text variant="muted" style={{ fontSize: 13 }}>{tr`Missions du jour · ${done}/${status.length}`}</Text>
-      <View style={{ flexDirection: 'row', gap: 4 }}>
-        {status.map((m, i) => <View key={i} style={{ width: 14, height: 6, borderRadius: 3, backgroundColor: m.done ? colors.good : colors.hairline }} />)}
-      </View>
+      <Pips status={status} progress={false} />
     </View>
   );
 }
@@ -157,11 +157,22 @@ export function GameOver({ end, onAgain, onMenu, onRevive }: { end: RunEnd; onAg
     try { await Share.share({ message: text }); } catch { setFlash(tr('Partage impossible ici')); setTimeout(() => setFlash(null), 1800); }
   };
 
+  // Outside the scroll: Rejouer stays on screen however long the coin list is.
+  const footer = (
+    <View style={{ paddingHorizontal: space.xl, paddingTop: lerp(space.s, space.m, k), paddingBottom: lerp(space.l, space.xl, k), gap: space.s }}>
+      {end.revive && !doubled && (
+        <Button label={tr('Seconde chance')} sub={tr('Regarde une pub : une bombe géante, et tu continues')} disabled={reviving} onPress={() => { void revive(); }} />
+      )}
+      <View style={{ flexDirection: 'row', gap: space.s }}>
+        {/* Under Seconde chance, Rejouer steps back to ghost (panel2: a panel-colored button would vanish on the card). */}
+        <Button kind="ghost" label={tr('Menu')} onPress={onMenu} style={{ flex: 1, paddingHorizontal: space.s }} />
+        <Button kind={end.revive && !doubled ? 'ghost' : 'primary'} label={tr('Rejouer')} onPress={onAgain} style={{ flex: 1.4, paddingHorizontal: space.s }} />
+      </View>
+    </View>
+  );
+
   return (
-    <Animated.View entering={FadeIn.duration(200)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim, justifyContent: 'center', paddingHorizontal: space.m, paddingTop: insets.top + space.s, paddingBottom: insets.bottom + space.s }}>
-      <Animated.View entering={ZoomIn.duration(260)} style={{ maxHeight: '100%' }}>
-        <View style={{ backgroundColor: colors.panel, borderRadius: radius.card + 8, overflow: 'hidden', maxHeight: '100%' }}>
-          <ScrollView style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ paddingHorizontal: space.xl, paddingTop: lerp(space.l, space.xl, k), paddingBottom: space.xs, alignItems: 'center', gap: 4 }}>
+    <EndShell content={{ paddingTop: lerp(space.l, space.xl, k), paddingBottom: space.xs, gap: space.xs }} footer={footer}>
             {mascot && (
               <Animated.View entering={ZoomIn.duration(560)} style={{ marginTop: -12, marginBottom: -4, transformOrigin: 'bottom' }}>
                 <CuboPose width={lerp(76, 112, k)} lw={224} lh={236} s={150} foot={13} look={look} mood={end.record ? 'star' : end.score >= end.best / 2 ? 'happy' : 'oops'} />
@@ -177,9 +188,9 @@ export function GameOver({ end, onAgain, onMenu, onRevive }: { end: RunEnd; onAg
             )}
             <View style={{ flexDirection: 'row', gap: 6, marginTop: lerp(8, 12, k), alignSelf: 'stretch' }}>
               {tiles.map((x, i) => (
-                <View key={i} style={{ flex: 1, minWidth: 0, paddingVertical: lerp(4, 7, k), paddingHorizontal: 4, borderRadius: radius.card - 8, backgroundColor: colors.panel2, alignItems: 'center', borderWidth: 2, borderColor: x.best ? colors.accent : 'transparent' }}>
-                  <Text variant="title" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 17, lineHeight: 22 }}>{x.value}</Text>
-                  <Text variant="muted" numberOfLines={1} style={{ fontSize: 11, color: x.best ? colors.accent : colors.muted }}>{x.best ? tr('Record !') : x.label}</Text>
+                <View key={i} style={{ flex: 1, minWidth: 0, paddingVertical: lerp(4, 7, k), paddingHorizontal: 4, borderRadius: radius.tile, backgroundColor: colors.panel2, alignItems: 'center', borderWidth: 2, borderColor: x.best ? colors.accent : 'transparent' }}>
+                  <Text variant="title" numberOfLines={1} adjustsFontSizeToFit={x.value.length > 5} style={{ fontSize: 17, lineHeight: 22 }}>{x.value}</Text>
+                  <Text variant="caption" numberOfLines={1} style={{ color: x.best ? colors.accent : colors.muted }}>{x.best ? tr('Record !') : x.label}</Text>
                 </View>
               ))}
             </View>
@@ -188,23 +199,9 @@ export function GameOver({ end, onAgain, onMenu, onRevive }: { end: RunEnd; onAg
               <Text style={{ fontSize: 13 }}>{flash ?? tr('Partager le résumé')}</Text>
             </Pressable>
             <View style={{ alignSelf: 'stretch', marginTop: lerp(4, 10, k), minHeight: end.earned.length * (20 + linePad * 2) }}>
-              {end.earned.slice(0, lines).map((line, i) => (
-                <Animated.View key={i} entering={FadeInDown.duration(250)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: linePad, paddingHorizontal: 2 }}>
-                  <Text variant="muted" numberOfLines={1} style={{ fontSize: 14, flex: 1 }}>{line.label}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                    <Text style={{ fontSize: 14 }}>+{line.coins}</Text>
-                    <Coin size={14} />
-                  </View>
-                </Animated.View>
-              ))}
+              <CoinLines lines={end.earned} shown={lines} pad={linePad} stagger={0} />
             </View>
-            <View style={{ alignSelf: 'stretch', marginTop: 4, paddingVertical: lerp(6, 11, k), paddingHorizontal: 14, borderRadius: radius.card - 4, backgroundColor: colors.panel2, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text>{tr('Pièces')}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Coin size={20} />
-                <Text variant="title" style={{ fontSize: 26, lineHeight: 30 }}>{fmt(shown)}</Text>
-              </View>
-            </View>
+            <CoinTotal value={fmt(shown)} pad={lerp(6, 11, k)} style={{ marginTop: space.xs }} />
             <DoubleCoinsAd total={end.total} visible={end.total > 0} tight={k < 0.5} onDoubled={(n) => {
               setDoubled(true);
               const from = shown;
@@ -215,19 +212,6 @@ export function GameOver({ end, onAgain, onMenu, onRevive }: { end: RunEnd; onAg
               <Goal key={profile.coins} coins={profile.coins} delay={linesDone} />
             </View>
             <View style={{ alignSelf: 'stretch', marginTop: lerp(6, 8, k) }}><MissionsLine pad={lerp(7, 10, k)} /></View>
-          </ScrollView>
-          {/* Outside the scroll: Rejouer stays on screen however long the coin list is. */}
-          <View style={{ paddingHorizontal: space.xl, paddingTop: lerp(space.s, space.m, k), paddingBottom: lerp(space.l, space.xl, k), gap: 10 }}>
-            {end.revive && !doubled && (
-              <Button label={tr('Seconde chance')} sub={tr('Regarde une pub : une bombe géante, et tu continues')} disabled={reviving} onPress={() => { void revive(); }} />
-            )}
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <Button kind={end.revive && !doubled ? 'secondary' : 'ghost'} label={tr('Menu')} onPress={onMenu} style={{ flex: 1, paddingHorizontal: 8 }} />
-              <Button kind={end.revive && !doubled ? 'secondary' : 'primary'} label={tr('Rejouer')} onPress={onAgain} style={{ flex: 1.4, paddingHorizontal: 8 }} />
-            </View>
-          </View>
-        </View>
-      </Animated.View>
-    </Animated.View>
+    </EndShell>
   );
 }

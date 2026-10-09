@@ -80,9 +80,12 @@ function EventPath({ id, onPick }: { id: string; onPick: (n: number) => void }) 
                   : <Icon name="lock" size={18} color={colors.muted} />}
               </View>
             </View>
-            {boss && stars === undefined
-              ? <Text variant="muted" style={{ fontSize: 12, marginTop: -2, textTransform: 'uppercase', letterSpacing: 0.6 }}>{tr('Boss')}</Text>
-              : <StarRow n={stars || 0} size={12} />}
+            {/* On the screen color, so the line turning down to the next row passes behind the stars. */}
+            <View style={{ backgroundColor: colors.bg, borderRadius: 8, paddingHorizontal: 3 }}>
+              {boss && stars === undefined
+                ? <Text variant="muted" style={{ fontSize: 12, marginTop: -2, textTransform: 'uppercase', letterSpacing: 0.6 }}>{tr('Boss')}</Text>
+                : <StarRow n={stars || 0} size={12} />}
+            </View>
           </Pressable>
         );
       })}
@@ -122,13 +125,15 @@ function LevelSheet({ id, n, onClose, onPlay }: { id: string; n: number; onClose
   );
 }
 
-function Reward({ label, got, children }: { label: string; got?: string; children: React.ReactNode }) {
+// got: won (green). todo: how to win it, while it is not won yet (muted).
+function Reward({ label, got, todo, children }: { label: string; got?: string; todo?: string; children: React.ReactNode }) {
   const colors = useColors();
   return (
     <Card small style={{ flex: 1, alignItems: 'center', padding: space.s, gap: space.xs }}>
       <View style={{ height: 76, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' }}>{children}</View>
       <Text variant="caption" numberOfLines={2} style={{ color: colors.text, textAlign: 'center' }}>{label}</Text>
       {!!got && <Text variant="caption" style={{ color: colors.good, fontFamily: fonts.display, textAlign: 'center' }}>{got}</Text>}
+      {!!todo && <Text variant="caption" style={{ textAlign: 'center' }}>{todo}</Text>}
     </Card>
   );
 }
@@ -188,15 +193,16 @@ export function EventScreen() {
           <Reward label={hatName(ev.hat)} got={owned('cubo', ev.hat) ? tr('Gagné') : undefined}>
             <DrawCanvas width={96} radius={radius.s} deps={[ev.hat, ev.theme]} draw={(g, w) => drawCuboPreview(g, boardTheme(ev.theme), ev.theme, ev.hat, w)} />
           </Reward>
-          <Reward label={tr`Trophée ${year}`} got={trophyLine}>
+          <Reward label={tr`Trophée ${year}`} got={trophy ? trophyLine : undefined} todo={trophy ? undefined : trophyLine}>
             <Trophy kind={trophy} size={54} />
           </Reward>
         </View>
-        <EventPath id={id} onPick={open} />
+        {/* Above the path, as on the Aventure map. */}
         {(going || next) ? (
           <Button label={going ? tr`Continuer : ${eventLevelName(going)}` : next === ev.levels ? tr('Affronter le boss') : tr`Jouer le niveau ${next}`}
             onPress={() => { sfx.turn(); if (going) nav.navigate('Game'); else open(next!); }} />
         ) : null}
+        <EventPath id={id} onPick={open} />
       <Sheet ref={sheetRef}>
         {n != null && <LevelSheet id={id} n={n} onClose={() => sheetRef.current?.dismiss()} onPlay={play} />}
       </Sheet>

@@ -24,6 +24,7 @@ import { space } from '../theme/tokens';
 import { AccountBlock } from '../ui/AccountBlock';
 import { AppIconSheet, AppIconThumb } from '../ui/AppIconSheet';
 import { ThemeSheet } from '../ui/ThemeSheet';
+import { Group } from '../ui/Group';
 import { ListRow } from '../ui/ListRow';
 import { Screen } from '../ui/Screen';
 import { SectionLabel } from '../ui/SectionLabel';
@@ -81,17 +82,21 @@ export function SettingsScreen() {
       )}
       <View style={{ gap: space.s }}>
         <SectionLabel>{tr('Son')}</SectionLabel>
-        <Row id="sfx" label={tr('Sons')} sub={tr('Effets du jeu')} />
-        <Row id="music" label={tr('Musique')} sub={tr('Petite mélodie de fond')} />
-        <Row id="vibrate" label={tr('Vibrations')} sub={tr('Retour haptique sur mobile')} />
+        <Group>
+          <Row id="sfx" label={tr('Sons')} sub={tr('Effets du jeu')} />
+          <Row id="music" label={tr('Musique')} sub={tr('Petite mélodie de fond')} />
+          <Row id="vibrate" label={tr('Vibrations')} sub={tr('Retour haptique sur mobile')} />
+        </Group>
       </View>
       <View style={{ gap: space.s }}>
         <SectionLabel>{tr('Affichage')}</SectionLabel>
-        <Row id="patterns" label={tr('Motifs sur les blocs')} sub={tr('Un symbole par couleur, pour mieux les distinguer')} />
-        <Row id="mascot" label={tr('Mascotte')} sub={tr('Cubo, perché sur le plateau, réagit à ta partie')} />
-        <ListRow title={tr('Thème')} sub={M.SKINS.boards.find((sk) => sk.id === equipped)?.name} right="chevron" onPress={() => themeRef.current?.present()} />
-        {canChangeAppIcon && <ListRow title={tr('Icône de l’app')} sub={M.SKINS.boards.find((sk) => sk.id === icon)?.name} icon={<AppIconThumb id={icon} size={40} />}
-          right="chevron" onPress={() => iconRef.current?.present()} />}
+        <Group>
+          <Row id="patterns" label={tr('Motifs sur les blocs')} sub={tr('Un symbole par couleur, pour mieux les distinguer')} />
+          <Row id="mascot" label={tr('Mascotte')} sub={tr('Cubo, perché sur le plateau, réagit à ta partie')} />
+          <ListRow title={tr('Thème')} sub={M.SKINS.boards.find((sk) => sk.id === equipped)?.name} right="chevron" onPress={() => themeRef.current?.present()} />
+          {canChangeAppIcon && <ListRow title={tr('Icône de l’app')} sub={M.SKINS.boards.find((sk) => sk.id === icon)?.name} icon={<AppIconThumb id={icon} size={40} />}
+            right="chevron" onPress={() => iconRef.current?.present()} />}
+        </Group>
       </View>
       <View style={{ gap: space.s }}>
         <SectionLabel>{tr('Langue')}</SectionLabel>
@@ -99,22 +104,28 @@ export function SettingsScreen() {
       </View>
       <View style={{ gap: space.s }}>
         <SectionLabel>{tr('Aide')}</SectionLabel>
-        <ListRow title={tr('Revoir le tutoriel')} sub={tr('Une partie guidée en 3 étapes')} right="chevron"
-          onPress={() => { startTutorial(); nav.dispatch(CommonActions.reset({ index: 1, routes: [{ name: 'Tabs' }, { name: 'Game' }] })); }} />
-        <ListRow title={tr('Nous contacter')} sub={CONTACT} right="chevron" onPress={openContact} />
+        <Group>
+          <ListRow title={tr('Revoir le tutoriel')} sub={tr('Une partie guidée en 3 étapes')} right="chevron"
+            onPress={() => { startTutorial(); nav.dispatch(CommonActions.reset({ index: 1, routes: [{ name: 'Tabs' }, { name: 'Game' }] })); }} />
+          <ListRow title={tr('Nous contacter')} sub={CONTACT} right="chevron" onPress={openContact} />
+        </Group>
       </View>
       <View style={{ gap: space.s }}>
         <SectionLabel>{tr('Confidentialité')}</SectionLabel>
-        <ListRow title={tr('Politique de confidentialité')} sub={tr('Les données utilisées, et pourquoi')} right="chevron" onPress={openPolicy} />
-        {privacy && <ListRow title={tr('Confidentialité des pubs')} sub={tr('Changer ton choix de consentement')} right="chevron" onPress={() => { void showPrivacyOptions(); }} />}
+        <Group>
+          <ListRow title={tr('Politique de confidentialité')} sub={tr('Les données utilisées, et pourquoi')} right="chevron" onPress={openPolicy} />
+          {privacy && <ListRow title={tr('Confidentialité des pubs')} sub={tr('Changer ton choix de consentement')} right="chevron" onPress={() => { void showPrivacyOptions(); }} />}
+        </Group>
       </View>
       {dev && (
         <View style={{ gap: space.s }}>
           <SectionLabel>{tr('Développeur')}</SectionLabel>
-          <ListRow title={tr('Mode test')} sub={tr('Profil séparé, tout ouvert, sans synchro')} role="switch" state={{ checked: testMode }}
-            onPress={() => { void switchTestMode(); }} quiet right={<Toggle on={testMode} />} />
-          {testMode && <ListRow title={tr('Ajouter des pièces')} sub={tr('Au profil de test')} right="chevron" onPress={addTestCoins} />}
-          {testMode && <ListRow title={tr('Réinitialiser le profil de test')} sub={tr('Il repart de zéro, tout ouvert')} right="chevron" onPress={() => { void resetTestProfile(); }} />}
+          <Group>
+            <ListRow title={tr('Mode test')} sub={tr('Profil séparé, tout ouvert, sans synchro')} role="switch" state={{ checked: testMode }}
+              onPress={() => { void switchTestMode(); }} quiet right={<Toggle on={testMode} />} />
+            {testMode && <ListRow title={tr('Ajouter des pièces')} sub={tr('Au profil de test')} right="chevron" onPress={addTestCoins} />}
+            {testMode && <ListRow title={tr('Réinitialiser le profil de test')} sub={tr('Il repart de zéro, tout ouvert')} right="chevron" onPress={() => { void resetTestProfile(); }} />}
+          </Group>
         </View>
       )}
       <Text variant="caption" style={{ textAlign: 'center' }} onPress={tapVersion} suppressHighlighting>{tr`Cubo Blocks, version ${VERSION}`}</Text>

@@ -11,7 +11,7 @@ import { drawCubo } from '../mascot/body';
 import { cuboLookFor } from '../mascot/looks';
 import { cuboBaseMood, cuboMoodAt, cuboRoom, cuboSpot } from '../mascot/state';
 import { Ctx } from './ctx2d';
-import { G, withAlpha } from './g';
+import { G, opaque, withAlpha } from './g';
 import { drawBoss, drawBossBar } from './boss';
 import { segRow, tracksBusy } from '../game/falls';
 import { drawSpecial } from './cells';
@@ -258,8 +258,10 @@ export function drawReturning(g: G, th: Theme, lay: Layout, state: RunState, t: 
 // ---------- tray (render/board.js drawTray, drawTrayPad, drawNext) ----------
 function drawTrayPad(g: G, th: Theme, x: number, y: number, w: number, h: number) {
   const r = Math.min(16, th.frame.r);
-  // Half see-through and no shadow: it must not read as a second board.
-  g.rrect(x, y, w, h, r, th.board, { alpha: 0.5 });
+  // One big empty cell (the board, made opaque, then the empty-cell hollow), with no shadow and no grid: it
+  // must not read as a second board. Opaque, so the background (lava, hills) does not show through it.
+  g.rrect(x, y, w, h, r, opaque(th.board));
+  g.rrect(x + 3, y + 3, w - 6, h - 6, Math.max(4, r - 3), th.empty);
   g.rrect(x, y, w, h, r, withAlpha(th.ink, 0.1), { stroke: { width: 1.5 } });
 }
 
@@ -703,14 +705,17 @@ export function drawInventory(g: G, th: Theme, lay: Layout, state: RunState, t: 
       g.path().arc(cx, cy, 28.5, -Math.PI / 2, -Math.PI / 2 + left * Math.PI * 2).stroke(th.accent, 3, { cap: 'round' });
       g.alpha = a0;
     }
-    g.alpha = a0 * (v.empty ? 0.6 : 1);
-    if (v.empty) g.rrect(b.x + 0.75, y + 0.75, b.w - 1.5, b.h - 1.5, 22, 'rgba(74,58,102,0.14)', { stroke: { width: 1.5 } });
-    else {
+    // Empty: a slot like an empty board cell (the board, then the empty-cell hollow), opaque and flat, so the
+    // background (flowers, lava) does not show through; only the icon is dimmed.
+    if (v.empty) {
+      g.rrect(b.x, y, b.w, b.h, 22, opaque(th.board));
+      g.rrect(b.x + 3, y + 3, b.w - 6, b.h - 6, 19, th.empty);
+    } else {
       g.rrect(b.x, y, b.w, b.h, 22, v.aiming ? '#3a1d24' : th.board, { shadow: { color: 'rgba(0,0,0,0.18)', blur: 12, dy: 4 } });
       g.rrect(b.x + 0.75, y + 0.75, b.w - 1.5, b.h - 1.5, 22, v.aiming ? '#ff5d73' : 'rgba(74,58,102,0.14)', { stroke: { width: v.aiming ? 2.5 : 1.5 } });
     }
     if (help) g.rrect(b.x - 1.5, y - 1.5, b.w + 3, b.h + 3, 24, th.accent, { stroke: { width: 3 }, alpha: help });
-    g.alpha = a0 * (v.empty ? 0.3 : 1);
+    g.alpha = a0 * (v.empty ? 0.4 : 1);
     drawIcon(g, b.id, cx, cy, 30);
     g.alpha = a0;
     if (!v.empty) {

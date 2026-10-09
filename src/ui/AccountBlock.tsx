@@ -8,6 +8,7 @@ import { available } from '../platform/cloud';
 import { space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
 import { Icon } from './Icon';
+import { Group } from './Group';
 import { ListRow } from './ListRow';
 import { Text } from './Text';
 
@@ -30,6 +31,9 @@ function AppleMark({ color }: { color: string }) {
   );
 }
 
+// The two marks share one column, so both labels start at the same place.
+const Mark = ({ children }: { children: React.ReactNode }) => <View style={{ width: 20, alignItems: 'center' }}>{children}</View>;
+
 export function AccountBlock() {
   const colors = useColors();
   const info = useSyncExternalStore(subscribeAccount, accountInfo, accountInfo);
@@ -38,19 +42,21 @@ export function AccountBlock() {
     return (
       <View style={{ gap: space.s }}>
         <Text variant="muted" style={{ marginHorizontal: space.xs }}>{tr('Retrouve ta progression sur tous tes appareils.')}</Text>
-        <ListRow title={tr('Continuer avec Google')} icon={<GoogleMark />} onPress={() => { void signInWith('google'); }} />
         {/* expo-apple-authentication is the native iOS sheet: no Apple sign-in on Android. */}
-        {Platform.OS === 'ios' && <ListRow title={tr('Continuer avec Apple')} icon={<AppleMark color={colors.text} />} onPress={() => { void signInWith('apple'); }} />}
+        <Group>
+          <ListRow title={tr('Continuer avec Google')} icon={<Mark><GoogleMark /></Mark>} onPress={() => { void signInWith('google'); }} />
+          {Platform.OS === 'ios' && <ListRow title={tr('Continuer avec Apple')} icon={<Mark><AppleMark color={colors.text} /></Mark>} onPress={() => { void signInWith('apple'); }} />}
+        </Group>
       </View>
     );
   }
   const by = info.provider === 'apple' ? tr('Connecté avec Apple') : tr('Connecté avec Google');
   return (
-    <View style={{ gap: space.s }}>
+    <Group>
       <ListRow title={by} sub={info.email ? `${info.email} · ${syncedLabel()}` : syncedLabel()} />
       <ListRow title={tr('Se déconnecter')} right="chevron" onPress={() => { void signOutCloud(); }} />
       <ListRow title={tr('Supprimer mon compte')} sub={tr('Efface ta sauvegarde en ligne')} onPress={() => { void deleteCloudAccount(); }}
         right={<Icon name="chevRight" size={16} color={colors.danger} />} />
-    </View>
+    </Group>
   );
 }

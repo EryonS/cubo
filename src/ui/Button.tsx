@@ -45,10 +45,11 @@ export function Button({ label, sub, kind = 'primary', size = 'm', icon, style, 
         opacity: disabled ? 0.5 : 1,
       }, typeof style === 'function' ? style(s) : style]}
     >
-      {/* A long label (a narrow dialog button, English) shrinks to fit instead of running past the pill. */}
+      {/* A long label (a narrow dialog button, English) shrinks to fit instead of running past the pill. Short ones
+          (prices) never do: iOS shrank a lone "40" to a few points when its measured width came out a hair short. */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s, maxWidth: '100%' }}>
         {icon}
-        <Text variant={small ? 'headline' : 'title'} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}
+        <Text variant={small ? 'headline' : 'title'} numberOfLines={1} adjustsFontSizeToFit={label.length > 8} minimumFontScale={0.7}
           style={{ color: ink, flexShrink: 1 }}>{label}</Text>
       </View>
       {sub ? <Text variant="caption" numberOfLines={1} style={{ color: ink, opacity: 0.85 }}>{sub}</Text> : null}

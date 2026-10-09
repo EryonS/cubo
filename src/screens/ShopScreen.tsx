@@ -24,6 +24,7 @@ import { Card } from '../ui/Card';
 import { Counter } from '../ui/Counter';
 import { DrawCanvas } from '../ui/DrawCanvas';
 import { Icon } from '../ui/Icon';
+import { Group } from '../ui/Group';
 import { ListRow } from '../ui/ListRow';
 import { Segmented } from '../ui/Segmented';
 import { showStickers } from '../ui/StickerBanner';
@@ -51,7 +52,7 @@ function SkinAction({ equipped, owned, price, cant, exclusive, onPress }: { equi
   if (equipped) return <View style={pill} accessible accessibilityLabel={tr('Équipé')}><Icon name="check" size={16} color={colors.good} /><Text variant="headline" style={{ color: colors.good }}>{tr('Équipé')}</Text></View>;
   if (owned) return <Button size="s" kind="ghost" label={tr('Équiper')} onPress={onPress} style={{ alignSelf: 'stretch' }} />;
   if (price == null) return <View style={pill}><Text variant="caption" numberOfLines={2} style={{ textAlign: 'center' }}>{exclusive}</Text></View>;
-  return <Button size="s" kind={cant ? 'ghost' : 'primary'} disabled={cant} icon={<Coin size={16} />} label={fmt(price)} accessibilityLabel={tr`Acheter pour ${price} pièces`} onPress={onPress} style={{ alignSelf: 'stretch' }} />;
+  return <Button size="s" kind={cant ? 'ghost' : 'primary'} disabled={cant} icon={<Coin size={16} ring={cant ? undefined : colors.onAccent} />} label={fmt(price)} accessibilityLabel={tr`Acheter pour ${price} pièces`} onPress={onPress} style={{ alignSelf: 'stretch' }} />;
 }
 
 function SkinCard({ kind, skin, width }: { kind: SkinKind; skin: ReturnType<typeof skinsOf>[number]; width: number }) {
@@ -73,8 +74,10 @@ function SkinCard({ kind, skin, width }: { kind: SkinKind; skin: ReturnType<type
 
   const via = kind === 'boards' && !owned && M.WORLD_ORDER.includes(skin.id);
   const cant = !owned && skin.price != null && profile.coins < skin.price;
+  const colors = useColors();
   return (
-    <Card small style={{ width, alignItems: 'center', padding: space.s, gap: space.s }}>
+    // The equipped one wears an accent ring (its padding gives back the ring's width, the card keeps its size).
+    <Card small style={[{ width, alignItems: 'center', padding: space.s, gap: space.s }, equipped && { borderWidth: 2, borderColor: colors.accent, padding: space.s - 2 }]}>
       {kind === 'cubo'
         ? <DrawCanvas width={width - 2 * space.s} radius={radius.s + 2} deps={[skin.id, eqBoard]} draw={(g, w) => drawCuboPreview(g, boardTheme(eqBoard), eqBoard, skin.id, w)} />
         : <DrawCanvas width={width - 2 * space.s} radius={radius.s + 2} deps={[kind, skin.id, eqBoard, eqBlocks]}
@@ -98,6 +101,7 @@ function Reserve() {
   const setProfile = useGame((s) => s.setProfile);
   return (
     <View style={{ gap: space.s }}>
+      <Group>
       {BONUS_TYPES.map((type: BonusType) => {
         const ui = BONUS_UI[type];
         const n = M.bonusStock(profile, type);
@@ -116,9 +120,10 @@ function Reserve() {
             label={tr`${ui.name}, ${n} en réserve`}
             right={full
               ? <View style={{ height: 40, paddingHorizontal: space.l, borderRadius: radius.pill, backgroundColor: colors.panel2, justifyContent: 'center' }}><Text variant="headline" style={{ color: colors.muted }}>{tr('Plein')}</Text></View>
-              : <Button size="s" kind={off ? 'ghost' : 'primary'} disabled={off} icon={<Coin size={16} />} label={fmt(price)} accessibilityLabel={tr`Acheter ${ui.name} pour ${price} pièces`} onPress={buy} />} />
+              : <Button size="s" kind={off ? 'ghost' : 'primary'} disabled={off} icon={<Coin size={16} ring={off ? undefined : colors.onAccent} />} label={fmt(price)} accessibilityLabel={tr`Acheter ${ui.name} pour ${price} pièces`} onPress={buy} />} />
         );
       })}
+      </Group>
       <Text variant="caption" style={{ marginHorizontal: space.xs }}>{tr`Quand une partie n’a plus ce bonus, son bouton puise dans ta réserve (${M.STOCK_MAX} au plus de chaque). Plus le bonus est amélioré, plus il coûte.`}</Text>
     </View>
   );
@@ -130,6 +135,7 @@ function Upgrades() {
   const setProfile = useGame((s) => s.setProfile);
   return (
     <View style={{ gap: space.s }}>
+      <Group>
       {BONUS_TYPES.map((type: BonusType) => {
         const ui = BONUS_UI[type];
         const lv = M.upgradeLevel(profile, type);
@@ -150,13 +156,14 @@ function Upgrades() {
             label={`${ui.name}, ${tr`Niveau ${lv} sur ${L.UPGRADE_MAX}`}`}
             right={price == null
               ? <View style={{ height: 40, paddingHorizontal: space.l, borderRadius: radius.pill, backgroundColor: colors.panel2, justifyContent: 'center' }}><Text variant="headline" style={{ color: colors.muted }}>{tr('Max')}</Text></View>
-              : <Button size="s" kind={off ? 'ghost' : 'primary'} disabled={off} icon={<Coin size={16} />} label={fmt(price)} accessibilityLabel={tr`Améliorer ${ui.name} pour ${price} pièces`} onPress={buy} />}>
+              : <Button size="s" kind={off ? 'ghost' : 'primary'} disabled={off} icon={<Coin size={16} ring={off ? undefined : colors.onAccent} />} label={fmt(price)} accessibilityLabel={tr`Améliorer ${ui.name} pour ${price} pièces`} onPress={buy} />}>
             <View style={{ flexDirection: 'row', gap: space.xs, marginTop: space.xs }}>
               {[1, 2, 3].map((k) => <View key={k} style={{ width: 18, height: 6, borderRadius: 3, backgroundColor: k <= lv ? colors.accent : colors.sunken }} />)}
             </View>
           </ListRow>
         );
       })}
+      </Group>
       <Text variant="caption" style={{ marginHorizontal: space.xs }}>{tr('Les améliorations comptent dans tous les modes, même dans la partie en cours.')}</Text>
     </View>
   );

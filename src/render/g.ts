@@ -14,6 +14,12 @@ export function withAlpha(hex: string, a: number) {
   return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
 }
 
+// The same color without its transparency ("rgba(30,12,8,0.9)" -> "rgb(30,12,8)"; a hex color is kept).
+export function opaque(color: string) {
+  const m = /^rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)$/.exec(color.replace(/\s/g, ''));
+  return m ? `rgb(${m[1]},${m[2]},${m[3]})` : color;
+}
+
 // Text before the bundled fonts load (or on canvases without one): Android has no default face for
 // Skia.Font(undefined), so take the system sans-serif.
 let sysFace: SkTypeface | null = null;

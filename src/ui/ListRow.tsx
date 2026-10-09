@@ -1,10 +1,11 @@
 // A row: optional icon, title and sub line, then a chevron, a switch or anything on the right.
-// On the screen background it is a small card; inside a card pass `inset`.
-import type { ReactNode } from 'react';
+// On the screen background it is a small card; inside a card pass `inset`; inside a Group it is flat.
+import { useContext, type ReactNode } from 'react';
 import { View, type AccessibilityRole, type StyleProp, type ViewStyle } from 'react-native';
 import { radius, space, TOUCH } from '../theme/tokens';
 import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
+import { InGroup } from './Group';
 import { Icon } from './Icon';
 import { Tap } from './Tap';
 import { Text } from './Text';
@@ -16,7 +17,7 @@ type Props = {
   right?: ReactNode | 'chevron';
   onPress?: () => void;
   inset?: boolean;
-  done?: boolean; // a green ring (a finished mission, a solved day)
+  done?: boolean; // a green ring (a finished mission, a solved day); none inside a Group
   big?: boolean; // title one step up (headline instead of body)
   role?: AccessibilityRole;
   state?: { checked?: boolean; selected?: boolean; disabled?: boolean; expanded?: boolean };
@@ -29,11 +30,11 @@ type Props = {
 
 export function ListRow({ title, sub, icon, right, onPress, inset, done, big, role, state, label, disabled, quiet, children, style }: Props) {
   const colors = useColors();
+  const grouped = useContext(InGroup);
   const box: StyleProp<ViewStyle> = [{
     flexDirection: 'row', alignItems: 'center', gap: space.m, minHeight: TOUCH + space.s, paddingVertical: space.m, paddingHorizontal: space.l,
-    borderRadius: radius.tile, backgroundColor: inset ? colors.panel2 : colors.panel,
-    ...(inset ? null : raised(colors, 'low')),
-  }, done && { borderWidth: 2, borderColor: colors.good }, style];
+    ...(grouped ? null : { borderRadius: radius.tile, backgroundColor: inset ? colors.panel2 : colors.panel, ...(inset ? null : raised(colors, 'low')) }),
+  }, done && !grouped && { borderWidth: 2, borderColor: colors.good }, style];
   const body = (
     <>
       {icon}
@@ -47,7 +48,7 @@ export function ListRow({ title, sub, icon, right, onPress, inset, done, big, ro
   );
   if (!onPress) return <View style={box} accessible={!!label} accessibilityLabel={label}>{body}</View>;
   return (
-    <Tap onPress={onPress} style={box} label={label ?? title} disabled={disabled} quiet={quiet} accessibilityRole={role} accessibilityState={state}>
+    <Tap onPress={onPress} style={box} label={label ?? title} disabled={disabled} quiet={quiet} shade={grouped} accessibilityRole={role} accessibilityState={state}>
       {body}
     </Tap>
   );

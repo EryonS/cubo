@@ -3,8 +3,8 @@
 // then Carte / Rejouer or Réessayer / Suivant. The hook registers the level-end handler of the game
 // screen and settles the level (stars, rewards, one recorded fail per start) before the card shows.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, Share, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
+import { Pressable, Share, View } from 'react-native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 import { M, LV, WD } from '../core';
 import { locale, tr } from '../core/i18n';
 import type { Earned } from '../core/meta';
@@ -30,6 +30,7 @@ import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
 import { Flame, Icon } from '../ui/Icon';
 import { DailyRefill } from '../ui/DailyRefill';
+import { CoinLines, CoinTotal, EndActions, EndShell, plus, Unlock } from '../ui/EndCard';
 
 const fmt = (n: number) => n.toLocaleString(locale());
 
@@ -144,107 +145,75 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
     try { await Share.share({ message: shareText(day, WD.WORLDS[w].name, stage.stars, stage.movesLeft) }); } catch { setShared(tr('Partage impossible ici')); setTimeout(() => setShared(null), 1800); }
   };
 
+  const goal = (label: string, onPress: () => void, kind?: 'ghost') => <Button kind={kind} label={label} onPress={onPress} style={{ flex: 1, paddingHorizontal: space.xs }} />;
   return (
-    <Animated.View entering={FadeIn.duration(200)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim, justifyContent: 'center', padding: space.m }}>
-      <Animated.View entering={ZoomIn.duration(260)} style={{ maxHeight: '100%' }}>
-        <View style={{ backgroundColor: colors.panel, borderRadius: radius.card + 8, overflow: 'hidden', maxHeight: '100%' }}>
-          <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: space.m, alignItems: 'center', gap: 2 }}>
-            {mascot && (
-              <Animated.View entering={ZoomIn.duration(560)} style={{ marginTop: -12, marginBottom: -4, transformOrigin: 'bottom' }}>
-                <CuboPose width={112} lw={224} lh={236} s={150} foot={13} look={look} mood={levelMood(won, stage.stars)} />
-              </Animated.View>
-            )}
-            <Text variant="title" style={{ fontSize: 30, textTransform: 'uppercase', textAlign: 'center' }}>{title}</Text>
-            <Text variant="muted">{ev ? `${ev.name} · ${eventLevelName(n)}` : day ? `${dailyWord(day, today())} #${LV.dayNumber(day)} · ${WD.WORLDS[w].name}` : `${WD.WORLDS[w].name} · ${levelName(n)}`}</Text>
-            <View style={{ marginVertical: 12 }}><StarRow n={stage.stars} size={44} gap={6} animate /></View>
-            <Text variant="muted" style={{ textAlign: 'center' }}>{LV.goalText(stage.goal)} · {fmt(progress)} / {fmt(stage.goal.target)}</Text>
-            {streak && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
-                <Flame size={20} color={colors.text} />
-                <Text style={{ fontFamily: 'Baloo2-ExtraBold' }}>{tr`Série : ${streak.count} jour${streak.count > 1 ? 's' : ''}`}</Text>
-              </View>
-            )}
-            {report?.unlocked && (
-              <View style={{ alignSelf: 'stretch', marginTop: 10, padding: 10, paddingHorizontal: 12, borderRadius: radius.card - 6, borderWidth: 2, borderColor: colors.good }}>
-                <Text style={{ color: colors.good, fontFamily: 'Baloo2-ExtraBold' }}>{tr('Skin de blocs « Or » débloqué ! Équipe-le dans la Boutique, onglet Blocs.')}</Text>
-              </View>
-            )}
-            {ev && eventPay?.unlocked.map((u) => (
-              <View key={u.kind + u.id} style={{ alignSelf: 'stretch', marginTop: 10, padding: 10, paddingHorizontal: 12, borderRadius: radius.card - 6, borderWidth: 2, borderColor: colors.good }}>
-                <Text style={{ color: colors.good, fontFamily: fonts.display }}>{u.kind === 'boards' ? tr`Thème « ${ev.name} » débloqué !` : tr`${hatName(ev.hat)} pour Cubo !`}</Text>
-              </View>
-            ))}
-            {ev && !!eventPay?.unlocked.length && (
-              <Opt label={tr('Les mettre maintenant')} disabled={worn} onPress={wear}>
-                <Text variant="title" style={{ fontSize: 17, lineHeight: 22 }}>{worn ? tr('Équipé') : tr('Équiper')}</Text>
-              </Opt>
-            )}
-            {ev && eventPay?.trophy && (
-              <View style={{ alignSelf: 'stretch', marginTop: 10, padding: 10, paddingHorizontal: 12, borderRadius: radius.card - 6, borderWidth: 2, borderColor: colors.good }}>
-                <Text style={{ color: colors.good, fontFamily: fonts.display }}>{eventPay.trophy === 'gold' ? tr`Trophée ${ev.name} ${M.eventYear(stage.eventDay || today())} en or !` : tr`Trophée ${ev.name} ${M.eventYear(stage.eventDay || today())} en argent !`}</Text>
-              </View>
-            )}
-            {report?.themeUnlocked && (
-              <View style={{ alignSelf: 'stretch', marginTop: 12 }}>
-                <View style={{ padding: 10, paddingHorizontal: 12, borderRadius: radius.card - 6, borderWidth: 2, borderColor: colors.good }}>
-                  <Text style={{ color: colors.good, fontFamily: 'Baloo2-ExtraBold' }}>{tr`Thème « ${WD.WORLDS[report.themeUnlocked].name} » débloqué !`}</Text>
-                </View>
-                <Opt label={tr('Mettre ce thème maintenant')} disabled={equipped} onPress={equip}>
-                  <Text variant="title" style={{ fontSize: 17, lineHeight: 22 }}>{equipped ? tr('Équipé') : tr('Équiper')}</Text>
-                </Opt>
-              </View>
-            )}
-            <View style={{ alignSelf: 'stretch', marginTop: 14 }}>
-              {lines.map((l, i) => (
-                <Animated.View key={i} entering={FadeInDown.delay(i * 90).duration(250)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 2 }}>
-                  <Text variant="muted" style={{ flex: 1 }}>{l.label}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                    <Text style={{ fontSize: 14 }}>+{l.coins}</Text><Coin size={14} />
-                  </View>
-                </Animated.View>
-              ))}
-            </View>
-            {total > 0 && (
-              <View style={{ alignSelf: 'stretch', marginTop: 6, paddingVertical: 11, paddingHorizontal: 14, borderRadius: radius.card - 4, backgroundColor: colors.panel2, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text>{tr('Pièces')}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text variant="title" style={{ fontSize: 26, lineHeight: 30 }}>+{fmt(total)}</Text><Coin size={20} />
-                </View>
-              </View>
-            )}
-            {day && <DailyRefill day={day} />}
-            {outOfMoves && (
-              <Opt label={tr`+${M.EXTRA_MOVES} coups pour finir (1 étoile max)`} disabled={profile.coins < moreCost} onPress={more}>
-                <Text variant="title" style={{ fontSize: 17, lineHeight: 22 }}>{moreCost}</Text><Coin size={16} />
-              </Opt>
-            )}
-            {day && won && (
-              <Pressable accessibilityRole="button" onPress={share} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.panel2, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
-                <Icon name="share" size={16} color={colors.text} />
-                <Text style={{ fontSize: 14 }}>{shared || tr('Partager le résumé')}</Text>
-              </Pressable>
-            )}
-          </ScrollView>
-          {eventId && ev ? (
-            <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: space.xl, paddingTop: space.m, paddingBottom: space.xl, backgroundColor: colors.panel }}>
-              <Button kind="ghost" label={tr('Événement')} onPress={() => onEvent(ev.id)} style={{ flex: 1, paddingHorizontal: 4 }} />
-              {!three && <Button kind={eventNext ? 'ghost' : 'primary'} label={won ? tr('Rejouer') : tr('Réessayer')} onPress={onAgain} style={{ flex: 1, paddingHorizontal: 4 }} />}
-              {eventNext != null && <Button label={tr('Suivant')} onPress={() => onEvent(ev.id, eventNext)} style={{ flex: 1, paddingHorizontal: 4 }} />}
-            </View>
-          ) : day ? (
-            <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: space.xl, paddingTop: space.m, paddingBottom: space.xl, backgroundColor: colors.panel }}>
-              <Button kind="ghost" label={tr('Menu')} onPress={onMenu} style={{ flex: 1, paddingHorizontal: 4 }} />
-              {left > 0 && !three && <Button label={`${won ? tr('Rejouer') : tr('Réessayer')}${Number.isFinite(left) ? ` (${left})` : ''}`} onPress={onAgain} style={{ flex: 1.4, paddingHorizontal: 4 }} />}
-            </View>
-          ) : (
-            <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: space.xl, paddingTop: space.m, paddingBottom: space.xl, backgroundColor: colors.panel }}>
-              <Button kind="ghost" label={tr('Carte')} onPress={() => onMap(w)} style={{ flex: 1, paddingHorizontal: 4 }} />
-              {!three && <Button kind={next ? 'ghost' : 'primary'} label={won ? tr('Rejouer') : tr('Réessayer')} onPress={onAgain} style={{ flex: 1, paddingHorizontal: 4 }} />}
-              {next && <Button label={tr('Suivant')} onPress={() => onNext(next)} style={{ flex: 1, paddingHorizontal: 4 }} />}
-            </View>
-          )}
+    <EndShell footer={eventId && ev ? (
+      <EndActions>
+        {goal(tr('Événement'), () => onEvent(ev.id), 'ghost')}
+        {!three && goal(won ? tr('Rejouer') : tr('Réessayer'), onAgain, eventNext ? 'ghost' : undefined)}
+        {eventNext != null && goal(tr('Suivant'), () => onEvent(ev.id, eventNext))}
+      </EndActions>
+    ) : day ? (
+      <EndActions>
+        {goal(tr('Menu'), onMenu, 'ghost')}
+        {left > 0 && !three && <Button label={`${won ? tr('Rejouer') : tr('Réessayer')}${Number.isFinite(left) ? ` (${left})` : ''}`} onPress={onAgain} style={{ flex: 1.4, paddingHorizontal: space.xs }} />}
+      </EndActions>
+    ) : (
+      <EndActions>
+        {goal(tr('Carte'), () => onMap(w), 'ghost')}
+        {!three && goal(won ? tr('Rejouer') : tr('Réessayer'), onAgain, next ? 'ghost' : undefined)}
+        {next && goal(tr('Suivant'), () => onNext(next))}
+      </EndActions>
+    )}>
+      {mascot && (
+        <Animated.View entering={ZoomIn.duration(560)} style={{ marginTop: -12, marginBottom: -4, transformOrigin: 'bottom' }}>
+          <CuboPose width={112} lw={224} lh={236} s={150} foot={13} look={look} mood={levelMood(won, stage.stars)} />
+        </Animated.View>
+      )}
+      <Text variant="title" style={{ fontSize: 30, textTransform: 'uppercase', textAlign: 'center' }}>{title}</Text>
+      <Text variant="muted">{ev ? `${ev.name} · ${eventLevelName(n)}` : day ? `${dailyWord(day, today())} #${LV.dayNumber(day)} · ${WD.WORLDS[w].name}` : `${WD.WORLDS[w].name} · ${levelName(n)}`}</Text>
+      <View style={{ marginVertical: space.m }}><StarRow n={stage.stars} size={44} gap={6} animate /></View>
+      <Text variant="muted" style={{ textAlign: 'center' }}>{LV.goalText(stage.goal)} · {fmt(progress)} / {fmt(stage.goal.target)}</Text>
+      {streak && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.s }}>
+          <Flame size={20} color={colors.text} />
+          <Text style={{ fontFamily: fonts.display }}>{tr`Série : ${streak.count} jour${streak.count > 1 ? 's' : ''}`}</Text>
         </View>
-      </Animated.View>
-    </Animated.View>
+      )}
+      {report?.unlocked && <Unlock>{tr('Skin de blocs « Or » débloqué ! Équipe-le dans la Boutique, onglet Blocs.')}</Unlock>}
+      {ev && eventPay?.unlocked.map((u) => (
+        <Unlock key={u.kind + u.id}>{u.kind === 'boards' ? tr`Thème « ${ev.name} » débloqué !` : tr`${hatName(ev.hat)} pour Cubo !`}</Unlock>
+      ))}
+      {ev && !!eventPay?.unlocked.length && (
+        <Opt label={tr('Les mettre maintenant')} disabled={worn} onPress={wear}>
+          <Text variant="headline">{worn ? tr('Équipé') : tr('Équiper')}</Text>
+        </Opt>
+      )}
+      {ev && eventPay?.trophy && (
+        <Unlock>{eventPay.trophy === 'gold' ? tr`Trophée ${ev.name} ${M.eventYear(stage.eventDay || today())} en or !` : tr`Trophée ${ev.name} ${M.eventYear(stage.eventDay || today())} en argent !`}</Unlock>
+      )}
+      {report?.themeUnlocked && (
+        <>
+          <Unlock>{tr`Thème « ${WD.WORLDS[report.themeUnlocked].name} » débloqué !`}</Unlock>
+          <Opt label={tr('Mettre ce thème maintenant')} disabled={equipped} onPress={equip}>
+            <Text variant="headline">{equipped ? tr('Équipé') : tr('Équiper')}</Text>
+          </Opt>
+        </>
+      )}
+      {lines.length > 0 && <View style={{ alignSelf: 'stretch', marginTop: space.m }}><CoinLines lines={lines} /></View>}
+      {total > 0 && <CoinTotal value={plus(total)} style={{ marginTop: space.xs }} />}
+      {day && <DailyRefill day={day} />}
+      {outOfMoves && (
+        <Opt label={tr`+${M.EXTRA_MOVES} coups pour finir (1 étoile max)`} disabled={profile.coins < moreCost} onPress={more}>
+          <Text variant="headline">{moreCost}</Text><Coin size={16} />
+        </Opt>
+      )}
+      {day && won && (
+        <Pressable accessibilityRole="button" onPress={share} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.m, paddingVertical: space.xs + 2, paddingHorizontal: space.m, borderRadius: radius.pill, backgroundColor: colors.panel2, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
+          <Icon name="share" size={16} color={colors.text} />
+          <Text style={{ fontSize: 14 }}>{shared || tr('Partager le résumé')}</Text>
+        </Pressable>
+      )}
+    </EndShell>
   );
 }

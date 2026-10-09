@@ -1,4 +1,4 @@
-// The Aventure star (legacy starSvg: gold with an amber edge, a sunken socket when off), a row of them,
+// The Aventure star (legacy starSvg: gold with an amber edge; off, the muted ink at 30 %, which reads on dark panels too), a row of them,
 // the star chest and the mastered-world crown.
 import { View } from 'react-native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
@@ -11,7 +11,7 @@ export function LStar({ size = 16, on }: { size?: number; on: boolean }) {
   const colors = useColors();
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path d={STAR_PATH} fill={on ? '#ffc83d' : colors.sunken} stroke={on ? '#d99a00' : 'none'} strokeWidth={1.2} strokeLinejoin="round" />
+      <Path d={STAR_PATH} fill={on ? '#ffc83d' : colors.muted} fillOpacity={on ? 1 : 0.3} stroke={on ? '#d99a00' : 'none'} strokeWidth={1.2} strokeLinejoin="round" />
     </Svg>
   );
 }

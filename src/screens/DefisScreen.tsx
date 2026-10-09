@@ -13,10 +13,12 @@ import { haptic } from '../platform/haptics';
 import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import type { RootParams } from '../navigation/types';
-import { space } from '../theme/tokens';
+import { radius, space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
+import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Counter } from '../ui/Counter';
+import { Group } from '../ui/Group';
 import { ListRow } from '../ui/ListRow';
 import { SectionLabel } from '../ui/SectionLabel';
 import { ask } from '../ui/dialog';
@@ -36,7 +38,8 @@ function StreakBlock() {
   const t = today();
   const st = M.streakOf(profile);
   const now = M.streakNow(profile, t);
-  const disabled = st.freezes >= M.FREEZE_MAX || profile.coins < M.FREEZE_COST;
+  const full = st.freezes >= M.FREEZE_MAX;
+  const off = full || profile.coins < M.FREEZE_COST;
   const freeze = () => {
     const { profile: p, setProfile } = useGame.getState();
     const next = M.buyFreeze(p);
@@ -47,6 +50,7 @@ function StreakBlock() {
   return (
     <View style={{ gap: space.s }}>
       <SectionLabel>{tr('Série')}</SectionLabel>
+      <Group>
       <ListRow title={many(now) ? tr("jours d'affilée") : tr("jour d'affilée")} sub={tr`Record : ${st.best}`}
         label={`${now} ${many(now) ? tr("jours d'affilée") : tr("jour d'affilée")}, ${tr`Record : ${st.best}`}`}
         icon={<View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}><Flame size={36} on={now > 0} color={colors.text} /><Text variant="title" style={{ fontSize: 34 }}>{now}</Text></View>}
@@ -58,8 +62,13 @@ function StreakBlock() {
             <Text variant="caption">{tr`Gels ${st.freezes}/${M.FREEZE_MAX}`}</Text>
           </View>
         )} />
-      <ListRow title={tr('Gel de série : protège un jour manqué')} disabled={disabled} onPress={freeze} quiet
-        right={<View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}><Text variant="headline">{M.FREEZE_COST}</Text><Coin size={16} /></View>} />
+      {/* A purchase: a price button like the Boutique's, "Plein" once the freezes are all there. */}
+      <ListRow title={tr('Gel de série')} sub={tr('Protège un jour manqué')} icon={<View style={{ width: 36, alignItems: 'center' }}><Snow size={26} on color={colors.muted} /></View>}
+        right={full
+          ? <View style={{ height: 40, paddingHorizontal: space.l, borderRadius: radius.pill, backgroundColor: colors.panel2, justifyContent: 'center' }}><Text variant="headline" style={{ color: colors.muted }}>{tr('Plein')}</Text></View>
+          : <Button size="s" kind={off ? 'ghost' : 'primary'} disabled={off} icon={<Coin size={16} ring={off ? undefined : colors.onAccent} />} label={String(M.FREEZE_COST)}
+              accessibilityLabel={tr`Acheter un gel de série pour ${M.FREEZE_COST} pièces`} onPress={freeze} />} />
+      </Group>
     </View>
   );
 }
