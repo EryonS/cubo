@@ -419,6 +419,13 @@ const packDone = (profile: Profile, pack: number) => {
   for (let n = pack * PUZZLES_PER_PACK + 1; n <= (pack + 1) * PUZZLES_PER_PACK; n++) if (puzzleStarsOf(profile, n) === undefined) return false;
   return true;
 };
+// Hints taken on a numbered puzzle not solved yet stay in profile.puzzleHints (restart or leave: the run starts
+// with them, so the stars stay capped). Cleared when it gets solved; a puzzle solved before is replayed clean.
+const puzzleHintsOf = (profile: Profile, n: number) => (profile.puzzleHints || {})[n] || 0;
+function notePuzzleHints(prev: Profile, n: number, hints: number): Profile {
+  if (puzzleStarsOf(prev, n) !== undefined || hints <= puzzleHintsOf(prev, n)) return prev;
+  return { ...prev, puzzleHints: { ...(prev.puzzleHints || {}), [n]: hints } };
+}
 // Records a solved puzzle. Returns { profile, report: { earned, total } }.
 function applyPuzzle(prev: Profile, n: number, stars: number) {
   const before = puzzleStarsOf(prev, n);
@@ -427,6 +434,11 @@ function applyPuzzle(prev: Profile, n: number, stars: number) {
   const fresh = stars - (before || 0);
   if (fresh > 0) earned.push({ label: fresh > 1 ? tr`${fresh} nouvelles étoiles` : tr('Nouvelle étoile'), coins: fresh * PER_NEW_STAR });
   let p: Profile = { ...prev, puzzles: { ...(prev.puzzles || {}), [n]: Math.max(stars, before || 0) } };
+  if (prev.puzzleHints && prev.puzzleHints[n] !== undefined) {
+    const rest = { ...prev.puzzleHints };
+    delete rest[n];
+    p = { ...p, puzzleHints: rest };
+  }
   const pack = Math.floor((n - 1) / PUZZLES_PER_PACK);
   if (before === undefined && packDone(p, pack)) earned.push({ label: tr('Pack terminé'), coins: PUZZLE_PACK });
   const total = earned.reduce((a, l) => a + l.coins, 0);
@@ -824,7 +836,7 @@ export {
   addDays, dayDiff, monthDays,
   DAILY_ATTEMPTS, FREEZE_COST, FREEZE_MAX, STREAK_SKIN, dailyOf, streakOf, dailyAttemptsLeft, countDaily, canRefillDaily, dailyTryCost, dailyAdReady, buyDailyTry, adDailyRefill, streakNow,
   applyDaily, buyFreeze, monthTrophy, STICKER_PAGES, STICKERS, STICKER_REWARD, checkStickers,
-  PUZZLE_PER_PIECE, puzzleFirst, PUZZLE_PACK, PUZZLE_HINT, puzzleStarsOf, puzzleOpen, puzzlesSolved, applyPuzzle,
+  PUZZLE_PER_PIECE, puzzleFirst, PUZZLE_PACK, PUZZLE_HINT, puzzleStarsOf, puzzleHintsOf, notePuzzleHints, puzzleOpen, puzzlesSolved, applyPuzzle,
   SURPRISE_COINS, SURPRISE_DAILY, surpriseOpen, surprisesSolved, surprisesPaidLeft, applySurprise,
   WORLD_NAMES, worldFreeOpen, worldPrimeRate, worldPrime, UPGRADE_PRICES, upgradeLevel, upgradePrice, buyUpgrade,
   BONUS_PRICES, STOCK_MAX, bonusStock, bonusPrice, buyBonus, takeStock,

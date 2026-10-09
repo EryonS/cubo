@@ -27,7 +27,7 @@ import { bannerFor, comboTier, confettiCount, punchAmp, shakeFor } from './juice
 import { levelName } from '../state/progress';
 import { dailyWord, triesAfter } from './daily';
 import { inProgress, isFree, keepsBest } from './modes';
-import { settlePuzzle } from './puzzle';
+import { isSurprise, settlePuzzle } from './puzzle';
 import { collectTips, hideTips, modeTips, stuckTip } from './tips';
 import { tutActive, tutor } from './tut-state';
 import { tutorialMoved, tutorialNope } from './tutorial';
@@ -240,13 +240,14 @@ export function startWorldRun(world: string) {
 export function startPuzzle(n: number): boolean {
   const def = PZ.puzzle(n);
   if (!def) return false;
-  restartRun({ mode: 'puzzle', level: useGame.getState().saved.state.level, puzzle: def });
+  // Hints taken before on this puzzle (not solved yet) count again: restarting does not wipe them.
+  restartRun({ mode: 'puzzle', level: useGame.getState().saved.state.level, puzzle: { ...def, hints: M.puzzleHintsOf(useGame.getState().profile, n) } });
   puzzleIntro(tr('Puzzle ') + n);
   return true;
 }
 // Puzzle surprise: a random drawing, every piece in the tray at once.
-export function startSurprise(seed: number = Date.now()): void {
-  restartRun({ mode: 'puzzle', level: useGame.getState().saved.state.level, puzzle: PZ.surprise(seed) });
+export function startSurprise(seed: number = Date.now(), hints = 0): void {
+  restartRun({ mode: 'puzzle', level: useGame.getState().saved.state.level, puzzle: { ...PZ.surprise(seed), hints } });
   puzzleIntro(tr('Puzzle surprise'));
 }
 function puzzleIntro(text: string) {
@@ -273,7 +274,7 @@ export function startDaily(day: string): boolean {
 export function restartCurrent(): boolean {
   const st = useGame.getState().saved.state;
   const stage = st.stage;
-  if (st.puzzle) { if (st.puzzle.free) startSurprise(st.puzzle.seed); else startPuzzle(st.puzzle.n); return true; }
+  if (st.puzzle) { if (isSurprise(st.puzzle)) startSurprise(st.puzzle.seed, st.puzzle.hints); else startPuzzle(st.puzzle.n); return true; }
   if (stage && stage.daily) return startDaily(stage.daily);
   if (stage && stage.event) return startEventLevel(stage.event, stage.n, stage.eventDay);
   if (stage) return startLevel(stage.world, stage.n);
@@ -751,6 +752,8 @@ export function hintPuzzle(lay: Layout): boolean {
   }
   const t = now();
   payCoins(lay, M.PUZZLE_HINT);
+  const pz = res.state.puzzle!;
+  if (!isSurprise(pz)) useGame.getState().setProfile(M.notePuzzleHints(useGame.getState().profile, pz.n, pz.hints));
   for (const [r, c] of res.events.placed || []) {
     anim.pops.push({ r, c, t0: t });
     burst(lay, { r, c }, t, 4, 70, '#fff6a0');

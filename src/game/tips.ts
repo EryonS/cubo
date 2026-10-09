@@ -57,10 +57,11 @@ export function modeTips(state: RunState) {
     tip('chrono', tr('Chrono'), tr('Le temps file ! Chaque ligne effacée te rend quelques secondes.'), 'chrono');
   } else if (state.mode === 'chill') {
     tip('chill', tr('Chill'), tr('Touche une forme pour la faire tourner. Pas de chrono, pas de bonus : tu joues à ton rythme.'), 'tray');
-  } else if (state.puzzle && state.puzzle.free) {
+  } else if (state.puzzle && state.puzzle.free && state.puzzle.n === 0) {
     tip('surprise', tr('Puzzle surprise'), tr`Toutes les formes sont là. Touche une forme pour la tourner, et reprends une forme déjà posée pour la déplacer. Les ${M.SURPRISE_DAILY} premiers du jour rapportent des pièces.`, 'trayWide');
   } else if (state.mode === 'puzzle') {
-    tip('puzzle', tr('Puzzle'), tr('Remplis tout le dessin avec les formes données. Touche une forme pour la tourner.'), 'tray');
+    const free = !!state.puzzle!.free;
+    tip('puzzle', tr('Puzzle'), free ? tr('Remplis tout le dessin avec les formes du bas. Touche une forme pour la tourner, reprends une forme posée pour la déplacer.') : tr('Remplis tout le dessin avec les formes données. Touche une forme pour la tourner.'), free ? 'trayWide' : 'tray');
   } else if (state.mode === 'worlds') {
     tip('worlds', tr('Mondes'), tr('Partie sans fin avec les règles du monde. Plus tu marques, plus la prime en pièces grossit.'), 'plate');
   } else if (state.stage && state.stage.daily) {

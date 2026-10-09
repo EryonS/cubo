@@ -257,6 +257,8 @@ add('en', {
   'Maître': 'Master',
   'Virtuose': 'Virtuoso',
   'Légende': 'Legend',
+  'Mythique': 'Mythic',
+  'Absolu': 'Absolute',
 
   // ----- tutorial (core/tutorial.js)
   'Glisse la forme sur la grille': 'Drag the shape onto the grid',
@@ -667,6 +669,7 @@ add('en', {
   'Le temps file ! Chaque ligne effacée te rend quelques secondes.': 'Time is running! Every line you clear gives back a few seconds.',
   'Toutes les formes sont là. Touche une forme pour la tourner, et reprends une forme déjà posée pour la déplacer. Les {} premiers du jour rapportent des pièces.': 'Every shape is here. Tap a shape to turn it, and pick up a placed shape to move it. The first {} of the day pay coins.',
   'Puzzle': 'Puzzle',
+  'Remplis tout le dessin avec les formes du bas. Touche une forme pour la tourner, reprends une forme posée pour la déplacer.': 'Fill the whole drawing with the shapes below. Tap a shape to turn it, pick up a placed shape to move it.',
   'Remplis tout le dessin avec les formes données. Touche une forme pour la tourner.': 'Fill the whole drawing with the given shapes. Tap a shape to turn it.',
   'Partie sans fin avec les règles du monde. Plus tu marques, plus la prime en pièces grossit.': 'An endless run with the world’s rules. The more you score, the bigger the coin bounty.',
   'Le même niveau pour tout le monde aujourd’hui. Atteins l’objectif affiché en haut.': 'The same level for everyone today. Reach the goal shown at the top.',

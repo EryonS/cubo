@@ -544,10 +544,10 @@ function setupPuzzle(state: RunState, pz: PuzzleSetup) {
     const d = dims(p.cells);
     return { id: state.nextId++, cells: p.cells, w: d.w, h: d.h, color: p.color, bonus: null };
   });
-  state.puzzle = { n: pz.n, name: pz.name, total: queue.length, placed: 0, hints: 0, won: false, stars: 0, queue,
+  state.puzzle = { n: pz.n, name: pz.name, total: queue.length, placed: 0, hints: pz.hints || 0, won: false, stars: 0, queue,
     sol: pz.pieces.map((p) => p.sol) };
-  // Puzzle surprise: every piece in the tray at once, and placed pieces can be picked up again
-  // (liftPuzzle). at: { [piece id]: { slot, cells, piece } } for the pieces on the board.
+  // Free puzzles (the surprise and every numbered puzzle from now on; a numbered one saved before kept its queue):
+  // every piece in the tray at once, and placed pieces can be picked up again (liftPuzzle). at: { [piece id]: { slot, cells, piece } } for the pieces on the board.
   if (pz.free) {
     state.tray = queue;
     state.next = null;
@@ -579,7 +579,7 @@ function placePuzzle(prev: RunState, trayIndex: number, row: number, col: number
   };
 }
 
-// Puzzle surprise: the player's piece covering cell (r, c) goes back to its tray slot (fixed
+// Free puzzles: the player's piece covering cell (r, c) goes back to its tray slot (fixed
 // pieces stay). Undo puts it back on the board. Returns { state, slot } or null.
 function liftPuzzle(prev: RunState, r: number, c: number): { state: RunState; slot: number } | null {
   if (prev.mode !== 'puzzle' || !prev.puzzle!.free || prev.over) return null;

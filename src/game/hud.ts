@@ -17,7 +17,7 @@ export function hintText(state: RunState, aiming: { drag: boolean } | null, stoc
   if (aiming && aiming.drag) return { text: tr('Lâche la bombe sur la grille'), danger: true };
   if (aiming) return { text: tr('Touche la grille pour viser · ailleurs pour annuler'), danger: true };
   if (!state.stuck) return null;
-  // Puzzles: no bin and no bonuses. Surprise pieces can be picked up again; undo is free.
+  // Puzzles: no bin and no bonuses. Free puzzles let placed pieces be picked up again; undo is free.
   if (state.puzzle) {
     if (state.puzzle.free) return { text: tr('Bloqué ! Reprends une forme posée pour la déplacer'), danger: false };
     if (L.canUndo(state)) return { text: tr('Bloqué ! Annule ton coup pour essayer ailleurs'), danger: false };

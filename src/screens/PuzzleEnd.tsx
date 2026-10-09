@@ -7,7 +7,7 @@ import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { M } from '../core';
 import { locale, tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
-import { nextPuzzle, puzzleLabel } from '../game/puzzle';
+import { isSurprise, nextPuzzle, puzzleLabel } from '../game/puzzle';
 import { setPuzzleEndHandler, type PuzzleEnd } from '../game/run';
 import { cuboLookFor } from '../mascot/looks';
 import { haptic } from '../platform/haptics';
@@ -42,15 +42,16 @@ export function PuzzleEndCard({ card, onList, onMore, onAgain, onNext }: Props) 
   const look = useMemo(() => cuboLookFor(played, equipped), [played, equipped]);
   const { pz, lines, total } = card;
   const next = nextPuzzle(pz);
+  const surprise = isSurprise(pz);
   const hints = pz.hints;
 
   // One chime per star, in step with the stars' entrance.
   useEffect(() => {
-    if (pz.free) return;
+    if (surprise) return;
     const ids: ReturnType<typeof setTimeout>[] = [];
     for (let k = 0; k < pz.stars; k++) ids.push(setTimeout(() => { sfx.star(k); haptic('star'); }, 60 + k * 180));
     return () => ids.forEach(clearTimeout);
-  }, [pz.free, pz.stars]);
+  }, [surprise, pz.stars]);
 
   return (
     <Animated.View entering={FadeIn.duration(200)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim, justifyContent: 'center', padding: space.m }}>
@@ -64,11 +65,11 @@ export function PuzzleEndCard({ card, onList, onMore, onAgain, onNext }: Props) 
             )}
             <Text variant="title" style={{ fontSize: 30, textTransform: 'uppercase', textAlign: 'center' }}>{tr('Puzzle réussi !')}</Text>
             <Text variant="muted" style={{ textAlign: 'center' }}>{puzzleLabel(pz)}</Text>
-            {pz.free
+            {surprise
               ? <Text variant="muted" style={{ marginTop: 8, textAlign: 'center' }}>{tr`${fmt(solved)} puzzle${solved > 1 ? 's' : ''} surprise réussi${solved > 1 ? 's' : ''}`}</Text>
               : <View style={{ marginVertical: 12 }}><StarRow n={pz.stars} size={44} gap={6} animate /></View>}
             <Text variant="muted" style={{ textAlign: 'center' }}>{hints ? tr`${hints} indice${hints > 1 ? 's' : ''} utilisé${hints > 1 ? 's' : ''}` : tr('Sans indice')}</Text>
-            {pz.free && !lines.length && <Text variant="muted" style={{ marginTop: 8, textAlign: 'center' }}>{tr`Les ${M.SURPRISE_DAILY} puzzles surprise payés du jour sont faits : reviens demain pour des pièces.`}</Text>}
+            {surprise && !lines.length && <Text variant="muted" style={{ marginTop: 8, textAlign: 'center' }}>{tr`Les ${M.SURPRISE_DAILY} puzzles surprise payés du jour sont faits : reviens demain pour des pièces.`}</Text>}
             <View style={{ alignSelf: 'stretch', marginTop: 14 }}>
               {lines.map((l, i) => (
                 <Animated.View key={i} entering={FadeInDown.delay(i * 90).duration(250)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 2 }}>
@@ -90,8 +91,8 @@ export function PuzzleEndCard({ card, onList, onMore, onAgain, onNext }: Props) 
           </ScrollView>
           <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: space.xl, paddingTop: space.m, paddingBottom: space.xl, backgroundColor: colors.panel }}>
             <Button kind="ghost" label={tr('Puzzles')} onPress={onList} style={{ flex: 1, paddingHorizontal: 4 }} />
-            {pz.free && <Button label={tr('Un autre')} onPress={onMore} style={{ flex: 1, paddingHorizontal: 4 }} />}
-            {!pz.free && pz.stars < 3 && <Button kind={next ? 'ghost' : 'primary'} label={tr('Rejouer')} onPress={onAgain} style={{ flex: 1, paddingHorizontal: 4 }} />}
+            {surprise && <Button label={tr('Un autre')} onPress={onMore} style={{ flex: 1, paddingHorizontal: 4 }} />}
+            {!surprise && pz.stars < 3 && <Button kind={next ? 'ghost' : 'primary'} label={tr('Rejouer')} onPress={onAgain} style={{ flex: 1, paddingHorizontal: 4 }} />}
             {next && <Button label={tr('Suivant')} onPress={() => onNext(next)} style={{ flex: 1, paddingHorizontal: 4 }} />}
           </View>
         </View>

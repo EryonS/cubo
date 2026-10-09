@@ -18,7 +18,7 @@ const norm = (cells) => {
 // solution spot of its shape, dropped there.
 function playOne(state) {
   const pz = P.puzzle(state.puzzle.n);
-  for (let slot = 0; slot < 3; slot++) {
+  for (let slot = 0; slot < state.tray.length; slot++) {
     let st = state;
     for (let k = 0; k < 4; k++) {
       const piece = st.tray[slot];
@@ -58,15 +58,16 @@ test('puzzles are stable: the same number gives the same puzzle', () => {
   assert.equal(P.puzzle(P.COUNT + 1), null);
 });
 
-test('puzzle game: board, tray from the quota, free rotation, no discard', () => {
+test('puzzle game: board, the whole quota in the tray, free rotation, no discard', () => {
   const st = start(12);
   const pz = P.puzzle(12);
   assert.equal(st.mode, 'puzzle');
   const empty = st.board.filter((v) => !v).length;
   assert.equal(empty, pz.pieces.reduce((a, p) => a + p.cells.length, 0));
-  assert.equal(st.tray.filter(Boolean).length, 3);
-  assert.equal(st.puzzle.queue.length, pz.pieces.length - 3);
-  assert.equal(st.next, st.puzzle.queue[0]);
+  assert.equal(st.tray.filter(Boolean).length, pz.pieces.length);
+  assert.ok(st.puzzle.free);
+  assert.equal(st.puzzle.queue.length, 0);
+  assert.equal(st.next, null);
   assert.ok(L.canTurn(st));
   assert.ok(L.rotate(st, 0));
   assert.equal(L.discard(st, 0), null);
@@ -145,10 +146,11 @@ test('puzzle progress: open in order, coins once, stars kept, pack bonus', () =>
   assert.equal(M.puzzlesSolved(r.profile), 10);
 });
 
-test('packs 5-6: 60 puzzles, the first 40 keep their quotas', () => {
-  assert.equal(P.COUNT, 60);
+test('packs 5-8: 80 puzzles, the first 60 keep their quotas', () => {
+  assert.equal(P.COUNT, 80);
   assert.deepEqual([1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 40].map(P.quotaOf), [3, 3, 4, 4, 5, 5, 6, 6, 7, 8, 8]);
-  for (let n = 41; n <= 60; n++) assert.ok(P.quotaOf(n) >= 8 && P.quotaOf(n) <= 10);
+  for (let n = 41; n <= 80; n++) assert.ok(P.quotaOf(n) >= 8 && P.quotaOf(n) <= 10);
+  assert.deepEqual([41, 50, 51, 60].map(P.quotaOf), [8, 9, 9, 10]);
 });
 
 const surprise = (seed) => L.createGame(1, { mode: 'puzzle', puzzle: P.surprise(seed) });
@@ -186,7 +188,7 @@ test('puzzle surprise: placed pieces can be lifted back to their slot, undo puts
   // Fixed pieces and empty cells cannot be lifted, nor anything in a numbered puzzle.
   const fixed = P.surprise(3).fixed[0].cells[0];
   assert.equal(L.liftPuzzle(st, Math.floor(fixed / S), fixed % S), null);
-  assert.equal(L.liftPuzzle(start(1), 0, 0), null);
+  assert.equal(L.liftPuzzle(start(1), 0, 0), null); // nothing placed by the player there
 });
 
 test('puzzle surprise: hints solve it; reward and unlock', () => {
@@ -219,4 +221,48 @@ test('puzzle surprise: only the first ones of a day pay', () => {
 test('a puzzle pays by the pieces it has to place', () => {
   assert.equal(M.puzzleFirst(1), 3 * M.PUZZLE_PER_PIECE);
   assert.equal(M.puzzleFirst(60), 10 * M.PUZZLE_PER_PIECE);
+  assert.equal(M.puzzleFirst(80), 10 * M.PUZZLE_PER_PIECE);
+});
+
+test('hard puzzles 61-80: 2 or 3 pieces already placed, the rest to place, solvable', () => {
+  for (let n = P.HARD_FROM; n <= P.COUNT; n++) {
+    const pz = P.puzzle(n);
+    assert.ok(pz.fixed.length >= 2 && pz.fixed.length <= 3, `puzzle ${n}: ${pz.fixed.length} fixed`);
+    assert.ok(pz.pieces.length >= 8 && pz.pieces.length <= 10, `puzzle ${n}: ${pz.pieces.length} pieces`);
+    assert.equal(pz.pieces.length, P.quotaOf(n), `puzzle ${n} quota`);
+    assert.ok(pz.free);
+  }
+  assert.deepEqual(P.puzzle(65), P.puzzle(65));
+});
+
+test('numbered puzzles keep their old pieces: the same quota, seeded the same way', () => {
+  assert.equal(P.puzzle(3).pieces.length, 3);
+  assert.equal(P.puzzle(3).seed, 3);
+  assert.equal(P.puzzle(3).pack, 0);
+});
+
+test('hints taken stay in the profile until the puzzle is solved, and cap the next run', () => {
+  let p = M.createProfile('2026-10-09');
+  assert.equal(M.puzzleHintsOf(p, 4), 0);
+  p = M.notePuzzleHints(p, 4, 1);
+  p = M.notePuzzleHints(p, 4, 2);
+  assert.equal(M.puzzleHintsOf(p, 4), 2);
+  assert.equal(M.notePuzzleHints(p, 4, 1), p); // never goes down
+  const st = L.createGame(1, { mode: 'puzzle', puzzle: { ...P.puzzle(4), hints: M.puzzleHintsOf(p, 4) } });
+  assert.equal(st.puzzle.hints, 2);
+  assert.equal(solve(st).puzzle.stars, 1);
+  const done = M.applyPuzzle(p, 4, 1).profile;
+  assert.equal(M.puzzleHintsOf(done, 4), 0);
+  assert.equal(done.puzzleHints[4], undefined);
+  // A puzzle solved before is replayed clean: new hints are not kept.
+  assert.equal(M.notePuzzleHints(done, 4, 1), done);
+});
+
+test('a numbered puzzle saved in the old queue format still plays', () => {
+  const pz = P.puzzle(12);
+  const old = { ...pz, free: undefined };
+  const st = L.createGame(1, { mode: 'puzzle', puzzle: old });
+  assert.equal(st.tray.filter(Boolean).length, 3);
+  assert.equal(st.puzzle.queue.length, pz.pieces.length - 3);
+  assert.ok(solve(st).puzzle.won);
 });
