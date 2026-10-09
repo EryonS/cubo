@@ -101,7 +101,7 @@ function MissionsLine({ pad }: { pad: number }) {
   );
 }
 
-export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () => void; onMenu: () => void }) {
+export function GameOver({ end, onAgain, onMenu, onRevive }: { end: RunEnd; onAgain: () => void; onMenu: () => void; onRevive: () => boolean }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -117,6 +117,8 @@ export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () =>
   const [shown, setShown] = useState(end.coinsBefore);
   const [lines, setLines] = useState(0);
   const [flash, setFlash] = useState<string | null>(null);
+  const [doubled, setDoubled] = useState(false); // the doubled coins are paid: the run can no longer be taken back
+  const [reviving, setReviving] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Coin lines appear one by one; the wallet counts up in at most 12 steps (legacy countCoins).
@@ -137,6 +139,13 @@ export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () =>
   }, [end]);
 
   const linesDone = 350 + end.earned.length * 420;
+
+  // Seconde chance: an ad, then the card closes and the run goes on (the run's coins are settled again at its real end).
+  const revive = async () => {
+    if (reviving) return;
+    setReviving(true);
+    if (!(await showRewarded()) || !onRevive()) setReviving(false);
+  };
 
   const share = async () => {
     sfx.turn();
@@ -197,6 +206,7 @@ export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () =>
               </View>
             </View>
             <DoubleCoinsAd total={end.total} visible={end.total > 0} tight={k < 0.5} onDoubled={(n) => {
+              setDoubled(true);
               const from = shown;
               const steps = Math.min(12, n);
               for (let i = 1; i <= steps; i++) timers.current.push(setTimeout(() => setShown(Math.round(from + (n * i) / steps)), i * 28));
@@ -207,9 +217,14 @@ export function GameOver({ end, onAgain, onMenu }: { end: RunEnd; onAgain: () =>
             <View style={{ alignSelf: 'stretch', marginTop: lerp(6, 8, k) }}><MissionsLine pad={lerp(7, 10, k)} /></View>
           </ScrollView>
           {/* Outside the scroll: Rejouer stays on screen however long the coin list is. */}
-          <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: space.xl, paddingTop: lerp(space.s, space.m, k), paddingBottom: lerp(space.l, space.xl, k) }}>
-            <Button kind="ghost" label={tr('Menu')} onPress={onMenu} style={{ flex: 1, paddingHorizontal: 8 }} />
-            <Button label={tr('Rejouer')} onPress={onAgain} style={{ flex: 1.4, paddingHorizontal: 8 }} />
+          <View style={{ paddingHorizontal: space.xl, paddingTop: lerp(space.s, space.m, k), paddingBottom: lerp(space.l, space.xl, k), gap: 10 }}>
+            {end.revive && !doubled && (
+              <Button label={tr('Seconde chance')} sub={tr('Regarde une pub : une bombe géante, et tu continues')} disabled={reviving} onPress={() => { void revive(); }} />
+            )}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Button kind={end.revive && !doubled ? 'secondary' : 'ghost'} label={tr('Menu')} onPress={onMenu} style={{ flex: 1, paddingHorizontal: 8 }} />
+              <Button kind={end.revive && !doubled ? 'secondary' : 'primary'} label={tr('Rejouer')} onPress={onAgain} style={{ flex: 1.4, paddingHorizontal: 8 }} />
+            </View>
           </View>
         </View>
       </Animated.View>

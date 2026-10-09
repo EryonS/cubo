@@ -6,7 +6,7 @@ import { create } from 'zustand';
 import { L, LV, M, PZ, T, WD } from '../core';
 import type { Collected, MoveEvents } from '../core/logic';
 import type { Earned } from '../core/meta';
-import type { BonusType, Level, Lifetime, Mode, PuzzleSetup, RunState, StageDef, Stats } from '../core/types';
+import type { BonusType, Level, Lifetime, Mode, Profile, PuzzleSetup, RunState, StageDef, Stats } from '../core/types';
 import { tr } from '../core/i18n';
 import { paletteFor } from '../render/board-themes';
 import { BOSS_LOOK, bossCenter } from '../render/boss';
@@ -329,6 +329,7 @@ export interface RunEnd {
   earned: Earned[];
   total: number;
   coinsBefore: number;
+  revive: boolean; // Seconde chance on offer (reviveRun)
 }
 
 // A level is over (won, out of moves, out of room, time up, quit). The run's grid coins and missions are
@@ -343,6 +344,9 @@ export interface LevelEnd {
   outOfMoves: boolean;
   run: { earned: Earned[]; total: number; coinsBefore: number } | null; // the run's own coins, null if already paid
 }
+
+// The profile as it was before the game over settled the run (Seconde chance undoes the settlement).
+let settledFrom: Profile | null = null;
 
 // The run is over: coins and missions count, the record is kept.
 function endGame(t: number, lay?: Layout) {
@@ -365,14 +369,46 @@ function endGame(t: number, lay?: Layout) {
   }
   const lifeBefore = { ...(profile.lifetime || {}) };
   const report = settleRun();
+  // The run is settled now; a Seconde chance takes the profile back to here and settles at the real end.
+  settledFrom = report && L.canRevive(st) ? profile : null;
   setTimeout(() => { sfx.over(); haptic('lose'); }, 350);
   const best = Math.max(bestOf(st), st.score);
   const end: RunEnd = {
     score: st.score, best, record: st.score >= best && st.score > anim.bestAtStart && anim.bestAtStart > 0,
     title: st.timeUp ? 'time' : st.quit ? 'quit' : 'over', stats: st.stats || {}, lifeBefore,
     earned: report ? report.earned : [], total: report ? report.total : 0, coinsBefore: report ? report.coinsBefore : profile.coins,
+    revive: !!settledFrom,
   };
   setTimeout(() => endHandler?.(end), 1300);
+}
+
+// Seconde chance, once the ad is earned: the settlement of the game over is undone (the run settles again at its real
+// end), a big bomb falls on the middle and the run goes on. Returns false when the run cannot be revived.
+export function reviveRun(lay: Layout): boolean {
+  const { saved, setProfile } = useGame.getState();
+  const res = L.revive(saved.state);
+  if (!res || !settledFrom) return false;
+  setProfile(settledFrom);
+  settledFrom = null;
+  runSettled = false;
+  const ev = res.events;
+  const t = now();
+  react('wow', 1200, 1);
+  const mid = (L.SIZE - 1) / 2;
+  for (const cell of ev.cleared || []) {
+    const delay = Math.hypot(cell.r - mid, cell.c - mid) * 60;
+    anim.fades.push({ ...cell, t0: t + 350, delay });
+    burst(lay, cell, t + 350 + delay, 5, 200, '#ffb347');
+  }
+  anim.floaters.push({ text: tr('Seconde chance !'), x: lay.bx + lay.board / 2, y: lay.by + lay.board / 2, t0: t, big: true });
+  launchFlyers(lay, ev.collected || [], t + 350, (b) => Math.hypot(b.r - mid, b.c - mid) * 60);
+  anim.banners.push({ icon: 'bomb', text: tr('Seconde chance !'), sub: tr('Une bombe géante tombe au milieu'), tier: 0, gold: true });
+  if (!anim.calm) { confetti(lay, t + 350, 40); anim.shake = 34; }
+  anim.overAt = 0;
+  setTimeout(() => { sfx.bomb(); haptic('bomb'); }, 350);
+  setTimeout(() => { sfx.bomb(); sfx.sparkle(3); haptic('bomb'); }, 700);
+  setState(res.state);
+  return true;
 }
 
 // Puzzle solved: pay, record the stars, celebrate, then the result card (legacy flow.js endPuzzle).
