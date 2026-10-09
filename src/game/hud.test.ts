@@ -47,6 +47,14 @@ test('timer ring: fraction of the effect left, "ending" in the last 5 s', () => 
   assert.equal(ringEnding({ ...on, effects: { ...on.effects, nitro: 4000 } }, 'nitro'), true);
 });
 
+test('hint: a stuck puzzle never offers to throw a shape away', () => {
+  const pz = (o: Record<string, unknown> = {}) => ({ ...fresh(), mode: 'puzzle', stuck: true, puzzle: { free: false }, ...o }) as never;
+  assert.match(hintText(pz(), null)!.text, /pause/);
+  assert.match(hintText(pz({ undo: fresh() }), null)!.text, /Annule/);
+  assert.match(hintText(pz({ puzzle: { free: true } }), null)!.text, /déplacer/);
+  for (const st of [pz(), pz({ undo: fresh() }), pz({ puzzle: { free: true } })]) assert.doesNotMatch(hintText(st, null)!.text, /jette/);
+});
+
 test('inventory buttons: the reserve shows once the run has none, and helps when stuck', () => {
   const st = { ...fresh(), inventory: { rotate: 1, nitro: 0, shield: 0, bomb: 0, reroll: 0 }, stuck: true };
   const stock = { bomb: 3, rotate: 4 };
