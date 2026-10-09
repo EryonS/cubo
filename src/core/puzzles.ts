@@ -56,11 +56,17 @@ const PACKS = [
   { name: tr('Maître') },
   { name: tr('Virtuose') },
   { name: tr('Légende') },
+  { name: tr('Mythique') },
+  { name: tr('Absolu') },
 ];
 const COUNT = PER_PACK * PACKS.length;
 // Pieces to place, by puzzle number: 3 at the start, 8 at puzzle 40 (the first 4 packs keep their
 // original quotas), then 8 to 10.
-const quotaOf = (n: number) => (n <= 40 ? [3, 3, 4, 4, 5, 5, 6, 6, 7, 8][Math.floor(((n - 1) * 10) / 40)] : [8, 9, 9, 10][Math.min(3, Math.floor(((n - 41) * 4) / (COUNT - 40)))]);
+// Packs 7-8 (61-80): 9 or 10, with only 2 or 3 pieces already in place (FIXED_LEFT).
+const quotaOf = (n: number) => (n <= 40 ? [3, 3, 4, 4, 5, 5, 6, 6, 7, 8][Math.floor(((n - 1) * 10) / 40)] : n <= 60 ? [8, 9, 9, 10][Math.min(3, Math.floor(((n - 41) * 4) / 20))] : n % 2 ? 9 : 10);
+const HARD_FROM = 61;
+// Drawings of 34-40 cells: they tile into 11 to 13 pieces often enough to hit 9-10 to place + 2-3 in place.
+const HARD_POOL = [0, 1, 3, 4, 5, 6, 7, 8, 19, 20, 21];
 
 // mulberry32 seeded from the puzzle number.
 function rng(seed: number) {
@@ -133,6 +139,7 @@ function turned(cells: Cell[], times: number): Cell[] {
 }
 
 function drawingOf(n: number) {
+  if (n >= HARD_FROM) return DRAWINGS[HARD_POOL[((n - HARD_FROM) * 3) % HARD_POOL.length]];
   if (n <= 40) return DRAWINGS[(n * 5 + Math.floor((n - 1) / FIRST_DRAWINGS)) % FIRST_DRAWINGS];
   // Packs 5-6: the new drawings first, then the old ones mixed in.
   const fresh = DRAWINGS.length - FIRST_DRAWINGS;
@@ -147,7 +154,9 @@ export type PuzzleDef = PuzzleSetup & { pack: number };
 function puzzle(n: number): PuzzleDef | null {
   if (!(n >= 1 && n <= COUNT)) return null;
   const rnd = rng(0x9e3779b1 ^ (n * 2654435761));
-  return build(rnd, drawingOf(n), quotaOf(n), { n, pack: Math.floor((n - 1) / PER_PACK) });
+  const hard = n >= HARD_FROM;
+  // Every numbered puzzle shows its whole quota in the tray and lets placed pieces be picked up again (free).
+  return { ...build(rnd, drawingOf(n), quotaOf(n), { n, pack: Math.floor((n - 1) / PER_PACK) }, hard), free: true, seed: n };
 }
 
 // Puzzle surprise (opens once pack Maître is done): any drawing, turned or mirrored, with 8 to 10
@@ -177,12 +186,19 @@ function viewRows(mask: boolean[], view: number) {
   return rows;
 }
 
-function build(rnd: () => number, drawing: Drawing, wanted: number, extra: { n: number; pack: number }): PuzzleDef {
+// hard (puzzles 61+): the pieces to place are picked at random among 2 or 3 more than the quota, which stay in place.
+function build(rnd: () => number, drawing: Drawing, wanted: number, extra: { n: number; pack: number }, hard = false): PuzzleDef {
   const mask = maskOf(drawing);
   let tiles = tile(mask, rnd);
   // Puzzles 1-40 keep their first tiling. Later ones retile a small drawing until it has
   // enough pieces for the quota (and one left in place).
   const firstTiling = extra.n >= 1 && extra.n <= 40;
+  if (hard) {
+    // Hard puzzles: retile until there are the quota plus 2 or 3 pieces; those stay in place.
+    const ok = () => tiles.length === wanted + 2 || tiles.length === wanted + 3;
+    for (let k = 0; !ok() && k < 400; k++) tiles = tile(mask, rnd);
+    return pickRandom(rnd, mask, drawing.name, tiles, wanted, extra);
+  }
   for (let k = 0; !firstTiling && tiles.length <= wanted && k < 30; k++) tiles = tile(mask, rnd);
   const quota = Math.min(wanted, tiles.length - 1);
 
@@ -195,17 +211,31 @@ function build(rnd: () => number, drawing: Drawing, wanted: number, extra: { n: 
     const pick = near.filter(big).length ? near.filter(big) : near.length ? near : tiles.filter((t) => !taken.includes(t));
     taken.push(pick[Math.floor(rnd() * pick.length)]);
   }
+  return assemble(rnd, mask, drawing.name, tiles, taken, extra);
+}
+
+// Hard puzzles: `quota` random pieces to place, the rest stays in the drawing.
+function pickRandom(rnd: () => number, mask: boolean[], name: string, tiles: Tile[], quota: number, extra: { n: number; pack: number }): PuzzleDef {
+  const order = tiles.slice();
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return assemble(rnd, mask, name, tiles, order.slice(0, quota), extra);
+}
+
+function assemble(rnd: () => number, mask: boolean[], name: string, tiles: Tile[], taken: Tile[], extra: { n: number; pack: number }): PuzzleDef {
   for (let i = taken.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1));
     [taken[i], taken[j]] = [taken[j], taken[i]];
   }
   return {
     ...extra,
-    name: drawing.name,
+    name,
     mask,
     fixed: tiles.filter((t) => !taken.includes(t)).map((t) => ({ cells: t.cells, color: t.shape.color })),
     pieces: taken.map((t) => ({ cells: turned(t.shape.cells, 1 + Math.floor(rnd() * 3)), color: t.shape.color, sol: t.cells })),
   };
 }
 
-export { DRAWINGS, PACKS, PER_PACK, COUNT, quotaOf, puzzle, surprise, SURPRISE_MIN, SURPRISE_MAX, tile };
+export { HARD_FROM, DRAWINGS, PACKS, PER_PACK, COUNT, quotaOf, puzzle, surprise, SURPRISE_MIN, SURPRISE_MAX, tile };

@@ -116,6 +116,7 @@ export interface PuzzleSetup {
   pieces: { cells: Cell[]; color: number; sol: number[] }[];
   free?: boolean;
   seed?: number;
+  hints?: number; // hints already taken on this puzzle (kept in profile.puzzleHints)
 }
 
 export interface PuzzleState {
@@ -211,6 +212,7 @@ export interface Profile {
   history?: { m: string; s: number }[];
   adventure?: Adventure;
   puzzles?: Record<string, number>;
+  puzzleHints?: Record<string, number>; // hints taken on numbered puzzles not solved yet: they stay after a restart
   surprises?: number;
   surpriseDay?: { day: string; paid: number };
   upgrades?: Partial<Record<BonusType, number>>;

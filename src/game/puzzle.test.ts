@@ -1,13 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { L, M, PZ } from '../core';
-import { allStars, freeTray, hintDisabled, isVoid, liftOrigin, nextPuzzle, packRows, puzzleLabel, puzzleTileSub, settlePuzzle, spotAt } from './puzzle';
+import { allStars, freeTray, hintDisabled, isVoid, liftOrigin, nextPuzzle, packRows, puzzleLabel, puzzleTileSub, settlePuzzle, spotAt, isSurprise } from './puzzle';
 
 const p0 = M.createProfile('2026-10-04');
 const start = (setup: ReturnType<typeof PZ.puzzle>) => L.createGame(7, { mode: 'puzzle', puzzle: setup! });
 
-test('only a surprise has a free tray, with one pad per piece', () => {
-  assert.equal(freeTray(start(PZ.puzzle(1))), 0);
+test('every puzzle has a free tray, with one pad per piece; a numbered one saved in the old queue format keeps three slots', () => {
+  const one = start(PZ.puzzle(1));
+  assert.equal(freeTray(one), PZ.quotaOf(1));
+  assert.equal(isSurprise(one.puzzle!), false);
+  assert.equal(freeTray({ ...one, puzzle: { ...one.puzzle!, free: undefined } }), 0);
   const s = start(PZ.surprise(42));
   assert.equal(freeTray(s), s.puzzle!.total);
   assert.ok(freeTray(s) >= PZ.SURPRISE_MIN && freeTray(s) <= PZ.SURPRISE_MAX);
@@ -23,7 +26,7 @@ test('cells outside the drawing are void', () => {
 test('titles and the tile line', () => {
   const st = start(PZ.puzzle(3));
   assert.equal(puzzleLabel(st.puzzle!), `Puzzle 3 · ${st.puzzle!.name}`);
-  assert.equal(puzzleTileSub(p0, st), '0 / 60 résolus');
+  assert.equal(puzzleTileSub(p0, st), '0 / 80 résolus');
   assert.equal(puzzleTileSub(p0, { ...st, moves: 2 }), 'Puzzle 3 en cours');
   assert.equal(puzzleTileSub(p0, { ...start(PZ.surprise(1)), moves: 1 }), 'Puzzle surprise en cours');
 });
@@ -51,7 +54,7 @@ test('packs open one after the other', () => {
 test('next puzzle: none after the last or for a surprise', () => {
   assert.equal(nextPuzzle({ n: 5 }), 6);
   assert.equal(nextPuzzle({ n: PZ.COUNT }), null);
-  assert.equal(nextPuzzle({ n: 0, free: true }), null);
+  assert.equal(nextPuzzle({ n: 0 }), null);
 });
 
 test('lifting a placed surprise piece: its spot and origin', () => {
@@ -75,7 +78,7 @@ test('settling a puzzle pays the first solve, a surprise pays its own coins', ()
   assert.equal(one.profile.puzzles![1], 3);
   assert.ok(one.lines.some((l) => l.coins === M.puzzleFirst(1)));
   assert.ok(one.profile.coins > p0.coins);
-  const sur = settlePuzzle(p0, { free: true, n: 0, hints: 0, stars: 0 }, '2026-10-04');
+  const sur = settlePuzzle(p0, { n: 0, hints: 0, stars: 0 }, '2026-10-04');
   assert.equal(sur.profile.surprises, 1);
   assert.equal(sur.lines[0].coins, M.SURPRISE_COINS);
 });
