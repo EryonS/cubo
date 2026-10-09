@@ -1118,6 +1118,49 @@ const bombArea = (row: number, col: number, level: number = 1) => {
   return cells;
 };
 
+// Seconde chance (rewarded ad on a free run's game over): a huge bomb wipes the board but its four corners.
+// Once per run (`revived`); free runs only (Aventure, daily, events and puzzles have their own extra moves / tries).
+const canRevive = (state: RunState) => state.over && !state.revived && !state.quit && !state.stage && !state.puzzle
+  && (state.mode === 'classic' || state.mode === 'chrono' || state.mode === 'chill' || state.mode === 'worlds');
+const reviveArea = () => {
+  const area: number[] = [];
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    const r = Math.floor(i / SIZE);
+    const c = i % SIZE;
+    if (!((r === 0 || r === SIZE - 1) && (c === 0 || c === SIZE - 1))) area.push(i);
+  }
+  return area;
+};
+// The run goes on: board cleared (score kept, combo reset), a tray that fits dealt, the clock back to its start after a time out.
+function revive(prev: RunState): MoveResult | null {
+  if (!canRevive(prev)) return null;
+  const state: RunState = {
+    ...prev,
+    board: prev.board.slice(),
+    bonus: prev.bonus.slice(),
+    special: (prev.special || new Array(SIZE * SIZE).fill(null)).slice(),
+    tray: prev.tray.slice(),
+    inventory: { ...prev.inventory },
+    stats: { ...(prev.stats || emptyStats()) },
+    undo: null,
+    revived: true,
+    over: false,
+    stuck: false,
+    combo: 0,
+    movesSinceClear: 0,
+  };
+  delete state.timeUp;
+  const hit = clearCells(state, reviveArea());
+  const collected = collect(state, hit.cleared);
+  const clock = clockOf(state);
+  if (clock && prev.timeUp) state.clock = state.mode === 'chrono' ? LEVELS[state.level].clock : clock.clockMax;
+  for (let k = 0; k < 20 && !trayFits(state); k++) refillAll(state);
+  settle(state);
+  // Hard obstacles that survived the blast and a very unlucky tray: the corners go too.
+  if (state.over) { state.board.fill(0); state.special.fill(null); state.bonus.fill(null); refillAll(state); settle(state); }
+  return { state, events: { type: 'bomb', cleared: hit.cleared, damaged: hit.damaged, blasts: hit.blasts, collected, points: 0, refilled: [0, 1, 2], over: state.over, stuck: state.stuck } };
+}
+
 // Tornade: level 1 deals 3 random pieces; level 2 only pieces that fit the board; level 3 pieces
 // of at most 3 blocks that fit. A few draws per slot, then the last draw stays.
 const REROLL_TRIES = 30;
@@ -1314,6 +1357,9 @@ export {
   use,
   giveUp,
   quit,
+  canRevive,
+  reviveArea,
+  revive,
   discard,
   discardCost,
   undo,

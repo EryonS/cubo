@@ -7,6 +7,7 @@ Status: shipped
 - **Boutique** (tab bar only; the wallet, `src/ui/Wallet.tsx`, is display only): block skins and world themes (cosmetic), and bonus upgrades (tab Bonus, see upgrades.md).
 - **Mondes prime**: Mondes runs pay a prime on the score (see worlds-mode.md).
 - **Rewarded ad**: doubles a run's coins once (`DoubleCoinsAd` in `src/screens/GameOver.tsx`).
+- **Seconde chance** (rewarded ad, game over card of a free run: Classique, Chrono, Chill, Mondes; not quit, not Aventure / daily / event / puzzle): a giant bomb clears the board but its 4 corners (`L.revive`, `reviveRun` in `src/game/run.ts`), score kept, combo reset, a tray that fits is dealt, once per run (`RunState.revived`, old saves: unset = available). In Chrono / Mondes-Arcade after a time out the clock restarts from its initial value. The game over still settles the run at once (coins, missions, stats); reviving restores the profile saved just before (`settledFrom`) so the run settles again at its real end, nothing double-counted. The offer disappears once the coin-doubling ad was watched (the profile can no longer be rolled back).
 
 ## Files
 - `src/core/meta.ts`: `SKINS`, `MISSIONS`, `dailyMissions`, `applyRun`, `runCoins` (adds the free play difficulty bonus, modes.md), `buy`, `equip`, `spend`, `nextGoal`.

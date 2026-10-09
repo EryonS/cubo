@@ -165,6 +165,8 @@ export interface RunState {
   puzzle?: PuzzleState;
   timeUp?: boolean;
   quit?: boolean;
+  // Seconde chance used (free runs, once). Old saves: undefined = not used.
+  revived?: boolean;
   // A free run's theme, picked on the Partie libre sheet (old saves: none, the equipped one).
   theme?: string;
   // Set by the app on runs it starts (daily level, season events...).

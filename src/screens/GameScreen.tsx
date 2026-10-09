@@ -34,7 +34,7 @@ import { bonusLeft, hasInventory, trashView, undoView } from '../game/hud';
 import { freeTray, hintDisabled, liftOrigin, spotAt } from '../game/puzzle';
 import {
   bestOf, commit, discardPiece, enterRun, newRun, fireBonus, giveUpRun, hintPuzzle, liftPuzzlePiece, startPuzzle, startSurprise, liveRun, persistRun, quitRun, restartRun, rotateTray, restartCurrent,
-  setAiming, setEndHandler, stepFlyers, syncBudget, tapCubo, tickRun, undoMove, useRunHud, type RunEnd,
+  reviveRun, setAiming, setEndHandler, stepFlyers, syncBudget, tapCubo, tickRun, undoMove, useRunHud, type RunEnd,
 } from '../game/run';
 import { boardCellAt, computeLayout, invAt, miniCell, overTrash, slotAt, HUD_BTN, INV_TOP, type Layout } from '../render/layout';
 import { G } from '../render/g';
@@ -643,7 +643,12 @@ export function GameScreen() {
       )}
       {lay && <TipBubble lay={lay} safeTop={insets.top} />}
       <TutorialOverlay onEnd={leaveTutorial} />
-      {end && <GameOver end={end} onAgain={again} onMenu={() => { setEnd(null); leave(); }} />}
+      {end && <GameOver end={end} onAgain={again} onMenu={() => { setEnd(null); leave(); }} onRevive={() => {
+        if (!lay || !reviveRun(lay)) return false;
+        setEnd(null);
+        dirty.current = true;
+        return true;
+      }} />}
     </View>
     </PlayedTheme>
   );
