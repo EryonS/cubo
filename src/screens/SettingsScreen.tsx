@@ -23,6 +23,7 @@ import { useGame } from '../state/store';
 import { space } from '../theme/tokens';
 import { AccountBlock } from '../ui/AccountBlock';
 import { AppIconSheet, AppIconThumb } from '../ui/AppIconSheet';
+import { ThemeSheet } from '../ui/ThemeSheet';
 import { ListRow } from '../ui/ListRow';
 import { Screen } from '../ui/Screen';
 import { SectionLabel } from '../ui/SectionLabel';
@@ -59,6 +60,8 @@ export function SettingsScreen() {
   const pref = langPref();
   const privacy = useSyncExternalStore(subscribePrivacy, privacyRequired, privacyRequired);
   const iconRef = useRef<BottomSheetModal>(null);
+  const themeRef = useRef<BottomSheetModal>(null);
+  const equipped = useGame((s) => s.profile.equipped.boards);
   const [icon, setIcon] = useState(appIcon);
   const [dev, setDev] = useState(devShown);
   const taps = useRef(0);
@@ -86,6 +89,7 @@ export function SettingsScreen() {
         <SectionLabel>{tr('Affichage')}</SectionLabel>
         <Row id="patterns" label={tr('Motifs sur les blocs')} sub={tr('Un symbole par couleur, pour mieux les distinguer')} />
         <Row id="mascot" label={tr('Mascotte')} sub={tr('Cubo, perché sur le plateau, réagit à ta partie')} />
+        <ListRow title={tr('Thème')} sub={M.SKINS.boards.find((sk) => sk.id === equipped)?.name} right="chevron" onPress={() => themeRef.current?.present()} />
         {canChangeAppIcon && <ListRow title={tr('Icône de l’app')} sub={M.SKINS.boards.find((sk) => sk.id === icon)?.name} icon={<AppIconThumb id={icon} size={40} />}
           right="chevron" onPress={() => iconRef.current?.present()} />}
       </View>
@@ -114,6 +118,7 @@ export function SettingsScreen() {
         </View>
       )}
       <Text variant="caption" style={{ textAlign: 'center' }} onPress={tapVersion} suppressHighlighting>{tr`Cubo Blocks, version ${VERSION}`}</Text>
+      <ThemeSheet ref={themeRef} onShop={() => nav.dispatch(CommonActions.navigate('Tabs', { screen: 'Shop' }))} />
       {canChangeAppIcon && <AppIconSheet ref={iconRef} onPicked={setIcon} />}
     </Screen>
   );

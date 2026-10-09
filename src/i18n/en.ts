@@ -717,6 +717,7 @@ add('en', {
   'Mascotte': 'Mascot',
   'Cubo, perché sur le plateau, réagit à ta partie': 'Cubo sits on the board and reacts to your game',
   'Icône de l’app': 'App icon',
+  'Plus de thèmes dans la Boutique': 'More themes in the Shop',
   'Chaque thème débloqué dans la Boutique ou pendant un événement ajoute son icône.': 'Every theme you unlock in the Shop or during an event adds its icon.',
   'Langue': 'Language',
   'Aide': 'Help',
