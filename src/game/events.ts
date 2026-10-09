@@ -29,7 +29,7 @@ export function eventRows(profile: Profile, state: RunState, day: string): Event
     const trophy = M.seasonTrophy(profile, ev.id, M.eventYear(day));
     const sub = playing && playing.id === ev.id ? tr`${eventLevelName(stage!.n)} en cours`
       : done >= ev.levels ? (trophy === 'gold' ? tr('Terminé · trophée en or') : tr('Terminé · trophée en argent'))
-        : tr`${done} / ${ev.levels} niveaux · jusqu’au ${eventDate(M.eventEnd(ev.id, day))}`;
+        : tr`${eventLevelName(Math.min(done + 1, ev.levels))} · ${done} / ${ev.levels} · jusqu’au ${eventDate(M.eventEnd(ev.id, day))}`;
     return { id: ev.id, name: ev.name, icon: ev.icon, sub, playing: !!(playing && playing.id === ev.id) };
   });
 }
