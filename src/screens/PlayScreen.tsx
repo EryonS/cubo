@@ -1,5 +1,5 @@
-// Jouer tab (legacy #menu): Continuer, the Aventure card, Défi du jour and Puzzles tiles, the free
-// game row (mode and level, Jouer), Missions with their pips, and the wallet.
+// Jouer tab (legacy #menu): Continuer, the Aventure card, the event rows, the free game row (mode and
+// level, Jouer), Défi du jour and Puzzles tiles, Missions with their pips, and the wallet.
 import { useMemo, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
@@ -7,7 +7,7 @@ import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { M, WD } from '../core';
 import { locale, tr } from '../core/i18n';
-import { guardFree, inProgress, LEVEL_NAMES, MODE_NAMES, modeLabel, modeSub } from '../game/modes';
+import { guardFree, inProgress, LEVEL_NAMES, MODE_NAMES, modeLabel } from '../game/modes';
 import { tileSub } from '../game/daily';
 import { eventRows } from '../game/events';
 import { resumeOf } from '../game/home';
@@ -29,7 +29,6 @@ import { raised } from '../theme/elevation';
 import { darkBg, useColors } from '../theme/useColors';
 import { BoardPreview } from '../ui/BoardPreview';
 import { Button } from '../ui/Button';
-import { Card } from '../ui/Card';
 import { Counter } from '../ui/Counter';
 import { ListRow } from '../ui/ListRow';
 import { ask } from '../ui/dialog';
@@ -104,7 +103,6 @@ export function PlayScreen() {
   const puzzleSub = useGame((s) => puzzleTileSub(s.profile, s.saved.state));
   const status = missionStatus();
   const done = status.filter((m) => m.done).length;
-  const freeSub = parked ? tr`${fmt(parked.score)} pts` : modeSub(prefs.mode);
 
   const play = () => nav.navigate('Game');
   // theme: the one picked on the Partie libre sheet (else the equipped one).
@@ -114,17 +112,16 @@ export function PlayScreen() {
     if (!g.needed) { go(); return; }
     ask({ title: tr('Abandonner ?'), text: g.text, ok: tr('Abandonner'), danger: true }).then((yes) => { if (yes) go(); });
   };
-  const onFreePlay = () => {
-    if (!parked) { playFree(); return; }
+  const resumeFree = () => {
     const go = () => { resumeParked(); play(); };
     if (!inProgress(useGame.getState().saved.state)) { go(); return; }
     ask({ title: tr('Reprendre ?'), text: tr('Le niveau en cours s’arrête pour reprendre ta partie libre. Les pièces gagnées sont gardées.'), ok: tr('Reprendre') })
       .then((yes) => { if (yes) go(); });
   };
 
+  const toMap = () => nav.navigate('Adventure', next ? { world: next[0] } : undefined);
   const heroInk = playing ? colors.text : colors.onAccent;
   const heroSub = playing ? colors.muted : colors.onAccent;
-  const freeHot = !!parked && !playing;
 
   return (
     <Screen title="Cubo Blocks" right={<Counter icon={<Coin size={20} />} value={fmt(profile.coins)} label={tr('Pièces : ouvrir la Boutique')} onPress={() => nav.navigate('Shop')} />}>
@@ -137,9 +134,8 @@ export function PlayScreen() {
         </View>
       )}
 
-      <Tap onPress={() => nav.navigate('Adventure', next ? { world: next[0], level: next[1] } : undefined)}
-        label={next ? tr`Aventure : jouer ${WD.WORLDS[next[0]].name}, ${levelName(next[1])}` : tr('Aventure : carte des mondes')}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.m, borderRadius: radius.card, backgroundColor: playing ? colors.panel : colors.accent, ...(playing ? raised(colors) : { shadowColor: colors.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } }) }}>
+      <Tap onPress={toMap} label={next ? `${tr('Aventure')}, ${WD.WORLDS[next[0]].name}, ${levelName(next[1])}` : tr('Aventure : carte des mondes')}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.m, paddingRight: space.l, borderRadius: radius.card, backgroundColor: playing ? colors.panel : colors.accent, ...(playing ? raised(colors) : { shadowColor: colors.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } }) }}>
         <View style={{ borderRadius: radius.tile, overflow: 'hidden', borderWidth: 3, borderColor: playing ? colors.panel2 : 'rgba(255,255,255,0.4)' }}>
           <BoardPreview th={preview} width={92} radius={13} />
         </View>
@@ -151,21 +147,17 @@ export function PlayScreen() {
             <Text variant="caption" style={{ color: heroSub }}>{fmt(stars)} / {maxStars}</Text>
           </View>
         </View>
-        <View style={{ alignSelf: 'stretch', justifyContent: 'space-between', alignItems: 'flex-end', gap: space.s }}>
-          <Tap label={tr('Carte')} onPress={() => nav.navigate('Adventure')} hitSlop={4}
-            style={{ width: 36, height: 36, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: playing ? colors.panel2 : 'rgba(255,255,255,0.22)' }}>
-            <Icon name="map" size={18} color={heroInk} />
-          </Tap>
-          <View style={{ height: 36, justifyContent: 'center', paddingHorizontal: space.m, borderRadius: radius.pill, backgroundColor: playing ? colors.accent : colors.onAccent }}>
-            <Text variant="headline" style={{ color: playing ? colors.onAccent : colors.accent }}>{next ? tr('Jouer') : tr('Voir')}</Text>
-          </View>
-        </View>
+        <Icon name="chevRight" size={18} color={heroInk} />
       </Tap>
 
       {events.map((row) => (
         <ListRow big key={row.id} title={row.name} sub={row.sub} icon={<KindIcon kind={row.icon} size={32} />} right="chevron"
           onPress={() => { if (row.playing) nav.navigate('Game'); else nav.navigate('Event', { id: row.id }); }} />
       ))}
+
+      <ListRow big title={parked ? tr('Partie en cours') : tr('Partie libre')} right="chevron" onPress={() => pickRef.current?.present()}
+        sub={parked ? `${modeLabel(parked)} · ${tr`${fmt(parked.score)} pts`}` : `${MODE_NAMES[prefs.mode]} · ${LEVEL_NAMES[prefs.level]}`}
+        icon={<Icon name="play" size={26} color={colors.accent} />} />
 
       <View style={{ flexDirection: 'row', gap: space.m }}>
         <Tap onPress={() => nav.navigate('Defis')} label={`${tr('Défi du jour')}, ${dailySub}`} style={[tile, daily.stars !== undefined && { borderWidth: 2, borderColor: colors.good, borderBottomColor: colors.good }]}>
@@ -186,24 +178,12 @@ export function PlayScreen() {
         </Tap>
       </View>
 
-      <Card small style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, paddingVertical: space.s }}>
-        <Tap onPress={() => pickRef.current?.present()} label={tr('Choisir le mode de la partie libre')} style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: space.s, paddingVertical: space.xs }}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text variant="label">{parked ? tr('Partie en cours') : tr('Partie libre')}</Text>
-            <Text variant="headline" numberOfLines={1}>{parked ? modeLabel(parked) : `${MODE_NAMES[prefs.mode]} · ${LEVEL_NAMES[prefs.level]}`}</Text>
-            <Text variant="muted" numberOfLines={1}>{freeSub}</Text>
-          </View>
-          <Icon name="chevDown" size={16} color={colors.muted} />
-        </Tap>
-        <Button size="s" kind={freeHot ? 'primary' : 'ghost'} label={parked ? tr('Reprendre') : tr('Jouer')} onPress={() => { sfx.turn(); onFreePlay(); }} />
-      </Card>
-
       <ListRow big title={tr('Missions')} sub={done === status.length ? tr('Toutes faites') : tr`${done}/${status.length} faites aujourd’hui`}
         icon={<Icon name="target" size={26} color={colors.accent} />}
         right={<View style={{ flexDirection: 'row', alignItems: 'center', gap: space.m }}><Pips status={status} /><Icon name="chevRight" size={16} color={colors.muted} /></View>}
         onPress={() => missionsRef.current?.present()} />
 
-      <FreePickSheet ref={pickRef} parked={!!parked} onPlay={playFree} />
+      <FreePickSheet ref={pickRef} onPlay={playFree} onResume={parked ? resumeFree : undefined} />
       <MissionsSheet ref={missionsRef} />
     </Screen>
   );

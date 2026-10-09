@@ -44,13 +44,13 @@ export function computeLayout({ W, H, safeTop }: { W: number; H: number; safeTop
 export const cellCenter = (lay: Layout, r: number, c: number): [number, number] =>
   [lay.bx + (c + 0.5) * lay.cell, lay.by + (r + 0.5) * lay.cell];
 
-// free: the number of pads of a Puzzle surprise tray (the whole quota on two rows over the board width), 0 for
-// the usual three slots (legacy render/helpers.js freeTray / slotBox / miniCell, game/drag.js slotAt).
+// free: the number of pads of a free puzzle tray (the whole quota over the board width: one row up to 3,
+// else two), 0 for the usual three slots (legacy render/helpers.js freeTray / slotBox / miniCell, game/drag.js slotAt).
 export const slotBox = (lay: Layout, i: number, free = 0): Box => {
   if (!free) return { x: lay.bx + lay.slotW * i, y: lay.ty, w: lay.slotW, h: lay.trayH };
   const cols = Math.max(3, Math.ceil(free / 2));
   const w = lay.board / cols;
-  const h = lay.trayH / 2;
+  const h = lay.trayH / (free > cols ? 2 : 1);
   return { x: lay.bx + w * (i % cols), y: lay.ty + h * Math.floor(i / cols), w, h };
 };
 export function slotCenter(lay: Layout, i: number, free = 0): [number, number] {
@@ -62,6 +62,14 @@ export function miniCell(lay: Layout, free = 0) {
   if (!free) return Math.min(lay.cell * 0.46, lay.slotW / 5.8);
   const b = slotBox(lay, 0, free);
   return Math.min(lay.cell * 0.4, b.w / 5.6, (b.h - 8) / 3.4);
+}
+// One tray piece's cell size: miniCell, smaller for a piece too tall for a free pad (its pieces turn,
+// a 4- or 5-long one can stand up in a half-height pad).
+export function trayCell(lay: Layout, free: number, piece: { w: number; h: number }) {
+  const m = miniCell(lay, free);
+  if (!free) return m;
+  const b = slotBox(lay, 0, free);
+  return Math.min(m, (b.h - 8) / (piece.h + 0.4), (b.w - 8) / (piece.w + 0.6));
 }
 
 // A piece is picked up only from its pad as drawn (plus a few px of slack), never from the gap

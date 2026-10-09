@@ -9,6 +9,7 @@ import { tr } from '../../core/i18n';
 import { sfx } from '../../audio/engine';
 import { haptic } from '../../platform/haptics';
 import { useGame } from '../../state/store';
+import { space } from '../../theme/tokens';
 import { useColors } from '../../theme/useColors';
 import { ChestIcon, LStar } from '../../ui/Stars';
 import { Text } from '../../ui/Text';
@@ -73,7 +74,7 @@ export function Chests({ w }: { w: string }) {
     setGot({ i, reward: res.reward });
   };
   return (
-    <View style={{ height: 62, marginHorizontal: 22, marginTop: 4, marginBottom: 14 }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+    <View style={{ height: 46, marginHorizontal: 22, marginTop: space.xs }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       <View style={{ position: 'absolute', left: 0, right: 0, top: 14, height: 8, borderRadius: 4, backgroundColor: colors.sunken, overflow: 'hidden' }}>
         <View style={{ width: `${pct(stars)}%`, height: '100%', borderRadius: 4, backgroundColor: '#ffb84d' }} />
       </View>

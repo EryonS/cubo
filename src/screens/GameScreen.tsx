@@ -36,7 +36,7 @@ import {
   bestOf, commit, discardPiece, enterRun, newRun, fireBonus, giveUpRun, hintPuzzle, liftPuzzlePiece, startPuzzle, startSurprise, liveRun, persistRun, quitRun, restartRun, rotateTray, restartCurrent,
   reviveRun, setAiming, setEndHandler, stepFlyers, syncBudget, tapCubo, tickRun, undoMove, useRunHud, type RunEnd,
 } from '../game/run';
-import { boardCellAt, computeLayout, invAt, miniCell, overTrash, slotAt, HUD_BTN, INV_TOP, type Layout } from '../render/layout';
+import { boardCellAt, computeLayout, invAt, overTrash, slotAt, trayCell, HUD_BTN, INV_TOP, type Layout } from '../render/layout';
 import { G } from '../render/g';
 import {
   drawAim, drawBanner, drawBoard, drawChrono, drawComboGlow, drawComboHang, drawFades, drawFlyers, drawFloaters, drawHint, drawHUD,
@@ -391,7 +391,7 @@ export function GameScreen() {
     haptic('pick');
     dragPicture.value = record(lay, typeface, (g) => drawPiece(g, th, piece, 0, 0, lay.cell), null, true);
     lift.value = l;
-    miniRatio.value = miniCell(lay, free) / lay.cell;
+    miniRatio.value = trayCell(lay, free, piece) / lay.cell;
     liftK.value = 0;
     liftK.value = withTiming(1, { duration: LIFT_MS, easing: Easing.out(Easing.cubic) });
   }, [lay, typeface, th, mascot, dragPicture, lift, miniRatio, liftK, offX, offY]);
@@ -521,8 +521,8 @@ export function GameScreen() {
     dirty.current = true;
   }, [setLevelCard]);
 
-  // Back to the Aventure screen, on a world (and its level sheet): the screen below the game, else in its place.
-  const toMap = (p: { world: string; level?: number }) => {
+  // Back to the Aventure screen, on a world: the screen below the game, else in its place.
+  const toMap = (p: { world: string }) => {
     persistRun();
     setLevelCard(null);
     if (nav.getState().routes.some((r) => r.name === 'Adventure')) nav.popTo('Adventure', p);
@@ -632,7 +632,7 @@ export function GameScreen() {
       <LegendSheet ref={legendRef} {...track('legend')} />
       {levelCard && (
         <LevelEndCard card={levelCard} lay={lay} onMap={(world) => toMap({ world })} onAgain={again} onRevived={() => { setLevelCard(null); dirty.current = true; }} onMenu={() => { setLevelCard(null); leave(); }}
-          onNext={([world, level]) => toMap(level === 1 && world !== levelCard.end.stage.world ? { world } : { world, level })}
+          onNext={([world]) => toMap({ world })}
           onEvent={toEvent} />
       )}
       {puzzleCard && (

@@ -65,6 +65,8 @@ function EventPath({ id, onPick }: { id: string; onPick: (n: number) => void }) 
         const open = M.eventLevelOpen(profile, id, day, n);
         const stars = M.eventStars(profile, id, day, n);
         const boss = n === 10;
+        // Only the next level wears the accent (test mode opens them all).
+        const hot = open && stars === undefined && (n === 1 || M.eventStars(profile, id, day, n - 1) !== undefined);
         const p = cell(n);
         const w = boss ? 54 : 48;
         return (
@@ -73,8 +75,8 @@ function EventPath({ id, onPick }: { id: string; onPick: (n: number) => void }) 
             style={({ pressed }) => ({ position: 'absolute', left: p.col * (cw + GAP), top: p.row * ROW_H, width: cw, alignItems: 'center', gap: 3, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
             <View style={{ width: w, height: 52 }}>
               <View style={{ position: 'absolute', top: 4, width: w, height: 48, borderRadius: boss ? 16 : 24, backgroundColor: 'rgba(0,0,0,0.15)' }} />
-              <View style={{ width: w, height: 48, borderRadius: boss ? 16 : 24, alignItems: 'center', justifyContent: 'center', borderWidth: 2, backgroundColor: !open || stars !== undefined ? colors.panel : colors.accent, borderColor: stars !== undefined ? colors.good : !open ? colors.hairline : 'transparent' }}>
-                {open ? <Text style={{ fontFamily: fonts.display, fontSize: 20, lineHeight: 26, color: stars !== undefined ? colors.text : colors.onAccent }}>{n}</Text>
+              <View style={{ width: w, height: 48, borderRadius: boss ? 16 : 24, alignItems: 'center', justifyContent: 'center', borderWidth: 2, backgroundColor: hot ? colors.accent : colors.panel, borderColor: stars !== undefined ? colors.good : !open ? colors.hairline : 'transparent' }}>
+                {open ? <Text style={{ fontFamily: fonts.display, fontSize: 20, lineHeight: 26, color: hot ? colors.onAccent : colors.text }}>{n}</Text>
                   : <Icon name="lock" size={18} color={colors.muted} />}
               </View>
             </View>
@@ -178,10 +180,6 @@ export function EventScreen() {
         <Text variant="muted" style={{ marginHorizontal: space.xs }}>
           {tr`Événement de saison jusqu’au ${eventDate(M.eventEnd(id, day))} : ${ev.levels} niveaux, ${ev.blurb}. Finis-les pour gagner le thème ${ev.name}, ${hatName(ev.hat).toLowerCase()} pour Cubo et le trophée ${year}. Tout repart à zéro l’an prochain.`}
         </Text>
-        {(going || next) ? (
-          <Button label={going ? tr`Continuer : ${eventLevelName(going)}` : next === ev.levels ? tr('Affronter le boss') : tr`Jouer le niveau ${next}`}
-            onPress={() => { sfx.turn(); if (going) nav.navigate('Game'); else open(next!); }} />
-        ) : null}
         {WD.WORLDS[id] && <Rules w={id} />}
         <View style={{ flexDirection: 'row', gap: space.s }}>
           <Reward label={tr`Thème ${ev.name}`} got={owned('boards', ev.theme) ? tr('Gagné') : undefined}>
@@ -195,6 +193,10 @@ export function EventScreen() {
           </Reward>
         </View>
         <EventPath id={id} onPick={open} />
+        {(going || next) ? (
+          <Button label={going ? tr`Continuer : ${eventLevelName(going)}` : next === ev.levels ? tr('Affronter le boss') : tr`Jouer le niveau ${next}`}
+            onPress={() => { sfx.turn(); if (going) nav.navigate('Game'); else open(next!); }} />
+        ) : null}
       <Sheet ref={sheetRef}>
         {n != null && <LevelSheet id={id} n={n} onClose={() => sheetRef.current?.dismiss()} onPlay={play} />}
       </Sheet>

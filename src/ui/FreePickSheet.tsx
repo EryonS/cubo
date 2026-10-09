@@ -1,5 +1,6 @@
 // Free-game picker (legacy #free): theme of the run, mode, difficulty and what the difficulty adds.
 // The theme is the run's own: it starts on the equipped one and does not change the app's.
+// With a free run parked, Reprendre comes first and Jouer becomes Nouvelle partie.
 import { forwardRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
@@ -48,7 +49,7 @@ function ThemePicker({ value, onChange }: { value: string; onChange: (id: string
   );
 }
 
-function Content({ onClose, onPlay, parked }: { onClose: () => void; onPlay: (theme: string) => void; parked: boolean }) {
+function Content({ onClose, onPlay, onResume }: { onClose: () => void; onPlay: (theme: string) => void; onResume?: () => void }) {
   const colors = useColors();
   const prefs = useGame((s) => s.saved.prefs);
   const owned = useGame((s) => s.profile.owned.boards);
@@ -63,6 +64,7 @@ function Content({ onClose, onPlay, parked }: { onClose: () => void; onPlay: (th
   return (
     <View style={{ gap: space.m }}>
       <SheetHeader title={tr('Partie libre')} onClose={onClose} />
+      {onResume && <Button label={tr('Reprendre')} onPress={onResume} />}
       {owned.length > 1 && <>
         <SectionLabel>{tr('Thème')}</SectionLabel>
         <ThemePicker value={board} onChange={(id) => { sfx.turn(); setBoard(id); }} />
@@ -86,17 +88,17 @@ function Content({ onClose, onPlay, parked }: { onClose: () => void; onPlay: (th
         </Text>
       </View>
       <Text variant="caption">{modeNote(prefs.mode)}</Text>
-      <Button label={parked ? tr('Nouvelle partie') : tr('Jouer')} onPress={() => onPlay(board)} />
+      <Button label={onResume ? tr('Nouvelle partie') : tr('Jouer')} kind={onResume ? 'secondary' : 'primary'} onPress={() => onPlay(board)} />
     </View>
   );
 }
 
-type Props = { onPlay: (theme: string) => void; parked: boolean };
-export const FreePickSheet = forwardRef<BottomSheetModal, Props>(function FreePickSheet({ onPlay, parked }, ref) {
+type Props = { onPlay: (theme: string) => void; onResume?: () => void };
+export const FreePickSheet = forwardRef<BottomSheetModal, Props>(function FreePickSheet({ onPlay, onResume }, ref) {
   const close = () => (ref as React.RefObject<BottomSheetModal>).current?.dismiss();
   return (
     <Sheet ref={ref}>
-      <Content onClose={close} onPlay={(theme) => { close(); onPlay(theme); }} parked={parked} />
+      <Content onClose={close} onPlay={(theme) => { close(); onPlay(theme); }} onResume={onResume && (() => { close(); onResume(); })} />
     </Sheet>
   );
 });

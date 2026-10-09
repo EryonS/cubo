@@ -3,7 +3,7 @@
  * A profile is a plain JSON object; every function returns a new one.
  */
 import * as I18N from './i18n';
-import { quotaOf } from './puzzles';
+import { ORDER as PUZZLE_ORDER, packIds, packOf, prevOf, quotaOf } from './puzzles';
 import type { RunStats } from './logic';
 import type { BonusType, DailyDay, Lifetime, Mission, ModeStats, Profile, SeasonProgress, SkinKind, Streak } from './types';
 
@@ -404,21 +404,22 @@ const worldPrimeRate = (world: string) => 1 + 0.25 * WORLD_ORDER.indexOf(world);
 const worldPrime = (world: string, score?: number) => (WORLD_ORDER.includes(world) ? Math.floor(((score || 0) / 200) * worldPrimeRate(world)) : 0);
 
 // ---------- Puzzles ----------
-// profile.puzzles: { [n]: stars 1..3 }. Puzzles open one after the other. First solve pays
+// profile.puzzles: { [n]: stars 1..3 }, by puzzle id. Puzzles open one after the other in the play order
+// (puzzles.ts ORDER: each pack's 10 first, then its 5 added ones); one solved stays open. First solve pays
 // PUZZLE_PER_PIECE per piece to place (6 for puzzle 1, 20 at the end), each new star PER_NEW_STAR,
 // a finished pack PUZZLE_PACK. Hints cost PUZZLE_HINT.
 const PUZZLE_PER_PIECE = 2;
 const PUZZLE_PACK = 10;
 const PUZZLE_HINT = 30;
-const PUZZLES_PER_PACK = 10;
 const puzzleFirst = (n: number) => PUZZLE_PER_PIECE * quotaOf(n);
 const puzzleStarsOf = (profile: Profile, n: number) => (profile.puzzles || {})[n];
-const puzzleOpen = (profile: Profile, n: number) => n === 1 || !!profile.dev || puzzleStarsOf(profile, n - 1) !== undefined;
-const puzzlesSolved = (profile: Profile) => Object.keys(profile.puzzles || {}).length;
-const packDone = (profile: Profile, pack: number) => {
-  for (let n = pack * PUZZLES_PER_PACK + 1; n <= (pack + 1) * PUZZLES_PER_PACK; n++) if (puzzleStarsOf(profile, n) === undefined) return false;
-  return true;
+const puzzleOpen = (profile: Profile, n: number) => {
+  if (n === PUZZLE_ORDER[0] || profile.dev || puzzleStarsOf(profile, n) !== undefined) return true;
+  const prev = prevOf(n);
+  return prev !== null && puzzleStarsOf(profile, prev) !== undefined;
 };
+const puzzlesSolved = (profile: Profile) => Object.keys(profile.puzzles || {}).length;
+const packDone = (profile: Profile, pack: number) => packIds(pack).every((n) => puzzleStarsOf(profile, n) !== undefined);
 // Hints taken on a numbered puzzle not solved yet stay in profile.puzzleHints (restart or leave: the run starts
 // with them, so the stars stay capped). Cleared when it gets solved; a puzzle solved before is replayed clean.
 const puzzleHintsOf = (profile: Profile, n: number) => (profile.puzzleHints || {})[n] || 0;
@@ -439,14 +440,13 @@ function applyPuzzle(prev: Profile, n: number, stars: number) {
     delete rest[n];
     p = { ...p, puzzleHints: rest };
   }
-  const pack = Math.floor((n - 1) / PUZZLES_PER_PACK);
-  if (before === undefined && packDone(p, pack)) earned.push({ label: tr('Pack terminé'), coins: PUZZLE_PACK });
+  if (before === undefined && packDone(p, packOf(n))) earned.push({ label: tr('Pack terminé'), coins: PUZZLE_PACK });
   const total = earned.reduce((a, l) => a + l.coins, 0);
   p = earn(p, total);
   return { profile: p, report: { earned, total } };
 }
 
-// Puzzle surprise: opens once pack Maître (puzzles 31-40) is done. profile.surprises counts the ones
+// Puzzle surprise: opens once pack Maître (its 15 puzzles) is done. profile.surprises counts the ones
 // solved (optional, absent = 0). The first SURPRISE_DAILY of a day pay SURPRISE_COINS each (hints
 // already cost theirs); the next ones pay nothing. profile.surpriseDay: { day, paid }.
 const SURPRISE_PACK = 3;

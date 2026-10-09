@@ -1,12 +1,16 @@
 // A world's rules (legacy .rules): what helps, what hurts, and its second obstacle from level 11.
+// RulesFold folds them into one row on the Aventure screen, so the levels sit higher.
 import { View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { LV, M, WD } from '../../core';
 import { tr } from '../../core/i18n';
 import { fonts } from '../../theme/fonts';
 import { radius, space } from '../../theme/tokens';
 import { raised } from '../../theme/elevation';
 import { useColors } from '../../theme/useColors';
+import { Icon } from '../../ui/Icon';
 import { KindIcon } from '../../ui/KindIcon';
+import { ListRow } from '../../ui/ListRow';
 import { Text } from '../../ui/Text';
 
 function Row({ sign, bg, children }: { sign: string; bg: string; children: React.ReactNode }) {
@@ -39,6 +43,28 @@ export function Rules({ w }: { w: string }) {
           </View>
         </View>
       )}
+    </View>
+  );
+}
+
+function Sign({ sign, bg }: { sign: string; bg: string }) {
+  return (
+    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: '#fff', fontSize: 16, lineHeight: 20 }}>{sign}</Text>
+    </View>
+  );
+}
+
+export function RulesFold({ w, open, onToggle }: { w: string; open: boolean; onToggle: () => void }) {
+  const colors = useColors();
+  const tw = WD.WORLDS[w].twist;
+  return (
+    <View style={{ gap: space.s }}>
+      <ListRow title={tr('Règles du monde')} sub={tw && LV.TWISTS[w] ? tr`Dès le niveau ${M.TRIAL_LEVEL + 1} : ${tw.name}` : undefined}
+        icon={<View style={{ flexDirection: 'row', gap: space.xxs }}><Sign sign="+" bg={colors.good} /><Sign sign="−" bg={colors.danger} /></View>}
+        right={<View style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }}><Icon name="chevDown" size={16} color={colors.muted} /></View>}
+        onPress={onToggle} role="button" state={{ expanded: open }} />
+      {open && <Animated.View entering={FadeIn.duration(180)}><Rules w={w} /></Animated.View>}
     </View>
   );
 }

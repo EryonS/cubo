@@ -140,16 +140,58 @@ test('puzzle progress: open in order, coins once, stars kept, pack bonus', () =>
   assert.equal(M.puzzleStarsOf(r.profile, 1), 2);
   r = M.applyPuzzle(p, 1, 3);
   assert.equal(r.report.total, 3);
-  for (let n = 2; n <= 9; n++) p = M.applyPuzzle(p, n, 1).profile;
-  r = M.applyPuzzle(p, 10, 3);
+  for (let n = 2; n <= 10; n++) p = M.applyPuzzle(p, n, 1).profile;
+  // the pack goes on with its added puzzles (ids 81-85) before pack 2 (id 11)
+  assert.ok(M.puzzleOpen(p, 81));
+  assert.equal(M.puzzleOpen(p, 11), false);
+  for (let n = 81; n <= 84; n++) p = M.applyPuzzle(p, n, 1).profile;
+  r = M.applyPuzzle(p, 85, 3);
   assert.deepEqual(r.report.earned.map((l) => l.label), ['Puzzle résolu', '3 nouvelles étoiles', 'Pack terminé']);
-  assert.equal(M.puzzlesSolved(r.profile), 10);
+  assert.equal(M.puzzlesSolved(r.profile), 15);
+  assert.ok(M.puzzleOpen(r.profile, 11));
+  // a puzzle solved before stays open
+  assert.ok(M.puzzleOpen({ ...M.createProfile('2026-10-01'), puzzles: { 30: 2 } }, 30));
 });
 
-test('packs 5-8: 80 puzzles, the first 60 keep their quotas', () => {
-  assert.equal(P.COUNT, 80);
+test('packs of 15: ids 1-80 first, then 5 added ones per pack, played in pack order', () => {
+  assert.equal(P.COUNT, 120);
+  assert.equal(P.PER_PACK, 15);
+  assert.deepEqual(P.packIds(0), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 81, 82, 83, 84, 85]);
+  assert.deepEqual(P.packIds(7).slice(10), [116, 117, 118, 119, 120]);
+  assert.deepEqual([...P.ORDER].sort((a, b) => a - b), Array.from({ length: P.COUNT }, (_, i) => i + 1));
+  assert.deepEqual([1, 10, 81, 85, 11, 120].map(P.rankOf), [1, 10, 11, 15, 16, 120]);
+  assert.deepEqual([P.nextOf(10), P.nextOf(85), P.prevOf(11), P.prevOf(1), P.nextOf(120)], [81, 11, 85, null, null]);
+  for (let n = 1; n <= P.COUNT; n++) assert.equal(P.puzzle(n).pack, P.packOf(n));
+  // an added puzzle takes the quota of its pack's 10th, Mythique alternates 9 and 10
+  assert.deepEqual([81, 85, 96, 106].map(P.quotaOf), [P.quotaOf(10), P.quotaOf(10), P.quotaOf(40), P.quotaOf(60)]);
+  for (let n = 111; n <= 115; n++) assert.ok(P.quotaOf(n) === 9 || P.quotaOf(n) === 10);
+  // no drawing twice among a pack's added puzzles
+  for (let k = 0; k < P.PACKS.length; k++) {
+    const names = P.packIds(k).slice(10).map((n) => P.puzzle(n).name);
+    assert.equal(new Set(names).size, names.length, P.PACKS[k].name);
+  }
+});
+
+test('puzzles 1-70 never change (stars are saved by id; Absolu 71-80 became empty drawings on 2026-10-09)', async () => {
+  const { createHash } = await import('node:crypto');
+  const all = JSON.stringify(Array.from({ length: 70 }, (_, i) => P.puzzle(i + 1)));
+  assert.equal(createHash('sha256').update(all).digest('hex').slice(0, 16), '5f23804bd9bd6174');
+});
+
+test('Absolu: an empty drawing, 11 or 12 pieces to place, solvable', () => {
+  for (const n of P.packIds(7)) {
+    const pz = P.puzzle(n);
+    assert.ok(P.isEmpty(n));
+    assert.equal(pz.fixed.length, 0, `puzzle ${n}`);
+    assert.equal(pz.pieces.length, P.quotaOf(n), `puzzle ${n} quota`);
+    assert.ok(pz.pieces.length === 11 || pz.pieces.length === 12);
+    assert.ok(solve(start(n)).puzzle.won, `puzzle ${n} solvable`);
+  }
+});
+
+test('packs 5-8: the first 60 keep their quotas', () => {
   assert.deepEqual([1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 40].map(P.quotaOf), [3, 3, 4, 4, 5, 5, 6, 6, 7, 8, 8]);
-  for (let n = 41; n <= 80; n++) assert.ok(P.quotaOf(n) >= 8 && P.quotaOf(n) <= 10);
+  for (let n = 41; n <= 70; n++) assert.ok(P.quotaOf(n) >= 8 && P.quotaOf(n) <= 10);
   assert.deepEqual([41, 50, 51, 60].map(P.quotaOf), [8, 9, 9, 10]);
 });
 
@@ -196,7 +238,7 @@ test('puzzle surprise: hints solve it; reward and unlock', () => {
   while (!st.over) st = L.puzzleHint(st).state;
   assert.ok(st.puzzle.won);
   const done = { puzzles: {} };
-  for (let n = 1; n <= 40; n++) done.puzzles[n] = 3;
+  for (let k = 0; k <= 3; k++) for (const n of P.packIds(k)) done.puzzles[n] = 3;
   assert.equal(M.surpriseOpen({ puzzles: { 1: 3 } }), false);
   assert.equal(M.surpriseOpen(done), true);
   const p = { coins: 0, lifetime: {}, ...done };
@@ -221,11 +263,12 @@ test('puzzle surprise: only the first ones of a day pay', () => {
 test('a puzzle pays by the pieces it has to place', () => {
   assert.equal(M.puzzleFirst(1), 3 * M.PUZZLE_PER_PIECE);
   assert.equal(M.puzzleFirst(60), 10 * M.PUZZLE_PER_PIECE);
-  assert.equal(M.puzzleFirst(80), 10 * M.PUZZLE_PER_PIECE);
+  assert.equal(M.puzzleFirst(80), 12 * M.PUZZLE_PER_PIECE);
 });
 
-test('hard puzzles 61-80: 2 or 3 pieces already placed, the rest to place, solvable', () => {
-  for (let n = P.HARD_FROM; n <= P.COUNT; n++) {
+test('hard puzzles (Mythique): 2 or 3 pieces already placed, the rest to place, solvable', () => {
+  for (const n of P.packIds(6)) {
+    assert.ok(P.isHard(n));
     const pz = P.puzzle(n);
     assert.ok(pz.fixed.length >= 2 && pz.fixed.length <= 3, `puzzle ${n}: ${pz.fixed.length} fixed`);
     assert.ok(pz.pieces.length >= 8 && pz.pieces.length <= 10, `puzzle ${n}: ${pz.pieces.length} pieces`);

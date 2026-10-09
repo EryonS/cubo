@@ -22,18 +22,19 @@ const pos = (n: number) => {
   return { row, col: row % 2 ? 4 - ((n - 1) % 5) : (n - 1) % 5 };
 };
 
-function Disc({ n, open, done, boss, trial }: { n: number; open: boolean; done: boolean; boss: boolean; trial: boolean }) {
+// hot: the next level to play, the only one on the accent (test mode opens them all).
+function Disc({ n, open, done, hot, boss, trial }: { n: number; open: boolean; done: boolean; hot: boolean; boss: boolean; trial: boolean }) {
   const colors = useColors();
   const r = boss ? 16 : trial ? 14 : 24;
   const w = boss ? 54 : 48;
-  const bg = !open || done ? colors.panel : colors.accent;
+  const bg = hot ? colors.accent : colors.panel;
   const ring = trial ? '#ffd166' : done ? colors.good : !open ? colors.hairline : 'transparent';
   return (
     <View style={{ width: w, height: 52 }}>
       <View style={{ position: 'absolute', top: 4, width: w, height: 48, borderRadius: r, backgroundColor: 'rgba(0,0,0,0.15)' }} />
       <View style={{ width: w, height: 48, borderRadius: r, backgroundColor: bg, borderWidth: trial ? 3 : 2, borderColor: ring, alignItems: 'center', justifyContent: 'center' }}>
         {open
-          ? <Text style={{ fontFamily: fonts.display, fontSize: 20, lineHeight: 26, color: done ? colors.text : colors.onAccent }}>{n}</Text>
+          ? <Text style={{ fontFamily: fonts.display, fontSize: 20, lineHeight: 26, color: hot ? colors.onAccent : colors.text }}>{n}</Text>
           : <Icon name="lock" size={18} color={colors.muted} />}
       </View>
     </View>
@@ -69,7 +70,7 @@ export function LevelPath({ w, locked, onPick }: { w: string; locked: boolean; o
             accessibilityLabel={levelName(n) + (trial || boss ? tr` (niveau ${n})` : '') + (open ? '' : tr(', verrouillé'))}
             onPress={() => { if (open) { sfx.turn(); onPick(n); } else { sfx.nope(); haptic('nope'); } }}
             style={({ pressed }) => ({ position: 'absolute', left: p.col * (cw + GAP), top: p.row * ROW_H, width: cw, alignItems: 'center', gap: 3, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
-            <Disc n={n} open={open} done={stars !== undefined} boss={boss} trial={trial} />
+            <Disc n={n} open={open} done={stars !== undefined} hot={open && stars === undefined && (n === 1 || M.levelCleared(profile, w, n - 1))} boss={boss} trial={trial} />
             {(boss || trial) && stars === undefined
               ? <Text variant="muted" style={{ fontSize: 12, marginTop: -2, textTransform: 'uppercase', letterSpacing: 0.6, lineHeight: 14 }}>{boss ? tr('Boss') : tr('Épreuve')}</Text>
               : <StarRow n={stars || 0} size={12} />}

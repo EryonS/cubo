@@ -19,7 +19,7 @@ type Props = {
   done?: boolean; // a green ring (a finished mission, a solved day)
   big?: boolean; // title one step up (headline instead of body)
   role?: AccessibilityRole;
-  state?: { checked?: boolean; selected?: boolean; disabled?: boolean };
+  state?: { checked?: boolean; selected?: boolean; disabled?: boolean; expanded?: boolean };
   label?: string;
   disabled?: boolean;
   quiet?: boolean;

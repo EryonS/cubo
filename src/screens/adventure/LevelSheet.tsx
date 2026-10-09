@@ -2,15 +2,12 @@
 import { forwardRef } from 'react';
 import { Pressable, View } from 'react-native';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LV, M, WD } from '../../core';
 import { tr } from '../../core/i18n';
 import { sfx } from '../../audio/engine';
 import { startLevel } from '../../game/run';
 import { levelName } from '../../state/progress';
 import { guardFree, inProgress, isFree } from '../../game/modes';
-import type { RootParams } from '../../navigation/types';
 import { useGame } from '../../state/store';
 import { radius, space } from '../../theme/tokens';
 import { useColors } from '../../theme/useColors';
@@ -36,9 +33,8 @@ function Opt({ label, price, on, disabled, onPress }: { label: string; price: Re
 
 const Price = ({ children }: { children: React.ReactNode }) => <Text variant="title" style={{ fontSize: 17, lineHeight: 22 }}>{children}</Text>;
 
-function Content({ w, n, onClose, onPlay }: { w: string; n: number; onClose: () => void; onPlay: () => void }) {
+function Content({ w, n, onClose, onPlay, onShop }: { w: string; n: number; onClose: () => void; onPlay: () => void; onShop: () => void }) {
   const colors = useColors();
-  const nav = useNavigation<NativeStackNavigationProp<RootParams>>();
   const profile = useGame((s) => s.profile);
   const stage = LV.level(w, n);
   if (!stage) return null;
@@ -78,7 +74,7 @@ function Content({ w, n, onClose, onPlay }: { w: string; n: number; onClose: () 
         <View style={{ marginTop: 14, marginBottom: 6 }}><StarRow n={best || 0} size={34} gap={6} /></View>
         {note(starRule)}
       </View>
-      <Opt label={tr('Acheter un bonus')} onPress={() => { sfx.turn(); onClose(); nav.navigate('Tabs', { screen: 'Shop', params: { tab: 'bonus' } }); }}
+      <Opt label={tr('Acheter un bonus')} onPress={() => { sfx.turn(); onClose(); onShop(); }}
         price={<Icon name="shop" size={20} color={colors.muted} />} />
       {canSkip && (
         <Opt label={tr('Passer le niveau (sans étoile)')} disabled={profile.coins < M.SKIP_COST} onPress={skip}
@@ -89,11 +85,11 @@ function Content({ w, n, onClose, onPlay }: { w: string; n: number; onClose: () 
   );
 }
 
-export const LevelSheet = forwardRef<BottomSheetModal, { pick: { w: string; n: number } | null; onGame: () => void }>(function LevelSheet({ pick, onGame }, ref) {
+export const LevelSheet = forwardRef<BottomSheetModal, { pick: { w: string; n: number } | null; onGame: () => void; onShop: () => void }>(function LevelSheet({ pick, onGame, onShop }, ref) {
   const close = () => (ref as React.RefObject<BottomSheetModal>).current?.dismiss();
   return (
     <Sheet ref={ref}>
-      {pick && <Content w={pick.w} n={pick.n} onClose={close} onPlay={async () => {
+      {pick && <Content w={pick.w} n={pick.n} onClose={close} onShop={onShop} onPlay={async () => {
         // Another level in progress is dropped (a free run is parked, not dropped), as on Défis.
         const { saved } = useGame.getState();
         if (inProgress(saved.state) && !isFree(saved.state) && !(await ask({ title: tr('Abandonner ?'), text: guardFree(saved.state, saved.parked).text, ok: tr('Abandonner'), danger: true }))) return;

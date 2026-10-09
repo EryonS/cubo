@@ -58,6 +58,9 @@ function Cell({ n, cw }: { n: number; cw: number }) {
   const open = M.puzzleOpen(profile, n);
   const stars = M.puzzleStarsOf(profile, n);
   const done = stars !== undefined;
+  // Only the next puzzle wears the accent (test mode opens them all).
+  const prev = PZ.prevOf(n);
+  const hot = open && !done && (prev === null || M.puzzleStarsOf(profile, prev) !== undefined);
   const go = () => {
     if (!open) { sfx.nope(); haptic('nope'); return; }
     sfx.turn();
@@ -65,13 +68,13 @@ function Cell({ n, cw }: { n: number; cw: number }) {
     nav.navigate('Game');
   };
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={tr`Puzzle ${n}` + (done ? ', ' + (PZ.puzzle(n)?.name ?? '') : '') + (open ? '' : tr(', verrouillé'))} onPress={go}
-      style={({ pressed }) => ({ width: cw, height: 72, borderRadius: radius.tile, backgroundColor: done || !open ? colors.panel : colors.accent, opacity: open ? 1 : 0.6,
+    <Pressable accessibilityRole="button" accessibilityLabel={tr`Puzzle ${PZ.rankOf(n)}` + (done ? ', ' + (PZ.puzzle(n)?.name ?? '') : '') + (open ? '' : tr(', verrouillé'))} onPress={go}
+      style={({ pressed }) => ({ width: cw, height: 72, borderRadius: radius.tile, backgroundColor: hot ? colors.accent : colors.panel, opacity: open ? 1 : 0.6,
         borderWidth: done ? 2 : 0, borderColor: colors.good, ...(open ? raised(colors, 'low') : null),
         alignItems: 'center', justifyContent: 'center', gap: space.xxs, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
       <View style={{ height: 32, alignItems: 'center', justifyContent: 'center' }}>
         {done ? <Thumb n={n} color={colors.accent} />
-          : open ? <Text variant="title" style={{ color: colors.onAccent }}>{n}</Text>
+          : open ? <Text variant="title" style={{ color: hot ? colors.onAccent : colors.text }}>{PZ.rankOf(n)}</Text>
             : <Icon name="lock" size={18} color={colors.muted} />}
       </View>
       <StarRow n={stars || 0} size={12} />
@@ -127,14 +130,14 @@ export function PuzzlesScreen() {
           <View key={p.index} style={{ gap: space.s }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.s, marginHorizontal: space.xs }}>
               <Text variant="title" accessibilityRole="header">{p.name}</Text>
-              <Text variant="caption">{tr`${p.solved} / ${PZ.PER_PACK} · ${p.quotas[0]} à ${p.quotas[1]} formes`}</Text>
+              <Text variant="caption">{tr`${p.solved} / ${PZ.PER_PACK} · ${p.quotas[0]} à ${p.quotas[1]} formes` + (p.empty ? tr(' · dessin vide') : '')}</Text>
             </View>
             {/* A pack not reached yet is a single line instead of ten padlocks. */}
             {!p.open ? (
               <ListRow title={p.gate ?? ''} icon={<Icon name="lock" size={18} color={colors.muted} />} />
             ) : width > 0 && (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: GAP }}>
-                {Array.from({ length: PZ.PER_PACK }, (_, i) => <Cell key={i} n={p.first + i} cw={cw} />)}
+                {p.ids.map((n) => <Cell key={n} n={n} cw={cw} />)}
               </View>
             )}
           </View>

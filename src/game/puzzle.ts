@@ -15,7 +15,8 @@ export const isVoid = (special: RunState['special'], i: number) => !!(special &&
 
 // Free tray / movable pieces (`free`) is not the same as a surprise: numbered puzzles are free too (n > 0, with stars and packs).
 export const isSurprise = (pz: { n: number }) => pz.n === 0;
-export const puzzleTitle = (pz: { n: number }) => (isSurprise(pz) ? tr('Puzzle surprise') : tr('Puzzle ') + pz.n);
+// A numbered puzzle reads as its place in the play order (PZ.rankOf), not its id.
+export const puzzleTitle = (pz: { n: number }) => (isSurprise(pz) ? tr('Puzzle surprise') : tr('Puzzle ') + PZ.rankOf(pz.n));
 // "Puzzle 12 · Maison" under the pause title and on the home hero.
 export const puzzleLabel = (pz: { n: number; name: string }) => `${puzzleTitle(pz)} · ${pz.name}`;
 export const puzzleInProgress = (st: RunState) => !!st.puzzle && inProgress(st);
@@ -27,21 +28,21 @@ export const puzzleTileSub = (profile: Profile, st: RunState) =>
 // The hint button: off when the run is over or the wallet is short (a tap then explains).
 export const hintDisabled = (st: RunState, coins: number) => st.mode !== 'puzzle' || st.over || coins < M.PUZZLE_HINT;
 
-export interface PackRow { index: number; name: string; solved: number; first: number; open: boolean; quotas: [number, number]; gate: string | null }
+export interface PackRow { index: number; name: string; solved: number; ids: number[]; open: boolean; quotas: [number, number]; empty: boolean; gate: string | null }
 // The packs of the list: how many are solved, the quota range, and what opens a pack not reached yet.
 export function packRows(profile: Profile): PackRow[] {
   return PZ.PACKS.map((pack, k) => {
-    const first = k * PZ.PER_PACK + 1;
-    let solved = 0;
-    for (let n = first; n < first + PZ.PER_PACK; n++) if (M.puzzleStarsOf(profile, n) !== undefined) solved += 1;
-    const open = M.puzzleOpen(profile, first);
-    return { index: k, name: pack.name, solved, first, open, quotas: [PZ.quotaOf(first), PZ.quotaOf(first + PZ.PER_PACK - 1)], gate: open ? null : tr`Finis le pack ${PZ.PACKS[k - 1].name} pour ouvrir ces ${PZ.PER_PACK} puzzles.` };
+    const ids = PZ.packIds(k);
+    const solved = ids.filter((n) => M.puzzleStarsOf(profile, n) !== undefined).length;
+    const open = M.puzzleOpen(profile, ids[0]);
+    const quotas = ids.map(PZ.quotaOf);
+    return { index: k, name: pack.name, solved, ids, open, quotas: [Math.min(...quotas), Math.max(...quotas)], empty: PZ.isEmpty(ids[0]), gate: open ? null : tr`Finis le pack ${PZ.PACKS[k - 1].name} pour ouvrir ces ${PZ.PER_PACK} puzzles.` };
   });
 }
 export const allStars = (profile: Profile) => Object.values(profile.puzzles || {}).reduce((a, b) => a + b, 0);
 
-// The puzzle after n, none after the last.
-export const nextPuzzle = (pz: { n: number }) => (!isSurprise(pz) && pz.n < PZ.COUNT ? pz.n + 1 : null);
+// The puzzle after n in the play order, none after the last.
+export const nextPuzzle = (pz: { n: number }) => (isSurprise(pz) ? null : PZ.nextOf(pz.n));
 
 // Surprise: grabbing a placed piece keeps the grabbed cell under the finger. Returns the offset from the
 // finger to the piece's center when it sits at its board spot, and the spot's top-left cell.

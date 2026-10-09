@@ -16,7 +16,7 @@ import { drawBoss, drawBossBar } from './boss';
 import { segRow, tracksBusy } from '../game/falls';
 import { drawSpecial } from './cells';
 import { drawIcon, drawMark, iconScale } from './icons';
-import { chronoBar, cellCenter, hintY, invBoxes, invCenter, miniCell, slotBox, slotCenter, trashBox, walletTarget, type InvBox, type Layout } from './layout';
+import { chronoBar, cellCenter, hintY, invBoxes, invCenter, miniCell, slotBox, slotCenter, trashBox, trayCell, walletTarget, type InvBox, type Layout } from './layout';
 import { blockSkin, isNeon } from './skins';
 import type { Theme } from './theme';
 import { hasClock, hasInventory, hintText, invView, ringEnding, ringFill, trashFill, trashLabel, trashView, type Stock } from '../game/hud';
@@ -251,7 +251,7 @@ export function drawReturning(g: G, th: Theme, lay: Layout, state: RunState, t: 
     const k = easeOut((t - p.t0) / 200);
     const free = freeTray(state);
     const [tx, ty] = slotCenter(lay, p.idx, free);
-    drawPiece(g, th, state.tray[p.idx]!, p.x + (tx - p.x) * k, p.y + (ty - p.y) * k, p.size + (miniCell(lay, free) - p.size) * k);
+    drawPiece(g, th, state.tray[p.idx]!, p.x + (tx - p.x) * k, p.y + (ty - p.y) * k, p.size + (trayCell(lay, free, state.tray[p.idx]!) - p.size) * k);
   }
 }
 
@@ -266,7 +266,6 @@ function drawTrayPad(g: G, th: Theme, x: number, y: number, w: number, h: number
 export function drawTray(g: G, th: Theme, lay: Layout, state: RunState, drag: DragState | null, t: number) {
   // Puzzle surprise: smaller pads on two rows, one per piece of the quota, and no "next" column.
   const free = freeTray(state);
-  const m = miniCell(lay, free);
   if (!free) drawNext(g, th, lay, state, t);
   const n = free || 3;
   const gap = free ? 3 : 6;
@@ -293,7 +292,7 @@ export function drawTray(g: G, th: Theme, lay: Layout, state: RunState, drag: Dr
     g.save();
     g.translate(cx + offset, cy);
     g.rotate(-spin * Math.PI / 2);
-    drawPiece(g, th, piece, 0, 0, m, fits ? 1 : 0.28);
+    drawPiece(g, th, piece, 0, 0, trayCell(lay, free, piece), fits ? 1 : 0.28);
     g.restore();
   }
 }

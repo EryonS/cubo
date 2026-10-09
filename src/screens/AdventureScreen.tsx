@@ -1,6 +1,6 @@
-// Aventure (legacy #adventure): a strip of worlds on top, the picked world below (rules, chests, 20 levels,
-// endless run). Swipe the world or use the arrows to change world; locked worlds show what opens them.
-// Route params: world = the world to open, level = also open that level's sheet (from the level end card).
+// Aventure (legacy #adventure): a strip of worlds on top, the picked world below (rules, chests, Jouer,
+// 20 levels). Swipe the world or use the arrows to change world; locked worlds show what opens them.
+// Route param: world = the world to open. Its level sheet only opens on a tap (a level or Jouer).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import Animated, { SlideInLeft, SlideInRight } from 'react-native-reanimated';
@@ -13,12 +13,12 @@ import { M, WD } from '../core';
 import { locale, tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
 import { lastOpenWorld } from '../game/levelend';
-import { startWorldRun } from '../game/run';
-import { guardFree } from '../game/modes';
+import { inProgress } from '../game/modes';
 import { haptic } from '../platform/haptics';
 import { boardTheme } from '../render/board-themes';
-import { nextAdventure } from '../state/progress';
+import { levelName, nextAdventure } from '../state/progress';
 import { useGame } from '../state/store';
+import type { Profile } from '../core/types';
 import type { RootParams } from '../navigation/types';
 import { fonts } from '../theme/fonts';
 import { radius, space, TOUCH } from '../theme/tokens';
@@ -26,22 +26,26 @@ import { raised } from '../theme/elevation';
 import { useColors } from '../theme/useColors';
 import { BoardPreview } from '../ui/BoardPreview';
 import { Counter } from '../ui/Counter';
-import { ask } from '../ui/dialog';
 import { ListRow } from '../ui/ListRow';
+import { Button } from '../ui/Button';
 import { ScreenHeader } from '../ui/ScreenHeader';
 import { Tap } from '../ui/Tap';
 import { Icon } from '../ui/Icon';
 import { Crown, LStar } from '../ui/Stars';
 import { Text } from '../ui/Text';
 import { Chests } from './adventure/Chests';
-import { Endless } from './adventure/Endless';
 import { LevelPath } from './adventure/LevelPath';
 import { LevelSheet } from './adventure/LevelSheet';
-import { Rules } from './adventure/Rules';
+import { RulesFold } from './adventure/Rules';
 
 const fmt = (n: number) => n.toLocaleString(locale());
 const WORLD_MAX = M.LEVELS_PER_WORLD * 3;
 const index = (w: string) => M.WORLD_ORDER.indexOf(w);
+// The world's first open level not cleared yet (the one "Jouer" opens); null once all are.
+const nextIn = (profile: Profile, w: string) => {
+  for (let n = 1; n <= M.LEVELS_PER_WORLD; n++) if (M.levelOpen(profile, w, n) && !M.levelCleared(profile, w, n)) return n;
+  return null;
+};
 
 function worldGateText(w: string) {
   const prev = M.WORLD_ORDER[index(w) - 1];
@@ -88,6 +92,7 @@ export function AdventureScreen() {
   const [w, setW] = useState(() => route.params?.world ?? nextAdventure(profile)?.[0] ?? lastOpenWorld(profile));
   const [dir, setDir] = useState(0);
   const [pick, setPick] = useState<{ w: string; n: number } | null>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const sheetRef = useRef<BottomSheetModal>(null);
   const strip = useRef<ScrollView>(null);
 
@@ -97,7 +102,6 @@ export function AdventureScreen() {
     if (!p?.world) return;
     setDir(0);
     setW(p.world);
-    if (p.level) { setPick({ w: p.world, n: p.level }); setTimeout(() => sheetRef.current?.present(), 250); }
   }, [route.params]);
 
   const go = useCallback((next: string) => {
@@ -116,13 +120,11 @@ export function AdventureScreen() {
 
   const open = M.worldOpen(profile, w);
   const rules = WD.WORLDS[w];
+  // This world's level in progress (Continuer), else its next level.
+  const going = useGame((s) => { const st = s.saved.state; return inProgress(st) && st.stage && !st.stage.daily && !st.stage.event && st.stage.world === w ? st.stage.n : 0; });
+  const next = open ? nextIn(profile, w) : null;
+  const openLevel = (n: number) => { setPick({ w, n }); sheetRef.current?.present(); };
   const i = index(w);
-  const onEndless = async () => {
-    const g = guardFree(useGame.getState().saved.state, useGame.getState().saved.parked);
-    if (g.needed && !(await ask({ title: tr('Abandonner ?'), text: g.text, ok: tr('Abandonner'), danger: true }))) return;
-    startWorldRun(w);
-    nav.navigate('Game');
-  };
   const Enter = dir > 0 ? SlideInRight : SlideInLeft;
 
   return (
@@ -136,7 +138,7 @@ export function AdventureScreen() {
           {M.WORLD_ORDER.map((id) => <WorldTile key={id} w={id} picked={id === w} onPick={() => { if (id !== w) { sfx.turn(); go(id); } }} />)}
         </ScrollView>
         <GestureDetector gesture={swipe}>
-          <Animated.View key={w} entering={dir ? Enter.duration(240) : undefined} style={{ paddingHorizontal: space.l, gap: space.m }}>
+          <Animated.View key={w} entering={dir ? Enter.duration(240) : undefined} style={{ paddingHorizontal: space.l, gap: space.l }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text variant="title" accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 26, textTransform: 'uppercase', letterSpacing: 0.5 }}>{rules.name}</Text>
@@ -147,14 +149,17 @@ export function AdventureScreen() {
               <SquareBtn icon="chevRight" label={tr('Monde suivant')} disabled={i === M.WORLD_ORDER.length - 1} onPress={() => step(1)} />
             </View>
             {!open && <ListRow title={worldGateText(w)} icon={<Icon name="lock" size={18} color={colors.muted} />} />}
-            <View style={{ opacity: open ? 1 : 0.55 }}><Rules w={w} /></View>
+            <View style={{ opacity: open ? 1 : 0.55 }}><RulesFold w={w} open={rulesOpen} onToggle={() => { sfx.turn(); setRulesOpen((o) => !o); }} /></View>
             {open && <Chests w={w} />}
-            <LevelPath w={w} locked={!open} onPick={(n) => { setPick({ w, n }); sheetRef.current?.present(); }} />
-            <Endless w={w} onPlay={onEndless} />
+            {(going || next) ? (
+              <Button label={going ? tr`Continuer : ${levelName(going)}` : next === M.LEVELS_PER_WORLD ? tr('Affronter le boss') : tr`Jouer le niveau ${next}`}
+                onPress={() => { sfx.turn(); if (going) nav.navigate('Game'); else openLevel(next!); }} />
+            ) : null}
+            <LevelPath w={w} locked={!open} onPick={openLevel} />
           </Animated.View>
         </GestureDetector>
       </ScrollView>
-      <LevelSheet ref={sheetRef} pick={pick} onGame={() => nav.navigate('Game')} />
+      <LevelSheet ref={sheetRef} pick={pick} onGame={() => nav.navigate('Game')} onShop={() => nav.navigate('Tabs', { screen: 'Shop', params: { tab: 'bonus' } })} />
     </SafeAreaView>
   );
 }

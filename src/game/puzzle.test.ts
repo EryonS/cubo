@@ -26,7 +26,7 @@ test('cells outside the drawing are void', () => {
 test('titles and the tile line', () => {
   const st = start(PZ.puzzle(3));
   assert.equal(puzzleLabel(st.puzzle!), `Puzzle 3 · ${st.puzzle!.name}`);
-  assert.equal(puzzleTileSub(p0, st), '0 / 80 résolus');
+  assert.equal(puzzleTileSub(p0, st), '0 / 120 résolus');
   assert.equal(puzzleTileSub(p0, { ...st, moves: 2 }), 'Puzzle 3 en cours');
   assert.equal(puzzleTileSub(p0, { ...start(PZ.surprise(1)), moves: 1 }), 'Puzzle surprise en cours');
 });
@@ -45,14 +45,17 @@ test('packs open one after the other', () => {
   assert.equal(rows[0].open, true);
   assert.equal(rows[1].open, false);
   assert.ok(rows[1].gate && rows[1].gate.includes(PZ.PACKS[0].name));
-  const done = { ...p0, puzzles: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [i + 1, 3])) };
-  assert.equal(packRows(done)[0].solved, 10);
+  const done = { ...p0, puzzles: Object.fromEntries(PZ.packIds(0).map((n) => [n, 3])) };
+  assert.equal(packRows(done)[0].solved, 15);
+  assert.deepEqual(packRows(done)[0].ids, PZ.packIds(0));
   assert.equal(packRows(done)[1].open, true);
-  assert.equal(allStars(done), 30);
+  assert.equal(allStars(done), 45);
 });
 
 test('next puzzle: none after the last or for a surprise', () => {
   assert.equal(nextPuzzle({ n: 5 }), 6);
+  assert.equal(nextPuzzle({ n: 10 }), 81);
+  assert.equal(nextPuzzle({ n: 85 }), 11);
   assert.equal(nextPuzzle({ n: PZ.COUNT }), null);
   assert.equal(nextPuzzle({ n: 0 }), null);
 });

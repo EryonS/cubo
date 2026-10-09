@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeLayout, slotBox, slotAt, slotCenter, boardCellAt, cellCenter, miniCell } from './layout';
+import { computeLayout, slotBox, slotAt, slotCenter, boardCellAt, cellCenter, miniCell, trayCell } from './layout';
 
 const phones = [
   { W: 402, H: 874, safeTop: 62 }, // iPhone 17 Pro
@@ -79,10 +79,19 @@ test('puzzle surprise tray: two rows of pads over the board width', () => {
       assert.equal(slotBox(lay, cols, n).x, first.x);
       assert.ok(slotBox(lay, n - 1, n).y + first.h <= lay.ty + lay.trayH + 1e-9, 'inside the tray');
       assert.ok(miniCell(lay, n) * 5 <= first.w && miniCell(lay, n) * 3 <= first.h, 'a 5-long piece stays inside its pad');
+      assert.ok(trayCell(lay, n, { w: 1, h: 5 }) * 5 <= first.h - 6 && trayCell(lay, n, { w: 5, h: 1 }) * 5 <= first.w - 8, 'a 5-long piece fits either way');
       for (let i = 0; i < n; i++) {
         const [cx, cy] = slotCenter(lay, i, n);
         assert.equal(slotAt(lay, cx, cy, n), i);
       }
+    }
+    // up to 3 pieces: one row, the tray's full height, and a turned 5-long piece still fits
+    for (const n of [2, 3]) {
+      const b = slotBox(lay, 0, n);
+      assert.equal(b.h, lay.trayH);
+      assert.equal(slotBox(lay, n - 1, n).y, b.y);
+      assert.equal(trayCell(lay, n, { w: 1, h: 5 }), miniCell(lay, n), 'no shrink on one row');
+      assert.ok(miniCell(lay, n) * 5 <= b.h - 6 && miniCell(lay, n) * 5 <= b.w - 8);
     }
     // a normal tray has three slots only
     const [cx, cy] = slotCenter(lay, 1);
