@@ -23,11 +23,11 @@
   <!-- ===================== Français ===================== -->
   <div lang="fr">
     <h1>Confidentialité</h1>
-    <p class="tagline" style="margin:0;max-width:none">Dernière mise à jour : 6 octobre 2026</p>
+    <p class="tagline" style="margin:0;max-width:none">Dernière mise à jour : 11 octobre 2026</p>
 
     <div class="card">
       <h2>En bref</h2>
-      <p>Cubo Blocks se joue sans compte. Ta progression reste sur ton téléphone. Aucune statistique d’usage n’est envoyée. Deux choses passent par des services tiers, et seulement si tu les utilises : les publicités récompensées (Google AdMob) et la sauvegarde en ligne (Google Firebase).</p>
+      <p>Cubo Blocks se joue sans compte. Ta progression reste sur ton téléphone. Aucune statistique d’usage n’est envoyée. Trois choses passent par des services tiers, et seulement si tu les utilises : les publicités récompensées (Google AdMob), la sauvegarde en ligne et la communauté (pseudo, amis, classements), toutes deux via Google Firebase.</p>
     </div>
 
     <div class="card">
@@ -48,12 +48,26 @@
     <div class="card">
       <h2>Sauvegarde en ligne (facultative)</h2>
       <p>Si tu te connectes avec ton compte Google ou Apple, ta progression est copiée en ligne pour la retrouver sur un autre appareil. Elle est stockée dans Google Firebase (Authentication et Cloud Firestore) : un identifiant de compte, l’adresse e-mail de ton compte Google ou Apple (si Apple la partage), ta progression, tes réglages, tes records, ta langue et la date de la dernière sauvegarde. Seul ton compte peut lire ou modifier ces données.</p>
-      <p>Tu peux tout effacer à tout moment dans Profil &gt; Paramètres, « Supprimer mon compte » : ta sauvegarde en ligne et ton compte de jeu sont supprimés. Sans connexion, rien n’est envoyé.</p>
+      <p>Tu peux tout effacer à tout moment dans Profil &gt; Paramètres, « Supprimer mon compte » : ta sauvegarde en ligne et ton compte de jeu sont supprimés. Sans connexion, rien n’est envoyé. Si tu as utilisé la communauté, la suppression efface aussi les données décrites ci-dessous.</p>
+    </div>
+
+    <div class="card">
+      <h2>Communauté : pseudo, amis et classements (facultatif)</h2>
+      <p>Si tu te connectes et que tu choisis un pseudo (Profil &gt; Communauté), Cubo Blocks enregistre dans Google Firebase (Cloud Firestore), en plus de ton identifiant de compte :</p>
+      <ul>
+        <li>ton <strong>pseudo</strong>, ton <strong>code ami</strong> et l’apparence de ton Cubo (thème et accessoire équipés) ;</li>
+        <li>ta <strong>liste d’amis</strong> (les identifiants des joueurs que tu as ajoutés) ;</li>
+        <li>tes <strong>scores de la semaine</strong>, ton meilleur score Classique et ta <strong>ligue</strong> ;</li>
+        <li>les <strong>signalements</strong> que tu envoies : ton identifiant, celui du joueur signalé, son pseudo tel qu’il s’affichait, le motif et la date.</li>
+      </ul>
+      <p><strong>Pourquoi :</strong> faire fonctionner les amis, les classements et les ligues. <strong>Qui les voit :</strong> les autres joueurs connectés voient ton pseudo, l’apparence de ton Cubo, tes scores de la semaine et ta ligue. Ton adresse e-mail n’est jamais montrée. Il n’y a pas de messagerie : les pseudos sont le seul texte libre.</p>
+      <p><strong>Modération :</strong> chaque pseudo affiché peut être signalé ou bloqué depuis l’application. Le développeur examine les signalements et peut masquer un pseudo ou retirer un joueur. Les signalements ne sont lus que par le développeur.</p>
+      <p><strong>Durée de conservation :</strong> les scores de chaque semaine sont conservés tant que ton compte existe. Quand tu supprimes ton compte (Profil &gt; Paramètres, « Supprimer mon compte »), on supprime ton pseudo, ton code ami, ta liste d’amis (et ton nom dans la liste de tes amis), tes scores hebdomadaires et ta ligue. Les signalements que tu as envoyés sont conservés (ils protègent les autres joueurs) ; ils ne contiennent que des identifiants et un pseudo, sans adresse e-mail.</p>
     </div>
 
     <div class="card">
       <h2>Enfants</h2>
-      <p>Cubo Blocks ne demande ni nom ni âge. Une adresse e-mail n’est connue que si tu te connectes pour la sauvegarde en ligne. L’application ne contient pas de messagerie ni d’achats intégrés.</p>
+      <p>Cubo Blocks ne demande ni nom ni âge. Une adresse e-mail n’est connue que si tu te connectes pour la sauvegarde en ligne. L’application ne contient ni messagerie ni achats intégrés ; la communauté se limite à des pseudos choisis par les joueurs, filtrés, signalables et bloquables. Les fonctions communautaires demandent de se connecter.</p>
     </div>
 
     <div class="card">
@@ -65,11 +79,11 @@
   <!-- ===================== English ===================== -->
   <div lang="en">
     <h1>Privacy</h1>
-    <p class="tagline" style="margin:0;max-width:none">Last updated: October 6, 2026</p>
+    <p class="tagline" style="margin:0;max-width:none">Last updated: October 11, 2026</p>
 
     <div class="card">
       <h2>In short</h2>
-      <p>Cubo Blocks is played without an account. Your progress stays on your phone. No usage analytics are sent. Two things go through third-party services, and only if you use them: rewarded ads (Google AdMob) and the online save (Google Firebase).</p>
+      <p>Cubo Blocks is played without an account. Your progress stays on your phone. No usage analytics are sent. Three things go through third-party services, and only if you use them: rewarded ads (Google AdMob), the online save and the community (pseudo, friends, rankings), both through Google Firebase.</p>
     </div>
 
     <div class="card">
@@ -90,12 +104,26 @@
     <div class="card">
       <h2>Online save (optional)</h2>
       <p>If you sign in with your Google or Apple account, your progress is copied online so you can get it back on another device. It is stored in Google Firebase (Authentication and Cloud Firestore): an account identifier, the email address of your Google or Apple account (if Apple shares it), your progress, settings, best scores, language and the time of the last save. Only your account can read or change this data.</p>
-      <p>You can erase everything at any time in Profile &gt; Settings, “Delete my account”: your online save and your game account are deleted. Without signing in, nothing is sent.</p>
+      <p>You can erase everything at any time in Profile &gt; Settings, “Delete my account”: your online save and your game account are deleted. Without signing in, nothing is sent. If you used the community, deletion also erases the data described below.</p>
+    </div>
+
+    <div class="card">
+      <h2>Community: pseudo, friends and rankings (optional)</h2>
+      <p>If you sign in and pick a pseudo (Profile &gt; Community), Cubo Blocks stores in Google Firebase (Cloud Firestore), besides your account identifier:</p>
+      <ul>
+        <li>your <strong>pseudo</strong>, your <strong>friend code</strong> and your Cubo’s look (equipped theme and accessory);</li>
+        <li>your <strong>friends list</strong> (the identifiers of the players you added);</li>
+        <li>your <strong>weekly scores</strong>, your best Classic score and your <strong>league</strong>;</li>
+        <li>the <strong>reports</strong> you send: your identifier, the reported player’s identifier, the pseudo as it was shown, the reason and the date.</li>
+      </ul>
+      <p><strong>Why:</strong> to run friends, rankings and leagues. <strong>Who sees it:</strong> other signed-in players see your pseudo, your Cubo’s look, your weekly scores and your league. Your email address is never shown. There is no chat: pseudos are the only free text.</p>
+      <p><strong>Moderation:</strong> every pseudo shown can be reported or blocked from the app. The developer reviews reports and may hide a pseudo or remove a player. Reports are read only by the developer.</p>
+      <p><strong>Retention:</strong> each week’s scores are kept as long as your account exists. When you delete your account (Profile &gt; Settings, “Delete my account”), your pseudo, friend code, friends list (and your entry in your friends’ lists), weekly scores and league are deleted. Reports you sent are kept (they protect other players); they hold only identifiers and a pseudo, no email address.</p>
     </div>
 
     <div class="card">
       <h2>Children</h2>
-      <p>Cubo Blocks asks for no name or age. An email address is only known if you sign in for the online save. The app has no chat and no in-app purchases.</p>
+      <p>Cubo Blocks asks for no name or age. An email address is only known if you sign in for the online save. The app has no chat and no in-app purchases; the community is limited to player-chosen pseudos, which are filtered, reportable and blockable. Community features require signing in.</p>
     </div>
 
     <div class="card">

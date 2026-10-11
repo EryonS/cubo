@@ -84,7 +84,7 @@ Un thème pour chaque monde et chaque saison (Noël, Halloween, Pâques, la plag
 
 PENSÉ POUR TOUT LE MONDE
 - Jouable hors ligne.
-- Pas de compte nécessaire. Sauvegarde en ligne facultative avec Apple ou Google pour retrouver ta progression sur un autre appareil.
+- Pas de compte nécessaire. Connexion facultative avec Apple ou Google : sauvegarde en ligne, pseudo, amis et classements entre amis.
 - Pas d'achats intégrés. Les publicités ne passent que si tu choisis d'en regarder une pour une récompense.
 - Une marque sur chaque couleur de bloc pour les joueurs daltoniens.
 ```
@@ -115,7 +115,7 @@ A theme for every world and every season (Christmas, Halloween, Easter, the beac
 
 MADE FOR EVERYONE
 - Plays offline.
-- No account needed. Optional online save with Apple or Google to get your progress back on another device.
+- No account needed. Optional sign-in with Apple or Google: online save, pseudo, friends and friends rankings.
 - No in-app purchases. Ads only play when you choose to watch one for a reward.
 - A mark on every block color for color-blind players.
 ```
@@ -137,16 +137,27 @@ Ordre : 1-cozy-puzzle, 2-combos, 3-worlds, 4-themes, 5-daily-challenge.
 
 ### Informations pour la vérification (App Review)
 
-- Connexion requise : **non** (pas de compte de démonstration)
+- Connexion requise : **oui pour la partie communauté** (pseudo, amis, classements), non pour le reste du jeu. Fournir un compte de test (voir les notes) : `TEST_EMAIL_PLACEHOLDER` / `TEST_PASSWORD_PLACEHOLDER` (compte Google dédié, créer aussi un second compte d'ami pour tester amis et signalement ; code ami du second compte : `TEST_FRIEND_CODE_PLACEHOLDER`)
 - Contact : prénom, nom, téléphone, contact@slapps.dev
 
 Notes (en anglais, pour l'équipe de vérification) :
 ```
-Cubo Blocks is a single-player block puzzle. No account is needed to play.
+Cubo Blocks is a block puzzle. No account is needed to play. Signing in (Apple or Google) is optional: it saves progress online and unlocks the community features (pseudo, friends by code, weekly rankings and leagues).
 
-Sign-in (Apple or Google) is optional and only used to save progress online. It is in Profile > Settings. The account and its online save can be deleted in Profile > Settings > "Delete my account".
+Sign-in is in Profile > Settings. It is in Profile > Settings. The account and its online save can be deleted in Profile > Settings > "Delete my account".
 
 Ads are rewarded only: they play when the player taps a "Watch an ad" button (for example to double a game's coins). The App Tracking Transparency prompt (and Google's consent form in the EEA/UK/Switzerland) appears right before the first ad. Ad privacy choices can be changed in Profile > Settings > "Ad privacy".
+
+COMMUNITY AND USER-GENERATED CONTENT (guideline 1.2)
+The only user-generated content is the player's pseudo (3-16 characters: letters, digits, space, - and _). There is no chat, no free text between players and no images. Players see each other's pseudo, Cubo avatar (chosen from in-app items), weekly score and league in friends lists and rankings.
+- Filter: pseudos are checked against a French and English blocklist before they are saved (accents, leetspeak and repeated letters are normalized), and the server rules enforce length and allowed characters.
+- Report: on every line showing another player (Défis > Classement, league and friends boards; Profil > Communauté, friends list), tap the line, then "Signaler ce pseudo" and pick a reason (Insulting, Inappropriate, Other). A toast confirms it.
+- Block: same menu, "Bloquer ce joueur". A blocked player disappears from friends lists and friends rankings, can no longer add the player, and shows as "Joueur masqué" in league rankings.
+- Action on reports: reports are written to a private Firestore collection that only the developer can read. The developer reviews them and can hide an offending pseudo (the player is shown as "Joueur" to everyone and must choose a new pseudo before using the community again) or remove the player. Contact: contact@slapps.dev.
+- Account deletion: Profile > Settings > "Delete my account" deletes the account, the online save and all community data (pseudo, friend code, friends links, weekly scores).
+
+TEST ACCOUNT (needed for the community features)
+Sign in with Google using: TEST_EMAIL_PLACEHOLDER / TEST_PASSWORD_PLACEHOLDER. Then Profile > Communauté: pick a pseudo, add the friend code TEST_FRIEND_CODE_PLACEHOLDER (a second test account) to see the friends list and ranking. Play a Classic game to join a league (Défis tab). Tap a row in Défis > Classement to see Report and Block.
 
 The app has no in-app purchases. The UI is in French and English (device language).
 ```
@@ -158,8 +169,9 @@ Collecte de données : **Oui**.
 | Type de donnée | Finalités | Liée à l'identité | Suivi (tracking) | Source |
 |---|---|---|---|---|
 | Coordonnées > Adresse e-mail | Fonctionnalité de l'app | Oui | Non | Firebase (sauvegarde en ligne) |
-| Identifiants > Identifiant utilisateur | Fonctionnalité de l'app | Oui | Non | Firebase |
-| Contenu utilisateur > Contenu de jeu | Fonctionnalité de l'app | Oui | Non | Firebase |
+| Identifiants > Identifiant utilisateur | Fonctionnalité de l'app | Oui | Non | Firebase (compte, pseudo, code ami, amis, signalements) |
+| Contenu utilisateur > Contenu de jeu | Fonctionnalité de l'app | Oui | Non | Firebase (sauvegarde, scores hebdomadaires, ligue) |
+| Contenu utilisateur > Autre contenu utilisateur | Fonctionnalité de l'app | Oui | Non | Firebase (pseudo, apparence de Cubo, liste d'amis, signalements envoyés) |
 | Identifiants > Identifiant de l'appareil | Publicité tierce, Analyse | Oui | Oui | AdMob (IDFA si ATT accepté) |
 | Données d'utilisation > Données publicitaires | Publicité tierce, Analyse | Oui | Oui | AdMob |
 | Données d'utilisation > Interactions avec le produit | Publicité tierce, Analyse | Oui | Oui | AdMob |
@@ -169,6 +181,7 @@ Collecte de données : **Oui**.
 | Diagnostics > Autres données de diagnostic | Analyse | Non | Non | AdMob |
 
 Référence AdMob : https://developers.google.com/admob/ios/privacy/data-disclosure
+Les types « Identifiant utilisateur », « Contenu de jeu » et « Autre contenu utilisateur » sont liés à l'utilisateur, jamais utilisés pour le suivi. Aucune donnée n'est collectée sans connexion. Suppression : dans l'app (Paramètres > Supprimer mon compte), les signalements envoyés restent (identifiants + pseudo, sans e-mail).
 À garder en accord avec `site/privacy.html` et `privacyManifests` dans `app.config.ts`.
 
 ## Classification par âge
@@ -177,13 +190,13 @@ Référence AdMob : https://developers.google.com/admob/ios/privacy/data-disclos
 |---|---|
 | Contrôles parentaux / vérification de l'âge | Non |
 | Accès Web sans restriction | Non |
-| Contenu généré par les utilisateurs | Non |
-| Messagerie et chat | Non |
+| Contenu généré par les utilisateurs | **Oui** : pseudos uniquement, pas de chat ni d'images. Modération : filtre, signalement, blocage, le développeur traite les signalements |
+| Messagerie et chat | Non (pas de communication libre entre joueurs) |
 | Publicités | **Oui** |
 | Thèmes pour adultes, médical, sexualité, nudité, violence, langage, drogues, alcool, tabac | Aucun |
 | Jeux de hasard simulés, loot boxes, concours | Non (les coffres donnent des récompenses fixes) |
 
-Résultat attendu : **4+**. Ne pas cocher « Conçu pour les enfants ».
+Résultat attendu : **4+** (à vérifier : avec « contenu généré par les utilisateurs » Apple peut proposer 12+ ; si c'est le cas, l'accepter plutôt que de retirer la communauté). Ne pas cocher « Conçu pour les enfants ».
 
 ## Divers
 

@@ -70,7 +70,7 @@ offline and without an account as today.
 - Blocklist check on the client and a simple regex in the rules (length, characters).
 - Long-press / "…" on a ranking row: **Signaler ce pseudo** (writes `reports/`), **Bloquer** (local hide list in
   the profile, removes the friendship if any).
-- Owner side: Firebase console, set `hidden: true` on a player → their rows show « Joueur » and they are asked to
+- Owner side: Firebase console, set `hidden: "<the offending pseudo>"` (a string) on a player → their rows show « Joueur » and they are asked to
   pick a new pseudo. A short `docs/` runbook.
 - App Store review notes mention the report / block flow.
 
@@ -93,7 +93,7 @@ offline and without an account as today.
 2. **Done (2026-10-11)**: Friends: add by code, inbox sync, list, remove, block, share code. See [features/social.md](../../features/social.md).
 3. Weekly score push + friends ranking (week total, all-time best). **Done** (see `docs/features/social.md`).
 4. **Done (2026-10-11)**: Leagues: groups, ranking screen, end-of-week claim, rewards, result sheet. Group pointer is `weeks/{week}/leagues/{tier}` `{ open, size }` and the group is the `group` field of the score docs (not a `groups/` collection). Ties at a cut: all up / all stay. See [features/social.md](../../features/social.md).
-5. Moderation (report, hidden), privacy / store updates, account deletion.
+5. **Done (2026-10-11)**: Moderation (report, block, `hidden` as the offending pseudo string, forced rename), privacy / store copy, complete account deletion. See [features/social.md](../../features/social.md) and [moderation.md](../../moderation.md).
 Pure rules (week id, league moves, rewards, pseudo validation, ranking with ties) in `src/core/social.ts`
 with tests; Firebase calls in `src/platform/social.ts`; app glue in `src/game/social.ts`.
 
