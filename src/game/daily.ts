@@ -57,14 +57,6 @@ export const weekdayNames = () => Array.from({ length: 7 }, (_, i) => new Date(2
 // ---------- texts ----------
 export const budgetText = (stage: { clock?: number; maxMoves?: number }) => (stage.clock ? `${Math.round(stage.clock / 1000)} s` : tr`${stage.maxMoves} coups`);
 
-// Share text after a win: "Cubo Blocks #31 · Forêt · 3 étoiles · 12 coups en rab".
-export function shareText(day: string, worldName: string, stars: number, movesLeft: number): string {
-  return [
-    `Cubo Blocks #${LV.dayNumber(day)}`, worldName, tr`${stars} étoile${stars > 1 ? 's' : ''}`,
-    ...(movesLeft > 0 ? [tr`${movesLeft} coups en rab`] : []),
-  ].join(' · ');
-}
-
 // Pause sheet subtitle: the level (or the mode) the run is in, as legacy runLabel.
 const eventLevelName = (n: number) => (M.eventBossAt(n) === 'final' ? tr('Boss') : M.eventBossAt(n) === 'mid' ? tr('Mini-boss') : tr('Niveau ') + n);
 export function runLabel(st: RunState): string {

@@ -43,6 +43,9 @@ function useFace(mod: number): SkTypeface | null {
 export const useBaloo = () => useFace(BALOO);
 export const usePixel = () => useFace(PIXEL);
 
+// Both faces, for drawing off screen (the share picture).
+export const loadFonts = () => Promise.all([load(BALOO), load(PIXEL)]);
+
 // At launch, so the first canvases already have their fonts.
 export function preloadFonts() {
   load(BALOO);

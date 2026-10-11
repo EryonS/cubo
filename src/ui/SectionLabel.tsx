@@ -1,6 +1,7 @@
 // The small uppercase label over a group of rows ("SON", "MISSIONS DU JOUR"), and Section: that label over its
 // block (a Group, a Card), as on Paramètres. `info` adds a small "i" next to the label that explains the block in a
 // dialog: keep it for what a player cannot guess (how a trophy is won, what a streak gives), not on every section.
+// `note` is a short line under the label, read without a tap (the Boutique's sections).
 import type { ReactNode } from 'react';
 import { View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { tr } from '../core/i18n';
@@ -33,15 +34,18 @@ export function InfoButton({ title, text, color }: { title: string; text: string
   );
 }
 
-export function Section({ title, info, right, children, style }: { title: string; info?: string; right?: ReactNode; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+export function Section({ title, info, note, right, children, style }: { title: string; info?: string; note?: string; right?: ReactNode; children: ReactNode; style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[{ gap: space.s }, style]}>
-      {right ? (
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: space.m }}>
-          <SectionLabel info={info}>{title}</SectionLabel>
-          {right}
-        </View>
-      ) : <SectionLabel info={info}>{title}</SectionLabel>}
+      <View>
+        {right ? (
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: space.m }}>
+            <SectionLabel info={info}>{title}</SectionLabel>
+            {right}
+          </View>
+        ) : <SectionLabel info={info}>{title}</SectionLabel>}
+        {note ? <Text variant="caption" style={{ marginHorizontal: space.xs, marginTop: space.xxs }}>{note}</Text> : null}
+      </View>
       {children}
     </View>
   );

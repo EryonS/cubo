@@ -3,7 +3,7 @@
 // then Carte / Rejouer or Réessayer / Suivant. The hook registers the level-end handler of the game
 // screen and settles the level (stars, rewards, one recorded fail per start) before the card shows.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Share, View } from 'react-native';
+import { View } from 'react-native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
 import { M, LV, WD } from '../core';
 import { locale, tr } from '../core/i18n';
@@ -11,7 +11,8 @@ import type { Earned } from '../core/meta';
 import { sfx } from '../audio/engine';
 import { eventLevelName, hatName, settleEvent, trophyIn, type EventPay } from '../game/events';
 import { freshFlags, levelMood, nextLevelOf, settleLevel, type LevelReport } from '../game/levelend';
-import { shareText, dailyWord } from '../game/daily';
+import { dailyWord } from '../game/daily';
+import { dailyShareCard, wardrobe } from '../game/share';
 import { buyExtraMoves, setLevelEndHandler, startId, type LevelEnd } from '../game/run';
 import { cuboLookFor } from '../mascot/looks';
 import { haptic } from '../platform/haptics';
@@ -20,15 +21,16 @@ import { today } from '../state/persist';
 import { fonts } from '../theme/fonts';
 import { levelName } from '../state/progress';
 import { useGame } from '../state/store';
-import { radius, space } from '../theme/tokens';
+import { space } from '../theme/tokens';
 import { useColors, usePlayedTheme } from '../theme/useColors';
 import { Button } from '../ui/Button';
 import { CuboPose } from '../ui/CuboPose';
 import { StarRow } from '../ui/Stars';
 import { ListRow } from '../ui/ListRow';
+import { ShareButton } from '../ui/ShareButton';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
-import { Flame, Icon } from '../ui/Icon';
+import { Flame } from '../ui/Icon';
 import { DailyRefill } from '../ui/DailyRefill';
 import { CoinLines, CoinTotal, EndActions, EndShell, plus, Unlock } from '../ui/EndCard';
 
@@ -138,12 +140,6 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
   const day = stage.daily;
   const left = day ? M.dailyAttemptsLeft(profile, day, today()) : 0;
   const streak = report?.streak;
-  const [shared, setShared] = useState<string | null>(null);
-  const share = async () => {
-    if (!day) return;
-    sfx.turn();
-    try { await Share.share({ message: shareText(day, WD.WORLDS[w].name, stage.stars, stage.movesLeft) }); } catch { setShared(tr('Partage impossible ici')); setTimeout(() => setShared(null), 1800); }
-  };
 
   const goal = (label: string, onPress: () => void, kind?: 'ghost') => <Button kind={kind} label={label} onPress={onPress} style={{ flex: 1, paddingHorizontal: space.xs }} />;
   return (
@@ -180,6 +176,7 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
           <Text style={{ fontFamily: fonts.display }}>{tr`Série : ${streak.count} jour${streak.count > 1 ? 's' : ''}`}</Text>
         </View>
       )}
+      {day && won && <ShareButton card={() => dailyShareCard(end.state, stage, day, today(), streak?.count ?? 0, wardrobe())} style={{ marginTop: space.m }} />}
       {report?.unlocked && <Unlock>{tr('Skin de blocs « Or » débloqué ! Équipe-le dans la Boutique, onglet Blocs.')}</Unlock>}
       {ev && eventPay?.unlocked.map((u) => (
         <Unlock key={u.kind + u.id}>{u.kind === 'boards' ? tr`Thème « ${ev.name} » débloqué !` : tr`${hatName(ev.hat)} pour Cubo !`}</Unlock>
@@ -207,12 +204,6 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
         <Opt label={tr`+${M.EXTRA_MOVES} coups pour finir (1 étoile max)`} disabled={profile.coins < moreCost} onPress={more}>
           <Text variant="headline">{moreCost}</Text><Coin size={16} />
         </Opt>
-      )}
-      {day && won && (
-        <Pressable accessibilityRole="button" onPress={share} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.m, paddingVertical: space.xs + 2, paddingHorizontal: space.m, borderRadius: radius.pill, backgroundColor: colors.panel2, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
-          <Icon name="share" size={16} color={colors.text} />
-          <Text style={{ fontSize: 14 }}>{shared || tr('Partager le résumé')}</Text>
-        </Pressable>
       )}
     </EndShell>
   );

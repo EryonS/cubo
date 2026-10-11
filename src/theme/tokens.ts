@@ -46,6 +46,6 @@ export const typeScale = {
   muted: { fontFamily: fonts.semibold, fontSize: 14, lh: 1.3, tone: 'muted' },
   caption: { fontFamily: fonts.semibold, fontSize: 12, lh: 1.3, tone: 'muted' },
   label: { fontFamily: fonts.bold, fontSize: 12, lh: 1.3, textTransform: 'uppercase', letterSpacing: 0.8, tone: 'muted' },
-  big: { fontFamily: fonts.display, fontSize: 40, lh: 1.1, tone: 'accent' },
+  big: { fontFamily: fonts.display, fontSize: 40, lh: 1.25, tone: 'accent' },
 } as const;
 export type TypeVariant = keyof typeof typeScale;

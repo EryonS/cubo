@@ -488,8 +488,17 @@ const UPGRADE_PRICES: Record<BonusType, number[]> = {
   reroll: [200, 500],
 };
 const upgradeLevel = (profile: Profile, type: BonusType) => (profile.upgrades && profile.upgrades[type]) || 1;
-// Price of the next level, or null at the top.
-const upgradePrice = (profile: Profile, type: BonusType) => (UPGRADE_PRICES[type] ? UPGRADE_PRICES[type][upgradeLevel(profile, type) - 1] ?? null : null);
+// What the next level costs for the bonuses already in the reserve: they move up with it, so the
+// upgrade pays their price gap (else stocking up at level 1 and upgrading afterwards paid off).
+const stockTopUp = (profile: Profile, type: BonusType) => {
+  const lv = upgradeLevel(profile, type);
+  return lv < BONUS_PRICES.length ? bonusStock(profile, type) * (BONUS_PRICES[lv] - BONUS_PRICES[lv - 1]) : 0;
+};
+// Price of the next level, reserve included, or null at the top.
+const upgradePrice = (profile: Profile, type: BonusType) => {
+  const base = UPGRADE_PRICES[type] ? UPGRADE_PRICES[type][upgradeLevel(profile, type) - 1] ?? null : null;
+  return base == null ? null : base + stockTopUp(profile, type);
+};
 function buyUpgrade(prev: Profile, type: BonusType) {
   const price = upgradePrice(prev, type);
   if (price == null) return null;
@@ -868,7 +877,7 @@ export {
   applyDaily, buyFreeze, monthTrophy, STICKER_PAGES, STICKERS, STICKER_REWARD, checkStickers,
   PUZZLE_PER_PIECE, puzzleFirst, PUZZLE_PACK, PUZZLE_HINT, puzzleStarsOf, puzzleHintsOf, notePuzzleHints, puzzleOpen, puzzlesSolved, applyPuzzle,
   SURPRISE_COINS, SURPRISE_DAILY, surpriseOpen, surprisesSolved, surprisesPaidLeft, applySurprise,
-  WORLD_NAMES, worldFreeOpen, worldPrimeRate, worldPrime, UPGRADE_PRICES, upgradeLevel, upgradePrice, buyUpgrade,
+  WORLD_NAMES, worldFreeOpen, worldPrimeRate, worldPrime, UPGRADE_PRICES, upgradeLevel, upgradePrice, stockTopUp, buyUpgrade,
   BONUS_PRICES, STOCK_MAX, bonusStock, bonusPrice, buyBonus, takeStock,
   WORLD_ORDER, LEVELS_PER_WORLD, TRIAL_LEVEL, CHESTS, chestState, openChest, bossBeaten, EXTRA_MOVES, SKIP_COST, SKIP_AFTER, levelFails, recordFail, canSkip, extraMovesCost,
   BONUS_LEVELS, isBonus, bonusOpen, bonusCleared, bonusStars, levelStars, levelCleared, totalStars, worldStars, worldMastered, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,

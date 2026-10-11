@@ -2,15 +2,15 @@
 // one by one while the wallet counts up, next goal, today's missions, Rejouer / Menu.
 // Cubo's pose over the title (star on a record, happy past half of it, oops below). A rewarded ad doubles the run's coins once.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Share, View, Pressable, useWindowDimensions } from 'react-native';
+import { Platform, View, useWindowDimensions } from 'react-native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { M } from '../core';
 import { locale, tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
 import { showRewarded } from '../platform/ads';
+import { runShareCard, wardrobe } from '../game/share';
 import { runSummary } from '../game/summary';
-import { modeLabel } from '../game/modes';
 import type { RunEnd } from '../game/run';
 import { useSocial } from '../game/social';
 import { useGame } from '../state/store';
@@ -19,9 +19,9 @@ import { useColors, usePlayedTheme } from '../theme/useColors';
 import { cuboLookFor } from '../mascot/looks';
 import { Button } from '../ui/Button';
 import { CuboPose } from '../ui/CuboPose';
-import { Icon } from '../ui/Icon';
 import { ListRow } from '../ui/ListRow';
 import { Pips } from '../ui/Missions';
+import { ShareButton } from '../ui/ShareButton';
 import { CoinLines, CoinTotal, EndShell } from '../ui/EndCard';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
@@ -118,7 +118,6 @@ export function GameOver({ end, onAgain, onMenu, onRevive }: { end: RunEnd; onAg
   const tiles = useMemo(() => runSummary(end), [end]);
   const [shown, setShown] = useState(end.coinsBefore);
   const [lines, setLines] = useState(0);
-  const [flash, setFlash] = useState<string | null>(null);
   const [doubled, setDoubled] = useState(false); // the doubled coins are paid: the run can no longer be taken back
   const [reviving, setReviving] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -147,16 +146,6 @@ export function GameOver({ end, onAgain, onMenu, onRevive }: { end: RunEnd; onAg
     if (reviving) return;
     setReviving(true);
     if (!(await showRewarded()) || !onRevive()) setReviving(false);
-  };
-
-  const share = async () => {
-    sfx.turn();
-    const text = [
-      `Cubo Blocks · ${modeLabel(useGame.getState().saved.state)}`,
-      tr`${fmt(end.score)} points${end.record ? tr(' · nouveau record') : ''}`,
-      tiles.filter((x) => x.value !== '–').map((x) => `${x.label} : ${x.value}`).join(' · '),
-    ].join('\n');
-    try { await Share.share({ message: text }); } catch { setFlash(tr('Partage impossible ici')); setTimeout(() => setFlash(null), 1800); }
   };
 
   // Outside the scroll: Rejouer stays on screen however long the coin list is.
@@ -197,10 +186,7 @@ export function GameOver({ end, onAgain, onMenu, onRevive }: { end: RunEnd; onAg
                 </View>
               ))}
             </View>
-            <Pressable accessibilityRole="button" onPress={share} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: lerp(4, 6, k), paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.panel2, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
-              <Icon name="share" size={16} color={colors.text} />
-              <Text style={{ fontSize: 13 }}>{flash ?? tr('Partager le résumé')}</Text>
-            </Pressable>
+            <ShareButton card={() => runShareCard(useGame.getState().saved.state, end, wardrobe())} style={{ paddingVertical: lerp(4, 6, k) }} />
             <View style={{ alignSelf: 'stretch', marginTop: lerp(4, 10, k), minHeight: end.earned.length * (20 + linePad * 2) }}>
               <CoinLines lines={end.earned} shown={lines} pad={linePad} stagger={0} />
             </View>

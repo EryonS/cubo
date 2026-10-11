@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LV, M } from '../core';
-import { calFirst, calLast, dailyGoing, defisDot, monthCells, pickDay, shareText, stepMonth, tileSub, triesAfter, weekCells, weekOf } from './daily';
+import { calFirst, calLast, dailyGoing, defisDot, monthCells, pickDay, stepMonth, tileSub, triesAfter, weekCells, weekOf } from './daily';
 
 const day = '2026-10-04'; // a Sunday
 const p0 = M.createProfile(day);
@@ -44,9 +44,4 @@ test('tries: the daily going counts as one, the dot follows today', () => {
   assert.equal(defisDot(p0, day), true);
   assert.equal(defisDot(M.applyDaily(p0, day, day, 1).profile, day), false);
   assert.match(tileSub(p0, going(day), day), /en cours/);
-});
-
-test('share text', () => {
-  assert.match(shareText(day, 'Forêt', 3, 12), /^Cubo Blocks #\d+ · Forêt · 3 étoiles · 12 coups en rab$/);
-  assert.match(shareText(day, 'Forêt', 1, 0), /1 étoile$/);
 });

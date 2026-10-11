@@ -14,9 +14,11 @@ Boutique, tab "Bonus": each of the 5 bonuses goes from level 1 to 3. Upgrades co
 
 A timed bonus stacks up to two uses (2 × its duration).
 
+The reserve (bonuses bought one by one, up to 9 of each) costs 25 / 40 / 60 by level (`BONUS_PRICES`). Stocked bonuses fire at the current level, so an upgrade also pays the price gap for each of them (`stockTopUp`, shown under the row as "dont N pour ta réserve"): stocking up at level 1 and upgrading afterwards costs the same as buying at the higher level.
+
 ## Files
 - `src/core/logic.ts`: `EFFECT_BY_LEVEL`, `NITRO_BY_LEVEL`, `upLevel`, `effectMs`, `nitroMul`, `bombArea(r, c, level)`, `reroll`.
-- `src/core/meta.ts`: `UPGRADE_PRICES`, `upgradeLevel`, `upgradePrice`, `buyUpgrade`.
+- `src/core/meta.ts`: `UPGRADE_PRICES`, `upgradeLevel`, `upgradePrice` (reserve top-up included), `stockTopUp`, `buyUpgrade`; reserve `BONUS_PRICES`, `STOCK_MAX`, `bonusStock`, `bonusPrice`, `buyBonus`, `takeStock`.
 - `src/game/bonus-ui.ts` (`BONUS_UI`: `hint(lv)`, `desc(lv)`, `levels`), the `Upgrades` list in `src/screens/ShopScreen.tsx`, legend in `src/ui/LegendSheet.tsx`.
 - Tests: `src/core/upgrades.test.ts`.
 

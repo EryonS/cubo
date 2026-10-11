@@ -13,9 +13,8 @@ import { haptic } from '../platform/haptics';
 import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import type { RootParams } from '../navigation/types';
-import { radius, space } from '../theme/tokens';
+import { space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
-import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Counter } from '../ui/Counter';
 import { Group } from '../ui/Group';
@@ -24,6 +23,7 @@ import { SectionLabel } from '../ui/SectionLabel';
 import { ask } from '../ui/dialog';
 import { Flame, Snow } from '../ui/Icon';
 import { MissionList } from '../ui/Missions';
+import { PriceButton, StatePill } from '../ui/PriceButton';
 import { Screen } from '../ui/Screen';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
@@ -40,7 +40,6 @@ function StreakBlock() {
   const st = M.streakOf(profile);
   const now = M.streakNow(profile, t);
   const full = st.freezes >= M.FREEZE_MAX;
-  const off = full || profile.coins < M.FREEZE_COST;
   const freeze = () => {
     const { profile: p, setProfile } = useGame.getState();
     const next = M.buyFreeze(p);
@@ -66,9 +65,8 @@ function StreakBlock() {
       {/* A purchase: a price button like the Boutique's, "Plein" once the freezes are all there. */}
       <ListRow title={tr('Gel de série')} sub={tr('Protège un jour manqué')} icon={<View style={{ width: 36, alignItems: 'center' }}><Snow size={26} on color={colors.muted} /></View>}
         right={full
-          ? <View style={{ height: 40, paddingHorizontal: space.l, borderRadius: radius.pill, backgroundColor: colors.panel2, justifyContent: 'center' }}><Text variant="headline" style={{ color: colors.muted }}>{tr('Plein')}</Text></View>
-          : <Button size="s" kind={off ? 'ghost' : 'primary'} disabled={off} icon={<Coin size={16} ring={off ? undefined : colors.onAccent} />} label={String(M.FREEZE_COST)}
-              accessibilityLabel={tr`Acheter un gel de série pour ${M.FREEZE_COST} pièces`} onPress={freeze} />} />
+          ? <StatePill label={tr('Plein')} />
+          : <PriceButton price={M.FREEZE_COST} coins={profile.coins} label={tr`Acheter un gel de série pour ${M.FREEZE_COST} pièces`} onPress={freeze} />} />
       </Group>
     </View>
   );

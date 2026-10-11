@@ -7,8 +7,9 @@ import { Platform } from 'react-native';
 import type { Auth, Persistence, User } from 'firebase/auth';
 
 type AuthMod = typeof import('firebase/auth');
-// The string is the React Native build (no bundled types). The cast only tells the checker.
-const authApi = () => import('@firebase/auth/dist/rn/index.js' as 'firebase/auth');
+// @firebase/auth, not firebase/auth: its "react-native" export condition gives Metro the RN build
+// (getReactNativePersistence). The cast only tells the checker.
+const authApi = () => import('@firebase/auth' as 'firebase/auth');
 import type { Firestore } from 'firebase/firestore';
 import { decodeDoc, encodeDoc } from './cloud-doc';
 

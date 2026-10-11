@@ -20,50 +20,32 @@ import { defisDot } from '../game/daily';
 import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import { useColors } from '../theme/useColors';
-import { fonts } from '../theme/fonts';
-import { Icon, type IconName } from '../ui/Icon';
+import { TabBar } from '../ui/TabBar';
+import { TabIcon, type TabIconName } from '../ui/TabIcon';
 import type { RootParams, TabParams } from './types';
 
 const Tab = createBottomTabNavigator<TabParams>();
 const Stack = createNativeStackNavigator<RootParams>();
 
-type TabIconProps = { color: string; size: number; focused: boolean };
+type TabIconProps = { color: string; size: number };
 
-// The active tab sits on a soft accent pill: on some worlds the accent and the muted ink are too close in
-// tone for the tint alone (Rétro's accent is its text color, Nouvel An chinois' gold is near its peach).
-function Pill({ focused, children }: { focused: boolean; children: React.ReactNode }) {
-  const colors = useColors();
-  return <View style={{ width: 52, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: focused ? `${colors.accent}2e` : 'transparent' }}>{children}</View>;
-}
-
-const icon = (name: IconName) => ({ color, size, focused }: TabIconProps) => <Pill focused={focused}><Icon name={name} color={color} size={size} /></Pill>;
+const icon = (name: TabIconName) => ({ color, size }: TabIconProps) => <TabIcon name={name} color={color} size={size} />;
 
 // Défis tab icon with a dot while today's daily level is open (legacy #tabbar .dot).
-function DefisIcon({ color, size, focused }: TabIconProps) {
+function DefisIcon({ color, size }: TabIconProps) {
   const colors = useColors();
   const dot = useGame((s) => defisDot(s.profile, today()));
   return (
-    <Pill focused={focused}>
-      <View>
-        <Icon name="defis" color={color} size={size} />
-        {dot && <View style={{ position: 'absolute', top: -1, right: -3, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent, borderWidth: 1.5, borderColor: colors.panel }} />}
-      </View>
-    </Pill>
+    <View>
+      <TabIcon name="defis" color={color} size={size} />
+      {dot && <View style={{ position: 'absolute', top: 0, right: -2, width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent, borderWidth: 1.5, borderColor: colors.panel }} />}
+    </View>
   );
 }
 
 function Tabs() {
-  const colors = useColors();
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: { backgroundColor: colors.panel, borderTopColor: colors.edge },
-        tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 12 },
-      }}
-    >
+    <Tab.Navigator tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tab.Screen name="Play" component={PlayScreen} options={{ title: tr('Jouer'), tabBarIcon: icon('play') }} />
       <Tab.Screen name="Defis" component={DefisScreen} options={{ title: tr('Défis'), tabBarIcon: (p) => <DefisIcon {...p} /> }} />
       <Tab.Screen name="Shop" component={ShopScreen} options={{ title: tr('Boutique'), tabBarIcon: icon('shop') }} />

@@ -11,7 +11,7 @@ Score and record per mode; coins picked up on the grid and paid at game over; th
 
 Aventure mode: a map of 8 worlds, 20 short levels each (goal + move budget, stars), each world with its own rule, a trial at level 10 and a boss fight at 20 (beating it gives its theme), star chests.
 
-Daily level (same for everyone, 3 attempts, share text), day streak with freezes and rewards, sticker album with monthly trophies, Défis screen (today + calendar), missions reachable from the menu and in game, profile with album and stats.
+Daily level (same for everyone, 3 attempts, share picture), day streak with freezes and rewards, sticker album with monthly trophies, Défis screen (today + calendar), missions reachable from the menu and in game, profile with album and stats.
 
 Secret stickers in the album, per-mode stats with the last scores.
 

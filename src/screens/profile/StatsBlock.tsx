@@ -1,4 +1,4 @@
-// Stats (legacy stats.js): one mode at a time (pills, four numbers, bar chart of the last 20 scores) in one card,
+// Stats (legacy stats.js): one mode at a time (tabs over the card, as in the Boutique; four numbers, bar chart of the last 20 scores) in one card,
 // flat inside (no tile or panel in the card), and the lifetime counters as a grouped list.
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -75,11 +75,13 @@ export function ModeStats() {
   const [mode, setMode] = useState('classic');
   const tiles = modeTiles(profile, mode, bests, fmt);
   return (
-    <Card>
-      <Segmented kind="chips" inset options={STAT_MODES() as [string, string][]} value={mode} onChange={(v) => { sfx.turn(); setMode(v); }} />
-      <Tiles tiles={tiles} />
-      <Chart key={mode} scores={M.recentScores(profile, mode, CHART_RUNS)} />
-    </Card>
+    <>
+      <Segmented role="tab" options={STAT_MODES() as [string, string][]} value={mode} onChange={(v) => { sfx.turn(); setMode(v); }} />
+      <Card>
+        <Tiles tiles={tiles} />
+        <Chart key={mode} scores={M.recentScores(profile, mode, CHART_RUNS)} />
+      </Card>
+    </>
   );
 }
 

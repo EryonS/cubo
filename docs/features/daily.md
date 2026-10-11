@@ -11,7 +11,6 @@ Status: shipped (v1, 2026-09-30; Défis screen added the same day)
 - `LV.daily(day)`: world and level (3-7 of that world) drawn from a hash of the local date, plus a fixed `seed`, so every player gets the same board and piece sequence. Numbered from `DAILY_START` (2026-09-01 = #1).
 - Today: 3 attempts (counted by `M.countDaily`, see Attempts and refills below). Past days (Défis calendar): unlimited, never feed the streak. Future days: locked.
 - Rewards: first clear 20 coins on the day, 10 for a past day; +5 moves can be bought like in Aventure (stars capped at 1).
-- Share (after a win): `Cubo Blocks #31 · Forêt · 3 étoiles · 12 coups en rab`. The native share sheet opens (`shareText` in `src/game/daily.ts`, `src/screens/LevelEnd.tsx`).
 - Uses the phone's date; changing it to cheat is accepted (offline game, no server).
 
 ## Streak
@@ -23,7 +22,8 @@ Status: shipped (v1, 2026-09-30; Défis screen added the same day)
 ## Files
 - `src/core/levels.ts`: `DAILY_START`, `daily`, `dayNumber`.
 - `src/core/meta.ts`: `addDays`, `dayDiff`, `monthDays`, `dailyOf`, `dailyAttemptsLeft`, `countDaily`, `applyDaily`, `streakOf`, `streakNow`, `buyFreeze`.
-- `src/game/daily.ts` (pure helpers: calendar, tries, tile subtitle, tab dot, `shareText`, pause `runLabel`), `startDaily(day)` in `src/game/run.ts`, `src/screens/DefisScreen.tsx` + `src/screens/defis/`, `src/screens/LevelEnd.tsx` (daily end card, branches on `stage.daily`).
+- Share (after a win): "Partager" on the end card shares a picture of the level: stars, moves to spare, streak, the last board ([share.md](share.md)).
+- `src/game/daily.ts` (pure helpers: calendar, tries, tile subtitle, tab dot, pause `runLabel`), `startDaily(day)` in `src/game/run.ts`, `src/screens/DefisScreen.tsx` + `src/screens/defis/`, `src/screens/LevelEnd.tsx` (daily end card, branches on `stage.daily`).
 - Tests: `src/core/meta-daily.test.ts`, `src/game/daily.test.ts`.
 
 ## Saved state

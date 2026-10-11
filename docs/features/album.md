@@ -6,7 +6,7 @@ Profil tab (`src/screens/ProfileScreen.tsx`), one scrolling page, no tabs:
 - Totals (games, stars, stickers), an **Album** row that opens the Album screen, then the **trophy shelves** (months from `DAILY_START` to now, plus season trophies; the streak card and freeze are on the Défis tab).
 - **Album** (`src/screens/album/AlbumScreen.tsx`, stack route `Album`): the stickers by page (see the table). Unearned stickers are grey with their hint. The legacy peel animation for newly earned stickers is not ported; `showStickers` (`src/ui/StickerBanner.tsx`) announces fresh ones in the Boutique.
 - The calendar is on the Défis screen (see [daily.md](daily.md)).
-- **Stats** (`src/screens/profile/StatsBlock.tsx`): one card (flat inside, no tiles or panels in it): pills for Classique / Chrono / Chill (Mondes runs are recorded but not shown), each with 4 numbers in a 2 × 2 grid split by hairlines (games, record, average, best combo) and a bar chart of the last 20 scores (tap a bar for its value; no hover on a phone); then lifetime counters, Aventure stars, dailies cleared, longest streak. Paramètres is the gear button on the header's right.
+- **Stats** (`src/screens/profile/StatsBlock.tsx`): one card (flat inside, no tiles or panels in it): tabs over it for Classique / Chrono / Chill (the Boutique tabs style) (Mondes runs are recorded but not shown), each with 4 numbers in a 2 × 2 grid split by hairlines (games, record, average, best combo) and a bar chart of the last 20 scores (tap a bar for its value; no hover on a phone); then lifetime counters, Aventure stars, dailies cleared, longest streak. Paramètres is the gear button on the header's right.
 
 ## Stickers
 | Page | Stickers |
@@ -23,7 +23,7 @@ Earned stickers (secret or not) show their badge, name and the day they were ear
 Default reward 20 coins. Checked after every run, level, daily and Boutique purchase (`settleRun` in `src/game/run.ts` adds them to the end-of-run report; `src/screens/ShopScreen.tsx` does the same for a purchase).
 
 ## End-of-run summary
-The game over card of a free run shows four tiles under the score: lines, best combo, most lines at once, shapes placed. A tile that beats the lifetime best (read before the run is applied) gets an accent ring and "Record !". "Partager le résumé" uses the native share sheet (`Share.share`; a toast says so when sharing fails). Tiles: `runSummary` in `src/game/summary.ts` (test `summary.test.ts`); card and share text: `src/screens/GameOver.tsx`.
+The game over card of a free run shows four tiles under the score: lines, best combo, most lines at once, shapes placed. A tile that beats the lifetime best (read before the run is applied) gets an accent ring and "Record !". "Partager" under the tiles shares a picture of the run ([share.md](share.md)). Tiles: `runSummary` in `src/game/summary.ts` (test `summary.test.ts`); card: `src/screens/GameOver.tsx`.
 
 ## Month trophies
 `M.monthTrophy(profile, 'YYYY-MM')`: every day of the month cleared (on the day or replayed later) → silver; all with 3 stars → gold. Computed, not stored.

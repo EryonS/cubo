@@ -254,6 +254,8 @@ PODS:
     - ExpoModulesJSI
     - ExpoModulesWorklets
     - RNWorklets
+  - ExpoSharing (57.0.22):
+    - ExpoModulesCore
   - ExpoSplashScreen (57.0.9):
     - ExpoModulesCore
   - ExpoSystemUI (57.0.4):
@@ -2741,7 +2743,7 @@ DEPENDENCIES:
   - ExpoAsset (from `../node_modules/expo/node_modules/expo-asset/ios`)
   - ExpoCrypto (from `../node_modules/expo-crypto/ios`)
   - "ExpoDomWebView (from `../node_modules/expo/node_modules/@expo/dom-webview/ios`)"
-  - ExpoFileSystem (from `../node_modules/expo/node_modules/expo-file-system/ios/ExpoFileSystem.podspec`)
+  - ExpoFileSystem (from `../node_modules/expo-file-system/ios/ExpoFileSystem.podspec`)
   - ExpoFont (from `../node_modules/expo-font/ios/ExpoFont.podspec`)
   - ExpoHaptics (from `../node_modules/expo-haptics/ios`)
   - ExpoKeepAwake (from `../node_modules/expo/node_modules/expo-keep-awake/ios`)
@@ -2751,6 +2753,7 @@ DEPENDENCIES:
   - ExpoModulesJSI (from `../node_modules/expo-modules-jsi/apple`)
   - ExpoModulesWorklets (from `../node_modules/expo-modules-core/ExpoModulesWorklets.podspec`)
   - ExpoModulesWorkletsAdapter (from `../node_modules/expo-modules-core`)
+  - ExpoSharing (from `../node_modules/expo-sharing/ios`)
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoSystemUI (from `../node_modules/expo-system-ui/ios`)
   - ExpoTrackingTransparency (from `../node_modules/expo-tracking-transparency/ios`)
@@ -2891,7 +2894,7 @@ EXTERNAL SOURCES:
   ExpoDomWebView:
     :path: "../node_modules/expo/node_modules/@expo/dom-webview/ios"
   ExpoFileSystem:
-    :podspec: "../node_modules/expo/node_modules/expo-file-system/ios/ExpoFileSystem.podspec"
+    :podspec: "../node_modules/expo-file-system/ios/ExpoFileSystem.podspec"
   ExpoFont:
     :podspec: "../node_modules/expo-font/ios/ExpoFont.podspec"
   ExpoHaptics:
@@ -2910,6 +2913,8 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/expo-modules-core/ExpoModulesWorklets.podspec"
   ExpoModulesWorkletsAdapter:
     :path: "../node_modules/expo-modules-core"
+  ExpoSharing:
+    :path: "../node_modules/expo-sharing/ios"
   ExpoSplashScreen:
     :path: "../node_modules/expo-splash-screen/ios"
   ExpoSystemUI:
@@ -3124,6 +3129,7 @@ SPEC CHECKSUMS:
   ExpoModulesJSI: 383849017851b1ebacbd78cfaa32b18b6152585e
   ExpoModulesWorklets: 40d29262efc034e4357f2713e6037a41a27218d6
   ExpoModulesWorkletsAdapter: ea5b8916e2fdf8647e8543dbcd81a665e070e74a
+  ExpoSharing: 5cc46810cfba71e331f649d947660213082094c1
   ExpoSplashScreen: e771da4f26d550ea4fd067d8fb942657e47bb846
   ExpoSystemUI: 05ee8d4aaba1b6af330f3621e19b39ff9f21e718
   ExpoTrackingTransparency: 233f97aced6da78301e74e1d9cff2bc3763b40fe

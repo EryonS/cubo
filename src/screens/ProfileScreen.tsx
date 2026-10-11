@@ -116,11 +116,13 @@ export function ProfileScreen() {
   const nameOf = (kind: SkinKind) => M.SKINS[kind].find((sk) => sk.id === profile.equipped[kind])?.name;
   const shop = (tab: SkinKind) => nav.navigate('Shop', { tab });
   return (
-    // The canvas keeps room for the sprout above the body: the body's middle sits 12 pt under the canvas middle and
-    // 11 pt of air on each side. The margins put the body on the title's line and its left edge on the screen gutter.
+    // The canvas keeps room for the head piece above the body: the body's middle sits 7.5 pt under the canvas middle and
+    // 7 pt of air on each side. The margins put the body on the title's line and its left edge on the screen gutter.
+    // 40 wide is the most that fits: the tallest pieces (straw hat, bunny ears) reach 28 pt above the body's middle,
+    // and the scroll view clips anything above its top (the title's middle is 30 pt under it).
     <Screen title={tr('Profil')} lead={(
-      <View style={{ marginTop: -24, marginLeft: -11, marginRight: -8 }}>
-        <CuboPose width={64} lw={128} lh={134} s={84} foot={8} look={look} mood="party" />
+      <View style={{ marginTop: -15, marginLeft: -7, marginRight: -4 }}>
+        <CuboPose width={40} lw={128} lh={134} s={84} foot={8} look={look} mood="party" />
       </View>
     )} right={<HeaderButton icon="gear" size={22} label={tr('Paramètres')} onPress={() => nav.navigate('Settings')} />}>
       <Totals items={totals} />

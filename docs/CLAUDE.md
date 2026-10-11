@@ -64,7 +64,7 @@ theme, else the equipped one).
 | Saves and migrations | [features/persistence.md](features/persistence.md) | `M.migrate`, `src/state/persist.ts`, `src/state/store.ts`, `src/platform/kv.ts` |
 | Aventure mode (map, levels, stars, rewards) | [features/aventure.md](features/aventure.md) | `src/core/levels.ts`, `src/core/meta.ts`, `src/screens/AdventureScreen.tsx` + `adventure/`, `src/screens/LevelEnd.tsx`, `src/game/levelend.ts` |
 | World rules, special cells | [features/worlds.md](features/worlds.md) | `src/core/worlds.ts`, `KINDS` in `src/core/logic.ts`, `drawSpecial` in `src/render/cells.ts` |
-| Défis screen, daily level, streak, share | [features/daily.md](features/daily.md) | `daily` in `src/core/levels.ts`, daily / streak in `src/core/meta.ts`, `src/game/daily.ts`, `src/screens/DefisScreen.tsx` + `defis/` |
+| Défis screen, daily level, streak | [features/daily.md](features/daily.md) | `daily` in `src/core/levels.ts`, daily / streak in `src/core/meta.ts`, `src/game/daily.ts`, `src/screens/DefisScreen.tsx` + `defis/` |
 | Combo / line clear effects (juice) | [features/combo-feel.md](features/combo-feel.md) | `commit` in `src/game/run.ts`, `src/game/juice.ts`, `drawBanner` / `drawComboTag` in `src/render/draw.ts` |
 | Guided first game, one-time tips | [features/tutorial.md](features/tutorial.md) | `src/core/tutorial.ts`, `tipSeen` / `markTip` in `src/core/meta.ts`, `src/game/tutorial.ts` + `tut-state.ts`, `src/ui/TutorialOverlay.tsx`, `src/game/tips.ts` + `src/ui/TipBubble.tsx` |
 | Sticker album (incl. Maître des mondes), trophies, profile and stats, end-of-run summary | [features/album.md](features/album.md) | `STICKERS` / `checkStickers` / `monthTrophy` / `modeStats` in `src/core/meta.ts`, `src/game/album.ts`, `src/screens/ProfileScreen.tsx`, `src/screens/album/` |
@@ -78,6 +78,7 @@ theme, else the equipped one).
 | Season events (Nouvel An, Nouvel An chinois, Saint-Valentin, Pâques, Plage, Halloween, Noël), their dates, season trophies | [features/seasons.md](features/seasons.md) | `EVENTS` / `applyEvent` in `src/core/meta.ts`, `EVENT_LEVELS` in `src/core/levels.ts`, event worlds in `src/core/worlds.ts`, `src/game/events.ts`, `src/screens/EventScreen.tsx` |
 | Cloud save (Google / Apple account, Firebase), choice dialog | [features/account.md](features/account.md) | `src/core/sync.ts`, `src/platform/cloud.ts` + `cloud-doc.ts`, `src/game/account.ts`, `src/ui/AccountBlock.tsx`, `src/ui/SyncChoice.tsx`, `firestore.rules` |
 | Community: pseudo, friend code, friends, block (Profil > Communauté) | [features/social.md](features/social.md) | `src/core/social.ts`, `src/platform/social.ts`, `src/game/social.ts`, `src/screens/CommunityScreen.tsx`, `src/ui/PseudoSheet.tsx`, `firestore.rules` |
+| Share picture of an end card (free run, won daily level) | [features/share.md](features/share.md) | `src/render/share-card.ts`, `src/game/share.ts`, `src/platform/share.ts`, `src/ui/ShareButton.tsx` |
 | Score band above the board, record flag (free runs) | [features/comfort.md](features/comfort.md) | `hudBand`, `drawHUD`, `drawRecordFlag` in `src/render/draw.ts`, `src/render/layout.ts` |
 | Tab bar, home screen, dialogs, screen layout | [features/navigation.md](features/navigation.md) | `src/navigation/RootNavigator.tsx`, `src/screens/PlayScreen.tsx`, `src/ui/dialog.tsx`, `src/ui/Screen.tsx` |
 | Music and sounds | [features/themes.md](features/themes.md) (Music) | `SONGS` in `src/audio/songs.ts`, `src/audio/sfx.ts`, `src/audio/engine.ts` |
@@ -100,7 +101,7 @@ Status: shipped | planned
 ## Roadmap (decided in the 2026-09-30 brainstorm)
 1. New art direction (**done**): Jouet default theme, 8 world themes, bonus renames.
 2. Aventure (**done**, v1): world map, 10 levels per world, world rules, stars, coin helpers, theme unlock on boss.
-3. Retention (**done**, v1): daily level + share text, day streak with freezes, sticker album with monthly trophies, profile and stats.
+3. Retention (**done**, v1): daily level + share picture, day streak with freezes, sticker album with monthly trophies, profile and stats.
 4. Onboarding (**done**): guided first game + one-time tips.
 5. Combo feel (**done**): tiered clear effects.
 6. Comfort and retention (**done**, v1): pause, color-blind block marks, per-mode stats, secret stickers.

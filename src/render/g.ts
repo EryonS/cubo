@@ -25,6 +25,13 @@ export function opaque(color: string) {
 let sysFace: SkTypeface | null = null;
 const systemFace = () => (sysFace ??= Skia.FontMgr.System().matchFamilyStyle('sans-serif', { weight: 700 }));
 
+// Width of a line of text: the sum of its glyph advances. Not font.getTextWidth: the native one adds the
+// advances as integers (std::accumulate seeded with 0), so centered text drifts right, a pixel or so
+// per letter at small sizes.
+function advance(f: SkFont, text: string) {
+  return f.getGlyphWidths(f.getGlyphIDs(text)).reduce((a, w) => a + w, 0);
+}
+
 export class G {
   // globalAlpha: multiplies every color drawn (the legacy ctx.globalAlpha).
   alpha = 1;
@@ -139,7 +146,7 @@ export class G {
   }
 
   textWidth(text: string, size: number) {
-    return this.font(size).getTextWidth(this.plain(text));
+    return advance(this.font(size), this.plain(text));
   }
 
   // How far the text's ink rises above its baseline (caps and digits), to center text on its glyphs.
@@ -157,7 +164,7 @@ export class G {
     outline?: { color: string; width: number }, gradient?: { colors: string[]; x0: number; x1: number }) {
     text = this.plain(text);
     const f = this.font(size);
-    const w = align === 'left' ? 0 : f.getTextWidth(text);
+    const w = align === 'left' ? 0 : advance(f, text);
     const tx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
     if (outline) {
       const p = this.paint(outline.color, { stroke: { width: outline.width } });

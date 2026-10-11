@@ -95,6 +95,22 @@ test('bonus reserve: bought one by one, dearer once upgraded, capped, taken back
   assert.equal(M.takeStock(p, 'rotate'), null);
 });
 
+test('an upgrade pays the price gap of the bonuses already in the reserve', () => {
+  let p = { ...M.createProfile('2026-10-11'), coins: 10000, stock: { bomb: 9 } };
+  const gap = (lv) => M.BONUS_PRICES[lv] - M.BONUS_PRICES[lv - 1];
+  assert.equal(M.stockTopUp(p, 'bomb'), 9 * gap(1));
+  assert.equal(M.upgradePrice(p, 'bomb'), 300 + 9 * gap(1));
+  p = M.buyUpgrade(p, 'bomb');
+  assert.equal(p.coins, 10000 - 300 - 9 * gap(1));
+  assert.equal(M.upgradePrice(p, 'bomb'), 700 + 9 * gap(2));
+  p = M.buyUpgrade(p, 'bomb');
+  assert.equal(M.stockTopUp(p, 'bomb'), 0);
+  assert.equal(M.upgradePrice(p, 'bomb'), null);
+  // Stocking up at level 1 then upgrading costs what buying at level 3 would.
+  const cheap = M.buyUpgrade(M.buyUpgrade({ ...M.createProfile('2026-10-11'), coins: 10000, stock: { rotate: 9 } }, 'rotate'), 'rotate');
+  assert.equal(10000 - cheap.coins + 9 * M.BONUS_PRICES[0], 200 + 500 + 9 * M.BONUS_PRICES[2]);
+});
+
 test('profile v7: chest Bombes move to the reserve', () => {
   const old = { ...M.createProfile('2026-10-07'), version: 6, adventure: { stars: {}, bombs: 2 } };
   const { profile } = M.migrate(old);
