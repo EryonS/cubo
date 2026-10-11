@@ -22,6 +22,7 @@ import { ToastHost } from './src/ui/Toast';
 import { TestBadge } from './src/ui/TestBadge';
 import { LeagueResultHost } from './src/ui/LeagueResult';
 import { StickerBannerHost } from './src/ui/StickerBanner';
+import { TitleBannerHost } from './src/ui/TitleBanner';
 import { colorsFor, darkBg } from './src/theme/useColors';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -51,6 +52,7 @@ export default function App() {
             <RootNavigator />
           </NavigationContainer>
           <StickerBannerHost />
+          <TitleBannerHost />
           <LeagueResultHost />
           <AskHost />
           <SyncChoiceHost />

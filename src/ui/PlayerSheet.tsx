@@ -5,14 +5,18 @@ import { View } from 'react-native';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { tr } from '../core/i18n';
 import * as C from '../core/social';
+import * as T from '../core/titles';
 import { blockPlayer, reportPlayer } from '../game/social';
+import type { CuboLook } from '../mascot/looks';
 import { space } from '../theme/tokens';
+import { Avatar } from './Avatar';
 import { Button } from './Button';
 import { Sheet, SheetHeader } from './Sheet';
 import { Text } from './Text';
 
 // name: the raw pseudo (what a report says); label: what the row shows.
-export interface PlayerTarget { uid: string; name: string; label: string; onRemove?: () => void }
+// look / title / mood: his Cubo and statuses, shown in the header when given.
+export interface PlayerTarget { uid: string; name: string; label: string; look?: CuboLook; title?: string; mood?: string; onRemove?: () => void }
 
 export function usePlayerSheet(): [(t: PlayerTarget) => void, ReactNode] {
   const ref = useRef<BottomSheetModal>(null);
@@ -24,6 +28,15 @@ export function usePlayerSheet(): [(t: PlayerTarget) => void, ReactNode] {
     <Sheet ref={ref} onClose={() => setTarget(null)}>
       <View style={{ gap: space.m }}>
         <SheetHeader title={target?.label ?? ''} onClose={close} />
+        {step === 'menu' && target?.look && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.m }}>
+            <Avatar look={target.look} size={64} mood={target.mood} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              {!!T.titleName(target.title) && <Text variant="headline" numberOfLines={1}>{T.titleName(target.title)}</Text>}
+              {!!T.moodText(target.mood) && <Text variant="muted" numberOfLines={2}>{T.moodText(target.mood)}</Text>}
+            </View>
+          </View>
+        )}
         {step === 'menu' ? (
           <>
             {target?.onRemove && <Button kind="secondary" label={tr('Retirer de mes amis')} onPress={() => { const t = target; close(); t?.onRemove?.(); }} />}

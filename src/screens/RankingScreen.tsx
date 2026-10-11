@@ -7,6 +7,7 @@ import { useNavigation, useRoute, type NavigationProp, type RouteProp } from '@r
 import { locale, tr } from '../core/i18n';
 import * as G from '../core/league';
 import * as C from '../core/social';
+import * as T from '../core/titles';
 import { refreshBoard, refreshGroup, useBoardRows, useLeagueRows, useSocial, type BoardRow, type LeagueRow } from '../game/social';
 import type { RootParams } from '../navigation/types';
 import { now as clock } from '../platform/clock';
@@ -47,20 +48,20 @@ export function leagueLines(rows: LeagueRow[], tab: 'points' | 'best', tier: num
 const veil = (hex: string, a = '2e') => (/^#[0-9a-f]{6}$/i.test(hex) ? hex + a : hex);
 
 // row.masked: a blocked player (no menu); onMore: the "…" menu (report, block) of another player.
-interface RowProps { row: { uid: string; name: string; label: string; look: BoardRow['look']; me: boolean; masked?: boolean }; rank: number; value: number; veil?: string; pay?: number; onMore?: (t: PlayerTarget) => void }
+interface RowProps { row: { uid: string; name: string; label: string; look: BoardRow['look']; title: string; mood: string; me: boolean; masked?: boolean }; rank: number; value: number; veil?: string; pay?: number; onMore?: (t: PlayerTarget) => void }
 function RankRow({ row, rank, value, veil: tint, pay, onMore }: RowProps) {
   const colors = useColors();
   const mine = row.me;
   const menu = !!onMore && !mine && !row.masked && row.label !== tr('Joueur'); // 'Joueur' = hidden by the owner: nothing left to report
   return (
-    <ListRow title={row.label} sub={mine ? tr('Toi') : undefined}
+    <ListRow title={row.label} sub={[mine ? tr('Toi') : '', T.titleName(row.title)].filter(Boolean).join(' · ') || undefined}
       label={tr`${rank}e, ${row.label}, ${fmt(value)} points`}
-      onPress={menu ? () => onMore!({ uid: row.uid, name: row.name, label: row.label }) : undefined}
+      onPress={menu ? () => onMore!({ uid: row.uid, name: row.name, label: row.label, look: row.look, title: row.title, mood: row.mood }) : undefined}
       style={tint ? { backgroundColor: tint } : mine ? { backgroundColor: colors.panel2 } : undefined}
       icon={(
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
           <Text variant="headline" style={{ width: 28, textAlign: 'center', color: mine ? colors.accent : colors.muted }}>{rank}</Text>
-          <Avatar look={row.look} size={40} />
+          <Avatar look={row.look} size={40} mood={row.mood} />
         </View>
       )}
       right={(

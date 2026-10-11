@@ -5,9 +5,11 @@ import { TextInput, View } from 'react-native';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { tr } from '../core/i18n';
 import * as C from '../core/social';
+import * as T from '../core/titles';
 import { accountInfo, subscribeAccount } from '../game/account';
-import { addByCode, flagged, loadMe, myLook, refreshFriends, removeFriend, shareCode, useSocial, type Friend } from '../game/social';
+import { addByCode, flagged, loadMe, mineMood, mineTitle, myLook, refreshFriends, removeFriend, shareCode, useSocial, type Friend } from '../game/social';
 import { available } from '../platform/cloud';
+import { useGame } from '../state/store';
 import { fonts } from '../theme/fonts';
 import { radius, space, TOUCH } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
@@ -20,6 +22,7 @@ import { ListRow } from '../ui/ListRow';
 import { usePlayerSheet } from '../ui/PlayerSheet';
 import { PseudoSheet } from '../ui/PseudoSheet';
 import { Screen } from '../ui/Screen';
+import { MoodSheet, TitleSheet } from '../ui/StatusSheets';
 import { SectionLabel } from '../ui/SectionLabel';
 import { Text } from '../ui/Text';
 import { Icon } from '../ui/Icon';
@@ -29,20 +32,31 @@ function useInputStyle() {
   return { flex: 1, minHeight: TOUCH + space.s, borderRadius: radius.tile, paddingHorizontal: space.l, backgroundColor: colors.panel2, color: colors.text, fontFamily: fonts.bold, fontSize: 18 } as const;
 }
 
-function MyCard({ onEdit }: { onEdit: () => void }) {
+function MyCard({ onEdit, onTitle, onMood }: { onEdit: () => void; onTitle: () => void; onMood: () => void }) {
   const colors = useColors();
   const me = useSocial((s) => s.me);
+  const title = useGame((s) => mineTitle(s.profile));
+  const mood = useGame((s) => mineMood(s.profile));
   if (!me) return null;
   return (
     <Card>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.m }}>
-        <Avatar look={myLook(me)} size={64} />
+        <Avatar look={myLook(me)} size={64} mood={mood} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text variant="title" numberOfLines={1}>{me.name}</Text>
-          <Text variant="muted">{tr('Ton pseudo')}</Text>
+          <Text variant="muted" numberOfLines={1}>{title ? T.titleName(title) : tr('Ton pseudo')}</Text>
+          {!!mood && (
+            <View style={{ alignSelf: 'flex-start', marginTop: space.xs, paddingHorizontal: space.s, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: colors.panel2 }}>
+              <Text variant="caption" numberOfLines={1}>{T.moodText(mood)}</Text>
+            </View>
+          )}
         </View>
         <Button kind="ghost" size="s" label={tr('Changer')} onPress={onEdit} />
       </View>
+      <Group>
+        <ListRow title={tr('Titre')} sub={title ? T.titleName(title) : tr('Aucun')} onPress={onTitle} right="chevron" />
+        <ListRow title={tr('Humeur')} sub={mood ? T.moodText(mood) : tr('Aucune')} onPress={onMood} right="chevron" />
+      </Group>
       <Card inset>
         <Text variant="label">{tr('Ton code ami')}</Text>
         <Text variant="big" accessibilityLabel={C.showCode(me.code).split('').join(' ')} style={{ letterSpacing: 2, color: colors.text }}>{C.showCode(me.code)}</Text>
@@ -92,14 +106,16 @@ function AddFriend() {
 
 function FriendRow({ f, onOpen }: { f: Friend; onOpen: () => void }) {
   const colors = useColors();
-  const icon = useMemo(() => <Avatar look={f.look} size={44} />, [f.look]);
-  return <ListRow title={f.label} icon={icon} onPress={onOpen} label={tr`${f.label}, options`} right={<Icon name="chevRight" size={16} color={colors.muted} />} />;
+  const icon = useMemo(() => <Avatar look={f.look} size={44} mood={f.mood} />, [f.look, f.mood]);
+  return <ListRow title={f.label} sub={T.titleName(f.title) || undefined} icon={icon} onPress={onOpen} label={tr`${f.label}, options`} right={<Icon name="chevRight" size={16} color={colors.muted} />} />;
 }
 
 export function CommunityScreen() {
   const info = useSyncExternalStore(subscribeAccount, accountInfo, accountInfo);
   const { me, status, friends, listing } = useSocial();
   const pseudo = useRef<BottomSheetModal>(null);
+  const titles = useRef<BottomSheetModal>(null);
+  const moods = useRef<BottomSheetModal>(null);
   const [openPlayer, playerSheet] = usePlayerSheet();
   const asked = useRef(false);
   const uid = info?.uid;
@@ -146,11 +162,11 @@ export function CommunityScreen() {
               <Button label={tr('Choisir un autre pseudo')} onPress={() => pseudo.current?.present()} />
             </Card>
           )}
-          <MyCard onEdit={() => pseudo.current?.present()} />
+          <MyCard onEdit={() => pseudo.current?.present()} onTitle={() => titles.current?.present()} onMood={() => moods.current?.present()} />
           <AddFriend />
           <SectionLabel>{friends.length ? tr`Amis · ${friends.length} / ${C.MAX_FRIENDS}` : tr('Amis')}</SectionLabel>
           {friends.length > 0 ? (
-            <Group>{friends.map((f) => <FriendRow key={f.uid} f={f} onOpen={() => openPlayer({ uid: f.uid, name: f.name, label: f.label, onRemove: () => { void removeFriend(f); } })} />)}</Group>
+            <Group>{friends.map((f) => <FriendRow key={f.uid} f={f} onOpen={() => openPlayer({ uid: f.uid, name: f.name, label: f.label, look: f.look, title: f.title, mood: f.mood, onRemove: () => { void removeFriend(f); } })} />)}</Group>
           ) : (
             <Card>
               <Text variant="muted">{listing ? tr('Chargement…') : tr('Pas encore d’amis. Partage ton code ou ajoute celui d’un ami.')}</Text>
@@ -159,6 +175,8 @@ export function CommunityScreen() {
         </>
       )}
       <PseudoSheet ref={pseudo} />
+      <TitleSheet ref={titles} />
+      <MoodSheet ref={moods} />
       {playerSheet}
     </Screen>
   );

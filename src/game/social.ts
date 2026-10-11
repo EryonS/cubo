@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { tr } from '../core/i18n';
 import * as G from '../core/league';
 import * as C from '../core/social';
+import * as T from '../core/titles';
 import { cuboLookFor, type CuboLook } from '../mascot/looks';
 import { now as clock } from '../platform/clock';
 import { mmkv, testMode } from '../platform/kv';
@@ -22,15 +23,16 @@ const SENT_KEY = 'cuboblocks.social.sent'; // what weeks/{week}/scores/{uid} hol
 const REPORTED_KEY = 'cuboblocks.social.reported'; // uids reported from this device (one report each); kept at sign-out, dropped with the account
 
 export interface Me extends Net.PlayerDoc { uid: string }
-export interface Friend { uid: string; name: string; code: string; look: CuboLook; label: string; bestClassic: number }
+// title / mood: ids of the fixed lists (core/titles.ts), '' = none.
+export interface Friend { uid: string; name: string; code: string; look: CuboLook; label: string; bestClassic: number; title: string; mood: string }
 // A friend's line in the rankings: this week's score doc (missing = 0) + the card's all-time Classique best.
-export interface BoardRow { uid: string; name: string; label: string; look: CuboLook; me: boolean; points: number; best: number; record: number }
+export interface BoardRow { uid: string; name: string; label: string; look: CuboLook; title: string; mood: string; me: boolean; points: number; best: number; record: number }
 interface Board { week: string; at: number; rows: BoardRow[] }
 // A line of my league group: the week's score doc (name = the raw pseudo, label = shown with #code on a collision).
 // masked: a blocked player ("Joueur masqué", neutral Cubo); the row stays so the ranks are the claim's.
-export interface LeagueRow { uid: string; name: string; label: string; look: CuboLook; me: boolean; points: number; best: number; masked: boolean }
+export interface LeagueRow { uid: string; name: string; label: string; look: CuboLook; title: string; mood: string; me: boolean; points: number; best: number; masked: boolean }
 // hidden: the owner's `hidden` strings of the group's players cards (read with the board, refreshed every 10 min).
-interface LeagueGroup { week: string; group: string; at: number; rows: { uid: string; name: string; look: Net.Look; points: number; best: number }[]; hidden: Record<string, string>; hiddenAt: number }
+interface LeagueGroup { week: string; group: string; at: number; rows: { uid: string; name: string; look: Net.Look; points: number; best: number }[]; hidden: Record<string, string>; tags: Record<string, { title: string; mood: string }>; hiddenAt: number }
 // off: signed out or nothing loaded; loading; ready; error: signed in but no answer and nothing cached.
 type Status = 'off' | 'loading' | 'ready' | 'error';
 interface State { status: Status; me: Me | null; friends: Friend[]; listing: boolean; board: Board | null; boarding: boolean; group: LeagueGroup | null; grouping: boolean; report: G.LeagueReport | null }
@@ -94,6 +96,7 @@ export function loadMe(): Promise<void> {
       }
       keep({ ...doc, uid: who.uid });
       set({ status: 'ready' });
+      void pushStatus();
       void claimLeague(); // a finished week: pay it before anything else
       pushSoon(0); // bestClassic and a tally the last push missed
       await syncInbox(who.uid);
@@ -118,6 +121,7 @@ export async function createMe(raw: string): Promise<{ error?: string }> {
     const doc = await Net.createPlayer(who.uid, checked.name, wornLook(), () => C.makeCode(Math.random));
     keep({ ...doc, uid: who.uid });
     set({ status: 'ready' });
+    void pushStatus();
     return {};
   } catch { return { error: failed() }; }
 }
@@ -149,6 +153,34 @@ export function shareCode() {
   Share.share({ message: tr`Ajoute-moi sur Cubo Blocks avec mon code ami : ${code}` }).catch(() => {});
 }
 
+// ---------- title and mood ----------
+
+// What the profile shows ('' = none; an id not in the lists counts as none).
+export const mineTitle = (p: { title?: string }) => (T.validTitle(p.title) ? p.title : '');
+export const mineMood = (p: { mood?: string }) => (T.validMood(p.mood) ? p.mood : '');
+
+// Mirrors profile.title / profile.mood on players/{uid} when they differ (a pick, a cloud save from another device).
+// Offline or refused: silent, the next launch / return to the foreground tries again.
+async function pushStatus() {
+  const me = get().me;
+  if (!me || !available()) return;
+  const { profile } = useGame.getState();
+  const title = mineTitle(profile);
+  const mood = mineMood(profile);
+  if ((me.title || '') === title && (me.mood || '') === mood) return;
+  try {
+    await Net.updatePlayer(me.uid, { title, mood });
+    keep({ ...(get().me ?? me), title, mood });
+  } catch { /* later */ }
+}
+
+// The player picked a title / mood ('' = none): the profile first (it follows the account), then the card.
+export function setMyStatus(kind: 'title' | 'mood', id: string) {
+  const { profile, setProfile } = useGame.getState();
+  setProfile({ ...profile, [kind]: id || undefined });
+  void pushStatus();
+}
+
 // ---------- friends ----------
 
 const blockedList = () => useGame.getState().profile.blocked;
@@ -176,16 +208,16 @@ export async function refreshFriends(quiet = false): Promise<boolean> {
     await syncInbox(me.uid);
     const ids = await Net.friendIds(me.uid);
     const docs = await Net.getPlayers(ids);
-    const people: (C.Person & { look: Net.Look; hidden: boolean; best: number })[] = [];
+    const people: (C.Person & { look: Net.Look; hidden: boolean; best: number; title: string; mood: string })[] = [];
     for (const id of ids) {
       const d = docs[id];
       if (d === undefined) continue; // unreadable now: skipped, not deleted
       if (d === null) { void Net.dropFriend(me.uid, id).catch(() => {}); continue; } // account deleted
       if (C.isBlocked(blockedList(), id)) continue;
-      people.push({ uid: id, name: C.isHidden(d.name, d.hidden) ? tr('Joueur') : d.name, code: d.code, look: d.look, hidden: C.isHidden(d.name, d.hidden), best: d.bestClassic || 0 });
+      people.push({ uid: id, name: C.isHidden(d.name, d.hidden) ? tr('Joueur') : d.name, code: d.code, look: d.look, hidden: C.isHidden(d.name, d.hidden), best: d.bestClassic || 0, title: C.isHidden(d.name, d.hidden) ? '' : d.title || '', mood: C.isHidden(d.name, d.hidden) ? '' : d.mood || '' });
     }
     const names = C.labels([{ uid: me.uid, name: me.name, code: me.code }, ...people]);
-    const friends = people.map((p): Friend => ({ uid: p.uid, name: p.name, code: p.code, look: lookOf(p.look), label: names[p.uid], bestClassic: p.best }));
+    const friends = people.map((p): Friend => ({ uid: p.uid, name: p.name, code: p.code, look: lookOf(p.look), label: names[p.uid], bestClassic: p.best, title: p.title, mood: p.mood }));
     friends.sort((a, b) => a.label.localeCompare(b.label));
     set({ friends });
     return true;
@@ -364,7 +396,8 @@ export function claimLeague(): Promise<boolean> {
       if (!G.claimable(profile, now)) return true;
       // Another device settled that week already: take its tier, pay nothing twice.
       if (card && card.leagueWeek && card.leagueWeek >= last.week) {
-        setProfile({ ...profile, league: { ...profile.league!, tier: G.clampTier(card.league ?? 0), claimed: last.week } });
+        const tier = G.clampTier(card.league ?? 0);
+        setProfile({ ...profile, league: { ...profile.league!, tier, best: Math.max(profile.league!.best ?? 0, tier), claimed: last.week } });
         keep({ ...me, ...card, uid: me.uid });
         return true;
       }
@@ -393,7 +426,7 @@ export function dismissReport() {
 }
 
 // Back in the foreground (or a dev clock change): settle a finished week. Cheap when there is nothing to do.
-export const resumeSocial = () => { void claimLeague().then(() => { if (get().me) pushSoon(0); }); };
+export const resumeSocial = () => { void pushStatus(); void claimLeague().then(() => { if (get().me) pushSoon(0); }); };
 
 // The score docs of my group this week, cached 60 s; `force` (pull-to-refresh) skips the wait. Not joined: nothing.
 export async function refreshGroup(force = false) {
@@ -411,16 +444,18 @@ export async function refreshGroup(force = false) {
     // Score docs carry their own pseudo: the owner's `hidden` is read from the players cards (<= 29 reads, every 10 min).
     const same = had && had.group === last.group && had.week === week;
     let hidden = same ? had.hidden : {};
+    let tags = same ? had.tags : {};
     let hiddenAt = same ? had.hiddenAt : 0;
     if (!same || now - hiddenAt >= HIDDEN_TTL || rows.some((r) => !(r.uid in hidden) && r.uid !== me.uid)) {
       const docs = await Net.getPlayers(rows.filter((r) => r.uid !== me.uid).map((r) => r.uid)).catch(() => null);
       if (docs) {
         hidden = {};
-        for (const [u, d] of Object.entries(docs)) hidden[u] = d?.hidden || '';
+        tags = {};
+        for (const [u, d] of Object.entries(docs)) { hidden[u] = d?.hidden || ''; tags[u] = { title: d?.title || '', mood: d?.mood || '' }; }
         hiddenAt = now;
       }
     }
-    set({ group: { week, group: last.group, at: Date.now(), rows, hidden, hiddenAt } });
+    set({ group: { week, group: last.group, at: Date.now(), rows, hidden, tags, hiddenAt } });
   } catch { /* offline: the last group stays */ } finally {
     set({ grouping: false });
   }
@@ -440,15 +475,16 @@ export function useLeagueRows(): LeagueRow[] | null {
     const w = C.weekOf(profile.week, clock());
     const rest = group.rows.filter((r) => r.uid !== me.uid); // strangers all count: the ranks must be the claim's
     const old = group.rows.find((r) => r.uid === me.uid);
-    const mine = { uid: me.uid, name: me.name, look: lookOf(me.look), points: Math.max(w.points, old?.points || 0), best: Math.max(w.best, old?.best || 0) };
+    const mine = { uid: me.uid, name: me.name, look: lookOf(me.look), title: mineTitle(profile), mood: mineMood(profile), points: Math.max(w.points, old?.points || 0), best: Math.max(w.best, old?.best || 0) };
     const shown = (r: { uid: string; name: string }) => (C.isBlocked(profile.blocked, r.uid) ? 'masked' : C.isHidden(r.name, group.hidden[r.uid]) ? 'hidden' : 'ok');
     const people = [...rest.filter((r) => shown(r) === 'ok').map((r) => ({ uid: r.uid, name: r.name, code: r.uid.slice(0, 3).toUpperCase() })), { uid: me.uid, name: me.name, code: me.code }];
     const names = C.labels(people);
     const line = (r: (typeof rest)[number]): LeagueRow => {
       const how = shown(r);
-      const base = { uid: r.uid, name: r.name, me: false, points: r.points, best: r.best };
-      if (how === 'masked') return { ...base, look: NEUTRAL, label: tr('Joueur masqué'), masked: true };
-      if (how === 'hidden') return { ...base, look: lookOf(r.look), label: tr('Joueur'), masked: false };
+      const tag = group.tags[r.uid];
+      const base = { uid: r.uid, name: r.name, me: false, points: r.points, best: r.best, title: tag?.title || '', mood: tag?.mood || '' };
+      if (how === 'masked') return { ...base, title: '', mood: '', look: NEUTRAL, label: tr('Joueur masqué'), masked: true };
+      if (how === 'hidden') return { ...base, title: '', mood: '', look: lookOf(r.look), label: tr('Joueur'), masked: false };
       return { ...base, look: lookOf(r.look), label: names[r.uid], masked: false };
     };
     return [{ ...mine, me: true, label: names[me.uid], masked: false }, ...rest.map(line)];
@@ -474,7 +510,7 @@ export async function refreshBoard(force = false) {
     const old = had && had.week === week ? had.rows : [];
     const rows: BoardRow[] = friends.map((f) => {
       const s = scores[f.uid] || old.find((r) => r.uid === f.uid); // an unreadable doc keeps its last value
-      return { uid: f.uid, name: f.name, label: f.label, look: f.look, me: false, points: s ? s.points : 0, best: s ? s.best : 0, record: f.bestClassic };
+      return { uid: f.uid, name: f.name, label: f.label, look: f.look, title: f.title, mood: f.mood, me: false, points: s ? s.points : 0, best: s ? s.best : 0, record: f.bestClassic };
     });
     set({ board: { week, at: Date.now(), rows } });
   } catch { /* offline: the last board stays */ } finally {
@@ -491,7 +527,7 @@ export function useBoardRows(): BoardRow[] | null {
   return useMemo(() => {
     if (!me || !board) return null;
     const w = C.weekOf(profile.week, clock());
-    const mine: BoardRow = { uid: me.uid, name: me.name, label: me.name, look: lookOf(me.look), me: true, points: w.points, best: w.best, record: Math.max(classic, me.bestClassic || 0) };
+    const mine: BoardRow = { uid: me.uid, name: me.name, label: me.name, look: lookOf(me.look), title: mineTitle(profile), mood: mineMood(profile), me: true, points: w.points, best: w.best, record: Math.max(classic, me.bestClassic || 0) };
     return [mine, ...board.rows.filter((r) => !C.isBlocked(profile.blocked, r.uid))];
   }, [me, board, profile.week, profile.blocked, classic]);
 }

@@ -69,7 +69,7 @@ test('claim: pays through earn, moves the tier, marks the week; twice is a no-op
   assert.equal(r.report!.total, 20 + 10 + 15);
   assert.equal(r.profile.coins, 100 + 45);
   assert.equal(r.profile.lifetime!.coinsEarned, 45);
-  assert.deepEqual(r.profile.league, { tier: 2, last: { week: '2026-W41', group: '1-1' }, claimed: '2026-W41' });
+  assert.deepEqual(r.profile.league, { tier: 2, last: { week: '2026-W41', group: '1-1' }, claimed: '2026-W41', best: 2, wins: 1, bestWins: 1, ups: 1 });
   assert.equal(G.claim(r.profile, 'u1', rows(30), W42), null);
 });
 
@@ -138,4 +138,20 @@ test('tier helpers', () => {
   assert.equal(G.cut(14), 1);
   assert.equal(G.cut(15), 5);
   assert.equal(G.cut(1), 0);
+});
+
+test('claim records league history for titles: best tier, wins, best wins, promotions (5+ players only)', () => {
+  const rs = rows(6); // u1 first on points and best
+  const a = G.claim(joined(1), 'u1', rs, W42)!;
+  assert.deepEqual([a.profile.league!.best, a.profile.league!.wins, a.profile.league!.bestWins, a.profile.league!.ups], [2, 1, 1, 1]);
+  const b = G.claim({ ...joined(2), league: { ...joined(2).league!, best: 4, wins: 2, ups: 3 } }, 'u3', rs, W42)!;
+  assert.deepEqual([b.profile.league!.best, b.profile.league!.wins, b.profile.league!.bestWins ?? 0, b.profile.league!.ups], [4, 2, 0, 3]);
+  const small = G.claim(joined(0), 'u1', rows(3), W42)!; // under MIN_PAID: no win, but the promotion counts
+  assert.deepEqual([small.profile.league!.wins, small.profile.league!.bestWins, small.profile.league!.ups], [0, 0, 1]);
+});
+
+test('old leagues without history still claim (fields absent = 0)', () => {
+  const r = G.claim(prof({ tier: 1, last: { week: '2026-W41', group: '1-1' } }), 'u9', rows(10), W42)!;
+  assert.equal(r.profile.league!.wins, 0);
+  assert.equal(r.profile.league!.best, 1);
 });

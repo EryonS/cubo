@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { useFocusEffect, useNavigation, type NavigationProp } from '@react-navigation/native';
 import { tr } from '../../core/i18n';
 import * as C from '../../core/social';
+import * as T from '../../core/titles';
 import { refreshBoard, useBoardRows, useSocial } from '../../game/social';
 import type { RootParams } from '../../navigation/types';
 import { useGame } from '../../state/store';
@@ -53,8 +54,11 @@ export function FriendsCard() {
           {ranked.slice(0, 3).map((r) => (
             <View key={r.row.uid} style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
               <Text variant="headline" style={{ width: 24, textAlign: 'center', color: r.row.me ? colors.accent : colors.muted }}>{r.rank}</Text>
-              <Avatar look={r.row.look} size={32} />
-              <Text variant="body" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>{r.row.label}</Text>
+              <Avatar look={r.row.look} size={32} mood={r.row.mood} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="body" numberOfLines={1}>{r.row.label}</Text>
+                {!!T.titleName(r.row.title) && <Text variant="caption" numberOfLines={1}>{T.titleName(r.row.title)}</Text>}
+              </View>
               <Text variant="headline" style={{ color: r.value ? colors.text : colors.muted }}>{r.value ? fmt(r.value) : '–'}</Text>
             </View>
           ))}

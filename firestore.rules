@@ -9,7 +9,7 @@ service cloud.firestore {
 
     // A player card. hidden (a string: the pseudo the owner hid) is set from the console only (never created or changed by the client).
     function validPlayer(d) {
-      return d.keys().hasOnly(['name', 'code', 'look', 'createdAt', 'nameChangedAt', 'bestClassic', 'league', 'leagueWeek', 'hidden'])
+      return d.keys().hasOnly(['name', 'code', 'look', 'createdAt', 'nameChangedAt', 'bestClassic', 'league', 'leagueWeek', 'hidden', 'title', 'mood'])
         && d.keys().hasAll(['name', 'code', 'look', 'createdAt', 'nameChangedAt'])
         && d.name is string && d.name.size() >= 3 && d.name.size() <= 16
         && d.name.matches('^[A-Za-z0-9\\x{C0}-\\x{D6}\\x{D8}-\\x{F6}\\x{F8}-\\x{FF}\\x{152}\\x{153} _-]+$')
@@ -18,6 +18,8 @@ service cloud.firestore {
         && d.look.cubo is string && d.look.cubo.size() <= 24 && d.look.hat is string && d.look.hat.size() <= 24
         && d.createdAt is int && d.nameChangedAt is int
         && (!('hidden' in d) || d.hidden is string)
+        && (!('title' in d) || (d.title is string && d.title.matches('^[a-z0-9-]{1,24}$')))
+        && (!('mood' in d) || (d.mood is string && d.mood.matches('^[a-z0-9-]{1,24}$')))
         && d.get('bestClassic', 0) is int && d.get('bestClassic', 0) >= 0 && d.get('bestClassic', 0) <= 2000000
         && d.get('league', 0) is int && d.get('league', 0) >= 0 && d.get('league', 0) <= 5
         && (!('leagueWeek' in d) || (d.leagueWeek is string && d.leagueWeek.matches('^[0-9]{4}-W[0-9]{2}$')));

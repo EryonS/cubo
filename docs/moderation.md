@@ -14,6 +14,7 @@ Cubo Blocks has no chat: the only user text is the pseudo. Apple 1.2 asks for a 
 2. Effect: wherever the player's current name equals `hidden` the app shows « Joueur » (friends lists, friends ranking at the next refresh, league boards within 10 minutes). The player's own app asks for a new pseudo (« Ton pseudo a été signalé, choisis-en un autre. ») on Communauté and Défis, and the rename is allowed at once, whatever the weekly limit.
 3. Once they pick another name it shows normally again (the old `hidden` string just stays there; you can delete the field).
 4. Never set `hidden` to a boolean: the rules and the app ignore anything but a string.
+5. Titles and moods are ids of fixed lists in the app (no free text), so there is nothing to moderate there: an unknown id shows as nothing. A « Joueur » line shows neither.
 
 ## Remove a player entirely
 1. Delete `players/{target}` and `codes/{code}` (the `code` field of the player doc; do it first, then the doc).

@@ -75,7 +75,18 @@ export function claim(profile: Profile, uid: string, rows: GroupScore[], now: nu
   if (!l || !l.last || !claimable(profile, now)) return null;
   const last = l.last;
   const from = tierOf(profile);
-  const done = (p: Profile, report: LeagueReport | null) => ({ profile: { ...p, league: { ...l, tier: report ? report.to : from, claimed: last.week } }, report });
+  // History for the titles (core/titles.ts): highest tier, weeks won on points / best score (a group paying ranks), promotions.
+  const done = (p: Profile, report: LeagueReport | null) => {
+    const to = report ? report.to : from;
+    const paid = !!report && report.size >= MIN_PAID;
+    const stats = {
+      best: Math.max(l.best ?? 0, from, to),
+      wins: (l.wins ?? 0) + (paid && report.pointsRank === 1 && report.points > 0 ? 1 : 0),
+      bestWins: (l.bestWins ?? 0) + (paid && report.bestRank === 1 ? 1 : 0),
+      ups: (l.ups ?? 0) + (report && report.move > 0 ? 1 : 0),
+    };
+    return { profile: { ...p, league: { ...l, ...stats, tier: to, claimed: last.week } }, report };
+  };
   const mine = rows.find((r) => r.uid === uid);
   if (!mine) return done(profile, null);
   const points = pointsBoard(rows).find((r) => r.row.uid === uid)!;

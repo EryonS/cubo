@@ -7,6 +7,7 @@ import { useFocusEffect, useNavigation, type NavigationProp } from '@react-navig
 import { tr } from '../../core/i18n';
 import * as G from '../../core/league';
 import * as C from '../../core/social';
+import * as T from '../../core/titles';
 import { flagged, refreshGroup, useLeagueRows, useSocial } from '../../game/social';
 import type { RootParams } from '../../navigation/types';
 import { now as clock } from '../../platform/clock';
@@ -65,8 +66,11 @@ function League() {
           {lines.slice(0, 3).map((l) => (
             <View key={l.row.uid} style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
               <Text variant="headline" style={{ width: 24, textAlign: 'center', color: l.row.me ? colors.accent : colors.muted }}>{l.rank}</Text>
-              <Avatar look={l.row.look} size={32} />
-              <Text variant="body" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>{l.row.label}</Text>
+              <Avatar look={l.row.look} size={32} mood={l.row.mood} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="body" numberOfLines={1}>{l.row.label}</Text>
+                {!!T.titleName(l.row.title) && <Text variant="caption" numberOfLines={1}>{T.titleName(l.row.title)}</Text>}
+              </View>
               <Text variant="headline" style={{ color: l.value ? colors.text : colors.muted }}>{l.value ? fmt(l.value) : '–'}</Text>
             </View>
           ))}

@@ -224,7 +224,10 @@ export interface Profile {
   stickers?: Record<string, string>;
   tips?: Record<string, boolean>;
   week?: { id: string; points: number; best: number; runs: number }; // community: this week's tally (core/social.ts); absent = nothing yet
-  league?: { tier: number; last?: { week: string; group: string }; claimed?: string }; // community: league tier 0..5 (Bronze..Diamant), the group joined last, the last week claimed; absent = Bronze, none joined
+  league?: { tier: number; last?: { week: string; group: string }; claimed?: string; best?: number; wins?: number; bestWins?: number; ups?: number }; // community: league tier 0..5 (Bronze..Diamant), the group joined last, the last week claimed; absent = Bronze, none joined. best: highest tier reached, wins / bestWins: weeks 1st on points / best score in a group of 5+, ups: promotions (absent = 0, for titles)
+  title?: string; // community: the earned title shown next to the pseudo (core/titles.ts id); absent = none
+  mood?: string; // community: the chosen mood (core/titles.ts id), Cubo's face next to the pseudo; absent = none
+  titlesSeen?: string[]; // community: title ids already announced (like stickers); absent = none
   blocked?: string[]; // community: uids the player blocked (follows the account); absent = none
   // Test mode's profile (Paramètres > Développeur): every world, level and puzzle open.
   dev?: boolean;

@@ -2,10 +2,11 @@
 // game/social.ts drives. Paths and rules: docs/features/social.md, firestore.rules.
 // players/{uid}, codes/{code}, players/{uid}/friends/{fid}, inbox/{uid}/adds/{fid}, weeks/{week}/scores/{uid},
 // weeks/{week}/leagues/{tier} (the group being filled).
+import { validMood, validTitle } from '../core/titles';
 import { load } from './cloud';
 
 export interface Look { cubo: string; hat: string } // boards theme key + wardrobe head piece: cuboLookFor(cubo, hat)
-export interface PlayerDoc { name: string; code: string; look: Look; createdAt: number; nameChangedAt: number; bestClassic?: number; league?: number; leagueWeek?: string; hidden?: string }
+export interface PlayerDoc { name: string; code: string; look: Look; createdAt: number; nameChangedAt: number; bestClassic?: number; league?: number; leagueWeek?: string; hidden?: string; title?: string; mood?: string }
 
 function coded(code: string) {
   const e = new Error(code) as Error & { code: string };
@@ -27,6 +28,7 @@ function toPlayer(data: Record<string, unknown> | undefined): PlayerDoc | null {
     look: { cubo: typeof look.cubo === 'string' ? look.cubo : 'toy', hat: typeof look.hat === 'string' ? look.hat : 'auto' },
     league: Number(data.league) || 0, leagueWeek: typeof data.leagueWeek === 'string' ? data.leagueWeek : '',
     hidden: typeof data.hidden === 'string' ? data.hidden : '', // the pseudo the owner hid (console)
+    title: validTitle(data.title) ? data.title : '', mood: validMood(data.mood) ? data.mood : '', // only ids of the fixed lists get through
   };
 }
 
@@ -69,9 +71,12 @@ export async function createPlayer(uid: string, name: string, look: Look, newCod
   throw coded('no-code');
 }
 
-export async function updatePlayer(uid: string, patch: Partial<Pick<PlayerDoc, 'name' | 'look' | 'nameChangedAt' | 'bestClassic' | 'league' | 'leagueWeek'>>) {
+// title / mood: '' removes the field (none chosen).
+export async function updatePlayer(uid: string, patch: Partial<Pick<PlayerDoc, 'name' | 'look' | 'nameChangedAt' | 'bestClassic' | 'league' | 'leagueWeek' | 'title' | 'mood'>>) {
   const { fs, db } = await store();
-  await fs.updateDoc(fs.doc(db, 'players', uid), patch);
+  const data: Record<string, unknown> = { ...patch };
+  for (const k of ['title', 'mood'] as const) if (data[k] === '') data[k] = fs.deleteField();
+  await fs.updateDoc(fs.doc(db, 'players', uid), data);
 }
 
 export async function uidOfCode(code: string): Promise<string | null> {
