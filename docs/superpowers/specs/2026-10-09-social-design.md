@@ -37,8 +37,9 @@ offline and without an account as today.
 7. **Leagues on the points ranking**: Bronze, Argent, Or, Saphir, Rubis, Diamant. Each week a player who scored
    at least once is put in a **group of up to 30** of their league. End of week: top 5 go up, bottom 5 go down
    (none down from Bronze, none up from Diamant), the rest stay. A week without any run keeps the league.
-   **Both rankings of the group pay** (owner): points 1st 60, 2nd 40, 3rd 30, 4th-10th 15, promotion +20;
-   best score 1st 40, 2nd 25, 3rd 15. In line with the lowered economy; tune with `npm run balance` habits.
+   **Both rankings of the group pay** (owner): points 1st 20, 2nd 12, 3rd 8, 4th-10th 4, promotion +15;
+   best score 1st 10, 2nd 6, 3rd 4; about 45 coins a week at most (owner, 2026-10-11). A group under 5 players only
+   pays the promotion (a lone player would win both boards every week).
    A sticker page "Ligues" later (first promotion, reach Or, reach Diamant, win a group).
 8. **Friends ranking**: the same two weekly rankings among friends + me, plus all-time best Classique. No
    rewards (bragging), a toast / Cubo line when a friend passes you.

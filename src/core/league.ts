@@ -10,9 +10,10 @@ import type { Profile } from './types';
 export const TIER_COUNT = 6; // Bronze, Argent, Or, Saphir, Rubis, Diamant
 export const GROUP_SIZE = 30; // players per group (firestore.rules pointer)
 export const BIG_GROUP = 15; // from this size five go up and five go down, under it one
-export const PROMO_BONUS = 20;
-const POINTS_PAY = [60, 40, 30, 15, 15, 15, 15, 15, 15, 15]; // coins for points rank 1..10
-const BEST_PAY = [40, 25, 15]; // coins for best-score rank 1..3
+export const PROMO_BONUS = 15;
+const POINTS_PAY = [20, 12, 8, 4, 4, 4, 4, 4, 4, 4]; // coins for points rank 1..10
+const BEST_PAY = [10, 6, 4]; // coins for best-score rank 1..3
+export const MIN_PAID = 5; // smaller groups only pay the promotion (a lone player would win both boards every week)
 
 export const clampTier = (tier: number) => Math.max(0, Math.min(TIER_COUNT - 1, Math.floor(tier) || 0));
 export const tierName = (tier: number) => [tr('Bronze'), tr('Argent'), tr('Or'), tr('Saphir'), tr('Rubis'), tr('Diamant')][clampTier(tier)];
@@ -35,9 +36,11 @@ export function leagueMove(rank: number, size: number, tier: number, points = 1)
 }
 
 export interface Pay { label: string; coins: number }
-// Coins of a finished week. A rank of 0 = no ranking (nothing paid). The promotion bonus rides on `promoted`.
-export function leagueRewards(pointsRank: number, bestRank: number, promoted = false): Pay[] {
+// Coins of a finished week in a group of `size`. A rank of 0 = no ranking (nothing paid). The promotion bonus
+// rides on `promoted`; ranks pay from MIN_PAID players.
+export function leagueRewards(pointsRank: number, bestRank: number, promoted: boolean, size: number): Pay[] {
   const out: Pay[] = [];
+  if (size < MIN_PAID) pointsRank = bestRank = 0;
   const pts = pointsRank >= 1 ? POINTS_PAY[pointsRank - 1] || 0 : 0;
   if (pts) out.push({ label: tr`Points de la semaine, ${pointsRank}e`, coins: pts });
   const best = bestRank >= 1 ? BEST_PAY[bestRank - 1] || 0 : 0;
@@ -79,7 +82,7 @@ export function claim(profile: Profile, uid: string, rows: GroupScore[], now: nu
   const best = bestBoard(rows).find((r) => r.row.uid === uid)!;
   const bestRank = mine.best > 0 ? best.rank : 0;
   const move = leagueMove(points.rank, rows.length, from, mine.points);
-  const earned = leagueRewards(mine.points > 0 ? points.rank : 0, bestRank, move > 0);
+  const earned = leagueRewards(mine.points > 0 ? points.rank : 0, bestRank, move > 0, rows.length);
   const total = totalPay(earned);
   const report: LeagueReport = {
     week: last.week, group: last.group, size: rows.length, from, to: clampTier(from + move), move,

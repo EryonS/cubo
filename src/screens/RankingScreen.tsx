@@ -36,7 +36,7 @@ export function leagueLines(rows: LeagueRow[], tab: 'points' | 'best', tier: num
   const ranked = C.rankRows(rows, (r) => r[tab], (a, b) => a.name.localeCompare(b.name) || a.uid.localeCompare(b.uid)); // G.pointsBoard's order
   return ranked.map((r) => {
     const move = G.leagueMove(r.rank, rows.length, tier, r.row.points);
-    const pay = tab === 'points' ? G.totalPay(G.leagueRewards(r.value > 0 ? r.rank : 0, 0, move > 0)) : G.totalPay(G.leagueRewards(0, r.value > 0 ? r.rank : 0));
+    const pay = tab === 'points' ? G.totalPay(G.leagueRewards(r.value > 0 ? r.rank : 0, 0, move > 0, rows.length)) : G.totalPay(G.leagueRewards(0, r.value > 0 ? r.rank : 0, false, rows.length));
     return { row: r.row, rank: r.rank, value: r.value, move, pay };
   });
 }

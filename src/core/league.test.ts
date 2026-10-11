@@ -45,13 +45,20 @@ test('moves: ties at the cut all go up, ties at the demotion line all stay', () 
   assert.deepEqual(board.map((r) => G.leagueMove(r.rank, 20, 2, r.value)).filter((x) => x < 0), []);
 });
 
-test('rewards: points 60/40/30/15 to the tenth, best 40/25/15, promotion 20, rank 0 pays nothing', () => {
-  const pay = (p: number, b: number, up = false) => G.totalPay(G.leagueRewards(p, b, up));
-  assert.deepEqual([1, 2, 3, 4, 10, 11].map((r) => pay(r, 0)), [60, 40, 30, 15, 15, 0]);
-  assert.deepEqual([1, 2, 3, 4].map((r) => pay(0, r)), [40, 25, 15, 0]);
-  assert.equal(pay(1, 1, true), 60 + 40 + 20);
-  assert.equal(pay(7, 0, true), 35);
+test('rewards: points 20/12/8/4 to the tenth, best 10/6/4, promotion 15, rank 0 pays nothing', () => {
+  const pay = (p: number, b: number, up = false, size = 30) => G.totalPay(G.leagueRewards(p, b, up, size));
+  assert.deepEqual([1, 2, 3, 4, 10, 11].map((r) => pay(r, 0)), [20, 12, 8, 4, 4, 0]);
+  assert.deepEqual([1, 2, 3, 4].map((r) => pay(0, r)), [10, 6, 4, 0]);
+  assert.equal(pay(1, 1, true), 20 + 10 + 15);
+  assert.equal(pay(7, 0, true), 19);
   assert.equal(pay(0, 0), 0);
+});
+
+test('rewards: a group under 5 players only pays the promotion', () => {
+  const pay = (p: number, b: number, up: boolean, size: number) => G.totalPay(G.leagueRewards(p, b, up, size));
+  assert.equal(pay(1, 1, false, 1), 0);
+  assert.equal(pay(1, 1, true, 4), 15);
+  assert.equal(pay(1, 1, false, 5), 30);
 });
 
 test('claim: pays through earn, moves the tier, marks the week; twice is a no-op', () => {
@@ -59,9 +66,9 @@ test('claim: pays through earn, moves the tier, marks the week; twice is a no-op
   assert.equal(r.report!.pointsRank, 1);
   assert.equal(r.report!.bestRank, 1);
   assert.equal(r.report!.move, 1);
-  assert.equal(r.report!.total, 60 + 40 + 20);
-  assert.equal(r.profile.coins, 100 + 120);
-  assert.equal(r.profile.lifetime!.coinsEarned, 120);
+  assert.equal(r.report!.total, 20 + 10 + 15);
+  assert.equal(r.profile.coins, 100 + 45);
+  assert.equal(r.profile.lifetime!.coinsEarned, 45);
   assert.deepEqual(r.profile.league, { tier: 2, last: { week: '2026-W41', group: '1-1' }, claimed: '2026-W41' });
   assert.equal(G.claim(r.profile, 'u1', rows(30), W42), null);
 });
@@ -84,10 +91,10 @@ test('claim: best score rank is separate (best 0 pays nothing)', () => {
   const r = G.claim(joined(2), 'u5', g, W42)!;
   assert.equal(r.report!.pointsRank, 5);
   assert.equal(r.report!.bestRank, 1);
-  assert.deepEqual(r.report!.earned.map((l) => l.coins), [15, 40]);
+  assert.deepEqual(r.report!.earned.map((l) => l.coins), [4, 10]);
   const none = G.claim(joined(2), 'u4', g, W42)!;
   assert.equal(none.report!.bestRank, 0);
-  assert.deepEqual(none.report!.earned.map((l) => l.coins), [15]);
+  assert.deepEqual(none.report!.earned.map((l) => l.coins), [4]);
 });
 
 test('claim: not yet (same week), nothing joined, a group of one, me missing', () => {
@@ -96,7 +103,7 @@ test('claim: not yet (same week), nothing joined, a group of one, me missing', (
   assert.equal(G.claim(prof({ tier: 2 }), 'u1', rows(3), W42), null);
   const solo = G.claim(joined(2), 'u1', rows(1), W42)!;
   assert.equal(solo.report!.move, 0);
-  assert.equal(solo.report!.total, 60 + 40);
+  assert.equal(solo.report!.total, 0); // under MIN_PAID: only a promotion pays
   const gone = G.claim(joined(2), 'zzz', rows(3), W42)!;
   assert.equal(gone.report, null);
   assert.equal(gone.profile.league!.claimed, '2026-W41');
