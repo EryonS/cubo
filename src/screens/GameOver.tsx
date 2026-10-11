@@ -12,6 +12,7 @@ import { showRewarded } from '../platform/ads';
 import { runSummary } from '../game/summary';
 import { modeLabel } from '../game/modes';
 import type { RunEnd } from '../game/run';
+import { useSocial } from '../game/social';
 import { useGame } from '../state/store';
 import { radius, space } from '../theme/tokens';
 import { useColors, usePlayedTheme } from '../theme/useColors';
@@ -110,6 +111,7 @@ export function GameOver({ end, onAgain, onMenu, onRevive }: { end: RunEnd; onAg
   const ss = scoreSize / 76;
   const linePad = lerp(2, 5, k);
   const profile = useGame((s) => s.profile);
+  const inCommunity = useSocial((s) => !!s.me); // the week line only means something with a pseudo (no network here)
   const mascot = useGame((s) => s.saved.settings.mascot);
   const played = usePlayedTheme();
   const look = useMemo(() => cuboLookFor(played, profile.equipped.cubo), [played, profile.equipped.cubo]);
@@ -181,6 +183,7 @@ export function GameOver({ end, onAgain, onMenu, onRevive }: { end: RunEnd; onAg
             <Text variant="title" style={{ fontSize: lerp(23, 30, k), textTransform: 'uppercase', textAlign: 'center' }}>{TITLES[end.title]()}</Text>
             <Text variant="big" style={{ fontSize: scoreSize, lineHeight: Math.round(94 * ss), paddingBottom: 4, marginTop: Math.round(-10 * ss), marginBottom: Math.round((Platform.OS === 'android' ? -14 : -26) * ss), color: colors.text }}>{fmt(end.score)}</Text>
             <Text variant="muted" style={{ fontSize: 15 }}>{tr('Record : ') + fmt(end.best)}</Text>
+            {end.weekPts > 0 && inCommunity && <Text variant="caption">{tr`+${fmt(end.weekPts)} pts cette semaine`}</Text>}
             {end.record && (
               <View style={{ marginTop: lerp(4, 8, k), paddingHorizontal: 14, paddingVertical: lerp(2, 4, k), borderRadius: radius.pill, backgroundColor: colors.accent }}>
                 <Text variant="title" style={{ fontSize: lerp(15, 17, k), color: colors.onAccent, letterSpacing: 1 }}>{tr('NOUVEAU RECORD')}</Text>

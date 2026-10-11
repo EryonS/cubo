@@ -1,6 +1,7 @@
 // Community glue (friends, pseudo, code). Rules in core/social.ts, Firestore in platform/social.ts.
 // The player's own doc is cached in MMKV (cuboblocks.social) so Profil shows pseudo + code offline; sign-out
 // clears it. Does not import game/account.ts (account.ts calls resetSocial / startSocial / deleteSocialData).
+import { useMemo } from 'react';
 import { Share } from 'react-native';
 import { create } from 'zustand';
 import { tr } from '../core/i18n';
@@ -14,14 +15,18 @@ import { ask } from '../ui/dialog';
 import { toast } from '../ui/Toast';
 
 const CACHE_KEY = 'cuboblocks.social';
+const SENT_KEY = 'cuboblocks.social.sent'; // what weeks/{week}/scores/{uid} holds after my last push
 
 export interface Me extends Net.PlayerDoc { uid: string }
-export interface Friend { uid: string; name: string; code: string; look: CuboLook; label: string }
+export interface Friend { uid: string; name: string; code: string; look: CuboLook; label: string; bestClassic: number }
+// A friend's line in the rankings: this week's score doc (missing = 0) + the card's all-time Classique best.
+export interface BoardRow { uid: string; label: string; look: CuboLook; me: boolean; points: number; best: number; record: number }
+interface Board { week: string; at: number; rows: BoardRow[] }
 // off: signed out or nothing loaded; loading; ready; error: signed in but no answer and nothing cached.
 type Status = 'off' | 'loading' | 'ready' | 'error';
-interface State { status: Status; me: Me | null; friends: Friend[]; listing: boolean }
+interface State { status: Status; me: Me | null; friends: Friend[]; listing: boolean; board: Board | null; boarding: boolean }
 
-export const useSocial = create<State>(() => ({ status: 'off', me: readCache(), friends: [], listing: false }));
+export const useSocial = create<State>(() => ({ status: 'off', me: readCache(), friends: [], listing: false, board: null, boarding: false }));
 const set = useSocial.setState;
 const get = useSocial.getState;
 
@@ -52,7 +57,8 @@ const available = () => !testMode && Cloud.available();
 
 export function resetSocial() {
   mmkv.remove(CACHE_KEY);
-  set({ status: 'off', me: null, friends: [], listing: false });
+  set({ status: 'off', me: null, friends: [], listing: false, board: null, boarding: false });
+  mmkv.remove(SENT_KEY);
 }
 
 // At launch, after sign-in and when the Communauté screen opens: reads my doc (if any), then the inbox.
@@ -75,6 +81,7 @@ export function loadMe(): Promise<void> {
       }
       keep({ ...doc, uid: who.uid });
       set({ status: 'ready' });
+      pushSoon(0); // bestClassic and a tally the last push missed
       await syncInbox(who.uid);
     } catch {
       set({ status: get().me ? 'ready' : 'error' }); // offline: the cached card stays
@@ -143,28 +150,30 @@ async function syncInbox(uid: string) {
   await Net.moveInbox(uid, take, refuse);
 }
 
-export async function refreshFriends() {
+export async function refreshFriends(quiet = false): Promise<boolean> {
   const me = get().me;
-  if (!me || !available()) return;
+  if (!me || !available()) return false;
   set({ listing: true });
   try {
     await syncInbox(me.uid);
     const ids = await Net.friendIds(me.uid);
     const docs = await Net.getPlayers(ids);
-    const people: (C.Person & { look: Net.Look; hidden: boolean })[] = [];
+    const people: (C.Person & { look: Net.Look; hidden: boolean; best: number })[] = [];
     for (const id of ids) {
       const d = docs[id];
       if (d === undefined) continue; // unreadable now: skipped, not deleted
       if (d === null) { void Net.dropFriend(me.uid, id).catch(() => {}); continue; } // account deleted
       if (C.isBlocked(blockedList(), id)) continue;
-      people.push({ uid: id, name: d.hidden ? tr('Joueur') : d.name, code: d.code, look: d.look, hidden: !!d.hidden });
+      people.push({ uid: id, name: d.hidden ? tr('Joueur') : d.name, code: d.code, look: d.look, hidden: !!d.hidden, best: d.bestClassic || 0 });
     }
     const names = C.labels([{ uid: me.uid, name: me.name, code: me.code }, ...people]);
-    const friends = people.map((p): Friend => ({ uid: p.uid, name: p.name, code: p.code, look: lookOf(p.look), label: names[p.uid] }));
+    const friends = people.map((p): Friend => ({ uid: p.uid, name: p.name, code: p.code, look: lookOf(p.look), label: names[p.uid], bestClassic: p.best }));
     friends.sort((a, b) => a.label.localeCompare(b.label));
     set({ friends });
+    return true;
   } catch {
-    toast(failed());
+    if (!quiet) toast(failed());
+    return false;
   } finally {
     set({ listing: false });
   }
@@ -218,8 +227,104 @@ export async function blockFriend(f: Friend) {
   await Net.dropFriend(me.uid, f.uid).catch(() => toast(failed()));
 }
 
+// ---------- weekly score ----------
+
+interface Sent { uid: string; week: string; points: number; best: number; runs: number; at: number }
+function readSent(uid: string, week: string): Sent {
+  try {
+    const v = JSON.parse(mmkv.get(SENT_KEY) || 'null') as Sent | null;
+    if (v && v.uid === uid && v.week === week) return v;
+  } catch { /* absent */ }
+  return { uid, week, points: 0, best: 0, runs: 0, at: 0 };
+}
+
+// A counted run just settled (game/run.ts): the tally goes up 3 s later, like the cloud save.
+export const weekCounted = () => pushSoon(3000);
+
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+function pushSoon(ms: number) {
+  if (!get().me || !available()) return;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => { pushTimer = null; void pushNow(); }, ms);
+}
+// The app goes to the background: a push waiting for its 3 s goes now.
+export function flushWeek() {
+  if (!pushTimer) return;
+  clearTimeout(pushTimer);
+  pushTimer = null;
+  void pushNow();
+}
+
+// Absolute values from the profile's tally, never lower than what was already sent this week. Needs a pseudo.
+async function pushNow() {
+  const me = get().me;
+  if (!me || !available()) return;
+  const { profile, saved } = useGame.getState();
+  const now = Date.now();
+  const w = C.weekOf(profile.week, now);
+  const sent = readSent(me.uid, w.id);
+  try {
+    const classic = Math.min(C.MAX_RECORD, Math.max(saved.bests.classic || 0, w.best, me.bestClassic || 0));
+    if (classic > (me.bestClassic || 0)) {
+      await Net.updatePlayer(me.uid, { bestClassic: classic });
+      keep({ ...me, bestClassic: classic });
+    }
+    if (w.runs <= 0 || (w.points <= sent.points && w.best <= sent.best && w.runs <= sent.runs)) return;
+    const wait = sent.at + C.PUSH_GAP - now; // the rules want 10 s between two writes
+    if (wait > 0) { pushSoon(wait + 500); return; }
+    // The rules allow +200000 points a write (a long offline stretch is sent in steps); best never passes points.
+    const points = Math.min(Math.max(w.points, sent.points), sent.points + C.PUSH_STEP);
+    const tally = { points, best: Math.min(points, Math.max(w.best, sent.best)), runs: Math.max(w.runs, sent.runs) };
+    await Net.putWeekScore(me.uid, w.id, me.name, wornLook(), tally, now);
+    mmkv.set(SENT_KEY, JSON.stringify({ uid: me.uid, week: w.id, ...tally, at: now }));
+    if (points < w.points) pushSoon(C.PUSH_GAP + 500);
+  } catch { /* offline or refused: the next counted run, launch or return to the background tries again */ }
+}
+
+// ---------- friends ranking ----------
+
+const BOARD_TTL = 60000;
+// Me + my friends for this week. Cached 60 s; `force` (pull-to-refresh) skips the wait.
+export async function refreshBoard(force = false) {
+  const me = get().me;
+  if (!me || !available() || get().boarding) return;
+  const now = Date.now();
+  const week = C.weekId(now);
+  const had = get().board;
+  if (!force && had && had.week === week && now - had.at < BOARD_TTL) return;
+  set({ boarding: true });
+  try {
+    await refreshFriends(true);
+    const friends = get().friends;
+    const scores = await Net.getWeekScores(week, friends.map((f) => f.uid));
+    const old = had && had.week === week ? had.rows : [];
+    const rows: BoardRow[] = friends.map((f) => {
+      const s = scores[f.uid] || old.find((r) => r.uid === f.uid); // an unreadable doc keeps its last value
+      return { uid: f.uid, label: f.label, look: f.look, me: false, points: s ? s.points : 0, best: s ? s.best : 0, record: f.bestClassic };
+    });
+    set({ board: { week, at: Date.now(), rows } });
+  } catch { /* offline: the last board stays */ } finally {
+    set({ boarding: false });
+  }
+}
+
+// The board with my line from the local data (always fresh), friends from the cache.
+export function useBoardRows(): BoardRow[] | null {
+  const me = useSocial((s) => s.me);
+  const board = useSocial((s) => s.board);
+  const profile = useGame((s) => s.profile);
+  const classic = useGame((s) => s.saved.bests.classic || 0);
+  return useMemo(() => {
+    if (!me || !board) return null;
+    const w = C.weekOf(profile.week, Date.now());
+    const mine: BoardRow = { uid: me.uid, label: me.name, look: lookOf(me.look), me: true, points: w.points, best: w.best, record: Math.max(classic, me.bestClassic || 0) };
+    return [mine, ...board.rows];
+  }, [me, board, profile.week, classic]);
+}
+
 // Account deletion (called by cloud.deleteAccount while still signed in). Failures stop the deletion.
 export async function deleteSocialData(uid: string) {
-  await Net.deleteAll(uid);
+  const now = Date.now();
+  await Net.deleteAll(uid, [C.weekId(now), C.weekId(now - 7 * 86400000)]);
   resetSocial();
 }

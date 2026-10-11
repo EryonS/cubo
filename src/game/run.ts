@@ -8,6 +8,7 @@ import type { Collected, MoveEvents } from '../core/logic';
 import type { Earned } from '../core/meta';
 import type { BonusType, Level, Lifetime, Mode, Profile, PuzzleSetup, RunState, StageDef, Stats } from '../core/types';
 import { tr } from '../core/i18n';
+import { addWeekRun, counts } from '../core/social';
 import { paletteFor } from '../render/board-themes';
 import { BOSS_LOOK, bossCenter } from '../render/boss';
 import { TOY } from '../render/theme';
@@ -31,6 +32,7 @@ import { isSurprise, settlePuzzle } from './puzzle';
 import { collectTips, hideTips, modeTips, stuckTip } from './tips';
 import { tutActive, tutor } from './tut-state';
 import { tutorialMoved, tutorialNope } from './tutorial';
+import { weekCounted } from './social';
 
 export { inProgress };
 
@@ -178,9 +180,10 @@ export function restartRun(opts: StartOpts) {
 function dropParked(): number {
   const { saved, profile, setSaved, setProfile } = useGame.getState();
   if (!saved.parked) return 0;
-  const res = M.applyRun(M.ensureDay(profile, today()), L.runStats(saved.parked));
+  const stats = L.runStats(saved.parked);
+  const res = M.applyRun(M.ensureDay(profile, today()), stats);
   setSaved({ ...saved, parked: null });
-  setProfile(res.profile);
+  setProfile(withWeek(res.profile, stats));
   return res.report.total;
 }
 
@@ -301,6 +304,14 @@ export function buyExtraMoves(lay: Layout): boolean {
   return true;
 }
 
+// The weekly tally (profile.week) after a finished run; it lives in the profile so a Seconde chance undoes it.
+function withWeek(p: Profile, run: { mode: Mode; score: number }): Profile {
+  const week = addWeekRun(p.week, run.mode, run.score, Date.now());
+  if (week === p.week) return p;
+  weekCounted();
+  return { ...p, week };
+}
+
 // Pays out coins and advances missions for the current run, once.
 export function settleRun() {
   if (runSettled) return null;
@@ -309,7 +320,9 @@ export function settleRun() {
   // A daily attempt counts once its run ends or is dropped after a move, never just for opening it.
   const daily = saved.state.stage && saved.state.stage.daily;
   const counted = (daily && saved.state.moves > 0 && M.countDaily(profile, daily, today())) || profile;
-  const res = M.applyRun(M.ensureDay(counted, today()), L.runStats(saved.state));
+  const stats = L.runStats(saved.state);
+  const res = M.applyRun(M.ensureDay(counted, today()), stats);
+  res.profile = withWeek(res.profile, stats);
   // Stickers fallen due with the run are paid and listed in its report (legacy stickerLines in settleRun).
   const st = M.checkStickers(res.profile, today());
   setProfile(st.profile);
@@ -333,6 +346,7 @@ export interface RunEnd {
   total: number;
   coinsBefore: number;
   revive: boolean; // Seconde chance on offer (reviveRun)
+  weekPts: number; // points added to the week by this run (0 = not counted)
 }
 
 // A level is over (won, out of moves, out of room, time up, quit). The run's grid coins and missions are
@@ -380,7 +394,7 @@ function endGame(t: number, lay?: Layout) {
     score: st.score, best, record: st.score >= best && st.score > anim.bestAtStart && anim.bestAtStart > 0,
     title: st.timeUp ? 'time' : st.quit ? 'quit' : 'over', stats: st.stats || {}, lifeBefore,
     earned: report ? report.earned : [], total: report ? report.total : 0, coinsBefore: report ? report.coinsBefore : profile.coins,
-    revive: !!settledFrom,
+    revive: !!settledFrom, weekPts: report && counts(st.mode, st.score) ? st.score : 0,
   };
   setTimeout(() => endHandler?.(end), 1300);
 }

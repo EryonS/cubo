@@ -1,10 +1,10 @@
 // Firestore side of the community (friends, pseudo, code). No game logic: core/social.ts decides,
 // game/social.ts drives. Paths and rules: docs/features/social.md, firestore.rules.
-// players/{uid}, codes/{code}, players/{uid}/friends/{fid}, inbox/{uid}/adds/{fid}.
+// players/{uid}, codes/{code}, players/{uid}/friends/{fid}, inbox/{uid}/adds/{fid}, weeks/{week}/scores/{uid}.
 import { load } from './cloud';
 
 export interface Look { cubo: string; hat: string } // boards theme key + wardrobe head piece: cuboLookFor(cubo, hat)
-export interface PlayerDoc { name: string; code: string; look: Look; createdAt: number; nameChangedAt: number; hidden?: boolean }
+export interface PlayerDoc { name: string; code: string; look: Look; createdAt: number; nameChangedAt: number; bestClassic?: number; hidden?: boolean }
 
 function coded(code: string) {
   const e = new Error(code) as Error & { code: string };
@@ -22,7 +22,7 @@ function toPlayer(data: Record<string, unknown> | undefined): PlayerDoc | null {
   if (!data || typeof data.name !== 'string' || typeof data.code !== 'string') return null;
   const look = (data.look || {}) as Partial<Look>;
   return {
-    name: data.name, code: data.code, createdAt: Number(data.createdAt) || 0, nameChangedAt: Number(data.nameChangedAt) || 0,
+    name: data.name, code: data.code, createdAt: Number(data.createdAt) || 0, nameChangedAt: Number(data.nameChangedAt) || 0, bestClassic: Number(data.bestClassic) || 0,
     look: { cubo: typeof look.cubo === 'string' ? look.cubo : 'toy', hat: typeof look.hat === 'string' ? look.hat : 'auto' },
     hidden: data.hidden === true,
   };
@@ -67,7 +67,7 @@ export async function createPlayer(uid: string, name: string, look: Look, newCod
   throw coded('no-code');
 }
 
-export async function updatePlayer(uid: string, patch: Partial<Pick<PlayerDoc, 'name' | 'look' | 'nameChangedAt'>>) {
+export async function updatePlayer(uid: string, patch: Partial<Pick<PlayerDoc, 'name' | 'look' | 'nameChangedAt' | 'bestClassic'>>) {
   const { fs, db } = await store();
   await fs.updateDoc(fs.doc(db, 'players', uid), patch);
 }
@@ -121,9 +121,34 @@ export async function moveInbox(me: string, take: string[], refuse: string[]) {
   for (const fid of refuse) await fs.deleteDoc(fs.doc(db, 'players', fid, 'friends', me)).catch(() => {});
 }
 
-// Account deletion: friends, inbox, the code, the player. Called while still signed in.
-export async function deleteAll(uid: string) {
+// ---------- weekly scores: weeks/{week}/scores/{uid} ----------
+
+export interface WeekDoc { points: number; best: number; runs: number; at: number }
+
+// Absolute values from the local tally; the rules only let points / best / runs grow, 10 s apart.
+export async function putWeekScore(uid: string, week: string, name: string, look: Look, tally: { points: number; best: number; runs: number }, at: number) {
   const { fs, db } = await store();
+  await fs.setDoc(fs.doc(db, 'weeks', week, 'scores', uid), { name, look, points: tally.points, best: tally.best, runs: tally.runs, at });
+}
+
+// A missing doc = 0 this week; an unreadable one stays out of the answer (unknown).
+export async function getWeekScores(week: string, uids: string[]): Promise<Record<string, WeekDoc>> {
+  const { fs, db } = await store();
+  const got = await Promise.all(uids.map((u) => fs.getDoc(fs.doc(db, 'weeks', week, 'scores', u)).catch(() => undefined)));
+  const out: Record<string, WeekDoc> = {};
+  uids.forEach((u, i) => {
+    const snap = got[i];
+    if (snap === undefined) return;
+    const d = snap.exists() ? snap.data() : {};
+    out[u] = { points: Number(d.points) || 0, best: Number(d.best) || 0, runs: Number(d.runs) || 0, at: Number(d.at) || 0 };
+  });
+  return out;
+}
+
+// Account deletion: friends, inbox, the code, the player. Called while still signed in.
+export async function deleteAll(uid: string, weeks: string[] = []) {
+  const { fs, db } = await store();
+  for (const w of weeks) await fs.deleteDoc(fs.doc(db, 'weeks', w, 'scores', uid)).catch(() => {});
   const code = (await getPlayer(uid).catch(() => null))?.code;
   for (const path of [['players', uid, 'friends'], ['inbox', uid, 'adds']]) {
     const snap = await fs.getDocs(fs.collection(db, path[0], path[1], path[2]));

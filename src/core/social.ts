@@ -8,6 +8,9 @@ export const NAME_MIN = 3;
 export const NAME_MAX = 16;
 export const MAX_FRIENDS = 50;
 export const MAX_BLOCKED = 200;
+export const MAX_RECORD = 2000000; // players.bestClassic ceiling (firestore.rules)
+export const PUSH_STEP = 200000; // most points a week score may gain in one write (firestore.rules)
+export const PUSH_GAP = 10000; // two writes of a week score need 10 s between them (firestore.rules)
 export const RENAME_DELAY = 7 * 24 * 3600 * 1000;
 
 // ---------- pseudo ----------
@@ -111,3 +114,79 @@ export const withBlocked = (list: string[] | undefined, uid: string) => {
   return next.slice(-MAX_BLOCKED);
 };
 export const withoutBlocked = (list: string[] | undefined, uid: string) => (list || []).filter((u) => u !== uid);
+
+// ---------- weeks and weekly scores ----------
+
+const DAY = 86400000;
+const HOUR = 3600000;
+
+// Last Sunday of a month (0-based) at 01:00 UTC: the EU clock change, the same instant everywhere.
+function lastSunday1h(year: number, month: number): number {
+  const last = Date.UTC(year, month + 1, 0);
+  return last - new Date(last).getUTCDay() * DAY + HOUR;
+}
+// Paris is UTC+2 between the last Sundays of March and October (01:00 UTC), UTC+1 otherwise. No Intl (Hermes).
+export function parisOffset(ms: number): number {
+  const y = new Date(ms).getUTCFullYear();
+  return ms >= lastSunday1h(y, 2) && ms < lastSunday1h(y, 9) ? 2 * HOUR : HOUR;
+}
+
+// Days since 1970-01-01 in Paris local time, and the weekday of such a day (0 = Monday).
+const parisDay = (ms: number) => Math.floor((ms + parisOffset(ms)) / DAY);
+const weekdayOf = (day: number) => (((day + 3) % 7) + 7) % 7; // 1970-01-01 was a Thursday
+
+// ISO week id in Paris time, "2026-W41": Monday 00:00 to Sunday 23:59 for everyone, whatever the device zone.
+export function weekId(ms: number): string {
+  const day = parisDay(ms);
+  const thursday = day - weekdayOf(day) + 3; // the year of a week is the year of its Thursday
+  const year = new Date(thursday * DAY).getUTCFullYear();
+  const week = Math.floor((thursday - Date.UTC(year, 0, 1) / DAY) / 7) + 1;
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}
+
+// The instant the week of `ms` ends (next Monday 00:00 Paris), in epoch ms.
+export function weekEnd(ms: number): number {
+  const day = parisDay(ms);
+  const local = (day - weekdayOf(day) + 7) * DAY; // Monday 00:00 as if it were UTC
+  return local - parisOffset(local - 2 * HOUR); // clocks change on Sundays: Monday's offset is stable
+}
+
+// "Fin dans 3 j 4 h".
+export function weekLeftText(ms: number): string {
+  const min = Math.max(1, Math.ceil(ms / 60000));
+  const d = Math.floor(min / 1440);
+  const h = Math.floor((min % 1440) / 60);
+  if (d > 0) return tr`Fin dans ${d} j ${h} h`;
+  if (h > 0) return tr`Fin dans ${h} h ${min % 60} min`;
+  return tr`Fin dans ${min} min`;
+}
+
+// profile.week: this week's tally, kept in the profile so a Seconde chance (profile restored) undoes it and the
+// cloud save carries it across devices. Absent = nothing this week. A new week id starts again from zero.
+export interface WeekTally { id: string; points: number; best: number; runs: number }
+// Modes whose finished runs add to the weekly points; the best single run is Classique only.
+export const WEEK_MODES = ['classic', 'chrono', 'worlds'];
+export const counts = (mode: string, score: number) => WEEK_MODES.includes(mode) && score > 0;
+
+export const weekOf = (week: WeekTally | undefined, now: number): WeekTally => {
+  const id = weekId(now);
+  return week && week.id === id ? week : { id, points: 0, best: 0, runs: 0 };
+};
+
+// The tally after a finished run; the same object when the run does not count.
+export function addWeekRun(week: WeekTally | undefined, mode: string, score: number, now: number): WeekTally | undefined {
+  if (!counts(mode, score)) return week;
+  const w = weekOf(week, now);
+  return { id: w.id, points: w.points + score, best: mode === 'classic' ? Math.max(w.best, score) : w.best, runs: w.runs + 1 };
+}
+
+// ---------- ranking ----------
+
+export interface Ranked<T> { row: T; value: number; rank: number }
+// Highest first; equal values share a rank (1, 1, 3) and are ordered by `tie`.
+export function rankRows<T>(rows: T[], value: (r: T) => number, tie: (a: T, b: T) => number = () => 0): Ranked<T>[] {
+  const sorted = rows.map((row) => ({ row, value: value(row) })).sort((a, b) => b.value - a.value || tie(a.row, b.row));
+  const out: Ranked<T>[] = [];
+  sorted.forEach((r, i) => out.push({ ...r, rank: i > 0 && out[i - 1].value === r.value ? out[i - 1].rank : i + 1 }));
+  return out;
+}

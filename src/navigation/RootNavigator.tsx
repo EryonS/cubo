@@ -13,6 +13,7 @@ import { PlayScreen } from '../screens/PlayScreen';
 import { PuzzlesScreen } from '../screens/PuzzlesScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { CommunityScreen } from '../screens/CommunityScreen';
+import { RankingScreen } from '../screens/RankingScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ShopScreen } from '../screens/ShopScreen';
 import { defisDot } from '../game/daily';
@@ -81,6 +82,7 @@ export function RootNavigator() {
       <Stack.Screen name="Puzzles" component={PuzzlesScreen} />
       <Stack.Screen name="Album" component={AlbumScreen} />
       <Stack.Screen name="Community" component={CommunityScreen} />
+      <Stack.Screen name="Ranking" component={RankingScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );

@@ -2,7 +2,7 @@
 // gutter and 12 pt between blocks. Stack screens scroll under the home indicator / Android button bar
 // and end with its height; on tabs the tab bar covers it.
 import type { ReactNode } from 'react';
-import { ScrollView, View } from 'react-native';
+import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { space } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
@@ -16,16 +16,19 @@ type Props = {
   right?: ReactNode;
   scroll?: boolean; // false: the content lays itself out (fills the rest of the screen)
   tab?: boolean; // a tab screen: no bottom inset
+  onRefresh?: () => void; // pull to refresh (scrolling screens)
+  refreshing?: boolean;
 };
 
-export function Screen({ children, title, back, lead, right, scroll = true, tab = !back }: Props) {
+export function Screen({ children, title, back, lead, right, scroll = true, tab = !back, onRefresh, refreshing = false }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const header = title !== undefined ? <ScreenHeader title={title} back={back} lead={lead} right={right} /> : null;
   return (
     <SafeAreaView edges={tab || scroll ? ['top'] : ['top', 'bottom']} style={{ flex: 1, backgroundColor: colors.bg }}>
       {scroll ? (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: space.xl + (tab ? 0 : insets.bottom), gap: space.m }}>
+        <ScrollView refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.muted} /> : undefined}
+          contentContainerStyle={{ paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: space.xl + (tab ? 0 : insets.bottom), gap: space.m }}>
           {header}
           {children}
         </ScrollView>

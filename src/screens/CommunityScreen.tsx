@@ -14,7 +14,7 @@ import { useColors } from '../theme/useColors';
 import { SignInRows } from '../ui/AccountBlock';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { CuboPose } from '../ui/CuboPose';
+import { Avatar } from '../ui/Avatar';
 import { Group } from '../ui/Group';
 import { ListRow } from '../ui/ListRow';
 import { PseudoSheet } from '../ui/PseudoSheet';
@@ -23,12 +23,6 @@ import { SectionLabel } from '../ui/SectionLabel';
 import { Sheet, SheetHeader } from '../ui/Sheet';
 import { Text } from '../ui/Text';
 import { Icon } from '../ui/Icon';
-import type { CuboLook } from '../mascot/looks';
-
-function Avatar({ look, size }: { look: CuboLook; size: number }) {
-  // The canvas keeps room for the sprout above the body (same proportions as the Profil header).
-  return <CuboPose width={size} lw={128} lh={134} s={84} foot={8} look={look} mood="happy" />;
-}
 
 function useInputStyle() {
   const colors = useColors();

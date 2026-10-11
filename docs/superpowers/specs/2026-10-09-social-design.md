@@ -48,13 +48,13 @@ offline and without an account as today.
 ## Data model (Firestore)
 | Path | Content | Rules |
 |---|---|---|
-| `players/{uid}` | `{ name, code, look: { cubo, hat, color }, league, createdAt, hidden? }` | read: signed in; write own doc only; `name` matches the pattern; `league` only moves by the claim below; `hidden` owner-only (console) |
+| `players/{uid}` | `{ name, code, look: { cubo, hat }, bestClassic, league, createdAt, hidden? }` | read: signed in; write own doc only; `name` matches the pattern; `league` only moves by the claim below; `hidden` owner-only (console) |
 | `codes/{code}` | `{ uid }` | read: signed in; create only, `uid == auth.uid`, never updated |
 | `players/{uid}/friends/{fid}` | `{ since }` | read / write: owner only |
 | `inbox/{uid}/adds/{fid}` | `{ at }` | create: `fid == auth.uid`; read / delete: `uid` only. The added player's app moves these into its own `friends` at launch (mutual friendship without server code) |
 | `weeks/{week}/groups/{league}-{n}` | `{ size }` | joined by transaction: first group of the league with `size < 30`, else a new one |
-| `weeks/{week}/groups/{g}/scores/{uid}` | `{ name, look, points, best, runs, at }` | read: signed in; write own; `points` only grows, by at most a cap per write (e.g. 60 000); `best` only grows and stays under a plausibility cap; writes at least 10 s apart (`at` checked against `request.time`) |
-| `weeks/{week}/players/{uid}` | `{ group }` | where a player is this week (friends ranking reads these) |
+| `weeks/{week}/scores/{uid}` | `{ name, look, points, best, runs, at }` (milestone 4 adds `group`) | read: signed in; write own; flat (not under a group) so a week can be queried by `group`; `points` / `best` / `runs` only grow, `points` by at most 200 000 per write, `best` <= 500 000; writes at least 10 s apart (`at` checked against `request.time`). **Done (milestone 3)** |
+| `weeks/{week}/groups/{league}-{n}` | `{ size }` | joined by transaction (milestone 4); a player's group is the `group` field of his score doc |
 | `reports/{id}` | `{ from, target, reason, at }` | create only |
 
 - `week` = ISO week id `2026-W41`. The client pushes its weekly score with the same debounce as the cloud save
@@ -91,7 +91,7 @@ offline and without an account as today.
 ## Milestones
 1. **Done (2026-10-11)**: Identity: sign-in gate, pseudo sheet + filter, friend code, Communauté entry in Profil. Rules + tests.
 2. **Done (2026-10-11)**: Friends: add by code, inbox sync, list, remove, block, share code. See [features/social.md](../../features/social.md).
-3. Weekly score push + friends ranking (week total, all-time best).
+3. Weekly score push + friends ranking (week total, all-time best). **Done** (see `docs/features/social.md`).
 4. Leagues: groups, ranking screen, end-of-week claim, rewards, promotion sheet.
 5. Moderation (report, hidden), privacy / store updates, account deletion.
 Pure rules (week id, league moves, rewards, pseudo validation, ranking with ties) in `src/core/social.ts`
