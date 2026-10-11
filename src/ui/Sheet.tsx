@@ -12,9 +12,11 @@ import { Icon } from './Icon';
 import { Tap } from './Tap';
 import { Text } from './Text';
 
+// scroll: the content holds its own scroll view; dragging the content then scrolls it instead of moving the sheet
+// (the handle and the scrim still close it).
 interface Props { children: ReactNode; onOpen?: () => void; onClose?: () => void; scroll?: boolean }
 
-export const Sheet = forwardRef<BottomSheetModal, Props>(function Sheet({ children, onOpen, onClose }, ref) {
+export const Sheet = forwardRef<BottomSheetModal, Props>(function Sheet({ children, onOpen, onClose, scroll }, ref) {
   const insets = useSafeAreaInsets();
   const colors = useColors();
   // The modal renders its content in the provider's portal, outside this tree: the played theme is
@@ -36,6 +38,7 @@ export const Sheet = forwardRef<BottomSheetModal, Props>(function Sheet({ childr
     <BottomSheetModal
       ref={inner}
       enableDynamicSizing
+      enableContentPanningGesture={!scroll}
       maxDynamicContentSize={760}
       backdropComponent={backdrop}
       backgroundStyle={{ backgroundColor: colors.panel, borderTopLeftRadius: radius.card + 8, borderTopRightRadius: radius.card + 8 }}

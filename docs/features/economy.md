@@ -2,7 +2,7 @@
 Status: shipped
 
 ## What it does
-- **Coins**: picked up on the grid (coin +1, bag +5), plus end-of-run bonuses and mission rewards. Spent on discards (10, +5 each), undos (free, then 1, 2, 3...) and the Boutique.
+- **Coins**: picked up on the grid (coin +1, bag +2 (5 until 2026-10-11)), plus end-of-run bonuses and mission rewards. Spent on discards (10, +5 each), undos (free, then 1, 2, 3...) and the Boutique.
 - **Missions**: 3 per day, same draw for everyone that day, harder every 6 completed. Shown in the Défis tab, the home row "Missions" (progress pips, jumps to Défis), the in-game HUD button "Missions du jour" (`src/screens/GameScreen.tsx`: badge `done/3` once one is done, live run progress, pauses timers like any open sheet) and the missions sheet (`src/ui/MissionsSheet.tsx`, pips in `src/ui/Missions.tsx`); both read the run's stats, so they refresh after each move.
 - **Boutique** (tab bar only; the wallet, `src/ui/Wallet.tsx`, is display only): block skins and world themes (cosmetic), and bonus upgrades (tab Bonus, see upgrades.md).
 - **Mondes prime**: Mondes runs pay a prime on the score (see worlds-mode.md).

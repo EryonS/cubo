@@ -44,7 +44,7 @@ function Content({ w, n, onClose, onPlay, onShop }: { w: string; n: number; onCl
   // Stars: 1 for the win, 2 with 15 % of the budget left, 3 with 30 %.
   const keep = (k: number) => (stage.clock ? `${Math.ceil((stage.clock / 1000) * k)} s` : tr`${Math.ceil(stage.maxMoves * k)} coups`);
   const starRule = tr`1 étoile en réussissant, 2 s'il te reste ${keep(0.15)}, 3 s'il t'en reste ${keep(0.3)}.`;
-  const sub = rules.name + (n === M.TRIAL_LEVEL || n === M.LEVELS_PER_WORLD ? tr(' · niveau ') + n : '');
+  const sub = rules.name + (n === M.TRIAL_LEVEL || n >= M.LEVELS_PER_WORLD ? tr(' · niveau ') + n : '');
   const note = (s: string) => <Text variant="muted" style={{ fontSize: 13, lineHeight: 18, textAlign: 'center', marginTop: 8, maxWidth: 290 }}>{s}</Text>;
   const canSkip = M.canSkip(profile, w, n);
   const skip = async () => {
@@ -64,6 +64,7 @@ function Content({ w, n, onClose, onPlay, onShop }: { w: string; n: number; onCl
         <Text style={{ fontFamily: 'Baloo2-ExtraBold', fontSize: 18, marginTop: 6, marginBottom: 2, textAlign: 'center' }}>{LV.goalText(stage.goal)}</Text>
         {typeof stage.boss === 'object' && note(tr`Il a ${stage.goal.target} PV : chaque ligne qui le traverse lui en retire 2. Tous les ${stage.boss.every} coups, il riposte en posant ${stage.boss.count > 1 ? stage.boss.count + ' ' + LV.KIND_NAMES[stage.boss.kind] : tr('un obstacle')}.`)}
         {n === M.TRIAL_LEVEL && note(tr('Un niveau plus dur au milieu du monde. Il rapporte plus de pièces.'))}
+        {M.isBonus(n) && note(n === M.LEVELS_PER_WORLD + M.BONUS_LEVELS ? tr('Le boss du monde revient, plus coriace.') : tr('Un niveau bonus, après la fin du monde : plus dur, il rapporte plus de pièces.'))}
         {stage.twist && rules.twist && (
           <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', alignSelf: 'stretch', marginTop: 10, padding: 9, paddingHorizontal: 11, borderRadius: radius.card - 6, backgroundColor: colors.panel2 }}>
             <KindIcon kind={stage.twist.kind} size={28} />

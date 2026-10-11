@@ -9,7 +9,7 @@ import { M, LV, WD } from '../core';
 import { locale, tr } from '../core/i18n';
 import type { Earned } from '../core/meta';
 import { sfx } from '../audio/engine';
-import { eventLevelName, hatName, settleEvent, type EventPay } from '../game/events';
+import { eventLevelName, hatName, settleEvent, trophyIn, type EventPay } from '../game/events';
 import { freshFlags, levelMood, nextLevelOf, settleLevel, type LevelReport } from '../game/levelend';
 import { shareText, dailyWord } from '../game/daily';
 import { buyExtraMoves, setLevelEndHandler, startId, type LevelEnd } from '../game/run';
@@ -95,8 +95,8 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
   const ev = eventId ? M.eventById(eventId) : null;
   const [equipped, setEquipped] = useState(false);
   const [worn, setWorn] = useState(false);
-  const title = eventId && won ? (n === 10 ? tr('Boss vaincu !') : tr('Niveau réussi !'))
-    : won ? (n === M.LEVELS_PER_WORLD ? tr('Boss vaincu !') : n === M.TRIAL_LEVEL ? tr('Épreuve réussie !') : tr('Niveau réussi !'))
+  const title = eventId && won ? (M.eventBossAt(n) ? tr('Boss vaincu !') : tr('Niveau réussi !'))
+    : won ? (n === M.LEVELS_PER_WORLD ? tr('Boss vaincu !') : n === M.LEVELS_PER_WORLD + M.BONUS_LEVELS ? tr('Revanche gagnée !') : n === M.TRIAL_LEVEL ? tr('Épreuve réussie !') : tr('Niveau réussi !'))
     : end.timeUp ? tr('Temps écoulé !') : end.quit ? tr('Niveau abandonné') : outOfMoves ? tr('Plus de coups !') : tr('Plus de place !');
   const next = !eventId && won ? nextLevelOf(profile, w, n) : null;
   const eventNext = ev && won && n < ev.levels && M.eventActive(today(), ev.id) ? n + 1 : null;
@@ -190,7 +190,7 @@ export function LevelEndCard({ card, lay, onMap, onAgain, onNext, onRevived, onM
         </Opt>
       )}
       {ev && eventPay?.trophy && (
-        <Unlock>{eventPay.trophy === 'gold' ? tr`Trophée ${ev.name} ${M.eventYear(stage.eventDay || today())} en or !` : tr`Trophée ${ev.name} ${M.eventYear(stage.eventDay || today())} en argent !`}</Unlock>
+        <Unlock>{tr`Trophée ${ev.name} ${M.eventYear(stage.eventDay || today())} ${trophyIn(eventPay.trophy)} !`}</Unlock>
       )}
       {report?.themeUnlocked && (
         <>

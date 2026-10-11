@@ -30,16 +30,21 @@ export function StickerBadge({ page, color, size = 54, off = false, hidden = fal
   );
 }
 
-// Month / season trophy: gold, silver, or an empty grey outline.
+// Trophy metals (fill, outline). Month trophies are silver or gold; season trophies add bronze and diamond.
+const METAL: Record<string, [string, string]> = { bronze: ['#d99058', '#8a4f24'], silver: ['#c9d2de', '#8a96a8'], gold: ['#f5c542', '#b07a12'], diamond: ['#9be8f7', '#2b8fb3'] };
+
+// Month / season trophy in its metal, or an empty grey outline. A diamond one sparkles.
 export function Trophy({ kind, size = 44 }: { kind: string | null; size?: number }) {
   const colors = useColors();
-  const fill = kind === 'gold' ? '#f5c542' : kind === 'silver' ? '#c9d2de' : 'none';
-  const stroke = kind ? (kind === 'gold' ? '#b07a12' : '#8a96a8') : colors.text;
+  const metal = kind ? METAL[kind] : null;
+  const fill = metal ? metal[0] : 'none';
+  const stroke = metal ? metal[1] : colors.text;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" opacity={kind ? 1 : 0.35}>
       <Path d="M7 3h10v5a5 5 0 0 1-10 0z" fill={fill} stroke={stroke} strokeWidth={1.4} strokeLinejoin="round" />
       <Path d="M7 5H4v1.5A3.5 3.5 0 0 0 7.5 10M17 5h3v1.5A3.5 3.5 0 0 1 16.5 10" fill="none" stroke={stroke} strokeWidth={1.4} strokeLinejoin="round" />
       <Path d="M10 13h4v3h-4zM8 19.5h8V21H8zM9.5 16h5l1 3.5h-7z" fill={fill} stroke={stroke} strokeWidth={1.4} strokeLinejoin="round" />
+      {kind === 'diamond' && <Path d="M19.5 10.5l.7 1.6 1.6.7-1.6.7-.7 1.6-.7-1.6-1.6-.7 1.6-.7zM4.2 12.6l.5 1.1 1.1.5-1.1.5-.5 1.1-.5-1.1-1.1-.5 1.1-.5z" fill={stroke} />}
     </Svg>
   );
 }

@@ -27,9 +27,10 @@ test('levels name where they are: adventure, daily, event', () => {
   assert.match(a.title, /Niveau 4/);
   assert.match(a.sub, /9 coups/);
   assert.equal(resumeOf(run({ stage: stage({ daily: day }) }))!.kind, 'daily');
-  const e = resumeOf(run({ stage: stage({ event: 'halloween', n: 10 }) }))!;
+  const e = resumeOf(run({ stage: stage({ event: 'halloween', n: 25 }) }))!;
   assert.equal(e.kind, 'event');
   assert.match(e.title, /Boss/);
+  assert.match(resumeOf(run({ stage: stage({ event: 'halloween', n: 12 }) }))!.title, /Mini-boss/);
 });
 
 test('a timed level shows no move count', () => {
@@ -40,8 +41,8 @@ test('a timed level shows no move count', () => {
 test('eventNext is the first level without stars, null when all are cleared', () => {
   let p = M.createProfile(day);
   assert.equal(eventNext(p, 'halloween', day), 1);
-  for (let n = 1; n <= 10; n++) {
+  for (let n = 1; n <= 25; n++) {
     p = M.applyEvent(p, 'halloween', day, n, 1).profile;
-    assert.equal(eventNext(p, 'halloween', day), n < 10 ? n + 1 : null);
+    assert.equal(eventNext(p, 'halloween', day), n < 25 ? n + 1 : null);
   }
 });

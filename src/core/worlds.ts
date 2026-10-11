@@ -141,7 +141,7 @@ const WORLDS: Record<string, WorldDef> = {
 // Not on the map: the October event's levels (levels.js eventLevel).
 WORLDS.halloween = {
   name: tr('Halloween'),
-  plus: tr('Une citrouille cassée (2 lignes) lâche un sac de 5 pièces'),
+  plus: tr('Une citrouille cassée (2 lignes) lâche un sac de 2 pièces'),
   minus: tr('Tous les 6 coups, un fantôme apparaît ; il change de case tous les 2 coups'),
   setup: scatter,
   afterMove: dropEvery(6, 'ghost'),

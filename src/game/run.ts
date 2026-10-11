@@ -217,15 +217,17 @@ export function startStage(stage: StageDef, opts: { seed?: number; intro?: { tex
 export function startLevel(world: string, n: number): boolean {
   const stage = LV.level(world, n);
   if (!stage) return false;
-  startStage(stage, { intro: { text: n === M.LEVELS_PER_WORLD ? tr('Boss !') : levelName(n), sub: LV.goalText(stage.goal), tier: n === M.LEVELS_PER_WORLD ? 2 : 0 } });
+  const boss = n === M.LEVELS_PER_WORLD || n === M.LEVELS_PER_WORLD + M.BONUS_LEVELS;
+  startStage(stage, { intro: { text: n === M.LEVELS_PER_WORLD ? tr('Boss !') : boss ? tr('Revanche !') : levelName(n), sub: LV.goalText(stage.goal), tier: boss ? 2 : 0 } });
   return true;
 }
 
-// A season event level (id of the event, n 1..10); day = the event day it counts for (default today).
+// A season event level (id of the event, n 1..25); day = the event day it counts for (default today).
 export function startEventLevel(id: string, n: number, day: string = today()): boolean {
   const def = LV.eventLevel(id, n);
   if (!def) return false;
-  startStage({ ...def, eventDay: day }, { intro: { text: n === 10 ? tr('Boss !') : M.eventById(id)?.name || '', sub: LV.goalText(def.goal), tier: n === 10 ? 2 : 0 } });
+  const boss = M.eventBossAt(n);
+  startStage({ ...def, eventDay: day }, { intro: { text: boss === 'final' ? tr('Boss !') : boss === 'mid' ? tr('Mini-boss !') : M.eventById(id)?.name || '', sub: LV.goalText(def.goal), tier: boss ? 2 : 0 } });
   return true;
 }
 

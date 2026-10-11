@@ -41,9 +41,13 @@ export function settleLevel(profile: Profile, stage: Ending, key: string, flags:
 
 // The level after [w, n]: the next of the world, then level 1 of the next world once open.
 export function nextLevelOf(profile: Profile, w: string, n: number): [string, number] | null {
-  if (n < M.LEVELS_PER_WORLD) return [w, n + 1];
+  const last = M.LEVELS_PER_WORLD + M.BONUS_LEVELS;
+  if (n < M.LEVELS_PER_WORLD || (M.isBonus(n) && n < last)) return [w, n + 1];
   const next = M.WORLD_ORDER[M.WORLD_ORDER.indexOf(w) + 1];
-  return next && M.worldOpen(profile, next) ? [next, 1] : null;
+  // After a rematch: the next world's bonus levels; after the Volcan boss: the first world's.
+  if (n === last) return next ? [next, M.LEVELS_PER_WORLD + 1] : null;
+  if (next) return M.worldOpen(profile, next) ? [next, 1] : null;
+  return M.bonusOpen(profile) ? [M.WORLD_ORDER[0], M.LEVELS_PER_WORLD + 1] : null;
 }
 
 export const lastOpenWorld = (profile: Profile) => M.WORLD_ORDER.filter((w) => M.worldOpen(profile, w)).pop() || M.WORLD_ORDER[0];

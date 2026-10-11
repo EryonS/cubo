@@ -5,7 +5,16 @@ import type { Earned } from '../core/meta';
 import type { Profile, RunState } from '../core/types';
 import { freshFlags, type SettleFlags } from './levelend';
 
-export const eventLevelName = (n: number) => (n === 10 ? tr('Boss') : tr('Niveau ') + n);
+export const eventLevelName = (n: number) => (M.eventBossAt(n) === 'final' ? tr('Boss') : M.eventBossAt(n) === 'mid' ? tr('Mini-boss') : tr('Niveau ') + n);
+
+// Season trophies by tier: the name ("Or") and the phrase after "trophée" ("en or").
+export const trophyName = (k: M.SeasonTrophy) => ({ bronze: tr('Bronze'), silver: tr('Argent'), gold: tr('Or'), diamond: tr('Diamant') })[k];
+export const trophyIn = (k: M.SeasonTrophy) => ({ bronze: tr('en bronze'), silver: tr('en argent'), gold: tr('en or'), diamond: tr('en diamant') })[k];
+// The next trophy to aim for: "Argent à 57 étoiles", or null once diamond.
+export function nextTrophyText(stars: number, max: number): string | null {
+  const next = M.nextTrophy(stars, max);
+  return next ? tr`${trophyName(next.kind)} à ${next.stars} étoiles` : null;
+}
 
 // "31 octobre" / "1er novembre", "October 31" in English.
 export function eventDate(day: string) {
@@ -28,13 +37,13 @@ export function eventRows(profile: Profile, state: RunState, day: string): Event
     const done = M.eventCleared(profile, ev.id, day);
     const trophy = M.seasonTrophy(profile, ev.id, M.eventYear(day));
     const sub = playing && playing.id === ev.id ? tr`${eventLevelName(stage!.n)} en cours`
-      : done >= ev.levels ? (trophy === 'gold' ? tr('Terminé · trophée en or') : tr('Terminé · trophée en argent'))
+      : done >= ev.levels ? (trophy ? tr`Terminé · trophée ${trophyIn(trophy)}` : tr('Terminé'))
         : tr`${eventLevelName(Math.min(done + 1, ev.levels))} · ${done} / ${ev.levels} · jusqu’au ${eventDate(M.eventEnd(ev.id, day))}`;
     return { id: ev.id, name: ev.name, icon: ev.icon, sub, playing: !!(playing && playing.id === ev.id) };
   });
 }
 
-export interface EventPay { earned: Earned[]; unlocked: { kind: string; id: string }[]; trophy: 'silver' | 'gold' | null }
+export interface EventPay { earned: Earned[]; unlocked: { kind: string; id: string }[]; trophy: M.SeasonTrophy | null }
 
 // A won event level is paid once per start (applyEvent itself keeps the best stars).
 export function settleEvent(

@@ -12,6 +12,9 @@ const tr = I18N.tr;
 const ORDER: string[] = ['plain', 'sea', 'space', 'ice', 'forest', 'retro', 'arcade', 'volcano'];
 const PER_WORLD = 20;
 const TRIAL = 10; // hand-tuned mid-world level (the v1 boss)
+// Bonus levels 21-25 of every world, open once the Aventure is finished (the Volcan boss beaten): 21-24 go
+// past the world's end (twist on, tighter budgets), 25 is the boss's rematch (REMATCH).
+const BONUS = 5;
 
 // Goals cycle through this list for the generated levels. kind: the special cell of the world, if any.
 // 'crates': clear crates stacked at the bottom (worlds without a special cell of their own).
@@ -77,11 +80,34 @@ const comboMoves = (target: number) => 4 + target * target * 0.9;
 const MOVES_PER_CRATE = 4.5;
 const SECONDS_PER_MOVE = 3.5; // arcade: a human's pace, to size score goals to the clock
 
+// Level 25: the world's boss again, tougher. hp and budget sized with the greedy bot (scripts/bot.ts).
+const REMATCH: Record<string, { hp: number; every: number; maxMoves: number; clock?: number }> = {
+  plain: { hp: 16, every: 5, maxMoves: 60 },
+  sea: { hp: 18, every: 5, maxMoves: 72 },
+  space: { hp: 18, every: 5, maxMoves: 64 },
+  ice: { hp: 20, every: 6, maxMoves: 68 },
+  forest: { hp: 18, every: 4, maxMoves: 64 },
+  retro: { hp: 16, every: 3, maxMoves: 88 },
+  arcade: { hp: 16, every: 3, maxMoves: 99, clock: 90000 },
+  volcano: { hp: 24, every: 5, maxMoves: 70 },
+};
+// Budget slack of bonus levels 21-24, per world (bot checked: it still wins most of them).
+const BONUS_SLACK: Record<string, number> = { plain: 1.35, sea: 1.35, space: 1.45, ice: 1.45, forest: 1.35, retro: 1.2, arcade: 1.35, volcano: 1.35 };
+
 function level(world: string, n: number): StageDef | null {
   const w = ORDER.indexOf(world);
-  if (w < 0 || n < 1 || n > PER_WORLD) return null;
+  if (w < 0 || n < 1 || n > PER_WORLD + BONUS) return null;
   const cfg = WORLD_GOALS[world];
-  const base = { world, n, boss: n === PER_WORLD, trial: n === TRIAL, ramp: 0.4 + w * 0.08 };
+  const bonus = n > PER_WORLD;
+  const base = { world, n, boss: n === PER_WORLD, trial: n === TRIAL, ramp: 0.4 + w * 0.08 + (bonus ? 0.3 : 0) };
+  if (n === PER_WORLD + BONUS) {
+    const b = BOSSES[world];
+    const re = REMATCH[world];
+    const stage: StageDef = { ...base, boss: { name: b.name, ...b.attack, every: re.every }, goal: { type: 'boss', target: re.hp, name: b.name }, maxMoves: re.maxMoves };
+    if (b.setup) stage.setup = b.setup;
+    if (re.clock) stage.clock = re.clock;
+    return stage;
+  }
   if (n === TRIAL) return { ...base, ...TRIALS[world], ramp: base.ramp + 0.2 };
   if (n === PER_WORLD) {
     const b = BOSSES[world];
@@ -92,9 +118,11 @@ function level(world: string, n: number): StageDef | null {
     return stage;
   }
 
-  const d = (w * (PER_WORLD - 1) + n - 1) / (ORDER.length * (PER_WORLD - 1) - 1); // 0 .. 1 across the map
-  const m = 1 + ((n - 1) * 8) / (PER_WORLD - 2); // position in the world on the v1 scale: 1 .. 9
-  const slack = 1.9 - d * 0.45; // generous early, tighter late
+  // Bonus levels sit a step past the world's level 19 on the map's curve.
+  const d = bonus ? Math.min(1, (w * (PER_WORLD - 1) + PER_WORLD - 2) / (ORDER.length * (PER_WORLD - 1) - 1) + 0.25 + (n - PER_WORLD - 1) * 0.03)
+    : (w * (PER_WORLD - 1) + n - 1) / (ORDER.length * (PER_WORLD - 1) - 1); // 0 .. 1 across the map
+  const m = bonus ? 10 + (n - PER_WORLD - 1) * 0.5 : 1 + ((n - 1) * 8) / (PER_WORLD - 2); // position in the world on the v1 scale: 1 .. 9 (bonus 10+)
+  const slack = bonus ? BONUS_SLACK[world] : 1.9 - d * 0.45; // generous early, tighter late
   // Generated levels are numbered around the trial: 1-9 then 11-19.
   const k = n < TRIAL ? n - 1 : n - 2;
   const type = cfg.goals[k % cfg.goals.length];
@@ -141,7 +169,7 @@ function level(world: string, n: number): StageDef | null {
     if (tw.top) stage.twist.top = true;
   }
   if (cfg.clock) {
-    stage.clock = cfg.clock;
+    stage.clock = bonus ? Math.round((cfg.clock * 0.85) / 1000) * 1000 : cfg.clock; // bonus: a shorter clock
     stage.maxMoves = 99;
   } else {
     stage.maxMoves = Math.max(10, Math.ceil(expected * slack));
@@ -150,8 +178,10 @@ function level(world: string, n: number): StageDef | null {
 }
 
 // ---------- season events ----------
-// 10 hand-made levels per event, each in its event's world (worlds.js). Level 10 is a boss.
-// Budgets balanced with the greedy bot (tools/bot.js): about 85-100 % wins, 70 %+ on bosses.
+// 25 hand-made levels per event, each in its event's world (worlds.ts): a mini-boss at 12 (it gives the theme),
+// the final boss at 25 (Cubo's outfit). Levels 1-12 are the 2026 set (its boss now the mini-boss); budgets of
+// 10-25 come from the greedy bot (scripts/bot.ts): about 1.6 x the moves it needs at level 10 down to 1.35 at 24,
+// 1.3-1.4 on bosses, never under its 90th percentile; it survives 75 %+ of regular levels, 60 %+ of final bosses.
 // Nouvel An is timed (clock in ms, bot pace 2.5 s a move).
 const C = (kind: string, target: number): Goal => ({ type: 'clear', kind, target });
 const G = (type: GoalType, target: number): Goal => ({ type, target });
@@ -168,7 +198,22 @@ const EVENT_LEVELS: Record<string, EventLevelDef[]> = {
     { goal: C('rocket', 8), setup: { kind: 'rocket', count: 9 }, clock: 80000 },
     { goal: G('coins', 8), setup: { kind: 'rocket', count: 2 }, clock: 80000 },
     { goal: G('score', 1000), setup: { kind: 'rocket', count: 3 }, clock: 80000 },
-    { boss: boss(tr('Horloge de minuit'), 12, 'rock'), setup: { kind: 'rocket', count: 2 }, clock: 90000 },
+    { goal: C('rocket', 10), setup: { kind: 'rocket', count: 12 }, clock: 75000 },
+    { goal: G('score', 800), setup: { kind: 'rocket', count: 3 }, clock: 105000 },
+    { boss: boss(tr('Horloge de minuit'), 12, 'rock'), setup: { kind: 'rocket', count: 2 }, clock: 90000 }, // mini-boss: the theme
+    { goal: G('lines', 12), setup: { kind: 'rocket', count: 3 }, clock: 75000 },
+    { goal: G('coins', 10), setup: { kind: 'rocket', count: 3 }, clock: 75000 },
+    { goal: G('combo', 5), setup: { kind: 'rocket', count: 2 }, clock: 75000 },
+    { goal: C('rocket', 12), setup: { kind: 'rocket', count: 14 }, clock: 75000 },
+    { goal: G('coins', 10), setup: { kind: 'rocket', count: 4 }, clock: 75000 },
+    { goal: G('score', 1100), setup: { kind: 'rocket', count: 4 }, clock: 110000 },
+    { goal: G('lines', 16), setup: { kind: 'rocket', count: 4 }, clock: 85000 },
+    { goal: G('coins', 12), setup: { kind: 'rocket', count: 4 }, clock: 85000 },
+    { goal: G('combo', 5), setup: { kind: 'rocket', count: 3 }, clock: 75000 },
+    { goal: C('rocket', 14), setup: { kind: 'rocket', count: 16 }, clock: 75000 },
+    { goal: G('score', 1300), setup: { kind: 'rocket', count: 5 }, clock: 120000 },
+    { goal: G('lines', 18), setup: { kind: 'rocket', count: 5 }, clock: 90000 },
+    { boss: boss(tr('Bouquet final'), 16, 'rock'), setup: { kind: 'rocket', count: 4 }, clock: 90000 }, // final boss: Cubo's outfit
   ],
   lunar: [
     { goal: C('lantern', 6), setup: { kind: 'lantern', count: 4 }, maxMoves: 36 },
@@ -180,7 +225,22 @@ const EVENT_LEVELS: Record<string, EventLevelDef[]> = {
     { goal: C('lantern', 12), setup: { kind: 'lantern', count: 6 }, maxMoves: 53 },
     { goal: G('lines', 14), setup: { kind: 'lantern', count: 3 }, maxMoves: 48 },
     { goal: G('score', 1500), setup: { kind: 'lantern', count: 3 }, maxMoves: 72 },
-    { boss: boss(tr('Dragon de papier'), 14, 'firecracker'), setup: { kind: 'lantern', count: 3 }, maxMoves: 49 },
+    { goal: C('lantern', 14), setup: { kind: 'lantern', count: 7 }, maxMoves: 61 },
+    { goal: G('score', 1200), setup: { kind: 'lantern', count: 3 }, maxMoves: 72 },
+    { boss: boss(tr('Dragon de papier'), 14, 'firecracker'), setup: { kind: 'lantern', count: 3 }, maxMoves: 49 }, // mini-boss: the theme
+    { goal: G('lines', 12), setup: { kind: 'lantern', count: 3 }, maxMoves: 45 },
+    { goal: C('firecracker', 3), setup: { kind: 'lantern', count: 3 }, maxMoves: 66 },
+    { goal: G('combo', 5), setup: { kind: 'lantern', count: 2 }, maxMoves: 37 },
+    { goal: C('lantern', 16), setup: { kind: 'lantern', count: 9 }, maxMoves: 56 },
+    { goal: G('coins', 16), setup: { kind: 'lantern', count: 4 }, maxMoves: 43 },
+    { goal: G('score', 1600), setup: { kind: 'lantern', count: 4 }, maxMoves: 75 },
+    { goal: G('lines', 16), setup: { kind: 'lantern', count: 4 }, maxMoves: 52 },
+    { goal: C('firecracker', 5), setup: { kind: 'lantern', count: 4 }, maxMoves: 87 },
+    { goal: G('combo', 5), setup: { kind: 'lantern', count: 3 }, maxMoves: 34 },
+    { goal: C('lantern', 18), setup: { kind: 'lantern', count: 11 }, maxMoves: 52 },
+    { goal: G('score', 1800), setup: { kind: 'lantern', count: 5 }, maxMoves: 72 },
+    { goal: G('lines', 18), setup: { kind: 'lantern', count: 5 }, maxMoves: 52 },
+    { boss: boss(tr('Dragon impérial'), 15, 'firecracker'), setup: { kind: 'lantern', count: 4 }, maxMoves: 52 }, // final boss: Cubo's outfit
   ],
   valentine: [
     { goal: C('heart', 6), setup: { count: 4 }, maxMoves: 24 },
@@ -192,7 +252,22 @@ const EVENT_LEVELS: Record<string, EventLevelDef[]> = {
     { goal: G('lines', 13), setup: { count: 3 }, maxMoves: 46 },
     { goal: C('heart', 16), setup: { count: 9 }, maxMoves: 24 },
     { goal: G('score', 1500), setup: { count: 3 }, maxMoves: 81 },
-    { boss: boss(tr('Cupidon'), 14, 'rose'), setup: { count: 2 }, maxMoves: 50 },
+    { goal: C('heart', 18), setup: { count: 10 }, maxMoves: 26 },
+    { goal: G('score', 1200), setup: { count: 3 }, maxMoves: 84 },
+    { boss: boss(tr('Cupidon'), 14, 'rose'), setup: { count: 2 }, maxMoves: 51 }, // mini-boss: the theme
+    { goal: G('lines', 12), setup: { count: 3 }, maxMoves: 47 },
+    { goal: C('rose', 4), setup: { count: 3 }, maxMoves: 77 },
+    { goal: G('combo', 5), setup: { count: 2 }, maxMoves: 34 },
+    { goal: C('heart', 24), setup: { count: 13 }, maxMoves: 26 },
+    { goal: G('coins', 16), setup: { count: 4 }, maxMoves: 92 },
+    { goal: G('score', 1800), setup: { count: 4 }, maxMoves: 91 },
+    { goal: G('lines', 16), setup: { count: 4 }, maxMoves: 54 },
+    { goal: C('rose', 5), setup: { count: 4 }, maxMoves: 79 },
+    { goal: G('combo', 5), setup: { count: 3 }, maxMoves: 34 },
+    { goal: C('heart', 29), setup: { count: 16 }, maxMoves: 26 },
+    { goal: G('score', 2200), setup: { count: 5 }, maxMoves: 99 },
+    { goal: G('lines', 18), setup: { count: 5 }, maxMoves: 54 },
+    { boss: boss(tr('Reine des cœurs'), 16, 'rose'), setup: { count: 4 }, maxMoves: 53 }, // final boss: Cubo's outfit
   ],
   easter: [
     { goal: C('egg', 2), setup: { count: 6, eggs: 3 }, maxMoves: 27 },
@@ -204,7 +279,22 @@ const EVENT_LEVELS: Record<string, EventLevelDef[]> = {
     { goal: G('combo', 4), setup: { count: 4, eggs: 2 }, maxMoves: 34 },
     { goal: C('egg', 7), setup: { count: 12, eggs: 8 }, maxMoves: 40 },
     { goal: G('lines', 14), setup: { count: 5, eggs: 2 }, maxMoves: 48 },
-    { boss: boss(tr('Lapin géant'), 14, 'bush'), setup: { count: 5, eggs: 0 }, maxMoves: 45 },
+    { goal: C('egg', 9), setup: { count: 14, eggs: 10 }, maxMoves: 39 },
+    { goal: G('score', 1200), setup: { count: 5, eggs: 1 }, maxMoves: 75 },
+    { boss: boss(tr('Lapin géant'), 14, 'bush'), setup: { count: 5, eggs: 0 }, maxMoves: 51 }, // mini-boss: the theme
+    { goal: G('lines', 12), setup: { count: 5, eggs: 1 }, maxMoves: 45 },
+    { goal: G('score', 1400), setup: { count: 5, eggs: 1 }, maxMoves: 80 },
+    { goal: G('combo', 5), setup: { count: 4, eggs: 1 }, maxMoves: 38 },
+    { goal: C('egg', 11), setup: { count: 16, eggs: 12 }, maxMoves: 49 },
+    { goal: G('coins', 18), setup: { count: 6, eggs: 1 }, maxMoves: 89 },
+    { goal: G('score', 1800), setup: { count: 6, eggs: 1 }, maxMoves: 91 },
+    { goal: G('lines', 16), setup: { count: 6, eggs: 1 }, maxMoves: 55 },
+    { goal: G('coins', 19), setup: { count: 6, eggs: 1 }, maxMoves: 87 },
+    { goal: G('combo', 5), setup: { count: 5, eggs: 1 }, maxMoves: 39 },
+    { goal: C('egg', 13), setup: { count: 18, eggs: 14 }, maxMoves: 47 },
+    { goal: G('score', 2200), setup: { count: 7, eggs: 1 }, maxMoves: 99 },
+    { goal: G('lines', 18), setup: { count: 7, eggs: 1 }, maxMoves: 56 },
+    { boss: boss(tr('Poule aux œufs d’or'), 18, 'bush'), setup: { count: 6, eggs: 0 }, maxMoves: 59 }, // final boss: Cubo's outfit
   ],
   beach: [
     { goal: C('crab', 3), setup: { kind: 'crab', count: 4 }, maxMoves: 32 },
@@ -216,19 +306,49 @@ const EVENT_LEVELS: Record<string, EventLevelDef[]> = {
     { goal: C('crab', 9), setup: { kind: 'crab', count: 10 }, maxMoves: 36 },
     { goal: G('lines', 14), setup: { kind: 'crab', count: 3 }, maxMoves: 42 },
     { goal: G('score', 1500), setup: { kind: 'crab', count: 3 }, maxMoves: 80 },
-    { boss: boss(tr('Crabe géant'), 14, 'crab'), setup: { kind: 'crab', count: 2 }, maxMoves: 49 },
+    { goal: C('crab', 11), setup: { kind: 'crab', count: 13 }, maxMoves: 28 },
+    { goal: G('score', 1200), setup: { kind: 'crab', count: 3 }, maxMoves: 70 },
+    { boss: boss(tr('Crabe géant'), 14, 'crab'), setup: { kind: 'crab', count: 2 }, maxMoves: 57 }, // mini-boss: the theme
+    { goal: G('lines', 12), setup: { kind: 'crab', count: 3 }, maxMoves: 39 },
+    { goal: G('coins', 20), setup: { kind: 'crab', count: 3 }, maxMoves: 95 },
+    { goal: G('combo', 5), setup: { kind: 'crab', count: 2 }, maxMoves: 38 },
+    { goal: C('crab', 14), setup: { kind: 'crab', count: 16 }, maxMoves: 32 },
+    { goal: G('coins', 18), setup: { kind: 'crab', count: 4 }, maxMoves: 73 },
+    { goal: G('score', 1800), setup: { kind: 'crab', count: 4 }, maxMoves: 78 },
+    { goal: G('lines', 16), setup: { kind: 'crab', count: 4 }, maxMoves: 48 },
+    { goal: G('coins', 22), setup: { kind: 'crab', count: 4 }, maxMoves: 89 },
+    { goal: G('combo', 5), setup: { kind: 'crab', count: 3 }, maxMoves: 31 },
+    { goal: C('crab', 16), setup: { kind: 'crab', count: 18 }, maxMoves: 36 },
+    { goal: G('score', 2200), setup: { kind: 'crab', count: 5 }, maxMoves: 85 },
+    { goal: G('lines', 18), setup: { kind: 'crab', count: 5 }, maxMoves: 48 },
+    { boss: boss(tr('Roi des crabes'), 20, 'crab'), setup: { kind: 'crab', count: 4 }, maxMoves: 70 }, // final boss: Cubo's outfit
   ],
   halloween: [
     { goal: C('pumpkin', 4), setup: { kind: 'pumpkin', count: 6 }, maxMoves: 52 },
     { goal: G('lines', 8), setup: { kind: 'pumpkin', count: 2 }, maxMoves: 33 },
     { goal: G('score', 700), setup: { kind: 'pumpkin', count: 3 }, maxMoves: 54 },
     { goal: C('ghost', 3), setup: { kind: 'pumpkin', count: 2 }, maxMoves: 45 },
-    { goal: G('coins', 20), setup: { kind: 'pumpkin', count: 6 }, maxMoves: 41 },
+    { goal: G('coins', 12), setup: { kind: 'pumpkin', count: 6 }, maxMoves: 42 },
     { goal: G('combo', 4), setup: { kind: 'pumpkin', count: 2 }, maxMoves: 33 },
     { goal: C('pumpkin', 8), setup: { kind: 'pumpkin', count: 10 }, maxMoves: 65 },
     { goal: G('lines', 14), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 48 },
     { goal: G('score', 1500), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 90 },
-    { boss: boss(tr('Citrouille géante'), 14, 'ghost'), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 52 },
+    { goal: C('pumpkin', 9), setup: { kind: 'pumpkin', count: 13 }, maxMoves: 52 },
+    { goal: G('score', 1200), setup: { kind: 'pumpkin', count: 3 }, maxMoves: 80 },
+    { boss: boss(tr('Citrouille géante'), 14, 'ghost'), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 52 }, // mini-boss: the theme
+    { goal: G('lines', 12), setup: { kind: 'pumpkin', count: 3 }, maxMoves: 47 },
+    { goal: C('ghost', 4), setup: { kind: 'pumpkin', count: 3 }, maxMoves: 51 },
+    { goal: G('combo', 5), setup: { kind: 'pumpkin', count: 2 }, maxMoves: 38 },
+    { goal: C('pumpkin', 10), setup: { kind: 'pumpkin', count: 15 }, maxMoves: 44 },
+    { goal: G('coins', 18), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 64 },
+    { goal: G('score', 1800), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 92 },
+    { goal: G('lines', 16), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 52 },
+    { goal: C('ghost', 6), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 64 },
+    { goal: G('combo', 5), setup: { kind: 'pumpkin', count: 3 }, maxMoves: 34 },
+    { goal: C('pumpkin', 10), setup: { kind: 'pumpkin', count: 17 }, maxMoves: 40 },
+    { goal: G('score', 2200), setup: { kind: 'pumpkin', count: 5 }, maxMoves: 94 },
+    { goal: G('lines', 18), setup: { kind: 'pumpkin', count: 5 }, maxMoves: 54 },
+    { boss: boss(tr('Grande sorcière'), 18, 'ghost'), setup: { kind: 'pumpkin', count: 4 }, maxMoves: 61 }, // final boss: Cubo's outfit
   ],
   xmas: [
     { goal: C('present', 3), setup: { kind: 'present', count: 5 }, maxMoves: 54 },
@@ -240,15 +360,32 @@ const EVENT_LEVELS: Record<string, EventLevelDef[]> = {
     { goal: G('lines', 13), setup: { kind: 'present', count: 3 }, maxMoves: 45 },
     { goal: G('coins', 12), setup: { kind: 'present', count: 3 }, maxMoves: 71 },
     { goal: G('score', 1500), setup: { kind: 'present', count: 4 }, maxMoves: 76 },
-    { boss: boss(tr('Renne farceur'), 14, 'snowpile'), setup: { kind: 'present', count: 3 }, maxMoves: 59 },
+    { goal: C('present', 8), setup: { kind: 'present', count: 10 }, maxMoves: 58 },
+    { goal: G('score', 1200), setup: { kind: 'present', count: 3 }, maxMoves: 73 },
+    { boss: boss(tr('Renne farceur'), 14, 'snowpile'), setup: { kind: 'present', count: 3 }, maxMoves: 59 }, // mini-boss: the theme
+    { goal: G('lines', 12), setup: { kind: 'present', count: 3 }, maxMoves: 45 },
+    { goal: C('snowpile', 7), setup: { kind: 'present', count: 3 }, maxMoves: 71 },
+    { goal: G('combo', 5), setup: { kind: 'present', count: 2 }, maxMoves: 35 },
+    { goal: C('present', 9), setup: { kind: 'present', count: 11 }, maxMoves: 59 },
+    { goal: G('coins', 16), setup: { kind: 'present', count: 4 }, maxMoves: 85 },
+    { goal: G('score', 1800), setup: { kind: 'present', count: 4 }, maxMoves: 85 },
+    { goal: G('lines', 16), setup: { kind: 'present', count: 4 }, maxMoves: 52 },
+    { goal: C('snowpile', 10), setup: { kind: 'present', count: 4 }, maxMoves: 87 },
+    { goal: G('combo', 5), setup: { kind: 'present', count: 3 }, maxMoves: 32 },
+    { goal: C('present', 9), setup: { kind: 'present', count: 13 }, maxMoves: 45 },
+    { goal: G('score', 2200), setup: { kind: 'present', count: 5 }, maxMoves: 92 },
+    { goal: G('lines', 18), setup: { kind: 'present', count: 5 }, maxMoves: 54 },
+    { boss: boss(tr('Bonhomme de neige géant'), 18, 'snowpile'), setup: { kind: 'present', count: 4 }, maxMoves: 73 }, // final boss: Cubo's outfit
   ],
+
 };
-// Level n (1-10) of an event: an Aventure stage in the event's world.
+// Level n (1-25) of an event: an Aventure stage in the event's world. The difficulty ramp climbs half as fast
+// after level 10, so the late levels stay close to an Aventure world's end.
 function eventLevel(id: string, n: number): StageDef | null {
   const def = (EVENT_LEVELS[id] || [])[n - 1];
   if (!def) return null;
   // setup.kind may be missing: the event world's own setup rule fills it in (worlds.ts).
-  const base: Omit<StageDef, 'goal'> = { world: id, n, event: id, boss: !!def.boss, ramp: 0.6 + n * 0.03, setup: def.setup as SpawnSetup, maxMoves: def.clock ? 99 : def.maxMoves! };
+  const base: Omit<StageDef, 'goal'> = { world: id, n, event: id, boss: !!def.boss, ramp: 0.6 + Math.min(n, 10) * 0.03 + Math.max(0, n - 10) * 0.015, setup: def.setup as SpawnSetup, maxMoves: def.clock ? 99 : def.maxMoves! };
   if (def.clock) base.clock = def.clock;
   if (!def.boss) return { ...base, goal: def.goal! };
   const { name, hp, ...attack } = def.boss;
@@ -298,4 +435,4 @@ function goalLabel(goal: Goal) {
   return KIND_NAMES[goal.kind!].toUpperCase();
 }
 
-export { ORDER, PER_WORLD, TRIAL, BOSSES, TWISTS, EVENT_LEVELS, eventLevel, DAILY_START, level, daily, dayNumber, key, goalText, goalLabel, KIND_NAMES };
+export { ORDER, PER_WORLD, TRIAL, BONUS, REMATCH, BONUS_SLACK, BOSSES, TWISTS, EVENT_LEVELS, eventLevel, DAILY_START, level, daily, dayNumber, key, goalText, goalLabel, KIND_NAMES };

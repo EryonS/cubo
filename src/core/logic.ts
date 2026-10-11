@@ -106,11 +106,11 @@ const MERCY_RETRIES = 4;
 const INVENTORY_MAX = 2; // per bonus type
 const OVERFLOW_POINTS = 50; // collected with a full stack
 const COIN_CHANCE = 0.12; // per new piece without a bonus
-const BAG_SHARE = 0.1; // of coin cells (never in coin goals: a bag would pay 5 of the goal at once)
+const BAG_SHARE = 0.1; // of coin cells (never in coin goals: a bag would pay 2 of the goal at once)
 const COIN_DRY_STEP = 0.06; // coin goals: extra coin chance per piece since the last coin piece
 const COIN_DRY_MAX = 5; // coin goals: at most 4 pieces in a row without a coin
 // Coin cells ride on the same `bonus` slot as bonuses but pay coins instead of filling the inventory.
-const COIN_VALUES: Record<string, number> = { coin: 1, bag: 5 };
+const COIN_VALUES: Record<string, number> = { coin: 1, bag: 2 }; // bags were 5 until 2026-10-11
 // Throwing a tray piece away costs wallet coins, more each time within a run.
 const DISCARD_COST = 10;
 const DISCARD_STEP = 5;

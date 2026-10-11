@@ -1,5 +1,5 @@
-// Stats (legacy stats.js): one mode at a time (pills, four tiles, bar chart of the last 20 scores), then the
-// lifetime counters.
+// Stats (legacy stats.js): one mode at a time (pills, four tiles, bar chart of the last 20 scores) in a card, and
+// the lifetime counters as a grouped list.
 import { useState } from 'react';
 import { View } from 'react-native';
 import Svg, { G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
@@ -9,8 +9,10 @@ import { sfx } from '../../audio/engine';
 import { barPath, chartBars, CHART_H, CHART_RUNS, CHART_W, lifetimeRows, modeTiles, STAT_MODES } from '../../game/album';
 import { useGame } from '../../state/store';
 import { fonts } from '../../theme/fonts';
-import { radius, space } from '../../theme/tokens';
+import { radius, space, TOUCH } from '../../theme/tokens';
 import { useColors } from '../../theme/useColors';
+import { Card } from '../../ui/Card';
+import { Group } from '../../ui/Group';
 import { Segmented } from '../../ui/Segmented';
 import { StatTile } from '../../ui/StatTile';
 import { Text } from '../../ui/Text';
@@ -47,29 +49,33 @@ function Chart({ scores }: { scores: number[] }) {
   );
 }
 
-export function StatsBlock() {
-  const colors = useColors();
+export function ModeStats() {
   const profile = useGame((s) => s.profile);
   const bests = useGame((s) => s.saved.bests);
   const [mode, setMode] = useState('classic');
   const tiles = modeTiles(profile, mode, bests, fmt);
   return (
-    <View style={{ gap: space.m }}>
-      <Text variant="label">{tr('Stats')}</Text>
+    <Card>
       <Segmented kind="chips" inset options={STAT_MODES() as [string, string][]} value={mode} onChange={(v) => { sfx.turn(); setMode(v); }} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
         {tiles.map((t) => <StatTile key={t.label} inset value={t.value} label={t.label} style={{ flexBasis: '45%', flexGrow: 1 }} />)}
       </View>
       <Chart key={mode} scores={M.recentScores(profile, mode, CHART_RUNS)} />
-      <Text variant="label" style={{ marginTop: space.s }}>{tr('Depuis le début')}</Text>
-      <View>
-        {lifetimeRows(profile, fmt).map(([k, v], i, a) => (
-          <View key={k} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 40, paddingHorizontal: space.xs, borderBottomWidth: i === a.length - 1 ? 0 : 1, borderBottomColor: colors.hairline }}>
-            <Text variant="muted" style={{ color: colors.text, flex: 1 }}>{k}</Text>
-            <Text variant="headline" style={{ fontVariant: ['tabular-nums'] }}>{v}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
+    </Card>
+  );
+}
+
+export function Lifetime() {
+  const profile = useGame((s) => s.profile);
+  return (
+    <Group>
+      {lifetimeRows(profile, fmt).map(([k, v]) => (
+        <View key={k} accessible accessibilityLabel={`${k} : ${v}`}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, minHeight: TOUCH, paddingVertical: space.s, paddingHorizontal: space.l }}>
+          <Text style={{ flex: 1 }}>{k}</Text>
+          <Text variant="headline" style={{ fontVariant: ['tabular-nums'] }}>{v}</Text>
+        </View>
+      ))}
+    </Group>
   );
 }

@@ -49,7 +49,7 @@ export const BONUS_UI: Record<BonusType, BonusUi> = {
 
 export const COIN_UI = {
   coin: { get name() { return tr('Pièce'); }, get desc() { return tr('+1 pièce quand le bloc est effacé.'); } },
-  bag: { get name() { return tr('Sac de pièces'); }, get desc() { return tr('+5 pièces quand le bloc est effacé.'); } },
+  bag: { get name() { return tr('Sac de pièces'); }, get desc() { return tr('+2 pièces quand le bloc est effacé.'); } },
 };
 
 export const BONUS_TYPES = Object.keys(BONUS_UI) as BonusType[];

@@ -1,8 +1,8 @@
 // Paramètres > Thème: the owned themes in a grid (a tap equips: the menus recolor live, as in the
 // Boutique); a footer button leads to the Boutique for the others.
 import { forwardRef } from 'react';
-import { Pressable, useWindowDimensions, View } from 'react-native';
-import { BottomSheetScrollView, type BottomSheetModal } from '@gorhom/bottom-sheet';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { M } from '../core';
 import { tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
@@ -35,7 +35,9 @@ function Content({ onClose, onShop }: { onClose: () => void; onShop: () => void 
   return (
     <View style={{ gap: space.m }}>
       <SheetHeader title={tr('Thème')} onClose={onClose} />
-      <BottomSheetScrollView style={{ maxHeight: 470 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
+      {/* A plain scroll view (the sheet is opened with `scroll`): a BottomSheetScrollView reports its own content height
+          to the sheet, which then sized itself to the grid alone and opened half way on iOS. */}
+      <ScrollView style={{ maxHeight: 470 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
         {mine.map((sk) => {
           const on = sk.id === equipped;
           return (
@@ -47,7 +49,7 @@ function Content({ onClose, onShop }: { onClose: () => void; onShop: () => void 
             </Pressable>
           );
         })}
-      </BottomSheetScrollView>
+      </ScrollView>
       {more > 0 && <Button label={tr('Plus de thèmes dans la Boutique')} kind="secondary" onPress={onShop} />}
     </View>
   );
@@ -56,7 +58,7 @@ function Content({ onClose, onShop }: { onClose: () => void; onShop: () => void 
 export const ThemeSheet = forwardRef<BottomSheetModal, { onShop: () => void }>(function ThemeSheet({ onShop }, ref) {
   const close = () => (ref as React.RefObject<BottomSheetModal>).current?.dismiss();
   return (
-    <Sheet ref={ref}>
+    <Sheet ref={ref} scroll>
       <Content onClose={close} onShop={() => { close(); onShop(); }} />
     </Sheet>
   );

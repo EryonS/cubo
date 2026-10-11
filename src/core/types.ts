@@ -218,7 +218,7 @@ export interface Profile {
   upgrades?: Partial<Record<BonusType, number>>;
   stock?: Partial<Record<BonusType, number>>;
   seasons?: Record<string, SeasonProgress>;
-  trophies?: Record<string, 'silver' | 'gold'>;
+  trophies?: Record<string, 'bronze' | 'silver' | 'gold' | 'diamond'>; // season events (month trophies are computed)
   daily?: Record<string, DailyDay>;
   streak?: Streak;
   stickers?: Record<string, string>;

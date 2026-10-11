@@ -13,7 +13,7 @@ test('October shows Halloween, with the date and an empty progress', () => {
   assert.equal(rows.length, 1);
   assert.equal(rows[0].id, 'halloween');
   assert.equal(rows[0].playing, false);
-  assert.match(rows[0].sub, /0 \/ 10/);
+  assert.match(rows[0].sub, /0 \/ 25/);
   assert.ok(eventDate(day).length > 4);
 });
 

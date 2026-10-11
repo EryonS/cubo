@@ -1,14 +1,16 @@
-// A season event (legacy #event): intro, world rules, the three rewards, 10 levels on a path.
+// A season event (legacy #event), in the event's own world: banner, the three rewards, world rules, 25 levels on a
+// path (mini-boss at 12, boss at 25).
 // A level opens a sheet (goal, budget, stars) then starts like an Aventure level, without a bomb or a skip.
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useNavigation, useRoute, type NavigationProp, type RouteProp } from '@react-navigation/native';
+import { useIsFocused, useNavigation, useRoute, type NavigationProp, type RouteProp } from '@react-navigation/native';
 import Svg, { Path } from 'react-native-svg';
+import { StatusBar } from 'expo-status-bar';
 import { LV, M, WD } from '../core';
 import { tr } from '../core/i18n';
 import { sfx } from '../audio/engine';
-import { eventDate, eventLevelName, hatName } from '../game/events';
+import { eventDate, eventLevelName, hatName, nextTrophyText, trophyName } from '../game/events';
 import { eventNext } from '../game/home';
 import { guardFree, inProgress, isFree } from '../game/modes';
 import { startEventLevel } from '../game/run';
@@ -21,7 +23,7 @@ import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import { fonts } from '../theme/fonts';
 import { radius, space } from '../theme/tokens';
-import { useColors } from '../theme/useColors';
+import { colorsFor, darkBg, PlayedTheme, useColors } from '../theme/useColors';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Counter } from '../ui/Counter';
@@ -34,6 +36,8 @@ import { StarRow } from '../ui/Stars';
 import { Text } from '../ui/Text';
 import { Trophy } from '../ui/StickerArt';
 import { Rules } from './adventure/Rules';
+import { BannerText, EventBanner, Pill } from './home/EventHero';
+import { Section } from '../ui/SectionLabel';
 
 const GAP = 8;
 const ROW_H = 76;
@@ -47,16 +51,19 @@ function EventPath({ id, onPick }: { id: string; onPick: (n: number) => void }) 
   const profile = useGame((s) => s.profile);
   const [width, setWidth] = useState(0);
   const day = today();
-  const levels = Array.from({ length: 10 }, (_, i) => i + 1);
+  const count = M.eventById(id)?.levels ?? 0;
+  const levels = Array.from({ length: count }, (_, i) => i + 1);
+  const rows = Math.ceil(count / 5);
+  const height = (rows - 1) * ROW_H + 78;
   const cw = (width - 4 * GAP) / 5;
   const center = (n: number) => { const p = cell(n); return [p.col * (cw + GAP) + cw / 2, p.row * ROW_H + 24] as const; };
   const cleared = levels.filter((n) => M.eventStars(profile, id, day, n) !== undefined).length;
   const line = (a: readonly (readonly [number, number])[]) => a.map((p, i) => (i ? 'L' : 'M') + Math.round(p[0]) + ' ' + Math.round(p[1])).join('');
   const pts = width ? levels.map(center) : [];
   return (
-    <View style={{ height: ROW_H + 78 }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+    <View style={{ height }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       {width > 0 && (
-        <Svg width={width} height={ROW_H + 78} style={{ position: 'absolute', left: 0, top: 0 }} pointerEvents="none">
+        <Svg width={width} height={height} style={{ position: 'absolute', left: 0, top: 0 }} pointerEvents="none">
           <Path d={line(pts.slice(Math.max(0, cleared - 1)))} fill="none" stroke={colors.hairline} strokeWidth={6} strokeLinecap="round" strokeDasharray="0.1 13" />
           {cleared > 1 && <Path d={line(pts.slice(0, cleared))} fill="none" stroke={colors.accent} strokeOpacity={0.3} strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" />}
         </Svg>
@@ -64,7 +71,7 @@ function EventPath({ id, onPick }: { id: string; onPick: (n: number) => void }) 
       {width > 0 && levels.map((n) => {
         const open = M.eventLevelOpen(profile, id, day, n);
         const stars = M.eventStars(profile, id, day, n);
-        const boss = n === 10;
+        const boss = !!M.eventBossAt(n);
         // Only the next level wears the accent (test mode opens them all).
         const hot = open && stars === undefined && (n === 1 || M.eventStars(profile, id, day, n - 1) !== undefined);
         const p = cell(n);
@@ -83,7 +90,7 @@ function EventPath({ id, onPick }: { id: string; onPick: (n: number) => void }) 
             {/* On the screen color, so the line turning down to the next row passes behind the stars. */}
             <View style={{ backgroundColor: colors.bg, borderRadius: 8, paddingHorizontal: 3 }}>
               {boss && stars === undefined
-                ? <Text variant="muted" style={{ fontSize: 12, marginTop: -2, textTransform: 'uppercase', letterSpacing: 0.6 }}>{tr('Boss')}</Text>
+                ? <Text variant="muted" numberOfLines={1} style={{ fontSize: M.eventBossAt(n) === 'mid' ? 11 : 12, marginTop: -2, textTransform: 'uppercase', letterSpacing: M.eventBossAt(n) === 'mid' ? 0.2 : 0.6 }}>{M.eventBossAt(n) === 'mid' ? tr('Mini-boss') : tr('Boss')}</Text>
                 : <StarRow n={stars || 0} size={12} />}
             </View>
           </Pressable>
@@ -145,6 +152,7 @@ export function EventScreen() {
   const profile = useGame((s) => s.profile);
   const blocks = profile.equipped.blocks;
   const sheetRef = useRef<BottomSheetModal>(null);
+  const focused = useIsFocused();
   const [n, setN] = useState<number | null>(route.params.level ?? null);
   const day = today();
   const ev = M.eventById(id);
@@ -164,7 +172,7 @@ export function EventScreen() {
   const trophy = M.seasonTrophy(profile, id, year);
   const owned = (kind: 'boards' | 'cubo', sid: string) => (profile.owned[kind] || []).includes(sid);
   const next = eventNext(profile, id, day);
-  const trophyLine = trophy === 'gold' ? tr('Or') : trophy === 'silver' ? tr('Argent · or avec 30 étoiles') : tr('Or avec 30 étoiles');
+  const aim = nextTrophyText(M.eventTotalStars(profile, id, day), ev.levels * 3);
   const open = (level: number) => { setN(level); sheetRef.current?.present(); };
   const play = async () => {
     if (!n) return;
@@ -180,32 +188,41 @@ export function EventScreen() {
   };
 
   return (
+    // The whole screen wears the event's world (its sheet too: Sheet hands the played theme over).
+    <PlayedTheme value={ev.theme}>
     <Screen title={ev.name} back={() => { sfx.turn(); nav.goBack(); }}
       right={<Counter icon={<Star size={16} />} value={`${M.eventTotalStars(profile, id, day)} / ${ev.levels * 3}`} label={tr`${M.eventTotalStars(profile, id, day)} étoiles sur ${ev.levels * 3}`} />}>
-        <Text variant="muted" style={{ marginHorizontal: space.xs }}>
-          {tr`Événement de saison jusqu’au ${eventDate(M.eventEnd(id, day))} : ${ev.levels} niveaux, ${ev.blurb}. Finis-les pour gagner le thème ${ev.name}, ${hatName(ev.hat).toLowerCase()} pour Cubo et le trophée ${year}. Tout repart à zéro l’an prochain.`}
-        </Text>
-        {WD.WORLDS[id] && <Rules w={id} />}
-        <View style={{ flexDirection: 'row', gap: space.s }}>
-          <Reward label={tr`Thème ${ev.name}`} got={owned('boards', ev.theme) ? tr('Gagné') : undefined}>
-            <DrawCanvas width={96} radius={radius.s} deps={[ev.theme, blocks]} draw={(g, w, h) => drawPreview(g, boardTheme(ev.theme, blocks), w, h)} />
-          </Reward>
-          <Reward label={hatName(ev.hat)} got={owned('cubo', ev.hat) ? tr('Gagné') : undefined}>
-            <DrawCanvas width={96} radius={radius.s} deps={[ev.hat, ev.theme]} draw={(g, w) => drawCuboPreview(g, boardTheme(ev.theme), ev.theme, ev.hat, w)} />
-          </Reward>
-          <Reward label={tr`Trophée ${year}`} got={trophy ? trophyLine : undefined} todo={trophy ? undefined : trophyLine}>
-            <Trophy kind={trophy} size={54} />
-          </Reward>
-        </View>
-        {/* Above the path, as on the Aventure map. */}
-        {(going || next) ? (
-          <Button label={going ? tr`Continuer : ${eventLevelName(going)}` : next === ev.levels ? tr('Affronter le boss') : tr`Jouer le niveau ${next}`}
-            onPress={() => { sfx.turn(); if (going) nav.navigate('Game'); else open(next!); }} />
-        ) : null}
-        <EventPath id={id} onPick={open} />
+        {focused && <StatusBar style={darkBg(colorsFor(ev.theme).bg) ? 'light' : 'dark'} />}
+        <EventBanner id={id} rounded>
+          <View style={{ flexDirection: 'row' }}><Pill clock>{tr`Jusqu’au ${eventDate(M.eventEnd(id, day))}`}</Pill></View>
+          <BannerText>{tr`${ev.levels} niveaux ${ev.blurb}`}</BannerText>
+        </EventBanner>
+        <Section title={tr('À gagner')} info={tr`Le mini-boss du niveau ${ev.mid} donne le thème ${ev.name}, le boss du niveau ${ev.levels} donne ${hatName(ev.hat).toLowerCase()} pour Cubo (la première fois). Le trophée ${year} suit tes étoiles : bronze à 70 %, argent à 80 %, or à 90 %, diamant avec toutes. Tout repart à zéro l’an prochain.`}>
+          <View style={{ flexDirection: 'row', gap: space.s }}>
+            <Reward label={tr`Thème ${ev.name}`} got={owned('boards', ev.theme) ? tr('Gagné') : undefined} todo={owned('boards', ev.theme) ? undefined : tr`Au niveau ${ev.mid}`}>
+              <DrawCanvas width={96} radius={radius.s} deps={[ev.theme, blocks]} draw={(g, w, h) => drawPreview(g, boardTheme(ev.theme, blocks), w, h)} />
+            </Reward>
+            <Reward label={hatName(ev.hat)} got={owned('cubo', ev.hat) ? tr('Gagné') : undefined} todo={owned('cubo', ev.hat) ? undefined : tr`Au niveau ${ev.levels}`}>
+              <DrawCanvas width={96} radius={radius.s} deps={[ev.hat, ev.theme]} draw={(g, w) => drawCuboPreview(g, boardTheme(ev.theme), ev.theme, ev.hat, w)} />
+            </Reward>
+            <Reward label={tr`Trophée ${year}`} got={trophy ? trophyName(trophy) : undefined} todo={aim ?? undefined}>
+              <Trophy kind={trophy} size={54} />
+            </Reward>
+          </View>
+        </Section>
+        {WD.WORLDS[id] && <Section title={tr('Règles du monde')}><Rules w={id} /></Section>}
+        <Section title={tr('Niveaux')}>
+          {/* Above the path, as on the Aventure map. */}
+          {(going || next) ? (
+            <Button style={{ marginBottom: space.s }} label={going ? tr`Continuer : ${eventLevelName(going)}` : next === ev.levels ? tr('Affronter le boss') : tr`Jouer le niveau ${next}`}
+              onPress={() => { sfx.turn(); if (going) nav.navigate('Game'); else open(next!); }} />
+          ) : null}
+          <EventPath id={id} onPick={open} />
+        </Section>
       <Sheet ref={sheetRef}>
         {n != null && <LevelSheet id={id} n={n} onClose={() => sheetRef.current?.dismiss()} onPlay={play} />}
       </Sheet>
     </Screen>
+    </PlayedTheme>
   );
 }

@@ -11,7 +11,7 @@ test('every bonus has a name, a hint and a description at each upgrade level', (
     assert.equal(ui.levels.length, L.UPGRADE_MAX);
     for (let lv = 1; lv <= L.UPGRADE_MAX; lv++) assert.ok(ui.desc(lv).length > 5, `${type} ${lv}`);
   }
-  assert.ok(COIN_UI.bag.desc.includes('5'));
+  assert.ok(COIN_UI.bag.desc.includes('2'));
 });
 
 test('timed bonuses state their length from the upgrade tables; Étoile its multiplier', () => {

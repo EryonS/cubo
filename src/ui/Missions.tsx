@@ -1,8 +1,7 @@
 // Today's missions: the live list shown in the sheet (legacy renderMissionList) and the pips on the
 // home row / game over (renderMissionBadges, renderRunMissions).
-import { Fragment, useEffect } from 'react';
+import { Fragment } from 'react';
 import { View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { MissionView } from '../core/meta';
 import { locale, tr } from '../core/i18n';
 import { space } from '../theme/tokens';
@@ -10,23 +9,14 @@ import { useColors } from '../theme/useColors';
 import { Group } from './Group';
 import { Icon } from './Icon';
 import { ListRow } from './ListRow';
+import { ProgressBar } from './ProgressBar';
 import { SectionLabel } from './SectionLabel';
 import { Text } from './Text';
 import { Coin } from './Wallet';
 
 const fmt = (n: number) => n.toLocaleString(locale());
 
-function Bar({ value }: { value: number }) {
-  const colors = useColors();
-  const w = useSharedValue(0);
-  useEffect(() => { w.value = withTiming(value, { duration: 700, easing: Easing.bezier(0.2, 0.8, 0.2, 1) }); }, [value, w]);
-  const style = useAnimatedStyle(() => ({ width: `${w.value * 100}%` }));
-  return (
-    <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.sunken, overflow: 'hidden', marginTop: space.s }}>
-      <Animated.View style={[{ height: '100%', borderRadius: 4, backgroundColor: colors.accent }, style]} />
-    </View>
-  );
-}
+const Bar = ({ value }: { value: number }) => <ProgressBar value={value} style={{ marginTop: space.s }} />;
 
 // inset: inside a card or sheet (rows on panel2); else one Group on the background. A done mission shows a
 // check by its reward (a Group row has no green ring).

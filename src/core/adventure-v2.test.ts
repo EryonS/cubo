@@ -24,9 +24,19 @@ function bossGame(world = 'plain', extra = {}) {
   return state;
 }
 
-test('20 levels a world: a trial at 10, a boss fight at 20', () => {
+test('20 levels a world: a trial at 10, a boss fight at 20, then 5 bonus levels ending on a rematch', () => {
   for (const w of LV.ORDER) {
-    assert.equal(LV.level(w, 21), null);
+    assert.equal(LV.level(w, 26), null);
+    for (let n = 21; n <= 24; n++) {
+      const st = LV.level(w, n);
+      assert.notEqual(st.goal.type, 'boss');
+      assert.ok(st.twist, w + n); // the world's second obstacle stays on
+      assert.ok(st.ramp > LV.level(w, 19).ramp);
+    }
+    const re = LV.level(w, 25);
+    assert.equal(re.goal.type, 'boss');
+    assert.ok(re.goal.target > LV.level(w, 20).goal.target);
+    assert.equal(re.boss.name, LV.level(w, 20).boss.name);
     assert.equal(LV.level(w, 10).trial, true);
     const boss = LV.level(w, 20);
     assert.equal(boss.goal.type, 'boss');

@@ -11,7 +11,7 @@ const fresh = () => ({ ...M.createProfile(OCT), coins: 0 });
 const H = 'halloween';
 function clearAll(p, day, stars = 2, id = H) {
   let report = null;
-  for (let n = 1; n <= 10; n++) ({ profile: p, report } = M.applyEvent(p, id, day, n, stars));
+  for (let n = 1; n <= 25; n++) ({ profile: p, report } = M.applyEvent(p, id, day, n, stars));
   return { profile: p, report };
 }
 
@@ -72,16 +72,19 @@ test('free play: Normal drops one obstacle kind, Difficile two, each with a coin
   assert.equal(M.runCoins({ coins: 20 }).length, 1);
 });
 
-test('every event has 10 levels, a world, a theme and a Cubo piece that are not sold', () => {
+test('every event has 25 levels, a world, a theme and a Cubo piece that are not sold', () => {
   for (const ev of M.EVENTS) {
-    for (let n = 1; n <= 10; n++) {
+    assert.equal(ev.levels, 25);
+    for (let n = 1; n <= 25; n++) {
       const st = LV.eventLevel(ev.id, n);
       assert.equal(st.world, ev.id);
       const state = L.createGame(n, { mode: 'adventure', stage: st });
       assert.equal(state.mode, 'adventure');
-      if (n === 10) assert.equal(state.special.filter((sp) => sp && sp.kind === 'boss').length, 4);
+      if (n === 12 || n === 25) assert.equal(state.special.filter((sp) => sp && sp.kind === 'boss').length, 4, ev.id + n);
+      else assert.notEqual(st.goal.type, 'boss');
+      assert.ok(st.clock ? st.clock <= 120000 : st.maxMoves <= 99, ev.id + n);
     }
-    assert.equal(LV.eventLevel(ev.id, 11), null);
+    assert.equal(LV.eventLevel(ev.id, 26), null);
     assert.equal(M.SKINS.boards.find((s) => s.id === ev.theme).price, null);
     assert.equal(M.SKINS.cubo.find((s) => s.id === ev.hat).price, null);
     assert.ok(L.KINDS[ev.icon]);
@@ -100,17 +103,41 @@ test('event levels open one after the other and pay like Aventure levels', () =>
   assert.equal(M.applyEvent(p, H, OCT, 5, 3).report.total, 0);
 });
 
-test('clearing the 10 levels gives the theme, the witch hat and a silver trophy', () => {
-  const { profile: p, report } = clearAll(fresh(), OCT);
-  assert.ok(p.owned.boards.includes('halloween'));
-  assert.ok(p.owned.cubo.includes('witch'));
-  assert.deepEqual(report.unlocked.map((u) => u.id).sort(), ['halloween', 'witch']);
-  assert.equal(report.trophy, 'silver');
-  assert.equal(M.seasonTrophy(p, H, '2026'), 'silver');
-  // Every star upgrades it to gold.
-  let q = p;
-  for (let n = 1; n <= 10; n++) q = M.applyEvent(q, H, OCT, n, 3).profile;
-  assert.equal(M.seasonTrophy(q, H, '2026'), 'gold');
+test('the mini-boss gives the theme, the final boss the witch hat', () => {
+  let p = fresh();
+  for (let n = 1; n <= 11; n++) p = M.applyEvent(p, H, OCT, n, 1).profile;
+  assert.ok(!p.owned.boards.includes('halloween'));
+  let res = M.applyEvent(p, H, OCT, 12, 1);
+  assert.deepEqual(res.report.unlocked, [{ kind: 'boards', id: 'halloween' }]);
+  assert.ok(res.report.earned.some((l) => l.label === 'Boss vaincu'));
+  p = res.profile;
+  for (let n = 13; n <= 24; n++) p = M.applyEvent(p, H, OCT, n, 1).profile;
+  assert.ok(!p.owned.cubo.includes('witch'));
+  res = M.applyEvent(p, H, OCT, 25, 1);
+  assert.deepEqual(res.report.unlocked, [{ kind: 'cubo', id: 'witch' }]);
+  // Replaying the mini-boss gives nothing more.
+  assert.deepEqual(M.applyEvent(res.profile, H, OCT, 12, 3).report.unlocked, []);
+});
+
+test('the season trophy follows the stars: bronze 70 %, silver 80 %, gold 90 %, diamond 100 %', () => {
+  assert.equal(M.trophyFor(52, 75), null);
+  assert.equal(M.trophyFor(53, 75), 'bronze');
+  assert.equal(M.trophyFor(60, 75), 'silver');
+  assert.equal(M.trophyFor(68, 75), 'gold');
+  assert.equal(M.trophyFor(74, 75), 'gold');
+  assert.equal(M.trophyFor(75, 75), 'diamond');
+  assert.deepEqual(M.nextTrophy(55, 75), { kind: 'silver', stars: 60 });
+  assert.equal(M.nextTrophy(75, 75), null);
+  // Earned on the way, before the event is finished, and it only climbs.
+  let p = fresh();
+  const got = [];
+  for (let n = 1; n <= 18; n++) { const res = M.applyEvent(p, H, OCT, n, 3); p = res.profile; if (res.report.trophy) got.push(res.report.trophy); }
+  assert.deepEqual(got, ['bronze']); // 54 stars
+  for (let n = 19; n <= 25; n++) p = M.applyEvent(p, H, OCT, n, 3).profile;
+  assert.equal(M.seasonTrophy(p, H, '2026'), 'diamond');
+  assert.equal(M.applyEvent(p, H, OCT, 1, 1).report.trophy, null);
+  assert.equal(M.seasonTrophy(clearAll(fresh(), OCT, 2).profile, H, '2026'), null); // 50 stars of 75
+  assert.equal(M.seasonTrophy(clearAll(fresh(), OCT, 3).profile, H, '2026'), 'diamond');
 });
 
 test('progress resets the next October; owned rewards turn into coins, trophies stay', () => {
@@ -121,11 +148,11 @@ test('progress resets the next October; owned rewards turn into coins, trophies 
   const { profile: q, report } = clearAll(p, next);
   assert.deepEqual(report.unlocked, []);
   assert.ok(report.earned.some((l) => l.label === 'Récompense Halloween'));
-  assert.equal(M.seasonTrophy(q, H, '2026'), 'silver');
-  assert.equal(M.seasonTrophy(q, H, '2027'), 'silver');
+  assert.equal(M.seasonTrophy(q, H, '2026'), null); // 2 stars everywhere: 50 of 75, under bronze
+  assert.equal(M.seasonTrophy(q, H, '2027'), null);
 });
 
-test('a broken pumpkin drops a bag of 5 coins', () => {
+test('a broken pumpkin drops a bag of 2 coins', () => {
   const state = L.createGame(1, { mode: 'adventure', stage: LV.eventLevel(H, 2) });
   state.board.fill(0); state.special.fill(null); state.bonus.fill(null);
   state.board[0] = L.SPECIAL; state.special[0] = { kind: 'pumpkin', hp: 1, age: 0 };
@@ -133,7 +160,7 @@ test('a broken pumpkin drops a bag of 5 coins', () => {
   const one = L.SHAPES.find((s) => s.cells.length === 1);
   state.tray = [{ id: 99, cells: one.cells, w: 1, h: 1, color: one.color, bonus: null }, null, null];
   const res = L.place(state, 0, 0, 7);
-  assert.equal(res.state.stats.coins, 5);
+  assert.equal(res.state.stats.coins, 2);
 });
 
 test('profile v5: old saves get a wardrobe with the theme look', () => {

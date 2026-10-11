@@ -49,7 +49,7 @@ function StreakBlock() {
   };
   return (
     <View style={{ gap: space.s }}>
-      <SectionLabel>{tr('Série')}</SectionLabel>
+      <SectionLabel info={tr`Réussis le défi du jour chaque jour pour faire grimper ta série : plus de pièces chaque jour, un coffre tous les 7 jours et des blocs Or exclusifs au bout de 30 jours. Un gel de série couvre un jour manqué.`}>{tr('Série')}</SectionLabel>
       <Group>
       <ListRow title={many(now) ? tr("jours d'affilée") : tr("jour d'affilée")} sub={tr`Record : ${st.best}`}
         label={`${now} ${many(now) ? tr("jours d'affilée") : tr("jour d'affilée")}, ${tr`Record : ${st.best}`}`}

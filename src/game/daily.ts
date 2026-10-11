@@ -66,7 +66,7 @@ export function shareText(day: string, worldName: string, stars: number, movesLe
 }
 
 // Pause sheet subtitle: the level (or the mode) the run is in, as legacy runLabel.
-const eventLevelName = (n: number) => (n === 10 ? tr('Boss') : tr('Niveau ') + n);
+const eventLevelName = (n: number) => (M.eventBossAt(n) === 'final' ? tr('Boss') : M.eventBossAt(n) === 'mid' ? tr('Mini-boss') : tr('Niveau ') + n);
 export function runLabel(st: RunState): string {
   const stage = st.stage;
   if (stage) {

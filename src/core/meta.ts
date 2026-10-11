@@ -291,6 +291,10 @@ const WORLD_ORDER: string[] = ['plain', 'sea', 'space', 'ice', 'forest', 'retro'
 const WORLD_NAMES: Record<string, string> = { plain: tr('Plaine'), sea: tr('Sous-marin'), space: tr('Espace'), ice: tr('Glace'), forest: tr('Forêt'), retro: tr('Rétro'), arcade: tr('Arcade'), volcano: tr('Volcan') };
 const LEVELS_PER_WORLD = 20;
 const TRIAL_LEVEL = 10;
+// Bonus levels 21-25 of every world (25: the boss's rematch), all open once the Volcan boss is beaten. Their
+// stars count apart (bonusStars): world gates, chests, mastery and the "/ 480" stay on levels 1-20.
+const BONUS_LEVELS = 5;
+const BONUS_CLEAR = 10;
 const STARS_PER_GATE = 36; // world k needs 36 x k stars (60% of a world's 60)
 const FIRST_CLEAR = 3;
 const TRIAL_CLEAR = 10;
@@ -311,7 +315,10 @@ const adventureOf = (profile: Profile) => profile.adventure || {};
 const starsOf = (profile: Profile): Record<string, number> => adventureOf(profile).stars || {};
 const levelStars = (profile: Profile, world: string, n: number) => starsOf(profile)[levelKey(world, n)];
 const levelCleared = (profile: Profile, world: string, n: number) => levelStars(profile, world, n) !== undefined;
-const totalStars = (profile: Profile) => Object.values(starsOf(profile)).reduce((a, b) => a + b, 0);
+const isBonus = (n: number) => n > LEVELS_PER_WORLD;
+const keyLevel = (key: string) => Number(key.slice(key.lastIndexOf('-') + 1));
+const totalStars = (profile: Profile) => Object.entries(starsOf(profile)).reduce((a, [k, v]) => (isBonus(keyLevel(k)) ? a : a + v), 0);
+const bonusStars = (profile: Profile) => Object.entries(starsOf(profile)).reduce((a, [k, v]) => (isBonus(keyLevel(k)) ? a + v : a), 0);
 const worldStars = (profile: Profile, world: string) => {
   let n = 0;
   for (let i = 1; i <= LEVELS_PER_WORLD; i++) n += levelStars(profile, world, i) || 0;
@@ -328,7 +335,11 @@ function worldOpen(profile: Profile, world: string) {
   if ((adventureOf(profile).opened || []).includes(world)) return true;
   return bossBeaten(profile, WORLD_ORDER[w - 1]) && totalStars(profile) >= worldGate(world);
 }
-const levelOpen = (profile: Profile, world: string, n: number) => worldOpen(profile, world) && (n === 1 || !!profile.dev || levelCleared(profile, world, n - 1));
+const bonusOpen = (profile: Profile) => !!profile.dev || bossBeaten(profile, WORLD_ORDER[WORLD_ORDER.length - 1]);
+const bonusCleared = (profile: Profile) => WORLD_ORDER.every((w) => levelCleared(profile, w, LEVELS_PER_WORLD + BONUS_LEVELS));
+const levelOpen = (profile: Profile, world: string, n: number) => worldOpen(profile, world)
+  && (!isBonus(n) || (n <= LEVELS_PER_WORLD + BONUS_LEVELS && bonusOpen(profile)))
+  && (n === 1 || !!profile.dev || levelCleared(profile, world, n - 1));
 
 // Records a finished level. Returns { profile, report: { earned, total, themeUnlocked } }.
 function applyLevel(prev: Profile, world: string, n: number, stars: number) {
@@ -337,6 +348,8 @@ function applyLevel(prev: Profile, world: string, n: number, stars: number) {
   const earned: Earned[] = [];
   if (before === undefined) {
     if (n === LEVELS_PER_WORLD) earned.push({ label: tr('Boss vaincu'), coins: BOSS_CLEAR });
+    else if (n === LEVELS_PER_WORLD + BONUS_LEVELS) earned.push({ label: tr('Revanche gagnée'), coins: BOSS_CLEAR });
+    else if (isBonus(n)) earned.push({ label: tr('Niveau bonus réussi'), coins: BONUS_CLEAR });
     else if (n === TRIAL_LEVEL) earned.push({ label: tr('Épreuve réussie'), coins: TRIAL_CLEAR });
     else earned.push({ label: tr('Niveau réussi'), coins: FIRST_CLEAR });
   }
@@ -375,7 +388,7 @@ const canSkip = (profile: Profile, world: string, n: number) =>
 
 // Pays to mark a (non-boss) level as passed with no star.
 function skipLevel(prev: Profile, world: string, n: number) {
-  if (n === LEVELS_PER_WORLD || levelCleared(prev, world, n) || !levelOpen(prev, world, n)) return null;
+  if (n >= LEVELS_PER_WORLD || levelCleared(prev, world, n) || !levelOpen(prev, world, n)) return null;
   const paid = spend(prev, SKIP_COST);
   if (!paid) return null;
   return { ...paid, adventure: { ...adventureOf(paid), stars: { ...starsOf(paid), [levelKey(world, n)]: 0 } } };
@@ -503,11 +516,12 @@ const takeStock = (prev: Profile, type: BonusType) => (bonusStock(prev, type) > 
 
 
 // ---------- season events ----------
-// One event per season, each open on its months (local dates), 10 levels in its own world.
+// One event per season, each open on its months (local dates), 25 levels in its own world, about one a day.
 // Progress belongs to one year: profile.seasons[id] = { year, stars: { [n]: 0..3 } }, left behind
-// when the event comes back the next year. Clearing the 10 levels gives the event's theme and
-// Cubo head piece the first time (coins once both are owned) and the year's trophy: silver, gold
-// with every star. profile.trophies: { '<id>-<year>': 'silver' | 'gold' }.
+// when the event comes back the next year. The mini-boss (level 12) gives the event's theme and the
+// final boss (25) its Cubo head piece, the first time (coins once both are owned at the end). The year's
+// trophy follows the stars: bronze at 70 % of them, silver 80 %, gold 90 %, diamond with every star, and
+// climbs as stars come in. profile.trophies: { '<id>-<year>': 'bronze' | 'silver' | 'gold' | 'diamond' }.
 // window(year) -> ['YYYY-MM-DD' first day, last day] or null. Several events can overlap (the
 // Chinese New Year falls in January or February): each gets its own home row.
 const months = (first: string, last = first) => (y: number) => [`${y}-${first}-01`, monthDays(`${y}-${last}`).slice(-1)[0]];
@@ -525,19 +539,39 @@ const LUNAR_NEW_YEAR: Record<number, string> = {
   2031: '2031-01-23', 2032: '2032-02-11', 2033: '2033-01-31', 2034: '2034-02-19', 2035: '2035-02-08',
   2036: '2036-01-28', 2037: '2037-02-15', 2038: '2038-02-04', 2039: '2039-01-24', 2040: '2040-02-12',
 };
-export interface EventDef { id: string; name: string; window: (y: number) => string[] | null; hat: string; icon: string; blurb: string; theme: string; levels: number }
+// blurb: what follows "25 niveaux" on the event card and banner ("remplis de citrouilles et de fantômes !").
+export interface EventDef { id: string; name: string; window: (y: number) => string[] | null; hat: string; icon: string; blurb: string; theme: string; levels: number; mid: number }
+const EVENT_LEVEL_COUNT = 25;
+const EVENT_MID = 12; // the mini-boss: it gives the theme
+export type SeasonTrophy = 'bronze' | 'silver' | 'gold' | 'diamond';
+// Share of the event's stars each trophy needs, lowest first.
+const TROPHY_TIERS: [SeasonTrophy, number][] = [['bronze', 0.7], ['silver', 0.8], ['gold', 0.9], ['diamond', 1]];
+const trophyRank = (t: string | null | undefined) => TROPHY_TIERS.findIndex(([k]) => k === t);
+// The best trophy `stars` out of `max` earn, or null under half of them.
+function trophyFor(stars: number, max: number): SeasonTrophy | null {
+  let best: SeasonTrophy | null = null;
+  for (const [k, share] of TROPHY_TIERS) if (stars >= Math.ceil(max * share)) best = k;
+  return best;
+}
+// The next trophy and the stars it needs (null once diamond).
+function nextTrophy(stars: number, max: number): { kind: SeasonTrophy; stars: number } | null {
+  const t = TROPHY_TIERS.find(([, share]) => stars < Math.ceil(max * share));
+  return t ? { kind: t[0], stars: Math.ceil(max * t[1]) } : null;
+}
+// 'final' for the last level, 'mid' for the mini-boss, else null.
+const eventBossAt = (n: number) => (n === EVENT_LEVEL_COUNT ? 'final' : n === EVENT_MID ? 'mid' : null);
 const EVENTS: EventDef[] = ([
-  { id: 'newyear', name: tr('Nouvel An'), window: months('01'), hat: 'sequin', icon: 'rocket', blurb: tr('une nuit de fusées contre la montre') },
+  { id: 'newyear', name: tr('Nouvel An'), window: months('01'), hat: 'sequin', icon: 'rocket', blurb: tr('de fusées à faire exploser avant minuit !') },
   // From 3 days before the new year to the Lantern Festival (day 15).
   { id: 'lunar', name: tr('Nouvel An chinois'), window: (y: number) => (LUNAR_NEW_YEAR[y] ? [addDays(LUNAR_NEW_YEAR[y], -3), addDays(LUNAR_NEW_YEAR[y], 14)] : null),
-    hat: 'dragon', icon: 'lantern', blurb: tr('des lanternes qui s’envolent et des pétards') },
-  { id: 'valentine', name: tr('Saint-Valentin'), window: months('02'), hat: 'hearts', icon: 'heart', blurb: tr('des cœurs jumeaux et des roses épineuses') },
+    hat: 'dragon', icon: 'lantern', blurb: tr('de lanternes qui s’envolent et de pétards qui claquent !') },
+  { id: 'valentine', name: tr('Saint-Valentin'), window: months('02'), hat: 'hearts', icon: 'heart', blurb: tr('de cœurs jumeaux et de roses qui piquent !') },
   // Two weeks before Easter Sunday to the Sunday after.
-  { id: 'easter', name: tr('Pâques'), window: (y: number) => [addDays(easterSunday(y), -14), addDays(easterSunday(y), 7)], hat: 'bunny', icon: 'egg', blurb: tr('une chasse aux œufs dans les buissons') },
-  { id: 'beach', name: tr('Plage'), window: months('07', '08'), hat: 'straw', icon: 'crab', blurb: tr('des crabes et la marée qui monte') },
-  { id: 'halloween', name: tr('Halloween'), window: months('10'), hat: 'witch', icon: 'pumpkin', blurb: tr('des citrouilles et des fantômes') },
-  { id: 'xmas', name: tr('Noël'), window: months('12'), hat: 'santa', icon: 'present', blurb: tr('des cadeaux sous la neige') },
-] as Omit<EventDef, 'theme' | 'levels'>[]).map((e) => ({ ...e, theme: e.id, levels: 10 }));
+  { id: 'easter', name: tr('Pâques'), window: (y: number) => [addDays(easterSunday(y), -14), addDays(easterSunday(y), 7)], hat: 'bunny', icon: 'egg', blurb: tr('pour dénicher les œufs cachés dans les buissons !') },
+  { id: 'beach', name: tr('Plage'), window: months('07', '08'), hat: 'straw', icon: 'crab', blurb: tr('de crabes farceurs et de marée qui monte !') },
+  { id: 'halloween', name: tr('Halloween'), window: months('10'), hat: 'witch', icon: 'pumpkin', blurb: tr('remplis de citrouilles et de fantômes !') },
+  { id: 'xmas', name: tr('Noël'), window: months('12'), hat: 'santa', icon: 'present', blurb: tr('de cadeaux à déballer sous la neige !') },
+] as Omit<EventDef, 'theme' | 'levels' | 'mid'>[]).map((e) => ({ ...e, theme: e.id, levels: EVENT_LEVEL_COUNT, mid: EVENT_MID }));
 const EVENT_FIRST = FIRST_CLEAR;
 const EVENT_BOSS = BOSS_CLEAR;
 const EVENT_DONE_COINS = 50; // the rewards are already owned (a later year)
@@ -559,7 +593,7 @@ const eventCleared = (profile: Profile, id: string, day: string) => Object.keys(
 const eventTotalStars = (profile: Profile, id: string, day: string) => Object.values(eventOf(profile, id, day).stars).reduce((a, b) => a + b, 0);
 const eventLevelOpen = (profile: Profile, id: string, day: string, n: number) => eventActive(day, id) && n >= 1 && n <= eventById(id)!.levels
   && (n === 1 || eventStars(profile, id, day, n - 1) !== undefined);
-const seasonTrophy = (profile: Profile, id: string, year: string | number) => (profile.trophies || {})[`${id}-${year}`] || null;
+const seasonTrophy = (profile: Profile, id: string, year: string | number): SeasonTrophy | null => (profile.trophies || {})[`${id}-${year}`] || null;
 const eventRewardsOwned = (profile: Profile, ev: EventDef) => profile.owned.boards.includes(ev.theme) && (profile.owned.cubo || []).includes(ev.hat);
 
 // Records a won event level. Returns { profile, report: { earned, total, unlocked: [{ kind, id }], trophy } }.
@@ -569,31 +603,26 @@ function applyEvent(prev: Profile, id: string, day: string, n: number, stars: nu
   const ev = eventOf(prev, id, day);
   const before = ev.stars[n];
   const earned: Earned[] = [];
-  if (before === undefined) earned.push({ label: n === evDef.levels ? tr('Boss vaincu') : tr('Niveau réussi'), coins: n === evDef.levels ? EVENT_BOSS : EVENT_FIRST });
+  const boss = n === evDef.levels || n === evDef.mid;
+  if (before === undefined) earned.push({ label: boss ? tr('Boss vaincu') : tr('Niveau réussi'), coins: boss ? EVENT_BOSS : EVENT_FIRST });
   const fresh = stars - (before || 0);
   if (fresh > 0) earned.push({ label: fresh > 1 ? tr`${fresh} nouvelles étoiles` : tr('Nouvelle étoile'), coins: fresh * PER_NEW_STAR });
   let p: Profile = { ...prev, seasons: { ...(prev.seasons || {}), [id]: { year: ev.year, stars: { ...ev.stars, [n]: Math.max(stars, before || 0) } } } };
   const unlocked: { kind: SkinKind; id: string }[] = [];
   const done = eventCleared(p, id, day) === evDef.levels;
-  if (done && eventCleared(prev, id, day) < evDef.levels) {
-    if (eventRewardsOwned(p, evDef)) earned.push({ label: tr('Récompense ') + evDef.name, coins: EVENT_DONE_COINS });
-    const owned = { ...p.owned };
-    for (const [kind, sid] of [['boards', evDef.theme], ['cubo', evDef.hat]] as [SkinKind, string][]) {
-      if ((owned[kind] || []).includes(sid)) continue;
-      owned[kind] = [...(owned[kind] || []), sid];
-      unlocked.push({ kind, id: sid });
-    }
-    p = { ...p, owned };
+  if (done && eventCleared(prev, id, day) < evDef.levels && eventRewardsOwned(prev, evDef)) earned.push({ label: tr('Récompense ') + evDef.name, coins: EVENT_DONE_COINS });
+  // First clear of the mini-boss: the theme; of the final boss: Cubo's piece.
+  const gift: [SkinKind, string] | null = before !== undefined ? null : n === evDef.mid ? ['boards', evDef.theme] : n === evDef.levels ? ['cubo', evDef.hat] : null;
+  if (gift && !(p.owned[gift[0]] || []).includes(gift[1])) {
+    p = { ...p, owned: { ...p.owned, [gift[0]]: [...(p.owned[gift[0]] || []), gift[1]] } };
+    unlocked.push({ kind: gift[0], id: gift[1] });
   }
-  let trophy: 'silver' | 'gold' | null = null;
-  if (done) {
-    const kind = eventTotalStars(p, id, day) === evDef.levels * 3 ? 'gold' : 'silver';
-    const key = `${id}-${ev.year}`;
-    const had = (p.trophies || {})[key];
-    if (had !== kind && had !== 'gold') {
-      p = { ...p, trophies: { ...(p.trophies || {}), [key]: kind } };
-      trophy = kind;
-    }
+  let trophy: SeasonTrophy | null = null;
+  const kind = trophyFor(eventTotalStars(p, id, day), evDef.levels * 3);
+  const key = `${id}-${ev.year}`;
+  if (kind && trophyRank(kind) > trophyRank((p.trophies || {})[key])) {
+    p = { ...p, trophies: { ...(p.trophies || {}), [key]: kind } };
+    trophy = kind;
   }
   const total = earned.reduce((a, l) => a + l.coins, 0);
   return { profile: earn(p, total), report: { earned, total, unlocked, trophy } };
@@ -770,6 +799,7 @@ const STICKERS: Sticker[] = [
     name: WORLD_NAMES[w] + tr(' maîtrisé'),
     hint: tr`Gagne les ${LEVELS_PER_WORLD * 3} étoiles de ce monde`, test: (p: Profile) => worldMastered(p, w),
   })),
+  { id: 'bonus', page: 'master', reward: 100, name: tr('Après le générique'), hint: tr('Finis les 40 niveaux bonus de l’Aventure'), test: bonusCleared },
   { id: 'stars120', page: 'collector', name: tr('120 étoiles'), hint: tr("Gagne 120 étoiles en Aventure"), test: (p) => totalStars(p) >= 120 },
   // Secret: name and hint stay hidden in the album until earned.
   { id: 'bomb21', page: 'secret', secret: true, reward: 40, name: tr('Boum parfait'), hint: tr('Fais sauter 21 blocs avec une seule Bombe'), test: (p) => lt(p, 'bestBomb') >= 21 },
@@ -830,7 +860,7 @@ const markTip = (prev: Profile, id: string) => (tipSeen(prev, id) ? prev : { ...
 const needsTutorial = (profile: Profile) => !tipSeen(profile, 'tutorial') && !profile.games && !totalStars(profile);
 
 export {
-  DIFFICULTY_BONUS, EVENTS, easterSunday, eventById, eventsFor, eventFor, eventActive, eventYear, eventEnd, eventOf, eventStars, eventCleared, eventTotalStars, eventLevelOpen, seasonTrophy, applyEvent,
+  DIFFICULTY_BONUS, EVENTS, easterSunday, eventById, eventsFor, eventFor, eventActive, EVENT_LEVEL_COUNT, EVENT_MID, TROPHY_TIERS, trophyFor, nextTrophy, eventBossAt, eventYear, eventEnd, eventOf, eventStars, eventCleared, eventTotalStars, eventLevelOpen, seasonTrophy, applyEvent,
   tipSeen, markTip, needsTutorial,
   HISTORY, modeStats, recentScores,
   addDays, dayDiff, monthDays,
@@ -841,5 +871,5 @@ export {
   WORLD_NAMES, worldFreeOpen, worldPrimeRate, worldPrime, UPGRADE_PRICES, upgradeLevel, upgradePrice, buyUpgrade,
   BONUS_PRICES, STOCK_MAX, bonusStock, bonusPrice, buyBonus, takeStock,
   WORLD_ORDER, LEVELS_PER_WORLD, TRIAL_LEVEL, CHESTS, chestState, openChest, bossBeaten, EXTRA_MOVES, SKIP_COST, SKIP_AFTER, levelFails, recordFail, canSkip, extraMovesCost,
-  levelStars, levelCleared, totalStars, worldStars, worldMastered, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,
+  BONUS_LEVELS, isBonus, bonusOpen, bonusCleared, bonusStars, levelStars, levelCleared, totalStars, worldStars, worldMastered, worldGate, worldOpen, levelOpen, applyLevel, skipLevel,
   PROFILE_VERSION, SKINS, MISSIONS, createProfile, migrate, ensureDay, missionStatus, missionText, runCoins, applyRun, doubleRun, spend, buy, equip, nextGoal };

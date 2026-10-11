@@ -1,5 +1,5 @@
 // Aventure (legacy #adventure): a strip of worlds on top, the picked world below (rules, chests, Jouer,
-// 20 levels). Swipe the world or use the arrows to change world; locked worlds show what opens them.
+// 20 levels, then the 5 bonus levels that open once the Aventure is finished). Swipe the world or use the arrows to change world; locked worlds show what opens them.
 // Route param: world = the world to open. Its level sheet only opens on a tap (a level or Jouer).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
@@ -37,14 +37,21 @@ import { Chests } from './adventure/Chests';
 import { LevelPath } from './adventure/LevelPath';
 import { LevelSheet } from './adventure/LevelSheet';
 import { RulesFold } from './adventure/Rules';
+import { Section } from '../ui/SectionLabel';
 
 const fmt = (n: number) => n.toLocaleString(locale());
 const WORLD_MAX = M.LEVELS_PER_WORLD * 3;
 const index = (w: string) => M.WORLD_ORDER.indexOf(w);
-// The world's first open level not cleared yet (the one "Jouer" opens); null once all are.
+// The world's first open level not cleared yet, bonus levels included (the one "Jouer" opens); null once all are.
 const nextIn = (profile: Profile, w: string) => {
-  for (let n = 1; n <= M.LEVELS_PER_WORLD; n++) if (M.levelOpen(profile, w, n) && !M.levelCleared(profile, w, n)) return n;
+  for (let n = 1; n <= M.LEVELS_PER_WORLD + M.BONUS_LEVELS; n++) if (M.levelOpen(profile, w, n) && !M.levelCleared(profile, w, n)) return n;
   return null;
+};
+const BONUS_FIRST = M.LEVELS_PER_WORLD + 1;
+const bonusStarsIn = (profile: Profile, w: string) => {
+  let n = 0;
+  for (let i = BONUS_FIRST; i <= M.LEVELS_PER_WORLD + M.BONUS_LEVELS; i++) n += M.levelStars(profile, w, i) || 0;
+  return n;
 };
 
 function worldGateText(w: string) {
@@ -151,11 +158,22 @@ export function AdventureScreen() {
             {!open && <ListRow title={worldGateText(w)} icon={<Icon name="lock" size={18} color={colors.muted} />} />}
             <View style={{ opacity: open ? 1 : 0.55 }}><RulesFold w={w} open={rulesOpen} onToggle={() => { sfx.turn(); setRulesOpen((o) => !o); }} /></View>
             {open && <Chests w={w} />}
+            <Section title={tr('Niveaux')}>
             {(going || next) ? (
-              <Button label={going ? tr`Continuer : ${levelName(going)}` : next === M.LEVELS_PER_WORLD ? tr('Affronter le boss') : tr`Jouer le niveau ${next}`}
+              <Button style={{ marginBottom: space.s }} label={going ? tr`Continuer : ${levelName(going)}` : next === M.LEVELS_PER_WORLD ? tr('Affronter le boss')
+                : next === M.LEVELS_PER_WORLD + M.BONUS_LEVELS ? tr('Lancer la revanche') : M.isBonus(next!) ? tr`Jouer : ${levelName(next!)}` : tr`Jouer le niveau ${next}`}
                 onPress={() => { sfx.turn(); if (going) nav.navigate('Game'); else openLevel(next!); }} />
             ) : null}
             <LevelPath w={w} locked={!open} onPick={openLevel} />
+            </Section>
+            {open && (
+              <Section title={tr('Niveaux bonus')} info={tr`Une fois le boss du Volcan battu, chaque monde ouvre 5 niveaux bonus : 4 niveaux plus durs que le reste du monde, puis la revanche de son boss. Leurs étoiles comptent à part. Finis les 40 pour un autocollant.`}
+                right={M.bonusOpen(profile) ? <Text variant="caption">{`${bonusStarsIn(profile, w)} / ${M.BONUS_LEVELS * 3}`}</Text> : undefined}>
+                {M.bonusOpen(profile)
+                  ? <LevelPath w={w} locked={false} onPick={openLevel} first={BONUS_FIRST} count={M.BONUS_LEVELS} />
+                  : <ListRow title={tr('Verrouillé')} sub={tr('Bats le boss du Volcan pour les ouvrir.')} icon={<Icon name="lock" size={18} color={colors.muted} />} />}
+              </Section>
+            )}
           </Animated.View>
         </GestureDetector>
       </ScrollView>

@@ -1,7 +1,7 @@
 // Line icons drawn as SVG paths (no emoji, no icon font). Paths from the legacy markup.
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export type IconName = 'play' | 'defis' | 'shop' | 'profile' | 'chevDown' | 'chevRight' | 'chevLeft' | 'close' | 'map' | 'puzzle' | 'target' | 'undo' | 'pause' | 'trash' | 'share' | 'check' | 'lock' | 'gear';
+export type IconName = 'play' | 'defis' | 'shop' | 'profile' | 'chevDown' | 'chevRight' | 'chevLeft' | 'close' | 'map' | 'puzzle' | 'target' | 'undo' | 'pause' | 'trash' | 'share' | 'check' | 'lock' | 'gear' | 'info' | 'clock';
 
 export function Icon({ name, size = 24, color }: { name: IconName; size?: number; color: string }) {
   const stroke = { stroke: color, strokeWidth: 2.4, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
@@ -71,6 +71,19 @@ export function Icon({ name, size = 24, color }: { name: IconName; size?: number
         <>
           <Circle cx={12} cy={12} r={3} {...stroke} strokeWidth={2} />
           <Path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" {...stroke} strokeWidth={2} />
+        </>
+      )}
+      {name === 'info' && (
+        <>
+          <Circle cx={12} cy={12} r={9} {...stroke} strokeWidth={2} />
+          <Path d="M12 11v5.5" {...stroke} strokeWidth={2.6} />
+          <Circle cx={12} cy={7.6} r={1.5} fill={color} />
+        </>
+      )}
+      {name === 'clock' && (
+        <>
+          <Circle cx={12} cy={12} r={9} {...stroke} strokeWidth={2.2} />
+          <Path d="M12 7v5l3.5 2" {...stroke} strokeWidth={2.2} />
         </>
       )}
       {name === 'profile' && (
