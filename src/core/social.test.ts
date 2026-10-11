@@ -65,3 +65,11 @@ test('block list: added once, capped, undefined-safe', () => {
   for (let i = 0; i < C.MAX_BLOCKED + 5; i++) list = C.withBlocked(list, 'u' + i);
   assert.equal(list.length, C.MAX_BLOCKED);
 });
+
+test('moderation: a pseudo is hidden only while it equals the owner\'s hidden string', () => {
+  assert.equal(C.isHidden('Mauvais', 'Mauvais'), true);
+  assert.equal(C.isHidden('Autre', 'Mauvais'), false); // renamed: shown again
+  assert.equal(C.isHidden('Mauvais', ''), false);
+  assert.equal(C.isHidden('Mauvais', undefined), false);
+  assert.deepEqual([...C.REPORT_REASONS], ['insult', 'inappropriate', 'other']); // firestore.rules lists the same
+});

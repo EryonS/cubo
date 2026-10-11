@@ -1,7 +1,7 @@
 // Line icons drawn as SVG paths (no emoji, no icon font). Paths from the legacy markup.
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export type IconName = 'play' | 'defis' | 'shop' | 'profile' | 'chevDown' | 'chevRight' | 'chevLeft' | 'close' | 'map' | 'puzzle' | 'target' | 'undo' | 'pause' | 'trash' | 'share' | 'check' | 'lock' | 'gear' | 'info' | 'clock';
+export type IconName = 'play' | 'defis' | 'shop' | 'profile' | 'chevDown' | 'chevRight' | 'chevLeft' | 'close' | 'map' | 'puzzle' | 'target' | 'undo' | 'pause' | 'trash' | 'share' | 'check' | 'lock' | 'gear' | 'info' | 'clock' | 'more';
 
 export function Icon({ name, size = 24, color }: { name: IconName; size?: number; color: string }) {
   const stroke = { stroke: color, strokeWidth: 2.4, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
@@ -60,6 +60,13 @@ export function Icon({ name, size = 24, color }: { name: IconName; size?: number
       )}
       {name === 'trash' && <Path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" {...stroke} strokeWidth={2.2} />}
       {name === 'share' && <Path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" {...stroke} />}
+      {name === 'more' && (
+        <>
+          <Circle cx={5.5} cy={12} r={1.8} fill={color} />
+          <Circle cx={12} cy={12} r={1.8} fill={color} />
+          <Circle cx={18.5} cy={12} r={1.8} fill={color} />
+        </>
+      )}
       {name === 'check' && <Path d="M5 12.5l4.5 4.5L19 7.5" {...stroke} strokeWidth={3} />}
       {name === 'lock' && (
         <>

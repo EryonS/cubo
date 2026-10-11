@@ -17,8 +17,10 @@ import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Group } from '../ui/Group';
+import { Icon } from '../ui/Icon';
 import { LeagueBadge } from '../ui/LeagueBadge';
 import { ListRow } from '../ui/ListRow';
+import { usePlayerSheet, type PlayerTarget } from '../ui/PlayerSheet';
 import { Screen } from '../ui/Screen';
 import { Segmented } from '../ui/Segmented';
 import { Text } from '../ui/Text';
@@ -44,13 +46,16 @@ export function leagueLines(rows: LeagueRow[], tab: 'points' | 'best', tier: num
 // A color with a see-through veil, for the promotion / demotion zones.
 const veil = (hex: string, a = '2e') => (/^#[0-9a-f]{6}$/i.test(hex) ? hex + a : hex);
 
-interface RowProps { row: { label: string; look: BoardRow['look']; me: boolean }; rank: number; value: number; veil?: string; pay?: number }
-function RankRow({ row, rank, value, veil: tint, pay }: RowProps) {
+// row.masked: a blocked player (no menu); onMore: the "…" menu (report, block) of another player.
+interface RowProps { row: { uid: string; name: string; label: string; look: BoardRow['look']; me: boolean; masked?: boolean }; rank: number; value: number; veil?: string; pay?: number; onMore?: (t: PlayerTarget) => void }
+function RankRow({ row, rank, value, veil: tint, pay, onMore }: RowProps) {
   const colors = useColors();
   const mine = row.me;
+  const menu = !!onMore && !mine && !row.masked && row.label !== tr('Joueur'); // 'Joueur' = hidden by the owner: nothing left to report
   return (
     <ListRow title={row.label} sub={mine ? tr('Toi') : undefined}
       label={tr`${rank}e, ${row.label}, ${fmt(value)} points`}
+      onPress={menu ? () => onMore!({ uid: row.uid, name: row.name, label: row.label }) : undefined}
       style={tint ? { backgroundColor: tint } : mine ? { backgroundColor: colors.panel2 } : undefined}
       icon={(
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
@@ -59,14 +64,17 @@ function RankRow({ row, rank, value, veil: tint, pay }: RowProps) {
         </View>
       )}
       right={(
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text variant="headline" style={{ color: value ? colors.text : colors.muted }}>{value ? fmt(value) : '–'}</Text>
-          {!!pay && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }} accessibilityLabel={tr`${pay} pièces`}>
-              <Text variant="caption">+{pay}</Text>
-              <Coin size={12} />
-            </View>
-          )}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text variant="headline" style={{ color: value ? colors.text : colors.muted }}>{value ? fmt(value) : '–'}</Text>
+            {!!pay && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }} accessibilityLabel={tr`${pay} pièces`}>
+                <Text variant="caption">+{pay}</Text>
+                <Coin size={12} />
+              </View>
+            )}
+          </View>
+          {menu && <Icon name="more" size={20} color={colors.muted} />}
         </View>
       )} />
   );
@@ -80,6 +88,7 @@ function FriendsBoard() {
   const now = clock();
   const left = C.weekLeftText(C.weekEnd(now) - now);
   const ranked = rows ? rankBoard(rows, tab) : [];
+  const [openPlayer, playerSheet] = usePlayerSheet();
   return (
     <>
       <Segmented role="tab" value={tab} onChange={setTab} inset
@@ -90,13 +99,14 @@ function FriendsBoard() {
           : tr('Meilleur score Classique de tous les temps.')}
       </Text>
       {!rows && <Text variant="muted">{boarding ? tr('Chargement…') : tr('Connexion impossible, réessaie plus tard.')}</Text>}
-      {rows && <Group>{ranked.map((r) => <RankRow key={r.row.uid} row={r.row} rank={r.rank} value={r.value} />)}</Group>}
+      {rows && <Group>{ranked.map((r) => <RankRow key={r.row.uid} row={r.row} rank={r.rank} value={r.value} onMore={openPlayer} />)}</Group>}
       {rows && rows.length < 2 && (
         <Card>
           <Text variant="muted">{tr('Ajoute un ami avec son code pour vous classer.')}</Text>
           <Button kind="ghost" size="s" label={tr('Ajouter un ami')} onPress={() => nav.navigate('Community')} />
         </Card>
       )}
+      {playerSheet}
     </>
   );
 }
@@ -113,6 +123,7 @@ function LeagueBoard() {
   const now = clock();
   const left = C.weekLeftText(C.weekEnd(now) - now);
   const lines = rows ? leagueLines(rows, tab, tier) : [];
+  const [openPlayer, playerSheet] = usePlayerSheet();
   const up = lines.some((l) => l.move > 0);
   const down = lines.some((l) => l.move < 0);
   return (
@@ -142,7 +153,7 @@ function LeagueBoard() {
           </Text>
           <Group>
             {lines.map((l) => (
-              <RankRow key={l.row.uid} row={l.row} rank={l.rank} value={l.value} pay={l.pay}
+              <RankRow key={l.row.uid} row={l.row} rank={l.rank} value={l.value} pay={l.pay} onMore={openPlayer}
                 veil={tab === 'points' && l.move > 0 ? veil(colors.good) : tab === 'points' && l.move < 0 ? veil(colors.danger) : undefined} />
             ))}
           </Group>
@@ -153,6 +164,7 @@ function LeagueBoard() {
           )}
         </>
       )}
+      {playerSheet}
     </>
   );
 }

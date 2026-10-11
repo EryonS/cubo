@@ -107,6 +107,15 @@ export function labels(people: Person[]): Record<string, string> {
   return out;
 }
 
+// Owner moderation: players/{uid}.hidden holds the offending pseudo. A name equal to it is shown as "Joueur";
+// once the player picks another one it shows again.
+export const isHidden = (name: string, hidden: string | undefined) => !!hidden && hidden === name;
+
+// Reports (reports/{id}.reason, firestore.rules lists the same keys).
+export const REPORT_REASONS = ['insult', 'inappropriate', 'other'] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+export const reasonText = (r: ReportReason) => (r === 'insult' ? tr('Insultant') : r === 'inappropriate' ? tr('Inapproprié') : tr('Autre'));
+
 export const isBlocked = (list: string[] | undefined, uid: string) => !!list && list.includes(uid);
 // The list with uid added once; the oldest entries go past the cap.
 export const withBlocked = (list: string[] | undefined, uid: string) => {
