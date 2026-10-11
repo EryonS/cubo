@@ -1,5 +1,5 @@
 # Community (pseudo, friend code, friends)
-Status: milestones 1-3 shipped (identity, friends, weekly score + friends ranking); leagues and moderation (report, hidden) are planned. Not yet tried on a device or with the deployed rules.
+Status: milestones 1-4 shipped (identity, friends, weekly score + friends ranking, leagues); moderation (report, hidden) is planned. Not yet tried on a device or with the deployed rules.
 
 ## What it does
 Profil > Communauté needs the cloud save account (Google / Apple). Signed out it shows « Connecte-toi pour avoir un pseudo et des amis » with the sign-in rows. Signed in with no pseudo, the first open shows the pseudo sheet by itself.
@@ -14,8 +14,17 @@ Profil > Communauté needs the cloud save account (Google / Apple). Signed out i
 - **Push**: `weeks/{week}/scores/{uid}` gets the absolute values ~3 s after a counted run (`weekCounted`), when the app goes to the background (`flushWeek`) and at launch. Only with a pseudo, never lower than what was already sent this week (`cuboblocks.social.sent` in MMKV), 10 s between two writes, +200000 points at most per write (a long offline stretch goes in steps). `players/{uid}.bestClassic` (all-time Classique best, from `bests.classic`) is updated in the same push when it grows. A refused or offline push is silent; the next one retries.
 - **Friends ranking**: me + friends. For each friend `weeks/{week}/scores/{fid}` (missing = 0) and the `players/{fid}` card (name, look, `bestClassic`). Cached in the social store (`board`), refreshed at most every 60 s (Défis focus, Classement open) or by pull-to-refresh. Three boards (`Segmented`): Points de la semaine, Meilleur score (Classique, this week), Record (all-time Classique). Ties share a rank (`rankRows`: 1, 1, 3). My line is always computed from the local data.
 - **Screens**: "Entre amis" card at the top of Défis (`screens/defis/FriendsCard.tsx`: rank, points, top 3, time left; signed out / no pseudo / no friend: one line and a button to Communauté) opening `screens/RankingScreen.tsx` (stack route `Ranking`). The game over card of a counted run shows « +N pts cette semaine » (only with a pseudo, no network).
+- **Leagues** (`core/league.ts`): six tiers, Bronze, Argent, Or, Saphir, Rubis, Diamant (0..5), saved in `profile.league`.
+  - *Joining*: the first push of a week with points > 0 joins a group of my tier. `Net.joinGroup` first looks for my own score doc of the week (a restored profile forgot its group: the group is kept), else runs a transaction on the pointer `weeks/{week}/leagues/{tier}` `{ open, size }`: `size < 30` takes a seat in group `{tier}-{open}`, else opens `open + 1` with size 1. The group and tier go into the score doc (`group`, `tier`, fixed for the week) and `profile.league.last = { week, group }`. If a finished week is still to claim (offline), the join waits: the claim comes first, because the tier must be settled before a new group.
+  - *Group ranking*: one query `weeks/{week}/scores where group == g` (limit 30), cached 60 s (`refreshGroup`). My line is always taken from the local tally.
+  - *End of week* (`leagueMove`): groups of 15+ send the top 5 up and the bottom 5 down; smaller groups top 1 / bottom 1; a group of 1 stays. Never under Bronze nor over Diamant; 0 points never goes up. Ties are not split: a tie on the last promotion place all go up, a demotion needs the whole tie inside the bottom places (ranks are shared, 1, 1, 3: up if `rank <= cut`, down if `rank > size - cut`).
+  - *Rewards* (`leagueRewards`): points 1st 60, 2nd 40, 3rd 30, 4th-10th 15; promotion +20; best score 1st 40, 2nd 25, 3rd 15 (best 0 pays nothing).
+  - *Claim* (`claim`, driven by `claimLeague` in `game/social.ts`): at launch, on return to the foreground and before a join, when `profile.league.last.week` is before the current week and not `claimed`. One group read plus the player card (a card with `leagueWeek >= last.week` means another device already settled it: its tier is taken, nothing paid). `claim` pays through `earn` (so `lifetime.coinsEarned` counts it), moves the tier and sets `claimed`; then `players/{uid}.league` + `leagueWeek` are written, the profile is saved, and the result is stored (MMKV `cuboblocks.social.report`) and shown once by `ui/LeagueResult.tsx`. Offline or refused: nothing is paid, tried again at the next foreground / push. A week with no joined group keeps the tier and pays nothing; after a gap of several weeks only the joined week counts and the tier moves once; claiming twice is a no-op.
+  - *Screens*: the top of Défis is `screens/defis/LeagueCard.tsx`: a `Segmented` Ligue / Amis (the choice is remembered while the app runs), the league card (badge, tier, rank in the group, points, time left, top 3; « Joue une partie Classique, Chrono ou Mondes pour rejoindre ta ligue » until joined) or the friends card. `Classement` has Ligue / Amis on top; Ligue has Points / Meilleur score, a green veil on the promotion places and a red one on the demotion places (points board), and the coins each paying rank gets. `ui/LeagueBadge.tsx` is the SVG shield (one tone per tier). Profil > Communauté shows the badge and « Ligue Or ».
+  - *Dev clock*: Paramètres > Développeur > Décalage d'horloge adds a week per tap (`platform/clock.ts`, kept in the main MMKV store); weeks and leagues use it (`now()`), Firestore `at` keeps the real clock. Not in test mode (no cloud there).
 
 ## Files
+- `src/core/league.ts` + `league.test.ts`: tiers, `leagueMove`, `leagueRewards`, `claim`. `src/ui/LeagueBadge.tsx`, `src/ui/LeagueResult.tsx`, `src/screens/defis/LeagueCard.tsx`, `src/platform/clock.ts`.
 - `src/core/social.ts` + `social.test.ts`: pseudo check / blocklist, rename delay, code make / parse / show, labels with collisions, block list helpers.
 - `src/platform/social.ts`: Firestore calls (lazy, through `load()` exported by `platform/cloud.ts`).
 - `src/game/social.ts`: state (`useSocial`: status, me, friends), cache, create / rename, add / remove / block, inbox sync, share, `deleteSocialData`. `game/account.ts` calls `startSocial` (launch, after sign-in), `resetSocial` (forget account) and passes `deleteSocialData` to `Cloud.deleteAccount`.
@@ -27,11 +36,14 @@ Profil > Communauté needs the cloud save account (Google / Apple). Signed out i
 - Local MMKV `cuboblocks.social`: my card `{ uid, name, code, look, createdAt, nameChangedAt }` (Profil shows pseudo + code offline). Cleared at sign-out.
 - `profile.week?: { id, points, best, runs }`: this week's tally (optional, absent = nothing).
 - MMKV `cuboblocks.social.sent`: what the last week-score push wrote `{ uid, week, points, best, runs, at }`.
+- `profile.league?: { tier, last?: { week, group }, claimed?: week }`: tier 0..5, the group joined last, the last week settled. Absent = Bronze, nothing joined (no migration, test in `league.test.ts`). Travels with the cloud save.
+- MMKV `cuboblocks.social.report`: a league result not shown yet. `cuboblocks.dev.clockdays` (main store): the developer clock offset.
 - `profile.blocked?: string[]` (uids, max 200): travels with the profile to the cloud. Optional, no migration (absent = none).
 - Firestore:
   - `players/{uid}` `{ name, code, look: { cubo, hat }, createdAt, nameChangedAt, hidden? }`. `look.cubo` = equipped board theme key, `look.hat` = equipped wardrobe piece: the avatar is `cuboLookFor(cubo, hat)`. Refreshed at launch if the equipped look changed. `hidden` is set from the console only: the player shows as « Joueur ».
-  - `players/{uid}.bestClassic` (int, only grows, optional).
-  - `weeks/{week}/scores/{uid}` `{ name, look: { cubo, hat }, points, best, runs, at }` (flat, not under a group: milestone 4 adds a `group` field and queries by it).
+  - `players/{uid}.bestClassic` (int, only grows, optional). `players/{uid}.league` (int 0..5, absent = Bronze) and `leagueWeek` (id of the last week claimed): the mirror of the profile, written only by the claim.
+  - `weeks/{week}/scores/{uid}` `{ name, look: { cubo, hat }, points, best, runs, at, group?, tier? }` (flat; `group` `"{tier}-{n}"` and `tier` are added by the week's first push and queried by `group`).
+  - `weeks/{week}/leagues/{tier}` `{ open, size }`: the group being filled.
   - `codes/{code}` `{ uid }`.
   - `players/{uid}/friends/{fid}` `{ since }`.
   - `inbox/{uid}/adds/{fid}` `{ at }`.
@@ -40,13 +52,18 @@ Profil > Communauté needs the cloud save account (Google / Apple). Signed out i
 - `players`: `get` for any signed-in player (no listing). Create/update only by the owner with `validPlayer` (keys, name length and character set, code format, look shape). Create reserves the code: `getAfter(codes/{code}).uid == uid`. Update keeps `code`, `createdAt` and `hidden`; a new name needs `nameChangedAt` within 10 minutes of the server time and at least a week after the previous (`0` = free).
 - `players.bestClassic`: optional int 0..2000000 that never decreases.
 - `weeks/{week}/scores/{uid}`: read by any signed-in player; create / update / delete by the owner only; `week` matches `YYYY-Www`; keys exactly `name look points best runs at`; `name` and `look` as in players; ints, `best <= points`, `best <= 500000`, `runs <= 100000`; on update `points`, `best` and `runs` never decrease and `points` gains at most 200000; `at` within 10 minutes of `request.time` and at least 10 s after the stored `at`; on create `points <= 200000`. The week in the path is not tied to the server date (a modified client can write another week's doc), and the score itself is client-reported: the caps only bound cheating.
+- `weeks/{week}/scores/{uid}` league fields: `group` and `tier` come together or not at all; `group` matches `^[0-5]-[0-9]+$` and starts with `tier` (int 0..5); `tier` must equal `players/{uid}.league` (absent = 0), so a player cannot pick another league's group; once present they are immutable for that doc (absent -> set, then fixed).
+- `weeks/{week}/leagues/{tier}` pointer: read by any signed-in player; `week` and `tier` formats checked, `tier` must be my own league (`players/{uid}.league`); keys exactly `open size`; create only `{ open: 1, size: 1 }`; update takes a seat (`size + 1`, up to 30, `open` same) or opens the next group (`open + 1`, `size 1`, only when the old size was 30). Not enforced: that the `group` in my score doc is the one the pointer gave me (a modified client can pick any group number of its own tier), and group sizes (a cheater can crowd a group).
+- `players.league` / `leagueWeek`: `league` 0..5, `leagueWeek` a week id; a change of `league` is at most one step and needs a `leagueWeek` that goes up; with `league` unchanged `leagueWeek` may only stay or grow (a retry after a crash). Not enforced: that the move matches a real ranking (the claim is computed on the client; the rule bounds it to one step a week).
 - `codes`: `get` only (no listing), create by the owner of the matching `players` doc, never updated, delete by its owner.
 - `friends`: read by the owner; create/update only by the owner (`since` int); delete by the owner or by `fid` (so remove / block also clears my entry in his list).
 - `inbox/{uid}/adds/{fid}`: create/update only by `fid` (the sender), read/delete by `uid`.
 - Not enforced by rules (client only): the 50-friends cap, the blocklist words, that the inbox sender really knows the code. A modified client can add anyone it knows the uid of; an inbox entry is only a request to be listed and the receiver can block.
 
 ## Gotchas
-- Redeploy the rules for milestone 3 (`weeks/` is denied before).
+- Redeploy the rules for milestone 4 (`weeks/{week}/leagues`, the league fields on players and scores).
+- The rules use `get()` on `players/{uid}` for the tier check: one extra document read per week-score write that carries a group, and per pointer write.
+- To try a week change without waiting: Paramètres > Développeur > Décalage d'horloge. It writes real score docs under the shifted week id, on the real project: use a throwaway account.
 - Device clock off by more than 10 minutes: week pushes are refused (rule on `at`); the week id itself uses the device clock too.
 - Deploy the rules (`firebase deploy --only firestore:rules`) before testing, or every community call is denied.
 - The name regex uses RE2 `\x{C0}` ranges; if the console refuses it at deploy, replace the class by `\p{L}`.

@@ -5,8 +5,10 @@ import { useMemo } from 'react';
 import { Share } from 'react-native';
 import { create } from 'zustand';
 import { tr } from '../core/i18n';
+import * as G from '../core/league';
 import * as C from '../core/social';
 import { cuboLookFor, type CuboLook } from '../mascot/looks';
+import { now as clock } from '../platform/clock';
 import { mmkv, testMode } from '../platform/kv';
 import * as Cloud from '../platform/cloud';
 import * as Net from '../platform/social';
@@ -15,6 +17,7 @@ import { ask } from '../ui/dialog';
 import { toast } from '../ui/Toast';
 
 const CACHE_KEY = 'cuboblocks.social';
+const REPORT_KEY = 'cuboblocks.social.report'; // a league result not shown yet
 const SENT_KEY = 'cuboblocks.social.sent'; // what weeks/{week}/scores/{uid} holds after my last push
 
 export interface Me extends Net.PlayerDoc { uid: string }
@@ -22,11 +25,14 @@ export interface Friend { uid: string; name: string; code: string; look: CuboLoo
 // A friend's line in the rankings: this week's score doc (missing = 0) + the card's all-time Classique best.
 export interface BoardRow { uid: string; label: string; look: CuboLook; me: boolean; points: number; best: number; record: number }
 interface Board { week: string; at: number; rows: BoardRow[] }
+// A line of my league group: the week's score doc (name = the raw pseudo, label = shown with #code on a collision).
+export interface LeagueRow { uid: string; name: string; label: string; look: CuboLook; me: boolean; points: number; best: number }
+interface LeagueGroup { week: string; group: string; at: number; rows: { uid: string; name: string; look: Net.Look; points: number; best: number }[] }
 // off: signed out or nothing loaded; loading; ready; error: signed in but no answer and nothing cached.
 type Status = 'off' | 'loading' | 'ready' | 'error';
-interface State { status: Status; me: Me | null; friends: Friend[]; listing: boolean; board: Board | null; boarding: boolean }
+interface State { status: Status; me: Me | null; friends: Friend[]; listing: boolean; board: Board | null; boarding: boolean; group: LeagueGroup | null; grouping: boolean; report: G.LeagueReport | null }
 
-export const useSocial = create<State>(() => ({ status: 'off', me: readCache(), friends: [], listing: false, board: null, boarding: false }));
+export const useSocial = create<State>(() => ({ status: 'off', me: readCache(), friends: [], listing: false, board: null, boarding: false, group: null, grouping: false, report: readReport() }));
 const set = useSocial.setState;
 const get = useSocial.getState;
 
@@ -38,6 +44,9 @@ function readCache(): Me | null {
     if (v && v.uid && typeof v.name === 'string' && typeof v.code === 'string') return v;
   } catch { /* absent */ }
   return null;
+}
+function readReport(): G.LeagueReport | null {
+  try { return JSON.parse(mmkv.get(REPORT_KEY) || 'null') as G.LeagueReport | null; } catch { return null; }
 }
 function keep(me: Me | null) {
   if (me) mmkv.set(CACHE_KEY, JSON.stringify(me)); else mmkv.remove(CACHE_KEY);
@@ -57,8 +66,9 @@ const available = () => !testMode && Cloud.available();
 
 export function resetSocial() {
   mmkv.remove(CACHE_KEY);
-  set({ status: 'off', me: null, friends: [], listing: false, board: null, boarding: false });
+  set({ status: 'off', me: null, friends: [], listing: false, board: null, boarding: false, group: null, grouping: false, report: null });
   mmkv.remove(SENT_KEY);
+  mmkv.remove(REPORT_KEY);
 }
 
 // At launch, after sign-in and when the Communauté screen opens: reads my doc (if any), then the inbox.
@@ -81,6 +91,7 @@ export function loadMe(): Promise<void> {
       }
       keep({ ...doc, uid: who.uid });
       set({ status: 'ready' });
+      void claimLeague(); // a finished week: pay it before anything else
       pushSoon(0); // bestClassic and a tally the last push missed
       await syncInbox(who.uid);
     } catch {
@@ -256,12 +267,19 @@ export function flushWeek() {
 }
 
 // Absolute values from the profile's tally, never lower than what was already sent this week. Needs a pseudo.
+let pushing = false;
 async function pushNow() {
   const me = get().me;
   if (!me || !available()) return;
+  if (pushing) { pushSoon(2000); return; } // one push at a time: two joins would take two seats
+  pushing = true;
+  try { await push(me); } finally { pushing = false; }
+}
+
+async function push(me: Me) {
   const { profile, saved } = useGame.getState();
-  const now = Date.now();
-  const w = C.weekOf(profile.week, now);
+  const now = Date.now(); // the server's clock rules (`at`); the week itself follows the game clock
+  const w = C.weekOf(profile.week, clock());
   const sent = readSent(me.uid, w.id);
   try {
     const classic = Math.min(C.MAX_RECORD, Math.max(saved.bests.classic || 0, w.best, me.bestClassic || 0));
@@ -275,10 +293,114 @@ async function pushNow() {
     // The rules allow +200000 points a write (a long offline stretch is sent in steps); best never passes points.
     const points = Math.min(Math.max(w.points, sent.points), sent.points + C.PUSH_STEP);
     const tally = { points, best: Math.min(points, Math.max(w.best, sent.best)), runs: Math.max(w.runs, sent.runs) };
-    await Net.putWeekScore(me.uid, w.id, me.name, wornLook(), tally, now);
+    const league = await leagueFor(me, w.id);
+    if (!league) return; // a finished week is still to claim (offline): no join, try again later
+    await Net.putWeekScore(me.uid, w.id, me.name, wornLook(), tally, now, league);
     mmkv.set(SENT_KEY, JSON.stringify({ uid: me.uid, week: w.id, ...tally, at: now }));
     if (points < w.points) pushSoon(C.PUSH_GAP + 500);
   } catch { /* offline or refused: the next counted run, launch or return to the background tries again */ }
+}
+
+// ---------- leagues ----------
+
+const GROUP_TTL = 60000;
+
+// The group of this week: the one in the profile, else claim the finished week first, then take a seat in my tier.
+// null = could not (offline, claim pending): the score is not sent yet.
+async function leagueFor(me: Me, week: string): Promise<{ group: string; tier: number } | null> {
+  const known = useGame.getState().profile.league?.last;
+  if (known && known.week === week) return { group: known.group, tier: G.groupTier(known.group) };
+  if (G.claimable(useGame.getState().profile, clock()) && !(await claimLeague())) return null;
+  const mine = get().me ?? me;
+  const joined = await Net.joinGroup(me.uid, week, G.clampTier(mine.league ?? 0), G.GROUP_SIZE);
+  const { profile, setProfile } = useGame.getState();
+  setProfile({ ...profile, league: { ...profile.league, tier: joined.tier, last: { week, group: joined.group } } });
+  return joined;
+}
+
+// A finished week to settle: read the group once (never pay without it), pay, move the tier, mirror it on the
+// player card, then show the result. true = nothing left to claim. Offline or refused: false, tried again later.
+let claiming: Promise<boolean> | null = null;
+export function claimLeague(): Promise<boolean> {
+  if (claiming) return claiming;
+  const me = get().me;
+  if (!me || !available()) return Promise.resolve(false);
+  if (!G.claimable(useGame.getState().profile, clock())) return Promise.resolve(true);
+  claiming = (async () => {
+    try {
+      const now = clock();
+      const last = useGame.getState().profile.league!.last!;
+      const [rows, card] = await Promise.all([Net.getGroup(last.week, last.group, G.GROUP_SIZE), Net.getPlayer(me.uid)]);
+      const { profile, setProfile } = useGame.getState();
+      if (!G.claimable(profile, now)) return true;
+      // Another device settled that week already: take its tier, pay nothing twice.
+      if (card && card.leagueWeek && card.leagueWeek >= last.week) {
+        setProfile({ ...profile, league: { ...profile.league!, tier: G.clampTier(card.league ?? 0), claimed: last.week } });
+        keep({ ...me, ...card, uid: me.uid });
+        return true;
+      }
+      const done = G.claim(profile, me.uid, rows.map((r) => ({ uid: r.uid, name: r.name, points: r.points, best: r.best })), now);
+      if (!done) return true;
+      const tier = done.profile.league!.tier;
+      await Net.updatePlayer(me.uid, { league: tier, leagueWeek: last.week });
+      setProfile(done.profile);
+      keep({ ...(get().me ?? me), league: tier, leagueWeek: last.week });
+      if (done.report) { mmkv.set(REPORT_KEY, JSON.stringify(done.report)); set({ report: done.report }); }
+      set({ group: null });
+      return true;
+    } catch {
+      return false;
+    } finally {
+      claiming = null;
+    }
+  })();
+  return claiming;
+}
+
+// The result sheet was shown.
+export function dismissReport() {
+  mmkv.remove(REPORT_KEY);
+  set({ report: null });
+}
+
+// Back in the foreground (or a dev clock change): settle a finished week. Cheap when there is nothing to do.
+export const resumeSocial = () => { void claimLeague().then(() => { if (get().me) pushSoon(0); }); };
+
+// The score docs of my group this week, cached 60 s; `force` (pull-to-refresh) skips the wait. Not joined: nothing.
+export async function refreshGroup(force = false) {
+  const me = get().me;
+  if (!me || !available() || get().grouping) return;
+  const now = Date.now();
+  const week = C.weekId(clock());
+  const last = useGame.getState().profile.league?.last;
+  if (!last || last.week !== week) { if (get().group) set({ group: null }); return; }
+  const had = get().group;
+  if (!force && had && had.group === last.group && had.week === week && now - had.at < GROUP_TTL) return;
+  set({ grouping: true });
+  try {
+    const rows = await Net.getGroup(week, last.group, G.GROUP_SIZE);
+    set({ group: { week, group: last.group, at: Date.now(), rows } });
+  } catch { /* offline: the last group stays */ } finally {
+    set({ grouping: false });
+  }
+}
+
+// My group with my line from the local tally (always fresh). null when not joined this week or not loaded yet.
+export function useLeagueRows(): LeagueRow[] | null {
+  const me = useSocial((s) => s.me);
+  const group = useSocial((s) => s.group);
+  const profile = useGame((s) => s.profile);
+  return useMemo(() => {
+    const last = profile.league?.last;
+    if (!me || !group || !last || group.group !== last.group || group.week !== last.week) return null;
+    const w = C.weekOf(profile.week, clock());
+    const rest = group.rows.filter((r) => r.uid !== me.uid); // strangers all count: the ranks must be the claim's
+    const old = group.rows.find((r) => r.uid === me.uid);
+    const mine = { uid: me.uid, name: me.name, look: lookOf(me.look), points: Math.max(w.points, old?.points || 0), best: Math.max(w.best, old?.best || 0) };
+    const people = [...rest.map((r) => ({ uid: r.uid, name: r.name, code: r.uid.slice(0, 3).toUpperCase() })), { uid: me.uid, name: me.name, code: me.code }];
+    const names = C.labels(people);
+    return [{ ...mine, me: true, label: names[me.uid] }, ...rest.map((r): LeagueRow => ({ uid: r.uid, name: r.name, look: lookOf(r.look), me: false, points: r.points, best: r.best, label: names[r.uid] }))];
+  }, [me, group, profile.league, profile.week]);
 }
 
 // ---------- friends ranking ----------
@@ -289,7 +411,7 @@ export async function refreshBoard(force = false) {
   const me = get().me;
   if (!me || !available() || get().boarding) return;
   const now = Date.now();
-  const week = C.weekId(now);
+  const week = C.weekId(clock());
   const had = get().board;
   if (!force && had && had.week === week && now - had.at < BOARD_TTL) return;
   set({ boarding: true });
@@ -316,7 +438,7 @@ export function useBoardRows(): BoardRow[] | null {
   const classic = useGame((s) => s.saved.bests.classic || 0);
   return useMemo(() => {
     if (!me || !board) return null;
-    const w = C.weekOf(profile.week, Date.now());
+    const w = C.weekOf(profile.week, clock());
     const mine: BoardRow = { uid: me.uid, label: me.name, look: lookOf(me.look), me: true, points: w.points, best: w.best, record: Math.max(classic, me.bestClassic || 0) };
     return [mine, ...board.rows];
   }, [me, board, profile.week, classic]);
@@ -324,7 +446,7 @@ export function useBoardRows(): BoardRow[] | null {
 
 // Account deletion (called by cloud.deleteAccount while still signed in). Failures stop the deletion.
 export async function deleteSocialData(uid: string) {
-  const now = Date.now();
+  const now = clock();
   await Net.deleteAll(uid, [C.weekId(now), C.weekId(now - 7 * 86400000)]);
   resetSocial();
 }

@@ -20,6 +20,7 @@ import { AskHost } from './src/ui/dialog';
 import { SyncChoiceHost } from './src/ui/SyncChoice';
 import { ToastHost } from './src/ui/Toast';
 import { TestBadge } from './src/ui/TestBadge';
+import { LeagueResultHost } from './src/ui/LeagueResult';
 import { StickerBannerHost } from './src/ui/StickerBanner';
 import { colorsFor, darkBg } from './src/theme/useColors';
 
@@ -50,6 +51,7 @@ export default function App() {
             <RootNavigator />
           </NavigationContainer>
           <StickerBannerHost />
+          <LeagueResultHost />
           <AskHost />
           <SyncChoiceHost />
           <ToastHost />

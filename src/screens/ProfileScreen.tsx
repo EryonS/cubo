@@ -6,6 +6,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { M } from '../core';
 import { locale, tr } from '../core/i18n';
+import { tierName, tierOf } from '../core/league';
 import * as Soc from '../core/social';
 import type { SkinKind } from '../core/types';
 import { accountInfo, subscribeAccount } from '../game/account';
@@ -29,6 +30,7 @@ import { CuboPose } from '../ui/CuboPose';
 import { DrawCanvas } from '../ui/DrawCanvas';
 import { Group } from '../ui/Group';
 import { Icon } from '../ui/Icon';
+import { LeagueBadge } from '../ui/LeagueBadge';
 import { ListRow } from '../ui/ListRow';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Screen } from '../ui/Screen';
@@ -79,8 +81,9 @@ const Thumb = ({ draw, deps }: { draw: (g: G, w: number, h: number) => void; dep
   <DrawCanvas width={ICON_W} radius={8} deps={deps} draw={draw} />
 );
 
-function CommunityBadge() {
+function CommunityBadge({ tier }: { tier?: number }) {
   const colors = useColors();
+  if (tier !== undefined) return <View style={{ width: ICON_W, alignItems: 'center' }}><LeagueBadge tier={tier} size={40} /></View>;
   return (
     <View style={{ width: ICON_W, alignItems: 'center' }}>
       <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
@@ -98,6 +101,7 @@ export function ProfileScreen() {
   const look = useMemo(() => cuboLookFor(eqBoard, eqCubo), [eqBoard, eqCubo]);
   const signed = useSyncExternalStore(subscribeAccount, accountInfo, accountInfo);
   const me = useSocial((s) => s.me);
+  const tier = tierOf(profile);
   const day = today();
   const { count, total } = albumPages(profile);
   const season = seasonShelf(profile, day);
@@ -124,8 +128,8 @@ export function ProfileScreen() {
       {available() && (
         <Section title={tr('Communauté')}>
           <Group>
-            <ListRow title={signed && me ? me.name : tr('Communauté')} right="chevron" onPress={() => nav.navigate('Community')} icon={<CommunityBadge />}
-              sub={signed && me ? Soc.showCode(me.code) : signed ? tr('Choisis ton pseudo et ajoute des amis') : tr('Connecte-toi pour avoir un pseudo et des amis')} />
+            <ListRow title={signed && me ? me.name : tr('Communauté')} right="chevron" onPress={() => nav.navigate('Community')} icon={<CommunityBadge tier={signed && me ? tier : undefined} />}
+              sub={signed && me ? `${Soc.showCode(me.code)} · ${tr`Ligue ${tierName(tier)}`}` : signed ? tr('Choisis ton pseudo et ajoute des amis') : tr('Connecte-toi pour avoir un pseudo et des amis')} />
           </Group>
         </Section>
       )}

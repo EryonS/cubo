@@ -657,7 +657,7 @@ function addLifetime(prev: Lifetime | undefined, run: MissionStats, coinsPaid: n
   return lt;
 }
 // Coins earned outside runs (levels, dailies, streak, stickers) also count toward the lifetime total.
-const earn = (p: Profile, coins: number): Profile => ({ ...p, coins: p.coins + coins, lifetime: { ...(p.lifetime || {}), coinsEarned: ((p.lifetime && p.lifetime.coinsEarned) || 0) + coins } });
+export const earn = (p: Profile, coins: number): Profile => ({ ...p, coins: p.coins + coins, lifetime: { ...(p.lifetime || {}), coinsEarned: ((p.lifetime && p.lifetime.coinsEarned) || 0) + coins } });
 
 // ---------- daily level and streak ----------
 // profile.daily: { [day]: { stars, attempts } }. Only today's level is limited (3 attempts) and

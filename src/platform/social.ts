@@ -1,10 +1,11 @@
 // Firestore side of the community (friends, pseudo, code). No game logic: core/social.ts decides,
 // game/social.ts drives. Paths and rules: docs/features/social.md, firestore.rules.
-// players/{uid}, codes/{code}, players/{uid}/friends/{fid}, inbox/{uid}/adds/{fid}, weeks/{week}/scores/{uid}.
+// players/{uid}, codes/{code}, players/{uid}/friends/{fid}, inbox/{uid}/adds/{fid}, weeks/{week}/scores/{uid},
+// weeks/{week}/leagues/{tier} (the group being filled).
 import { load } from './cloud';
 
 export interface Look { cubo: string; hat: string } // boards theme key + wardrobe head piece: cuboLookFor(cubo, hat)
-export interface PlayerDoc { name: string; code: string; look: Look; createdAt: number; nameChangedAt: number; bestClassic?: number; hidden?: boolean }
+export interface PlayerDoc { name: string; code: string; look: Look; createdAt: number; nameChangedAt: number; bestClassic?: number; league?: number; leagueWeek?: string; hidden?: boolean }
 
 function coded(code: string) {
   const e = new Error(code) as Error & { code: string };
@@ -24,6 +25,7 @@ function toPlayer(data: Record<string, unknown> | undefined): PlayerDoc | null {
   return {
     name: data.name, code: data.code, createdAt: Number(data.createdAt) || 0, nameChangedAt: Number(data.nameChangedAt) || 0, bestClassic: Number(data.bestClassic) || 0,
     look: { cubo: typeof look.cubo === 'string' ? look.cubo : 'toy', hat: typeof look.hat === 'string' ? look.hat : 'auto' },
+    league: Number(data.league) || 0, leagueWeek: typeof data.leagueWeek === 'string' ? data.leagueWeek : '',
     hidden: data.hidden === true,
   };
 }
@@ -67,7 +69,7 @@ export async function createPlayer(uid: string, name: string, look: Look, newCod
   throw coded('no-code');
 }
 
-export async function updatePlayer(uid: string, patch: Partial<Pick<PlayerDoc, 'name' | 'look' | 'nameChangedAt' | 'bestClassic'>>) {
+export async function updatePlayer(uid: string, patch: Partial<Pick<PlayerDoc, 'name' | 'look' | 'nameChangedAt' | 'bestClassic' | 'league' | 'leagueWeek'>>) {
   const { fs, db } = await store();
   await fs.updateDoc(fs.doc(db, 'players', uid), patch);
 }
@@ -126,9 +128,10 @@ export async function moveInbox(me: string, take: string[], refuse: string[]) {
 export interface WeekDoc { points: number; best: number; runs: number; at: number }
 
 // Absolute values from the local tally; the rules only let points / best / runs grow, 10 s apart.
-export async function putWeekScore(uid: string, week: string, name: string, look: Look, tally: { points: number; best: number; runs: number }, at: number) {
+// `league` (group + tier) rides along from the week's first push on; the rules fix it once set.
+export async function putWeekScore(uid: string, week: string, name: string, look: Look, tally: { points: number; best: number; runs: number }, at: number, league?: { group: string; tier: number }) {
   const { fs, db } = await store();
-  await fs.setDoc(fs.doc(db, 'weeks', week, 'scores', uid), { name, look, points: tally.points, best: tally.best, runs: tally.runs, at });
+  await fs.setDoc(fs.doc(db, 'weeks', week, 'scores', uid), { name, look, points: tally.points, best: tally.best, runs: tally.runs, at, ...(league || {}) });
 }
 
 // A missing doc = 0 this week; an unreadable one stays out of the answer (unknown).
@@ -143,6 +146,43 @@ export async function getWeekScores(week: string, uids: string[]): Promise<Recor
     out[u] = { points: Number(d.points) || 0, best: Number(d.best) || 0, runs: Number(d.runs) || 0, at: Number(d.at) || 0 };
   });
   return out;
+}
+
+// ---------- leagues: weeks/{week}/leagues/{tier} pointer, groups are the `group` field of the score docs ----------
+
+// The group I already hold this week (a restored profile forgot it), else a seat in the group being filled: a
+// transaction on the pointer { open, size } takes a seat (size < 30) or opens the next group.
+export async function joinGroup(uid: string, week: string, tier: number, limit: number): Promise<{ group: string; tier: number }> {
+  const { fs, db } = await store();
+  const own = await fs.getDoc(fs.doc(db, 'weeks', week, 'scores', uid));
+  const g = own.exists() ? own.data().group : null;
+  if (typeof g === 'string' && typeof own.data()?.tier === 'number') return { group: g, tier: own.data()?.tier };
+  const ref = fs.doc(db, 'weeks', week, 'leagues', String(tier));
+  const open = await fs.runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    const cur = snap.exists() ? snap.data() : null;
+    if (!cur) { tx.set(ref, { open: 1, size: 1 }); return 1; }
+    const n = Number(cur.open) || 1;
+    const size = Number(cur.size) || 0;
+    if (size < limit) { tx.update(ref, { open: n, size: size + 1 }); return n; }
+    tx.update(ref, { open: n + 1, size: 1 });
+    return n + 1;
+  });
+  return { group: `${tier}-${open}`, tier };
+}
+
+// One query: the score docs of a group (at most `limit`).
+export async function getGroup(week: string, group: string, limit: number): Promise<{ uid: string; name: string; look: Look; points: number; best: number }[]> {
+  const { fs, db } = await store();
+  const snap = await fs.getDocs(fs.query(fs.collection(db, 'weeks', week, 'scores'), fs.where('group', '==', group), fs.limit(limit)));
+  return snap.docs.map((d) => {
+    const x = d.data();
+    const look = (x.look || {}) as Partial<Look>;
+    return {
+      uid: d.id, name: typeof x.name === 'string' ? x.name : '', points: Number(x.points) || 0, best: Number(x.best) || 0,
+      look: { cubo: typeof look.cubo === 'string' ? look.cubo : 'toy', hat: typeof look.hat === 'string' ? look.hat : 'auto' },
+    };
+  });
 }
 
 // Account deletion: friends, inbox, the code, the player. Called while still signed in.

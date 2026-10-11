@@ -32,6 +32,7 @@ import { isSurprise, settlePuzzle } from './puzzle';
 import { collectTips, hideTips, modeTips, stuckTip } from './tips';
 import { tutActive, tutor } from './tut-state';
 import { tutorialMoved, tutorialNope } from './tutorial';
+import { now as clock } from '../platform/clock';
 import { weekCounted } from './social';
 
 export { inProgress };
@@ -306,7 +307,7 @@ export function buyExtraMoves(lay: Layout): boolean {
 
 // The weekly tally (profile.week) after a finished run; it lives in the profile so a Seconde chance undoes it.
 function withWeek(p: Profile, run: { mode: Mode; score: number }): Profile {
-  const week = addWeekRun(p.week, run.mode, run.score, Date.now());
+  const week = addWeekRun(p.week, run.mode, run.score, clock());
   if (week === p.week) return p;
   weekCounted();
   return { ...p, week };

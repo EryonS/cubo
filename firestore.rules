@@ -1,7 +1,7 @@
 rules_version = '2';
 // Cubo Blocks cloud save: one document per player, readable and writable only by that player.
 // profile, settings and bests are JSON text (see src/platform/cloud-doc.ts).
-// Community (milestones 1-3 of docs/superpowers/specs/2026-10-09-social-design.md): players, codes, friends, inbox, weekly scores.
+// Community (milestones 1-4 of docs/superpowers/specs/2026-10-09-social-design.md): players, codes, friends, inbox, weekly scores.
 service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
@@ -9,7 +9,7 @@ service cloud.firestore {
 
     // A player card. hidden is set from the console only (never created or changed by the client).
     function validPlayer(d) {
-      return d.keys().hasOnly(['name', 'code', 'look', 'createdAt', 'nameChangedAt', 'bestClassic', 'hidden'])
+      return d.keys().hasOnly(['name', 'code', 'look', 'createdAt', 'nameChangedAt', 'bestClassic', 'league', 'leagueWeek', 'hidden'])
         && d.keys().hasAll(['name', 'code', 'look', 'createdAt', 'nameChangedAt'])
         && d.name is string && d.name.size() >= 3 && d.name.size() <= 16
         && d.name.matches('^[A-Za-z0-9\\x{C0}-\\x{D6}\\x{D8}-\\x{F6}\\x{F8}-\\x{FF}\\x{152}\\x{153} _-]+$')
@@ -17,12 +17,14 @@ service cloud.firestore {
         && d.look is map && d.look.keys().hasOnly(['cubo', 'hat'])
         && d.look.cubo is string && d.look.cubo.size() <= 24 && d.look.hat is string && d.look.hat.size() <= 24
         && d.createdAt is int && d.nameChangedAt is int
-        && d.get('bestClassic', 0) is int && d.get('bestClassic', 0) >= 0 && d.get('bestClassic', 0) <= 2000000;
+        && d.get('bestClassic', 0) is int && d.get('bestClassic', 0) >= 0 && d.get('bestClassic', 0) <= 2000000
+        && d.get('league', 0) is int && d.get('league', 0) >= 0 && d.get('league', 0) <= 5
+        && (!('leagueWeek' in d) || (d.leagueWeek is string && d.leagueWeek.matches('^[0-9]{4}-W[0-9]{2}$')));
     }
 
     // A weekly score doc (weeks/{week}/scores/{uid}), same name and look checks as a player card.
     function validScore(d) {
-      return d.keys().hasOnly(['name', 'look', 'points', 'best', 'runs', 'at'])
+      return d.keys().hasOnly(['name', 'look', 'points', 'best', 'runs', 'at', 'group', 'tier'])
         && d.keys().hasAll(['name', 'look', 'points', 'best', 'runs', 'at'])
         && d.name is string && d.name.size() >= 3 && d.name.size() <= 16
         && d.name.matches('^[A-Za-z0-9\\x{C0}-\\x{D6}\\x{D8}-\\x{F6}\\x{F8}-\\x{FF}\\x{152}\\x{153} _-]+$')
@@ -30,14 +32,24 @@ service cloud.firestore {
         && d.look.cubo is string && d.look.cubo.size() <= 24 && d.look.hat is string && d.look.hat.size() <= 24
         && d.points is int && d.best is int && d.runs is int && d.at is int
         && d.points >= 0 && d.best >= 0 && d.best <= 500000 && d.best <= d.points && d.runs >= 0 && d.runs <= 100000
-        && d.at >= request.time.toMillis() - 600000 && d.at <= request.time.toMillis() + 600000;
+        && d.at >= request.time.toMillis() - 600000 && d.at <= request.time.toMillis() + 600000
+        && (('group' in d) == ('tier' in d))
+        && (!('group' in d) || (d.tier is int && d.tier >= 0 && d.tier <= 5 && d.group is string && d.group.matches('^[0-5]-[0-9]+$')
+          && d.group.matches('^' + string(d.tier) + '-.*')
+          // the tier is the one on my player card (absent = Bronze): the league is not chosen at will
+          && d.tier == get(/databases/$(db)/documents/players/$(request.auth.uid)).data.get('league', 0)));
+    }
+    // group and tier are set once (absent -> set), then fixed for the week.
+    function sameGroup() {
+      return !('group' in resource.data)
+        || (request.resource.data.get('group', '') == resource.data.group && request.resource.data.get('tier', -1) == resource.data.tier);
     }
 
     match /players/{uid} {
       allow get: if signedIn();
       // The code is reserved in codes/ by the same transaction.
       allow create: if isUser(uid) && validPlayer(request.resource.data)
-        && !('hidden' in request.resource.data)
+        && !('hidden' in request.resource.data) && !('league' in request.resource.data) && !('leagueWeek' in request.resource.data)
         && getAfter(/databases/$(db)/documents/codes/$(request.resource.data.code)).data.uid == uid;
       // The code and creation date never change, hidden stays as it is, a new pseudo needs a week since the last one.
       allow update: if isUser(uid) && validPlayer(request.resource.data)
@@ -45,6 +57,12 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.get('hidden', false) == resource.data.get('hidden', false)
         && request.resource.data.get('bestClassic', 0) >= resource.data.get('bestClassic', 0)
+        // The league moves by one step at most and only with a leagueWeek that goes up (the claim of a finished week).
+        && (request.resource.data.get('league', 0) == resource.data.get('league', 0)
+          ? request.resource.data.get('leagueWeek', '') >= resource.data.get('leagueWeek', '')
+          : (request.resource.data.get('league', 0) - resource.data.get('league', 0) <= 1
+            && resource.data.get('league', 0) - request.resource.data.get('league', 0) <= 1
+            && request.resource.data.get('leagueWeek', '') > resource.data.get('leagueWeek', '')))
         && (request.resource.data.name == resource.data.name
           ? request.resource.data.nameChangedAt == resource.data.nameChangedAt
           : (resource.data.nameChangedAt == 0 || request.resource.data.nameChangedAt >= resource.data.nameChangedAt + 604800000 - 3600000)
@@ -73,8 +91,24 @@ service cloud.firestore {
         && request.resource.data.points >= resource.data.points && request.resource.data.points <= resource.data.points + 200000
         && request.resource.data.best >= resource.data.best
         && request.resource.data.runs >= resource.data.runs
-        && request.resource.data.at >= resource.data.at + 10000;
+        && request.resource.data.at >= resource.data.at + 10000
+        && sameGroup();
       allow delete: if isUser(uid);
+    }
+
+    // League pointers, one per week and tier: { open: n, size } = the group "{tier}-{n}" being filled. A player takes
+    // a seat (size + 1, up to 30) or opens the next group (open + 1, size 1) once it is full. Only for my own tier.
+    match /weeks/{week}/leagues/{tier} {
+      allow read: if signedIn();
+      allow create: if signedIn() && week.matches('^[0-9]{4}-W[0-9]{2}$') && tier.matches('^[0-5]$')
+        && int(tier) == get(/databases/$(db)/documents/players/$(request.auth.uid)).data.get('league', 0)
+        && request.resource.data.keys().hasOnly(['open', 'size'])
+        && request.resource.data.open == 1 && request.resource.data.size == 1;
+      allow update: if signedIn() && week.matches('^[0-9]{4}-W[0-9]{2}$') && tier.matches('^[0-5]$')
+        && int(tier) == get(/databases/$(db)/documents/players/$(request.auth.uid)).data.get('league', 0)
+        && request.resource.data.keys().hasOnly(['open', 'size'])
+        && ((request.resource.data.open == resource.data.open && request.resource.data.size == resource.data.size + 1 && request.resource.data.size <= 30)
+          || (request.resource.data.open == resource.data.open + 1 && request.resource.data.size == 1 && resource.data.size >= 30));
     }
 
     // Friend codes: readable one by one (no listing), created once for the owner, never updated.

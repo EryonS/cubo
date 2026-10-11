@@ -16,7 +16,7 @@ import { ask } from '../ui/dialog';
 import { toast } from '../ui/Toast';
 import { askSide } from '../ui/SyncChoice';
 import { runOpen, whenHub } from './hub';
-import { deleteSocialData, flushWeek, resetSocial, startSocial } from './social';
+import { deleteSocialData, flushWeek, resetSocial, resumeSocial, startSocial } from './social';
 
 const SYNC_KEY = 'cuboblocks.sync';
 const SYNCED_FLAG = 'cuboblocks.synced';
@@ -243,7 +243,7 @@ export function startAccount() {
   if (syncInfo) { void refreshCloud(); startSocial(); }
   AppState.addEventListener('change', (s) => {
     if (!syncInfo) return;
-    if (s === 'active') refreshCloud();
+    if (s === 'active') { refreshCloud(); resumeSocial(); }
     else if (s === 'background' || s === 'inactive') {
       if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; checkChanges(); }
       flushWeek();

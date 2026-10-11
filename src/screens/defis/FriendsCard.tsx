@@ -14,6 +14,7 @@ import { Avatar } from '../../ui/Avatar';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { Text } from '../../ui/Text';
+import { now as clock } from '../../platform/clock';
 import { fmt, rankBoard } from '../RankingScreen';
 
 export function FriendsCard() {
@@ -23,7 +24,7 @@ export function FriendsCard() {
   const rows = useBoardRows();
   const week = useGame((s) => s.profile.week);
   useFocusEffect(useCallback(() => { void refreshBoard(); }, [me?.uid]));
-  const now = Date.now();
+  const now = clock();
   const left = C.weekLeftText(C.weekEnd(now) - now);
   const invite = (text: string, button: string) => (
     <Card>
@@ -59,7 +60,7 @@ export function FriendsCard() {
           ))}
         </Card>
       )}
-      <Button kind="ghost" size="s" label={tr('Voir le classement')} onPress={() => nav.navigate('Ranking')} />
+      <Button kind="ghost" size="s" label={tr('Voir le classement')} onPress={() => nav.navigate('Ranking', { scope: 'friends' })} />
     </Card>
   );
 }

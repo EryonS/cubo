@@ -16,7 +16,9 @@ import { startTutorial } from '../game/tutorial';
 import { appIcon, canChangeAppIcon } from '../platform/app-icon';
 import { privacyRequired, showPrivacyOptions, subscribePrivacy } from '../platform/ads';
 import { available } from '../platform/cloud';
+import { clockDays, setClockDays } from '../platform/clock';
 import { devShown, showDev, testMode } from '../platform/kv';
+import { resumeSocial } from '../game/social';
 import { addTestCoins, resetTestProfile, switchTestMode } from '../game/devmode';
 import type { Settings } from '../state/persist';
 import { useGame } from '../state/store';
@@ -65,6 +67,9 @@ export function SettingsScreen() {
   const equipped = useGame((s) => s.profile.equipped.boards);
   const [icon, setIcon] = useState(appIcon);
   const [dev, setDev] = useState(devShown);
+  const [days, setDays] = useState(clockDays);
+  // Developer clock: +1 week a tap (weeks and leagues follow it), the second row goes back to the real date.
+  const shift = (d: number) => { setClockDays(d); setDays(d); resumeSocial(); };
   const taps = useRef(0);
   const tapVersion = () => {
     if (dev || ++taps.current < DEV_TAPS) return;
@@ -123,6 +128,8 @@ export function SettingsScreen() {
           <Group>
             <ListRow title={tr('Mode test')} sub={tr('Profil séparé, tout ouvert, sans synchro')} role="switch" state={{ checked: testMode }}
               onPress={() => { void switchTestMode(); }} quiet right={<Toggle on={testMode} />} />
+            <ListRow title={tr('Décalage d’horloge')} sub={days ? tr`+${days} jours pour les semaines et les ligues` : tr('Avance d’une semaine pour voir la fin de semaine')} right="chevron" onPress={() => shift(days + 7)} />
+            {days > 0 && <ListRow title={tr('Revenir à l’heure réelle')} right="chevron" onPress={() => shift(0)} />}
             {testMode && <ListRow title={tr('Ajouter des pièces')} sub={tr('Au profil de test')} right="chevron" onPress={addTestCoins} />}
             {testMode && <ListRow title={tr('Réinitialiser le profil de test')} sub={tr('Il repart de zéro, tout ouvert')} right="chevron" onPress={() => { void resetTestProfile(); }} />}
           </Group>

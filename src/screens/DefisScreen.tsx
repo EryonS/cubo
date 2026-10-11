@@ -29,7 +29,7 @@ import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
 import { Calendar } from './defis/Calendar';
 import { DayCard } from './defis/DayCard';
-import { FriendsCard } from './defis/FriendsCard';
+import { LeagueCard } from './defis/LeagueCard';
 
 const nope = () => { sfx.nope(); haptic('nope'); };
 
@@ -116,7 +116,7 @@ export function DefisScreen() {
         <Counter icon={<Coin size={20} />} value={profile.coins.toLocaleString(locale())} label={tr('Pièces : ouvrir la Boutique')} onPress={() => nav.navigate('Tabs', { screen: 'Shop' })} />
       </>
     )}>
-      <FriendsCard />
+      <LeagueCard />
       <Card>
         <Calendar open={open} month={pick.month} week={pick.week} picked={pick.day}
           onToggle={() => { setOpen(!open); sfx.turn(); }} onStep={step}

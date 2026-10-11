@@ -92,7 +92,7 @@ offline and without an account as today.
 1. **Done (2026-10-11)**: Identity: sign-in gate, pseudo sheet + filter, friend code, Communauté entry in Profil. Rules + tests.
 2. **Done (2026-10-11)**: Friends: add by code, inbox sync, list, remove, block, share code. See [features/social.md](../../features/social.md).
 3. Weekly score push + friends ranking (week total, all-time best). **Done** (see `docs/features/social.md`).
-4. Leagues: groups, ranking screen, end-of-week claim, rewards, promotion sheet.
+4. **Done (2026-10-11)**: Leagues: groups, ranking screen, end-of-week claim, rewards, result sheet. Group pointer is `weeks/{week}/leagues/{tier}` `{ open, size }` and the group is the `group` field of the score docs (not a `groups/` collection). Ties at a cut: all up / all stay. See [features/social.md](../../features/social.md).
 5. Moderation (report, hidden), privacy / store updates, account deletion.
 Pure rules (week id, league moves, rewards, pseudo validation, ranking with ties) in `src/core/social.ts`
 with tests; Firebase calls in `src/platform/social.ts`; app glue in `src/game/social.ts`.
