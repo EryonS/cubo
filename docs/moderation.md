@@ -1,6 +1,6 @@
 # Moderation runbook (owner)
 
-Cubo Blocks has no chat: the only user text is the pseudo. Apple 1.2 asks for a filter, a way to report, a way to block and the developer acting on reports. All of it is in the app; this page is what you do in the Firebase console (project `cuboblocks`, Firestore Database). Spec: `docs/superpowers/specs/2026-10-09-social-design.md`.
+Cubo Blocks has no chat: the only user text is the pseudo. Apple 1.2 asks for a filter, a way to report, a way to block and the developer acting on reports. All of it is in the app; this page is what you do in the Firebase console (project `cubo-blocks`, Firestore Database). Spec: `docs/superpowers/specs/2026-10-09-social-design.md`.
 
 ## Read the reports
 1. Console > Firestore Database > collection `reports`. Clients can only create there (rules), so this is your inbox.

@@ -6,7 +6,7 @@ Read this before adding or changing a feature. It routes you to the right featur
 - Name: **Cubo Blocks** (store), **Cubo** under the icon, appId `com.slapps.cuboblocks`, domain `cuboblocks.app`, repo `EryonS/cubo`. Internal ids use `cuboblocks` (save keys `cuboblocks.v2`, `cuboblocks.profile.v1`).
 
 ## Stack
-Native app with Expo (SDK 57), React Native and TypeScript. iOS only for now (no Android work yet).
+Native app with Expo (SDK 57), React Native and TypeScript, for iOS and Android.
 Rendering with `@shopify/react-native-skia`, gestures and animation with react-native-gesture-handler and
 Reanimated, bottom sheets with `@gorhom/bottom-sheet`, state in zustand, storage in MMKV, sound on
 react-native-audio-api, ads with react-native-google-mobile-ads, cloud save on Firebase.
@@ -109,4 +109,5 @@ Status: shipped | planned
 9. Puzzles (**done**): 40 drawings to fill with a quota of pieces.
 10. UI/UX audit (**done**, 2026-09-30): tab bar (Jouer / Défis / Boutique / Profil), new home, Mondes moved into each Aventure world, streak moved to Défis, styled confirm dialogs.
 11. Mascot Cubo (**done**). Second obstacles in levels 11-19, Cubo's wardrobe, season events (**done**, 2026-10-01).
-12. Native app (**done**, 2026-10-04 to 2026-10-06): React Native / Expo port, UI kit, web version deleted. Free runs can pick their own theme. Next: Firebase project (cloud save is hidden until `CONFIG.apiKey` is filled), real AdMob ids, Android.
+12. Native app (**done**, 2026-10-04 to 2026-10-06): React Native / Expo port, UI kit, web version deleted. Free runs can pick their own theme. Then Firebase project `cubo-blocks` (cloud save tested on device), real AdMob ids, Android port.
+13. Community (**done**, 2026-10-11): pseudo, friend codes, friends ranking, weekly leagues, moderation, statuses ([spec](superpowers/specs/2026-10-09-social-design.md)). Next: test it on devices, App Store / Play Store submission.

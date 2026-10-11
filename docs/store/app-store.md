@@ -74,7 +74,7 @@ DÉFIS
 Un niveau du jour, le même pour tout le monde, à partager. Une série de jours à tenir, trois missions chaque jour et un album d'autocollants à compléter, avec des secrets à trouver.
 
 PUZZLES
-60 puzzles : remplis chaque dessin avec un nombre précis de formes.
+120 puzzles : remplis chaque dessin avec un nombre précis de formes.
 
 DES BONUS À DÉCLENCHER
 Toupie, Étoile, Bulle, Bombe et Tornade : ramasse-les, garde-les, et lance-les au bon moment.
@@ -105,7 +105,7 @@ CHALLENGES
 A daily level, the same for everyone, to share. A day streak to keep, three missions every day and a sticker album to complete, with secrets to find.
 
 PUZZLES
-60 puzzles: fill each drawing with an exact set of shapes.
+120 puzzles: fill each drawing with an exact set of shapes.
 
 BONUSES TO FIRE
 Spin, Star, Bubble, Bomb and Tornado: pick them up, keep them, and use them at the right moment.

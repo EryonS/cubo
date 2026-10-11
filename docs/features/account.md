@@ -1,5 +1,5 @@
 # Cloud save (Google / Apple account)
-Status: shipped, Firebase config filled (project `cubo-blocks`); not yet tried on a device
+Status: shipped, Firebase project `cubo-blocks` (`.firebaserc`); sync tested between the simulator and a device (2026-10-11)
 
 ## What it does
 Optional. Profil > Paramètres > Sauvegarde en ligne links a Google or Apple account; the profile, settings, records (`bests`) and language then follow the player on every device (iOS, Android). Without an account nothing changes and saves stay on the device. The run in progress is never synced.
