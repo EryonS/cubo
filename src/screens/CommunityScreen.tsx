@@ -1,13 +1,16 @@
-// Communauté (Profil > Communauté): my card (Cubo, pseudo, friend code), add a friend by code, the friends list.
+// Communauté (Profil > Communauté): my head (Cubo, pseudo, title, mood) and its rows, the friend codes (mine, add one), the friends list.
 // Needs the cloud account; the first open signed in asks for a pseudo. Rules: core/social.ts, glue: game/social.ts.
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { tr } from '../core/i18n';
+import { useNavigation, type NavigationProp } from '@react-navigation/native';
+import { locale, tr } from '../core/i18n';
+import { tierName, tierOf } from '../core/league';
 import * as C from '../core/social';
 import * as T from '../core/titles';
 import { accountInfo, subscribeAccount } from '../game/account';
 import { addByCode, flagged, loadMe, mineMood, mineTitle, myLook, refreshFriends, removeFriend, shareCode, useSocial, type Friend } from '../game/social';
+import type { RootParams } from '../navigation/types';
 import { available } from '../platform/cloud';
 import { useGame } from '../state/store';
 import { fonts } from '../theme/fonts';
@@ -23,56 +26,74 @@ import { usePlayerSheet } from '../ui/PlayerSheet';
 import { PseudoSheet } from '../ui/PseudoSheet';
 import { Screen } from '../ui/Screen';
 import { MoodSheet, TitleSheet } from '../ui/StatusSheets';
-import { SectionLabel } from '../ui/SectionLabel';
+import { Section } from '../ui/SectionLabel';
 import { Text } from '../ui/Text';
 import { Icon } from '../ui/Icon';
+import { LeagueBadge } from '../ui/LeagueBadge';
+import { Tap } from '../ui/Tap';
 
 function useInputStyle() {
   const colors = useColors();
   return { flex: 1, minHeight: TOUCH + space.s, borderRadius: radius.tile, paddingHorizontal: space.l, backgroundColor: colors.panel2, color: colors.text, fontFamily: fonts.bold, fontSize: 18 } as const;
 }
 
-function MyCard({ onEdit, onTitle, onMood }: { onEdit: () => void; onTitle: () => void; onMood: () => void }) {
+// The head on the screen background, no card: Cubo, pseudo, title, mood.
+function MyHead() {
   const colors = useColors();
+  const me = useSocial((s) => s.me);
+  const title = useGame((s) => mineTitle(s.profile));
+  const mood = useGame((s) => mineMood(s.profile));
+  const tier = useGame((s) => tierOf(s.profile));
+  if (!me) return null;
+  return (
+    <View style={{ alignItems: 'center', gap: space.xxs, paddingVertical: space.s }}>
+      <View>
+        <Avatar look={myLook(me)} size={88} mood={mood} />
+        <View style={{ position: 'absolute', right: -space.s, bottom: 0 }} accessible accessibilityLabel={tr`Ligue ${tierName(tier)}`}>
+          <LeagueBadge tier={tier} size={32} />
+        </View>
+      </View>
+      <Text variant="title" numberOfLines={1} style={{ marginTop: space.s }}>{me.name}</Text>
+      {!!title && <Text variant="muted" numberOfLines={1}>{T.titleName(title)}</Text>}
+      {!!mood && (
+        <View style={{ marginTop: space.xs, paddingHorizontal: space.s, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: colors.panel2 }}>
+          <Text variant="caption" numberOfLines={1}>{T.moodText(mood)}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function MyRows({ onEdit, onTitle, onMood }: { onEdit: () => void; onTitle: () => void; onMood: () => void }) {
   const me = useSocial((s) => s.me);
   const title = useGame((s) => mineTitle(s.profile));
   const mood = useGame((s) => mineMood(s.profile));
   if (!me) return null;
   return (
-    <Card>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.m }}>
-        <Avatar look={myLook(me)} size={64} mood={mood} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="title" numberOfLines={1}>{me.name}</Text>
-          <Text variant="muted" numberOfLines={1}>{title ? T.titleName(title) : tr('Ton pseudo')}</Text>
-          {!!mood && (
-            <View style={{ alignSelf: 'flex-start', marginTop: space.xs, paddingHorizontal: space.s, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: colors.panel2 }}>
-              <Text variant="caption" numberOfLines={1}>{T.moodText(mood)}</Text>
-            </View>
-          )}
-        </View>
-        <Button kind="ghost" size="s" label={tr('Changer')} onPress={onEdit} />
-      </View>
-      <Group>
-        <ListRow title={tr('Titre')} sub={title ? T.titleName(title) : tr('Aucun')} onPress={onTitle} right="chevron" />
-        <ListRow title={tr('Humeur')} sub={mood ? T.moodText(mood) : tr('Aucune')} onPress={onMood} right="chevron" />
-      </Group>
-      <Card inset>
-        <Text variant="label">{tr('Ton code ami')}</Text>
-        <Text variant="big" accessibilityLabel={C.showCode(me.code).split('').join(' ')} style={{ letterSpacing: 2, color: colors.text }}>{C.showCode(me.code)}</Text>
-        {/* The system share sheet has Copier. */}
-        <Button kind="secondary" size="s" label={tr('Partager ou copier')} icon={<Icon name="share" size={16} color={colors.text} />} onPress={shareCode} />
-      </Card>
-    </Card>
+    <Group>
+      <ListRow title={tr('Pseudo')} sub={me.name} onPress={onEdit} right="chevron" />
+      <ListRow title={tr('Titre')} sub={title ? T.titleName(title) : tr('Aucun')} onPress={onTitle} right="chevron" />
+      <ListRow title={tr('Humeur')} sub={mood ? T.moodText(mood) : tr('Aucune')} onPress={onMood} right="chevron" />
+    </Group>
   );
 }
 
-function AddFriend() {
+// What the field shows while typing or pasting: capitals, code letters only, the dash after three.
+function typedCode(v: string) {
+  const raw = v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, C.CODE_LEN);
+  return raw.length > 3 ? `${raw.slice(0, 3)}-${raw.slice(3)}` : raw;
+}
+
+// One card for both codes: mine to share on top, a friend's to add below a hairline.
+function Codes() {
   const colors = useColors();
   const input = useInputStyle();
+  const me = useSocial((s) => s.me);
+  const full = useSocial((s) => s.friends.length >= C.MAX_FRIENDS);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  if (!me) return null;
   const submit = async () => {
     if (busy) return;
     setBusy(true);
@@ -82,37 +103,61 @@ function AddFriend() {
   };
   return (
     <Card>
-      <Text variant="headline">{tr('Ajouter un ami')}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
-        <TextInput
-          value={text}
-          onChangeText={(v) => { setText(v); setError(''); }}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          maxLength={12}
-          placeholder="K7Q-4MP"
-          placeholderTextColor={colors.muted}
-          returnKeyType="done"
-          onSubmitEditing={() => { void submit(); }}
-          accessibilityLabel={tr('Code ami')}
-          style={input}
-        />
-        <Button size="s" label={tr('Ajouter')} onPress={() => { void submit(); }} disabled={busy || text.trim().length === 0} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.m }}>
+        <Tap onPress={shareCode} label={tr`Ton code ami, ${C.showCode(me.code).split('').join(' ')}, partager`} style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="label">{tr('Ton code ami')}</Text>
+          <Text variant="big" style={{ letterSpacing: 2, color: colors.text }}>{C.showCode(me.code)}</Text>
+        </Tap>
+        {/* The system share sheet has Copier. */}
+        <Button kind="ghost" size="s" label={tr('Partager')} icon={<Icon name="share" size={16} color={colors.text} />} onPress={shareCode} />
       </View>
-      {error ? <Text variant="caption" style={{ color: colors.danger }}>{error}</Text> : <Text variant="caption">{tr('Le code de ton ami, il te voit aussi tout de suite.')}</Text>}
+      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.hairline }} />
+      <Text variant="label">{tr('Ajouter un ami')}</Text>
+      {full ? <Text variant="muted">{tr`Tu as déjà ${C.MAX_FRIENDS} amis.`}</Text> : (
+        <>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
+          <TextInput
+            value={text}
+            onChangeText={(v) => { setText(typedCode(v)); setError(''); }}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            placeholder="K7Q-4MP"
+            placeholderTextColor={colors.muted}
+            returnKeyType="done"
+            onSubmitEditing={() => { void submit(); }}
+            accessibilityLabel={tr('Code ami')}
+            style={input}
+          />
+          <Button size="s" label={tr('Ajouter')} onPress={() => { void submit(); }} disabled={busy || !C.parseCode(text)} />
+        </View>
+        {error ? <Text variant="caption" style={{ color: colors.danger }}>{error}</Text> : <Text variant="caption">{tr('Le code de ton ami, il te voit aussi tout de suite.')}</Text>}
+        </>
+      )}
     </Card>
   );
 }
 
+// A friend: Cubo, pseudo, title (else mood), and their Classic record on the right.
 function FriendRow({ f, onOpen }: { f: Friend; onOpen: () => void }) {
   const colors = useColors();
   const icon = useMemo(() => <Avatar look={f.look} size={44} mood={f.mood} />, [f.look, f.mood]);
-  return <ListRow title={f.label} sub={T.titleName(f.title) || undefined} icon={icon} onPress={onOpen} label={tr`${f.label}, options`} right={<Icon name="chevRight" size={16} color={colors.muted} />} />;
+  const best = f.bestClassic.toLocaleString(locale());
+  const right = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
+      {f.bestClassic > 0 && <Text variant="headline" style={{ color: colors.muted }}>{best}</Text>}
+      <Icon name="chevRight" size={16} color={colors.muted} />
+    </View>
+  );
+  return <ListRow title={f.label} sub={T.titleName(f.title) || T.moodText(f.mood) || undefined} icon={icon} onPress={onOpen}
+    label={f.bestClassic > 0 ? tr`${f.label}, record ${best}, options` : tr`${f.label}, options`} right={right} />;
 }
 
 export function CommunityScreen() {
   const info = useSyncExternalStore(subscribeAccount, accountInfo, accountInfo);
+  const colors = useColors();
+  const nav = useNavigation<NavigationProp<RootParams>>();
   const { me, status, friends, listing } = useSocial();
+  const ranked = useMemo(() => [...friends].sort((a, b) => b.bestClassic - a.bestClassic), [friends]);
   const pseudo = useRef<BottomSheetModal>(null);
   const titles = useRef<BottomSheetModal>(null);
   const moods = useRef<BottomSheetModal>(null);
@@ -139,7 +184,7 @@ export function CommunityScreen() {
     );
   }
   return (
-    <Screen title={tr('Communauté')} back>
+    <Screen title={tr('Communauté')} back refreshing={listing && friends.length > 0} onRefresh={me ? () => { void refreshFriends(); } : undefined}>
       {!me && status === 'loading' && <Text variant="muted">{tr('Chargement…')}</Text>}
       {!me && status === 'error' && (
         <Card>
@@ -162,16 +207,26 @@ export function CommunityScreen() {
               <Button label={tr('Choisir un autre pseudo')} onPress={() => pseudo.current?.present()} />
             </Card>
           )}
-          <MyCard onEdit={() => pseudo.current?.present()} onTitle={() => titles.current?.present()} onMood={() => moods.current?.present()} />
-          <AddFriend />
-          <SectionLabel>{friends.length ? tr`Amis · ${friends.length} / ${C.MAX_FRIENDS}` : tr('Amis')}</SectionLabel>
-          {friends.length > 0 ? (
-            <Group>{friends.map((f) => <FriendRow key={f.uid} f={f} onOpen={() => openPlayer({ uid: f.uid, name: f.name, label: f.label, look: f.look, title: f.title, mood: f.mood, onRemove: () => { void removeFriend(f); } })} />)}</Group>
-          ) : (
-            <Card>
-              <Text variant="muted">{listing ? tr('Chargement…') : tr('Pas encore d’amis. Partage ton code ou ajoute celui d’un ami.')}</Text>
-            </Card>
-          )}
+          <MyHead />
+          <MyRows onEdit={() => pseudo.current?.present()} onTitle={() => titles.current?.present()} onMood={() => moods.current?.present()} />
+          <Section title={tr('Code ami')}>
+            <Codes />
+          </Section>
+          <Section title={friends.length ? tr`Amis · ${friends.length} / ${C.MAX_FRIENDS}` : tr('Amis')}
+            right={friends.length > 0 ? (
+              <Tap onPress={() => nav.navigate('Ranking', { scope: 'friends' })} label={tr('Voir le classement')} hitSlop={12} style={{ marginRight: space.xs }}>
+                <Text variant="label" style={{ color: colors.accent }}>{tr('Classement')}</Text>
+              </Tap>
+            ) : undefined}>
+            {friends.length > 0 ? (
+              <Group>{ranked.map((f) => <FriendRow key={f.uid} f={f} onOpen={() => openPlayer({ uid: f.uid, name: f.name, label: f.label, look: f.look, title: f.title, mood: f.mood, onRemove: () => { void removeFriend(f); } })} />)}</Group>
+            ) : (
+              <Card>
+                <Text variant="muted">{listing ? tr('Chargement…') : tr('Pas encore d’amis. Partage ton code ou ajoute celui d’un ami.')}</Text>
+                {!listing && <Button label={tr('Partager mon code')} icon={<Icon name="share" size={18} color={colors.onAccent} />} onPress={shareCode} />}
+              </Card>
+            )}
+          </Section>
         </>
       )}
       <PseudoSheet ref={pseudo} />
