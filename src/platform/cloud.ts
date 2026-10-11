@@ -35,7 +35,7 @@ function coded(code: string) {
 
 let loading: Promise<{ auth: Auth; db: Firestore }> | null = null;
 
-async function load() {
+export async function load() {
   if (!available()) throw coded('off');
   if (!loading) {
     loading = (async () => {
@@ -138,13 +138,14 @@ export async function push(doc: Record<string, unknown>, expected: number) {
 }
 
 // Signs in again first (Firebase asks for a recent sign-in, and Apple's token must be revoked),
-// then removes the document and the account.
-export async function deleteAccount(provider: 'google' | 'apple') {
+// then removes the community data (before), the document and the account.
+export async function deleteAccount(provider: 'google' | 'apple', before?: (uid: string) => Promise<void>) {
   const authMod = await authApi();
   const { auth, db } = await load();
   const { credential, revokeToken } = await nativeCredential(provider, authMod);
   if (!auth.currentUser) throw coded('off');
   await authMod.reauthenticateWithCredential(auth.currentUser, credential);
+  await before?.(auth.currentUser.uid); // community data: the rules need the signed-in player
   const { deleteDoc } = await import('firebase/firestore');
   await deleteDoc(await refOf(db, auth.currentUser.uid));
   if (revokeToken) await authMod.revokeAccessToken(auth, revokeToken).catch(() => {});

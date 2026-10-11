@@ -89,8 +89,8 @@ offline and without an account as today.
 - Age rating questionnaire: user-generated content = yes (pseudos), unrestricted communication = no.
 
 ## Milestones
-1. Identity: sign-in gate, pseudo sheet + filter, friend code, Communauté entry in Profil. Rules + tests.
-2. Friends: add by code, inbox sync, list, remove, block, share code.
+1. **Done (2026-10-11)**: Identity: sign-in gate, pseudo sheet + filter, friend code, Communauté entry in Profil. Rules + tests.
+2. **Done (2026-10-11)**: Friends: add by code, inbox sync, list, remove, block, share code. See [features/social.md](../../features/social.md).
 3. Weekly score push + friends ranking (week total, all-time best).
 4. Leagues: groups, ranking screen, end-of-week claim, rewards, promotion sheet.
 5. Moderation (report, hidden), privacy / store updates, account deletion.

@@ -16,6 +16,7 @@ import { ask } from '../ui/dialog';
 import { toast } from '../ui/Toast';
 import { askSide } from '../ui/SyncChoice';
 import { runOpen, whenHub } from './hub';
+import { deleteSocialData, resetSocial, startSocial } from './social';
 
 const SYNC_KEY = 'cuboblocks.sync';
 const SYNCED_FLAG = 'cuboblocks.synced';
@@ -57,6 +58,7 @@ function forgetAccount() {
   cloudDoc = null;
   cloudBlocked = false;
   saveSyncInfo();
+  resetSocial(); // pseudo, code and friends are the account's: hidden once signed out
 }
 
 const localData = () => {
@@ -193,6 +195,7 @@ export async function signInWith(provider: 'google' | 'apple') {
     return;
   }
   await carryOut(S.decide({ local: localData(), remote, sync: null }), remote, true);
+  if (syncInfo) startSocial();
 }
 
 export async function signOutCloud() {
@@ -205,12 +208,12 @@ export async function deleteCloudAccount() {
   if (!syncInfo) return;
   const sure = await ask({
     title: tr('Supprimer ton compte ?'),
-    text: tr('Ta sauvegarde en ligne sera effacée. Ta progression reste sur cet appareil.'),
+    text: tr('Ta sauvegarde en ligne, ton pseudo et tes amis seront effacés. Ta progression reste sur cet appareil.'),
     ok: tr('Supprimer'),
     danger: true,
   });
   if (!sure) return;
-  try { await Cloud.deleteAccount(syncInfo.provider); } catch (err) {
+  try { await Cloud.deleteAccount(syncInfo.provider, deleteSocialData); } catch (err) {
     if ((err as { code?: string })?.code !== 'cancelled') toast(tr('Connexion impossible, réessaie plus tard.'));
     return;
   }
@@ -237,7 +240,7 @@ export function startAccount() {
     mmkv.remove(SYNCED_FLAG);
     toast(tr('Progression synchronisée.'));
   }
-  if (syncInfo) void refreshCloud();
+  if (syncInfo) { void refreshCloud(); startSocial(); }
   AppState.addEventListener('change', (s) => {
     if (!syncInfo) return;
     if (s === 'active') refreshCloud();

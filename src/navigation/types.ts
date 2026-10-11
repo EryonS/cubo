@@ -12,6 +12,7 @@ export type RootParams = {
   Game: undefined;
   Puzzles: undefined;
   Album: undefined;
+  Community: undefined;
   Adventure: { world?: string } | undefined;
   Event: { id: string; level?: number };
   Settings: { from?: 'pause' } | undefined;

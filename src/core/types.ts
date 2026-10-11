@@ -223,6 +223,7 @@ export interface Profile {
   streak?: Streak;
   stickers?: Record<string, string>;
   tips?: Record<string, boolean>;
+  blocked?: string[]; // community: uids the player blocked (follows the account); absent = none
   // Test mode's profile (Paramètres > Développeur): every world, level and puzzle open.
   dev?: boolean;
   halloween?: SeasonProgress; // before v6

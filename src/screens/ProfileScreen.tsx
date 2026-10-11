@@ -1,12 +1,16 @@
 // Profil tab (legacy #profile): Cubo in the header, the three headline totals, then sections as on Paramètres:
 // Collection (Album and what is owned of each Boutique shelf), Trophées (month and season shelves), stats per
 // mode and the lifetime counters. Paramètres sits on the header's right.
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { M } from '../core';
 import { locale, tr } from '../core/i18n';
+import * as Soc from '../core/social';
 import type { SkinKind } from '../core/types';
+import { accountInfo, subscribeAccount } from '../game/account';
+import { useSocial } from '../game/social';
+import { available } from '../platform/cloud';
 import { albumPages, monthShelf, seasonShelf, type Trophy as T } from '../game/album';
 import { cuboLookFor } from '../mascot/looks';
 import type { RootParams, TabParams } from '../navigation/types';
@@ -24,6 +28,7 @@ import { Card } from '../ui/Card';
 import { CuboPose } from '../ui/CuboPose';
 import { DrawCanvas } from '../ui/DrawCanvas';
 import { Group } from '../ui/Group';
+import { Icon } from '../ui/Icon';
 import { ListRow } from '../ui/ListRow';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Screen } from '../ui/Screen';
@@ -74,12 +79,25 @@ const Thumb = ({ draw, deps }: { draw: (g: G, w: number, h: number) => void; dep
   <DrawCanvas width={ICON_W} radius={8} deps={deps} draw={draw} />
 );
 
+function CommunityBadge() {
+  const colors = useColors();
+  return (
+    <View style={{ width: ICON_W, alignItems: 'center' }}>
+      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name="profile" size={22} color={colors.onAccent} />
+      </View>
+    </View>
+  );
+}
+
 export function ProfileScreen() {
   const nav = useNavigation<NavigationProp<RootParams & TabParams>>();
   const profile = useGame((s) => s.profile);
   const bests = useGame((s) => s.saved.bests);
   const { boards: eqBoard, blocks: eqBlocks, cubo: eqCubo } = profile.equipped;
   const look = useMemo(() => cuboLookFor(eqBoard, eqCubo), [eqBoard, eqCubo]);
+  const signed = useSyncExternalStore(subscribeAccount, accountInfo, accountInfo);
+  const me = useSocial((s) => s.me);
   const day = today();
   const { count, total } = albumPages(profile);
   const season = seasonShelf(profile, day);
@@ -102,6 +120,15 @@ export function ProfileScreen() {
       </View>
     )} right={<HeaderButton icon="gear" size={22} label={tr('Paramètres')} onPress={() => nav.navigate('Settings')} />}>
       <Totals items={totals} />
+
+      {available() && (
+        <Section title={tr('Communauté')}>
+          <Group>
+            <ListRow title={signed && me ? me.name : tr('Communauté')} right="chevron" onPress={() => nav.navigate('Community')} icon={<CommunityBadge />}
+              sub={signed && me ? Soc.showCode(me.code) : signed ? tr('Choisis ton pseudo et ajoute des amis') : tr('Connecte-toi pour avoir un pseudo et des amis')} />
+          </Group>
+        </Section>
+      )}
 
       <Section title={tr('Collection')} info={tr`Les autocollants récompensent tes exploits : chacun rapporte ${M.STICKER_REWARD} pièces. Thèmes, blocs et tenues de Cubo s’achètent à la Boutique ; certains se gagnent en battant le boss d’un monde ou pendant un événement.`}>
         <Group>
