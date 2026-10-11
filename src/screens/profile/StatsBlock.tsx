@@ -1,7 +1,7 @@
-// Stats (legacy stats.js): one mode at a time (pills, four tiles, bar chart of the last 20 scores) in a card, and
-// the lifetime counters as a grouped list.
+// Stats (legacy stats.js): one mode at a time (pills, four numbers, bar chart of the last 20 scores) in one card,
+// flat inside (no tile or panel in the card), and the lifetime counters as a grouped list.
 import { useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Svg, { G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { M } from '../../core';
 import { locale, tr } from '../../core/i18n';
@@ -9,12 +9,11 @@ import { sfx } from '../../audio/engine';
 import { barPath, chartBars, CHART_H, CHART_RUNS, CHART_W, lifetimeRows, modeTiles, STAT_MODES } from '../../game/album';
 import { useGame } from '../../state/store';
 import { fonts } from '../../theme/fonts';
-import { radius, space, TOUCH } from '../../theme/tokens';
+import { space, TOUCH } from '../../theme/tokens';
 import { useColors } from '../../theme/useColors';
 import { Card } from '../../ui/Card';
 import { Group } from '../../ui/Group';
 import { Segmented } from '../../ui/Segmented';
-import { StatTile } from '../../ui/StatTile';
 import { Text } from '../../ui/Text';
 
 const fmt = (n: number) => n.toLocaleString(locale());
@@ -23,7 +22,7 @@ function Chart({ scores }: { scores: number[] }) {
   const colors = useColors();
   const [on, setOn] = useState<number | null>(null);
   if (!scores.length) {
-    return <View style={{ padding: space.m, borderRadius: radius.tile, backgroundColor: colors.panel2 }}><Text variant="muted">{tr('Tes prochaines parties dans ce mode s’afficheront ici.')}</Text></View>;
+    return <Text variant="muted">{tr('Tes prochaines parties dans ce mode s’afficheront ici.')}</Text>;
   }
   const { bars, peak } = chartBars(scores);
   const n = scores.length;
@@ -32,7 +31,7 @@ function Chart({ scores }: { scores: number[] }) {
     ? tr`${n} dernière${n > 1 ? 's' : ''} partie${n > 1 ? 's' : ''} · meilleure : ${fmt(scores[peak])}`
     : tr`${on + 1 === n ? tr('Dernière partie') : tr`Partie ${on + 1} sur ${n}`} : ${fmt(scores[on])} points`;
   return (
-    <View style={{ padding: space.m, borderRadius: radius.tile, backgroundColor: colors.panel2 }}>
+    <View>
       <Svg width="100%" viewBox={`0 0 ${CHART_W} ${CHART_H + 1}`} style={{ aspectRatio: CHART_W / (CHART_H + 1) }}>
         {bars.map((b, i) => (
           <G key={i} onPress={() => { sfx.turn(); setOn(i); }}>
@@ -49,6 +48,27 @@ function Chart({ scores }: { scores: number[] }) {
   );
 }
 
+// The four numbers in a 2 x 2 grid split by hairlines, like the profile totals.
+function Tiles({ tiles }: { tiles: { label: string; value: string }[] }) {
+  const colors = useColors();
+  const line = { borderColor: colors.hairline };
+  return (
+    <View>
+      {[0, 2].map((r) => (
+        <View key={r} style={[{ flexDirection: 'row' }, r ? { borderTopWidth: StyleSheet.hairlineWidth, ...line } : null]}>
+          {tiles.slice(r, r + 2).map((t, i) => (
+            <View key={t.label} accessible accessibilityLabel={`${t.value} ${t.label}`}
+              style={[{ flex: 1, minWidth: 0, alignItems: 'center', paddingVertical: space.s, paddingHorizontal: space.s }, i ? { borderLeftWidth: StyleSheet.hairlineWidth, ...line } : null]}>
+              <Text variant="title" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontVariant: ['tabular-nums'] }}>{t.value}</Text>
+              <Text variant="caption" numberOfLines={1}>{t.label}</Text>
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function ModeStats() {
   const profile = useGame((s) => s.profile);
   const bests = useGame((s) => s.saved.bests);
@@ -57,9 +77,7 @@ export function ModeStats() {
   return (
     <Card>
       <Segmented kind="chips" inset options={STAT_MODES() as [string, string][]} value={mode} onChange={(v) => { sfx.turn(); setMode(v); }} />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
-        {tiles.map((t) => <StatTile key={t.label} inset value={t.value} label={t.label} style={{ flexBasis: '45%', flexGrow: 1 }} />)}
-      </View>
+      <Tiles tiles={tiles} />
       <Chart key={mode} scores={M.recentScores(profile, mode, CHART_RUNS)} />
     </Card>
   );

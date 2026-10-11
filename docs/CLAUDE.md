@@ -26,7 +26,7 @@ name the web file a piece of code was ported from.
 - `src/game/`: the run and its app-side logic: `run.ts` (start, moves, bonuses, end, stage runs), `anim.ts` (effects state), `drag.ts`, `juice.ts`, `falls.ts`, `hud.ts`, `modes.ts`, `daily.ts`, `events.ts`, `puzzle.ts`, `levelend.ts`, `album.ts`, `summary.ts`, `tips.ts`, `tutorial.ts`, `account.ts`. Pure parts are tested.
 - `src/render/`: Skia drawing. `g.ts` is a canvas-2D-like wrapper over SkCanvas, `ctx2d.ts` a canvas-2D context over it; `draw.ts` (board, tray, HUD, effects), `layout.ts` (geometry, tested), `cells.ts` (special cells), `board-themes.ts` (theme colors, `themeFor`), `decor/` (theme backgrounds), `boss.ts`, `preview.ts`, `cubo-preview.ts`, `icons.ts`, `tutorial.ts`.
 - `src/screens/`: one file per screen (tabs Jouer / Défis / Boutique / Profil, stack routes Game, Adventure, Puzzles, Album, Event, Settings), sub-parts in subfolders. Routes in `src/navigation/`.
-- `src/ui/`: the UI kit (`Screen`, `ScreenHeader`, `Card`, `ListRow`, `Segmented`, `Counter`, `StatTile`, `Button`, `Sheet` + `SheetHeader`, `Text`, `Tap`, `Toggle`...) and shared sheets and widgets.
+- `src/ui/`: the UI kit (`Screen`, `ScreenHeader`, `Card`, `ListRow`, `Segmented`, `Counter`, `Button`, `Sheet` + `SheetHeader`, `Text`, `Tap`, `Toggle`...) and shared sheets and widgets.
 - `src/theme/`: tokens, fonts, `elevation.ts` (`raised()` soft shadows), `useColors()` (menu colors of the equipped theme, `menu-themes.ts`).
 - `src/mascot/`: Cubo (looks, moods and taps, body, hats, effects, line of the day).
 - `src/audio/`: `sfx.ts` and `songs.ts` (pure scores), `engine.ts` (playback).

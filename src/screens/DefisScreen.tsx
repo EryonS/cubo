@@ -1,7 +1,7 @@
-// Défis tab (legacy #defis): the calendar on top (a week, unfolds to the month), the picked day's level,
-// the streak with its freezes, today's missions. A daily in progress is resumed from here.
+// Défis tab (legacy #defis): the league, then sections as on Paramètres: Défi du jour (one card, the calendar
+// (a week, unfolds to the month) over the picked day's level), Série (streak and freezes), today's missions. A daily in progress is resumed from here.
 import { useCallback, useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useFocusEffect, useNavigation, type NavigationProp } from '@react-navigation/native';
 import { M } from '../core';
 import { locale, tr, many } from '../core/i18n';
@@ -28,7 +28,7 @@ import { Screen } from '../ui/Screen';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
 import { Calendar } from './defis/Calendar';
-import { DayCard } from './defis/DayCard';
+import { DayLevel, DayNote } from './defis/DayCard';
 import { LeagueCard } from './defis/LeagueCard';
 
 const nope = () => { sfx.nope(); haptic('nope'); };
@@ -117,12 +117,17 @@ export function DefisScreen() {
       </>
     )}>
       <LeagueCard />
-      <Card>
-        <Calendar open={open} month={pick.month} week={pick.week} picked={pick.day}
-          onToggle={() => { setOpen(!open); sfx.turn(); }} onStep={step}
-          onPick={(day) => { setPick(pickDay(day, t)); sfx.turn(); }} />
-      </Card>
-      <DayCard day={pick.day} onPlay={() => { sfx.turn(); go(pick.day); }} />
+      <View style={{ gap: space.s }}>
+        <SectionLabel>{tr('Défi du jour')}</SectionLabel>
+        <Card>
+          <Calendar open={open} month={pick.month} week={pick.week} picked={pick.day}
+            onToggle={() => { setOpen(!open); sfx.turn(); }} onStep={step}
+            onPick={(day) => { setPick(pickDay(day, t)); sfx.turn(); }} />
+          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.hairline }} />
+          <DayLevel day={pick.day} onPlay={() => { sfx.turn(); go(pick.day); }} />
+        </Card>
+        <DayNote day={pick.day} />
+      </View>
       <StreakBlock />
       <MissionList status={missionStatus()} />
       <Text variant="caption" style={{ marginHorizontal: space.xs }}>{tr('Les missions avancent dans tous les modes. Trois nouvelles chaque jour.')}</Text>

@@ -6,7 +6,7 @@ Profil tab (`src/screens/ProfileScreen.tsx`), one scrolling page, no tabs:
 - Totals (games, stars, stickers), an **Album** row that opens the Album screen, then the **trophy shelves** (months from `DAILY_START` to now, plus season trophies; the streak card and freeze are on the Défis tab).
 - **Album** (`src/screens/album/AlbumScreen.tsx`, stack route `Album`): the stickers by page (see the table). Unearned stickers are grey with their hint. The legacy peel animation for newly earned stickers is not ported; `showStickers` (`src/ui/StickerBanner.tsx`) announces fresh ones in the Boutique.
 - The calendar is on the Défis screen (see [daily.md](daily.md)).
-- **Stats** (`src/screens/profile/StatsBlock.tsx`): pills for Classique / Chrono / Chill, each with 4 tiles (games, record, average, best combo) and a bar chart of the last 20 scores (tap a bar for its value; no hover on a phone); then lifetime counters, Aventure stars, dailies cleared, longest streak. Paramètres is the gear button on the header's right.
+- **Stats** (`src/screens/profile/StatsBlock.tsx`): one card (flat inside, no tiles or panels in it): pills for Classique / Chrono / Chill (Mondes runs are recorded but not shown), each with 4 numbers in a 2 × 2 grid split by hairlines (games, record, average, best combo) and a bar chart of the last 20 scores (tap a bar for its value; no hover on a phone); then lifetime counters, Aventure stars, dailies cleared, longest streak. Paramètres is the gear button on the header's right.
 
 ## Stickers
 | Page | Stickers |
@@ -18,8 +18,8 @@ Profil tab (`src/screens/ProfileScreen.tsx`), one scrolling page, no tabs:
 | Collectionneur | use all 5 bonuses; 1 000 coins earned; 3 themes besides Jouet; 1 000 lines; 100 games; 120 Aventure stars |
 | Secrets (`secret: true`, 40 coins) | a 21-block bomb; 3 000 points with no undo / discard; empty the grid twice in a run; hold 2 000 coins; play Classique, Chrono and Chill |
 
-Secret stickers show a question mark, "Secret" and "À découvrir" until earned; then their name and what earned them.
-Earned stickers show the day they were earned ("Obtenu le 30 sept. 2026", from `profile.stickers[id]`); secret ones show it under their hint.
+Secret stickers show a question mark, "Secret" and "À découvrir" until earned.
+Earned stickers (secret or not) show their badge, name and the day they were earned ("Obtenu le 30 sept. 2026", from `profile.stickers[id]`); what earned them and the reward are in the sticker sheet.
 Default reward 20 coins. Checked after every run, level, daily and Boutique purchase (`settleRun` in `src/game/run.ts` adds them to the end-of-run report; `src/screens/ShopScreen.tsx` does the same for a purchase).
 
 ## End-of-run summary
@@ -32,7 +32,7 @@ The game over card of a free run shows four tiles under the score: lines, best c
 - `src/core/meta.ts`: `STICKER_PAGES`, `STICKERS` (id, page, name, hint, test, reward?), `checkStickers`, `monthTrophy`, lifetime via `addLifetime` in `applyRun` and `earn()` for coins earned outside runs.
 - `src/core/logic.ts`: `stats.used` counts each bonus type per run.
 - `src/game/album.ts` (pure, `album.test.ts`): `albumPages`, `monthShelf`, `seasonShelf`, `modeTiles`, `lifetimeRows`, `chartBars`, sticker colors and `STICKER_GLYPHS`.
-- `src/screens/ProfileScreen.tsx`, `src/screens/album/AlbumScreen.tsx`, `src/screens/album/StickerSheet.tsx`, `src/screens/profile/StatsBlock.tsx`; badges and trophies drawn in `src/ui/StickerArt.tsx` (react-native-svg), `src/ui/StatTile.tsx`.
+- `src/screens/ProfileScreen.tsx`, `src/screens/album/AlbumScreen.tsx`, `src/screens/album/StickerSheet.tsx`, `src/screens/profile/StatsBlock.tsx`; badges and trophies drawn in `src/ui/StickerArt.tsx` (react-native-svg).
 
 ## Saved state
 `profile.stickers: { [id]: dayEarned }`, `profile.lifetime: { games, lines, pieces, perfects, bonusUsed, bombCells, coins, coinsEarned, bestCombo, bestMulti, score, bestBomb, bestPerfects, cleanScore, used: { [bonus]: n } }`.

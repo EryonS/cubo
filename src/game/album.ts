@@ -5,7 +5,7 @@ import { tr } from '../core/i18n';
 import type { Profile } from '../core/types';
 
 export const CHART_RUNS = 20;
-export const STAT_MODES = (): [string, string][] => [['classic', tr('Classique')], ['chrono', tr('Chrono')], ['chill', tr('Chill')], ['worlds', tr('Mondes')]];
+export const STAT_MODES = (): [string, string][] => [['classic', tr('Classique')], ['chrono', tr('Chrono')], ['chill', tr('Chill')]];
 
 export interface Tile { label: string; value: string }
 type Fmt = (n: number) => string;
