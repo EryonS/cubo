@@ -6,7 +6,7 @@ import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { tr } from '../core/i18n';
 import * as C from '../core/social';
 import { accountInfo, subscribeAccount } from '../game/account';
-import { addByCode, blockFriend, loadMe, myLook, refreshFriends, removeFriend, shareCode, useSocial, type Friend } from '../game/social';
+import { addByCode, flagged, loadMe, myLook, refreshFriends, removeFriend, shareCode, useSocial, type Friend } from '../game/social';
 import { available } from '../platform/cloud';
 import { fonts } from '../theme/fonts';
 import { radius, space, TOUCH } from '../theme/tokens';
@@ -17,10 +17,10 @@ import { Card } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
 import { Group } from '../ui/Group';
 import { ListRow } from '../ui/ListRow';
+import { usePlayerSheet } from '../ui/PlayerSheet';
 import { PseudoSheet } from '../ui/PseudoSheet';
 import { Screen } from '../ui/Screen';
 import { SectionLabel } from '../ui/SectionLabel';
-import { Sheet, SheetHeader } from '../ui/Sheet';
 import { Text } from '../ui/Text';
 import { Icon } from '../ui/Icon';
 
@@ -100,8 +100,7 @@ export function CommunityScreen() {
   const info = useSyncExternalStore(subscribeAccount, accountInfo, accountInfo);
   const { me, status, friends, listing } = useSocial();
   const pseudo = useRef<BottomSheetModal>(null);
-  const options = useRef<BottomSheetModal>(null);
-  const [picked, setPicked] = useState<Friend | null>(null);
+  const [openPlayer, playerSheet] = usePlayerSheet();
   const asked = useRef(false);
   const uid = info?.uid;
 
@@ -109,10 +108,11 @@ export function CommunityScreen() {
     if (!uid) return;
     void loadMe().then(() => refreshFriends());
   }, [uid]);
-  // First open signed in without a pseudo: the sheet comes by itself, once.
+  // First open signed in without a pseudo, or a pseudo the owner hid: the sheet comes by itself, once.
+  const mustRename = flagged(me);
   useEffect(() => {
-    if (uid && status === 'ready' && !me && !asked.current) { asked.current = true; pseudo.current?.present(); }
-  }, [uid, status, me]);
+    if (uid && status === 'ready' && (!me || mustRename) && !asked.current) { asked.current = true; pseudo.current?.present(); }
+  }, [uid, status, me, mustRename]);
 
   if (!available()) return <Screen title={tr('Communauté')} back><Text variant="muted">{tr('Connexion impossible, réessaie plus tard.')}</Text></Screen>;
   if (!info) {
@@ -140,11 +140,17 @@ export function CommunityScreen() {
       )}
       {me && (
         <>
+          {mustRename && (
+            <Card>
+              <Text variant="headline">{tr('Ton pseudo a été signalé, choisis-en un autre.')}</Text>
+              <Button label={tr('Choisir un autre pseudo')} onPress={() => pseudo.current?.present()} />
+            </Card>
+          )}
           <MyCard onEdit={() => pseudo.current?.present()} />
           <AddFriend />
           <SectionLabel>{friends.length ? tr`Amis · ${friends.length} / ${C.MAX_FRIENDS}` : tr('Amis')}</SectionLabel>
           {friends.length > 0 ? (
-            <Group>{friends.map((f) => <FriendRow key={f.uid} f={f} onOpen={() => { setPicked(f); options.current?.present(); }} />)}</Group>
+            <Group>{friends.map((f) => <FriendRow key={f.uid} f={f} onOpen={() => openPlayer({ uid: f.uid, name: f.name, label: f.label, onRemove: () => { void removeFriend(f); } })} />)}</Group>
           ) : (
             <Card>
               <Text variant="muted">{listing ? tr('Chargement…') : tr('Pas encore d’amis. Partage ton code ou ajoute celui d’un ami.')}</Text>
@@ -153,13 +159,7 @@ export function CommunityScreen() {
         </>
       )}
       <PseudoSheet ref={pseudo} />
-      <Sheet ref={options} onClose={() => setPicked(null)}>
-        <View style={{ gap: space.m }}>
-          <SheetHeader title={picked?.label ?? ''} onClose={() => options.current?.dismiss()} />
-          <Button kind="secondary" label={tr('Retirer de mes amis')} onPress={() => { const f = picked; options.current?.dismiss(); if (f) void removeFriend(f); }} />
-          <Button kind="danger" label={tr('Bloquer')} onPress={() => { const f = picked; options.current?.dismiss(); if (f) void blockFriend(f); }} />
-        </View>
-      </Sheet>
+      {playerSheet}
     </Screen>
   );
 }

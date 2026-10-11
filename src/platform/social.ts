@@ -5,7 +5,7 @@
 import { load } from './cloud';
 
 export interface Look { cubo: string; hat: string } // boards theme key + wardrobe head piece: cuboLookFor(cubo, hat)
-export interface PlayerDoc { name: string; code: string; look: Look; createdAt: number; nameChangedAt: number; bestClassic?: number; league?: number; leagueWeek?: string; hidden?: boolean }
+export interface PlayerDoc { name: string; code: string; look: Look; createdAt: number; nameChangedAt: number; bestClassic?: number; league?: number; leagueWeek?: string; hidden?: string }
 
 function coded(code: string) {
   const e = new Error(code) as Error & { code: string };
@@ -26,7 +26,7 @@ function toPlayer(data: Record<string, unknown> | undefined): PlayerDoc | null {
     name: data.name, code: data.code, createdAt: Number(data.createdAt) || 0, nameChangedAt: Number(data.nameChangedAt) || 0, bestClassic: Number(data.bestClassic) || 0,
     look: { cubo: typeof look.cubo === 'string' ? look.cubo : 'toy', hat: typeof look.hat === 'string' ? look.hat : 'auto' },
     league: Number(data.league) || 0, leagueWeek: typeof data.leagueWeek === 'string' ? data.leagueWeek : '',
-    hidden: data.hidden === true,
+    hidden: typeof data.hidden === 'string' ? data.hidden : '', // the pseudo the owner hid (console)
   };
 }
 
@@ -102,6 +102,19 @@ export async function dropFriend(me: string, fid: string) {
   await fs.deleteDoc(fs.doc(db, 'players', me, 'friends', fid));
   await fs.deleteDoc(fs.doc(db, 'players', fid, 'friends', me)).catch(() => {});
   await fs.deleteDoc(fs.doc(db, 'inbox', me, 'adds', fid)).catch(() => {});
+  await fs.deleteDoc(fs.doc(db, 'inbox', fid, 'adds', me)).catch(() => {}); // my own add, if his app has not moved it yet
+}
+
+// reports/{auto id}: create only (the owner reads them in the console).
+export async function sendReport(from: string, target: string, name: string, reason: string) {
+  const { fs, db } = await store();
+  await fs.addDoc(fs.collection(db, 'reports'), { from, target, name, reason, at: Date.now() });
+}
+
+// The pseudo on this week's score doc follows a rename (the boards read names from the score docs).
+export async function renameWeekScore(uid: string, week: string, name: string) {
+  const { fs, db } = await store();
+  await fs.updateDoc(fs.doc(db, 'weeks', week, 'scores', uid), { name, at: Date.now() });
 }
 
 export async function inboxIds(me: string): Promise<string[]> {
@@ -185,15 +198,20 @@ export async function getGroup(week: string, group: string, limit: number): Prom
   });
 }
 
-// Account deletion: friends, inbox, the code, the player. Called while still signed in.
+// Account deletion: score docs, my entry in each friend's list and inbox, my friends, my inbox, the code, the player.
+// Called while still signed in. Reports I wrote stay (the rules give clients no delete there).
 export async function deleteAll(uid: string, weeks: string[] = []) {
   const { fs, db } = await store();
   for (const w of weeks) await fs.deleteDoc(fs.doc(db, 'weeks', w, 'scores', uid)).catch(() => {});
   const code = (await getPlayer(uid).catch(() => null))?.code;
-  for (const path of [['players', uid, 'friends'], ['inbox', uid, 'adds']]) {
-    const snap = await fs.getDocs(fs.collection(db, path[0], path[1], path[2]));
-    await Promise.all(snap.docs.map((d) => fs.deleteDoc(d.ref)));
-  }
+  const mine = await fs.getDocs(fs.collection(db, 'players', uid, 'friends'));
+  await Promise.all(mine.docs.flatMap((d) => [
+    fs.deleteDoc(fs.doc(db, 'players', d.id, 'friends', uid)).catch(() => {}), // allowed for the friend himself
+    fs.deleteDoc(fs.doc(db, 'inbox', d.id, 'adds', uid)).catch(() => {}),
+  ]));
+  await Promise.all(mine.docs.map((d) => fs.deleteDoc(d.ref)));
+  const inbox = await fs.getDocs(fs.collection(db, 'inbox', uid, 'adds'));
+  await Promise.all(inbox.docs.map((d) => fs.deleteDoc(d.ref)));
   if (code) await fs.deleteDoc(fs.doc(db, 'codes', code)).catch(() => {});
   await fs.deleteDoc(fs.doc(db, 'players', uid));
 }

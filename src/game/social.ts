@@ -19,15 +19,18 @@ import { toast } from '../ui/Toast';
 const CACHE_KEY = 'cuboblocks.social';
 const REPORT_KEY = 'cuboblocks.social.report'; // a league result not shown yet
 const SENT_KEY = 'cuboblocks.social.sent'; // what weeks/{week}/scores/{uid} holds after my last push
+const REPORTED_KEY = 'cuboblocks.social.reported'; // uids reported from this device (one report each); kept at sign-out, dropped with the account
 
 export interface Me extends Net.PlayerDoc { uid: string }
 export interface Friend { uid: string; name: string; code: string; look: CuboLook; label: string; bestClassic: number }
 // A friend's line in the rankings: this week's score doc (missing = 0) + the card's all-time Classique best.
-export interface BoardRow { uid: string; label: string; look: CuboLook; me: boolean; points: number; best: number; record: number }
+export interface BoardRow { uid: string; name: string; label: string; look: CuboLook; me: boolean; points: number; best: number; record: number }
 interface Board { week: string; at: number; rows: BoardRow[] }
 // A line of my league group: the week's score doc (name = the raw pseudo, label = shown with #code on a collision).
-export interface LeagueRow { uid: string; name: string; label: string; look: CuboLook; me: boolean; points: number; best: number }
-interface LeagueGroup { week: string; group: string; at: number; rows: { uid: string; name: string; look: Net.Look; points: number; best: number }[] }
+// masked: a blocked player ("Joueur masqué", neutral Cubo); the row stays so the ranks are the claim's.
+export interface LeagueRow { uid: string; name: string; label: string; look: CuboLook; me: boolean; points: number; best: number; masked: boolean }
+// hidden: the owner's `hidden` strings of the group's players cards (read with the board, refreshed every 10 min).
+interface LeagueGroup { week: string; group: string; at: number; rows: { uid: string; name: string; look: Net.Look; points: number; best: number }[]; hidden: Record<string, string>; hiddenAt: number }
 // off: signed out or nothing loaded; loading; ready; error: signed in but no answer and nothing cached.
 type Status = 'off' | 'loading' | 'ready' | 'error';
 interface State { status: Status; me: Me | null; friends: Friend[]; listing: boolean; board: Board | null; boarding: boolean; group: LeagueGroup | null; grouping: boolean; report: G.LeagueReport | null }
@@ -122,7 +125,7 @@ export async function createMe(raw: string): Promise<{ error?: string }> {
 export async function renameMe(raw: string): Promise<{ error?: string }> {
   const me = get().me;
   if (!me) return { error: failed() };
-  const wait = C.renameWait(me.nameChangedAt, Date.now());
+  const wait = flagged(me) ? 0 : C.renameWait(me.nameChangedAt, Date.now()); // a reported pseudo may always be replaced
   if (wait > 0) return { error: tr`Tu pourras changer de pseudo ${C.waitText(wait)}.` };
   const checked = C.checkName(raw);
   if (!checked.ok) return { error: checked.error };
@@ -131,9 +134,13 @@ export async function renameMe(raw: string): Promise<{ error?: string }> {
   try {
     await Net.updatePlayer(me.uid, { name: checked.name, nameChangedAt: now });
     keep({ ...me, name: checked.name, nameChangedAt: now });
+    void Net.renameWeekScore(me.uid, C.weekId(clock()), checked.name).catch(() => {}); // no score doc yet, or < 10 s since the last push: the next push carries the name
     return {};
   } catch { return { error: failed() }; }
 }
+
+// The owner hid my current pseudo: the app asks for a new one (Communauté, Défis).
+export const flagged = (me: Me | null) => !!me && C.isHidden(me.name, me.hidden);
 
 export function shareCode() {
   const me = get().me;
@@ -175,7 +182,7 @@ export async function refreshFriends(quiet = false): Promise<boolean> {
       if (d === undefined) continue; // unreadable now: skipped, not deleted
       if (d === null) { void Net.dropFriend(me.uid, id).catch(() => {}); continue; } // account deleted
       if (C.isBlocked(blockedList(), id)) continue;
-      people.push({ uid: id, name: d.hidden ? tr('Joueur') : d.name, code: d.code, look: d.look, hidden: !!d.hidden, best: d.bestClassic || 0 });
+      people.push({ uid: id, name: C.isHidden(d.name, d.hidden) ? tr('Joueur') : d.name, code: d.code, look: d.look, hidden: C.isHidden(d.name, d.hidden), best: d.bestClassic || 0 });
     }
     const names = C.labels([{ uid: me.uid, name: me.name, code: me.code }, ...people]);
     const friends = people.map((p): Friend => ({ uid: p.uid, name: p.name, code: p.code, look: lookOf(p.look), label: names[p.uid], bestClassic: p.best }));
@@ -206,7 +213,7 @@ export async function addByCode(raw: string): Promise<{ error?: string }> {
     // Adding a blocked player by his code is a choice: he is unblocked.
     if (C.isBlocked(blockedList(), uid)) setBlocked(C.withoutBlocked(blockedList(), uid));
     await Net.addFriend(me.uid, uid);
-    toast(tr`${other.hidden ? tr('Joueur') : other.name} est ton ami.`);
+    toast(tr`${C.isHidden(other.name, other.hidden) ? tr('Joueur') : other.name} est ton ami.`);
     await refreshFriends();
     return {};
   } catch { return { error: failed() }; }
@@ -223,19 +230,40 @@ export async function removeFriend(f: Friend) {
   } catch { toast(failed()); }
 }
 
-export async function blockFriend(f: Friend) {
+// A friend, a league rival or a friends-board line: the block hides him everywhere and drops the friendship if any.
+export async function blockPlayer(uid: string, label: string) {
   const me = get().me;
-  if (!me) return;
+  if (!me || uid === me.uid) return;
   const sure = await ask({
     title: tr('Bloquer ce joueur ?'),
-    text: tr`${f.label} ne pourra plus t’ajouter. Pour le débloquer, ajoute à nouveau son code.`,
+    text: tr`${label} ne pourra plus t’ajouter. Pour le débloquer, ajoute à nouveau son code.`,
     ok: tr('Bloquer'),
     danger: true,
   });
   if (!sure) return;
-  setBlocked(C.withBlocked(blockedList(), f.uid)); // first: the block holds even if the network fails
-  set({ friends: get().friends.filter((x) => x.uid !== f.uid) });
-  await Net.dropFriend(me.uid, f.uid).catch(() => toast(failed()));
+  setBlocked(C.withBlocked(blockedList(), uid)); // first: the block holds even if the network fails
+  set({ friends: get().friends.filter((x) => x.uid !== uid) });
+  await Net.dropFriend(me.uid, uid).catch(() => toast(failed()));
+}
+export const blockFriend = (f: Friend) => blockPlayer(f.uid, f.label);
+
+// ---------- reports ----------
+
+const reportedSet = (): string[] => {
+  try { const v = JSON.parse(mmkv.get(REPORTED_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+};
+export const wasReported = (uid: string) => reportedSet().includes(uid);
+
+// reports/{id}: who, whom, the pseudo as it was shown, why. One per target per device.
+export async function reportPlayer(uid: string, name: string, reason: C.ReportReason) {
+  const me = get().me;
+  if (!me || uid === me.uid) return;
+  if (wasReported(uid)) { toast(tr('Tu l’as déjà signalé, merci.')); return; }
+  try {
+    await Net.sendReport(me.uid, uid, name.slice(0, 32), reason);
+    mmkv.set(REPORTED_KEY, JSON.stringify([...reportedSet(), uid].slice(-500)));
+    toast(tr('Merci, on va regarder.'));
+  } catch { toast(failed()); }
 }
 
 // ---------- weekly score ----------
@@ -304,6 +332,7 @@ async function push(me: Me) {
 // ---------- leagues ----------
 
 const GROUP_TTL = 60000;
+const HIDDEN_TTL = 600000;
 
 // The group of this week: the one in the profile, else claim the finished week first, then take a seat in my tier.
 // null = could not (offline, claim pending): the score is not sent yet.
@@ -379,11 +408,26 @@ export async function refreshGroup(force = false) {
   set({ grouping: true });
   try {
     const rows = await Net.getGroup(week, last.group, G.GROUP_SIZE);
-    set({ group: { week, group: last.group, at: Date.now(), rows } });
+    // Score docs carry their own pseudo: the owner's `hidden` is read from the players cards (<= 29 reads, every 10 min).
+    const same = had && had.group === last.group && had.week === week;
+    let hidden = same ? had.hidden : {};
+    let hiddenAt = same ? had.hiddenAt : 0;
+    if (!same || now - hiddenAt >= HIDDEN_TTL || rows.some((r) => !(r.uid in hidden) && r.uid !== me.uid)) {
+      const docs = await Net.getPlayers(rows.filter((r) => r.uid !== me.uid).map((r) => r.uid)).catch(() => null);
+      if (docs) {
+        hidden = {};
+        for (const [u, d] of Object.entries(docs)) hidden[u] = d?.hidden || '';
+        hiddenAt = now;
+      }
+    }
+    set({ group: { week, group: last.group, at: Date.now(), rows, hidden, hiddenAt } });
   } catch { /* offline: the last group stays */ } finally {
     set({ grouping: false });
   }
 }
+
+// The Cubo of a masked (blocked) player: grey, no look of his own.
+const NEUTRAL: CuboLook = { ...cuboLookFor('toy'), base: '#9aa3ad', dark: '#79828c', light: '#d3d8de', cheek: '#b4bcc5', leaf: '#aab2bb', leafDark: '#8a929b' };
 
 // My group with my line from the local tally (always fresh). null when not joined this week or not loaded yet.
 export function useLeagueRows(): LeagueRow[] | null {
@@ -397,10 +441,18 @@ export function useLeagueRows(): LeagueRow[] | null {
     const rest = group.rows.filter((r) => r.uid !== me.uid); // strangers all count: the ranks must be the claim's
     const old = group.rows.find((r) => r.uid === me.uid);
     const mine = { uid: me.uid, name: me.name, look: lookOf(me.look), points: Math.max(w.points, old?.points || 0), best: Math.max(w.best, old?.best || 0) };
-    const people = [...rest.map((r) => ({ uid: r.uid, name: r.name, code: r.uid.slice(0, 3).toUpperCase() })), { uid: me.uid, name: me.name, code: me.code }];
+    const shown = (r: { uid: string; name: string }) => (C.isBlocked(profile.blocked, r.uid) ? 'masked' : C.isHidden(r.name, group.hidden[r.uid]) ? 'hidden' : 'ok');
+    const people = [...rest.filter((r) => shown(r) === 'ok').map((r) => ({ uid: r.uid, name: r.name, code: r.uid.slice(0, 3).toUpperCase() })), { uid: me.uid, name: me.name, code: me.code }];
     const names = C.labels(people);
-    return [{ ...mine, me: true, label: names[me.uid] }, ...rest.map((r): LeagueRow => ({ uid: r.uid, name: r.name, look: lookOf(r.look), me: false, points: r.points, best: r.best, label: names[r.uid] }))];
-  }, [me, group, profile.league, profile.week]);
+    const line = (r: (typeof rest)[number]): LeagueRow => {
+      const how = shown(r);
+      const base = { uid: r.uid, name: r.name, me: false, points: r.points, best: r.best };
+      if (how === 'masked') return { ...base, look: NEUTRAL, label: tr('Joueur masqué'), masked: true };
+      if (how === 'hidden') return { ...base, look: lookOf(r.look), label: tr('Joueur'), masked: false };
+      return { ...base, look: lookOf(r.look), label: names[r.uid], masked: false };
+    };
+    return [{ ...mine, me: true, label: names[me.uid], masked: false }, ...rest.map(line)];
+  }, [me, group, profile.league, profile.week, profile.blocked]);
 }
 
 // ---------- friends ranking ----------
@@ -422,7 +474,7 @@ export async function refreshBoard(force = false) {
     const old = had && had.week === week ? had.rows : [];
     const rows: BoardRow[] = friends.map((f) => {
       const s = scores[f.uid] || old.find((r) => r.uid === f.uid); // an unreadable doc keeps its last value
-      return { uid: f.uid, label: f.label, look: f.look, me: false, points: s ? s.points : 0, best: s ? s.best : 0, record: f.bestClassic };
+      return { uid: f.uid, name: f.name, label: f.label, look: f.look, me: false, points: s ? s.points : 0, best: s ? s.best : 0, record: f.bestClassic };
     });
     set({ board: { week, at: Date.now(), rows } });
   } catch { /* offline: the last board stays */ } finally {
@@ -439,14 +491,20 @@ export function useBoardRows(): BoardRow[] | null {
   return useMemo(() => {
     if (!me || !board) return null;
     const w = C.weekOf(profile.week, clock());
-    const mine: BoardRow = { uid: me.uid, label: me.name, look: lookOf(me.look), me: true, points: w.points, best: w.best, record: Math.max(classic, me.bestClassic || 0) };
-    return [mine, ...board.rows];
-  }, [me, board, profile.week, classic]);
+    const mine: BoardRow = { uid: me.uid, name: me.name, label: me.name, look: lookOf(me.look), me: true, points: w.points, best: w.best, record: Math.max(classic, me.bestClassic || 0) };
+    return [mine, ...board.rows.filter((r) => !C.isBlocked(profile.blocked, r.uid))];
+  }, [me, board, profile.week, profile.blocked, classic]);
 }
 
 // Account deletion (called by cloud.deleteAccount while still signed in). Failures stop the deletion.
+// Score docs: this week, the last one, the last group joined and the last week pushed (the player may have stopped).
 export async function deleteSocialData(uid: string) {
   const now = clock();
-  await Net.deleteAll(uid, [C.weekId(now), C.weekId(now - 7 * 86400000)]);
+  const weeks = new Set([C.weekId(now), C.weekId(now - 7 * 86400000)]);
+  const joined = useGame.getState().profile.league?.last?.week;
+  if (joined) weeks.add(joined);
+  try { const v = JSON.parse(mmkv.get(SENT_KEY) || 'null') as Sent | null; if (v && v.uid === uid && v.week) weeks.add(v.week); } catch { /* none */ }
+  await Net.deleteAll(uid, [...weeks]);
   resetSocial();
+  mmkv.remove(REPORTED_KEY);
 }

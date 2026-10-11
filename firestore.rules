@@ -1,13 +1,13 @@
 rules_version = '2';
 // Cubo Blocks cloud save: one document per player, readable and writable only by that player.
 // profile, settings and bests are JSON text (see src/platform/cloud-doc.ts).
-// Community (milestones 1-4 of docs/superpowers/specs/2026-10-09-social-design.md): players, codes, friends, inbox, weekly scores.
+// Community (milestones 1-5 of docs/superpowers/specs/2026-10-09-social-design.md): players, codes, friends, inbox, weekly scores.
 service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
     function isUser(uid) { return request.auth != null && request.auth.uid == uid; }
 
-    // A player card. hidden is set from the console only (never created or changed by the client).
+    // A player card. hidden (a string: the pseudo the owner hid) is set from the console only (never created or changed by the client).
     function validPlayer(d) {
       return d.keys().hasOnly(['name', 'code', 'look', 'createdAt', 'nameChangedAt', 'bestClassic', 'league', 'leagueWeek', 'hidden'])
         && d.keys().hasAll(['name', 'code', 'look', 'createdAt', 'nameChangedAt'])
@@ -17,6 +17,7 @@ service cloud.firestore {
         && d.look is map && d.look.keys().hasOnly(['cubo', 'hat'])
         && d.look.cubo is string && d.look.cubo.size() <= 24 && d.look.hat is string && d.look.hat.size() <= 24
         && d.createdAt is int && d.nameChangedAt is int
+        && (!('hidden' in d) || d.hidden is string)
         && d.get('bestClassic', 0) is int && d.get('bestClassic', 0) >= 0 && d.get('bestClassic', 0) <= 2000000
         && d.get('league', 0) is int && d.get('league', 0) >= 0 && d.get('league', 0) <= 5
         && (!('leagueWeek' in d) || (d.leagueWeek is string && d.leagueWeek.matches('^[0-9]{4}-W[0-9]{2}$')));
@@ -51,7 +52,8 @@ service cloud.firestore {
       allow create: if isUser(uid) && validPlayer(request.resource.data)
         && !('hidden' in request.resource.data) && !('league' in request.resource.data) && !('leagueWeek' in request.resource.data)
         && getAfter(/databases/$(db)/documents/codes/$(request.resource.data.code)).data.uid == uid;
-      // The code and creation date never change, hidden stays as it is, a new pseudo needs a week since the last one.
+      // The code and creation date never change, hidden stays as it is, a new pseudo needs a week since the last one
+      // (except when the owner hid the current pseudo: hidden == name, the player may pick a new one at once).
       allow update: if isUser(uid) && validPlayer(request.resource.data)
         && request.resource.data.code == resource.data.code
         && request.resource.data.createdAt == resource.data.createdAt
@@ -65,7 +67,7 @@ service cloud.firestore {
             && request.resource.data.get('leagueWeek', '') > resource.data.get('leagueWeek', '')))
         && (request.resource.data.name == resource.data.name
           ? request.resource.data.nameChangedAt == resource.data.nameChangedAt
-          : (resource.data.nameChangedAt == 0 || request.resource.data.nameChangedAt >= resource.data.nameChangedAt + 604800000 - 3600000)
+          : (resource.data.nameChangedAt == 0 || resource.data.get('hidden', '') == resource.data.name || request.resource.data.nameChangedAt >= resource.data.nameChangedAt + 604800000 - 3600000)
             && request.resource.data.nameChangedAt >= request.time.toMillis() - 600000
             && request.resource.data.nameChangedAt <= request.time.toMillis() + 600000);
       allow delete: if isUser(uid);
@@ -120,11 +122,26 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
+    // Reports: create only (the owner reads them in the console). No read, update or delete for clients.
+    match /reports/{id} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['from', 'target', 'name', 'reason', 'at'])
+        && request.resource.data.keys().hasAll(['from', 'target', 'name', 'reason', 'at'])
+        && request.resource.data.from == request.auth.uid
+        && request.resource.data.target is string && request.resource.data.target.size() > 0 && request.resource.data.target.size() <= 128
+        && request.resource.data.target != request.auth.uid
+        && request.resource.data.name is string && request.resource.data.name.size() <= 32
+        && request.resource.data.reason in ['insult', 'inappropriate', 'other']
+        && request.resource.data.at is int
+        && request.resource.data.at >= request.time.toMillis() - 600000 && request.resource.data.at <= request.time.toMillis() + 600000;
+    }
+
     // Friend adds: the sender drops an entry in the other player's inbox, the owner moves it into friends and deletes it.
     match /inbox/{uid}/adds/{fid} {
       allow create, update: if isUser(fid) && uid != fid
         && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at is int;
-      allow read, delete: if isUser(uid);
+      allow read: if isUser(uid);
+      allow delete: if isUser(uid) || isUser(fid); // the sender cleans his own add (unfriend, account deletion)
     }
 
     match /users/{uid} {

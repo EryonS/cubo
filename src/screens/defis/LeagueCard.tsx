@@ -1,12 +1,13 @@
 // Top of the Défis tab: « Ligue de la semaine » (tier badge, my rank in my group, time left, top 3), with a
 // Ligue / Amis switch to the friends card. Signed out, no pseudo or not joined yet: one line. Opens Classement.
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { View } from 'react-native';
 import { useFocusEffect, useNavigation, type NavigationProp } from '@react-navigation/native';
 import { tr } from '../../core/i18n';
 import * as G from '../../core/league';
 import * as C from '../../core/social';
-import { refreshGroup, useLeagueRows, useSocial } from '../../game/social';
+import { flagged, refreshGroup, useLeagueRows, useSocial } from '../../game/social';
 import type { RootParams } from '../../navigation/types';
 import { now as clock } from '../../platform/clock';
 import { useGame } from '../../state/store';
@@ -16,6 +17,7 @@ import { Avatar } from '../../ui/Avatar';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { LeagueBadge } from '../../ui/LeagueBadge';
+import { PseudoSheet } from '../../ui/PseudoSheet';
 import { Segmented } from '../../ui/Segmented';
 import { Text } from '../../ui/Text';
 import { fmt, leagueLines } from '../RankingScreen';
@@ -76,8 +78,19 @@ function League() {
 }
 
 export function LeagueCard() {
+  const me = useSocial((s) => s.me);
+  const pseudo = useRef<BottomSheetModal>(null);
   const [scope, setScope] = useState(remembered);
   const pick = (v: 'league' | 'friends') => { remembered = v; setScope(v); };
+  if (flagged(me)) {
+    return (
+      <Card>
+        <Text variant="headline">{tr('Ton pseudo a été signalé, choisis-en un autre.')}</Text>
+        <Button label={tr('Choisir un autre pseudo')} onPress={() => pseudo.current?.present()} />
+        <PseudoSheet ref={pseudo} />
+      </Card>
+    );
+  }
   return (
     <View style={{ gap: space.m }}>
       <Segmented role="tab" value={scope} onChange={pick} options={[['league', tr('Ligue')], ['friends', tr('Amis')]]} />

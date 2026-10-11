@@ -4,7 +4,7 @@ import { BottomSheetTextInput, type BottomSheetModal } from '@gorhom/bottom-shee
 import { View } from 'react-native';
 import { tr } from '../core/i18n';
 import * as C from '../core/social';
-import { createMe, renameMe, useSocial } from '../game/social';
+import { createMe, flagged, renameMe, useSocial } from '../game/social';
 import { fonts } from '../theme/fonts';
 import { radius, space, TOUCH } from '../theme/tokens';
 import { useColors } from '../theme/useColors';
@@ -27,13 +27,15 @@ export const PseudoSheet = forwardRef<BottomSheetModal, object>(function PseudoS
     setBusy(false);
     if (res.error) setError(res.error); else close();
   };
-  const wait = me ? C.renameWait(me.nameChangedAt, Date.now()) : 0;
+  const forced = flagged(me);
+  const wait = me && !forced ? C.renameWait(me.nameChangedAt, Date.now()) : 0;
   return (
-    <Sheet ref={ref} onOpen={() => { setText(me?.name ?? ''); setError(''); }}>
+    <Sheet ref={ref} onOpen={() => { setText(forced ? '' : me?.name ?? ''); setError(''); }}>
       <View style={{ gap: space.m }}>
         <SheetHeader title={me ? tr('Changer de pseudo') : tr('Ton pseudo')} onClose={close} />
+        {forced && <Text variant="body" style={{ color: colors.danger }}>{tr('Ton pseudo a été signalé, choisis-en un autre.')}</Text>}
         <Text variant="muted">
-          {me ? tr('Tu peux le changer une fois par semaine.') : tr('Choisis un pseudo : tes amis le verront.')}
+          {forced ? tr('Le nouveau pseudo remplace l’ancien, sans attendre.') : me ? tr('Tu peux le changer une fois par semaine.') : tr('Choisis un pseudo : tes amis le verront.')}
         </Text>
         {wait > 0 ? (
           <Text variant="body">{tr`Tu pourras changer de pseudo ${C.waitText(wait)}.`}</Text>
