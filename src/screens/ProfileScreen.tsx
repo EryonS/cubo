@@ -1,16 +1,22 @@
 // Profil tab (legacy #profile): Cubo and the totals, trophies, the sticker album entry, stats per mode and
 // lifetime counters. Paramètres sits on the header's right.
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { M } from '../core';
 import { locale, tr } from '../core/i18n';
+import { accountInfo, subscribeAccount } from '../game/account';
+import { useSocial } from '../game/social';
+import { available } from '../platform/cloud';
+import * as Soc from '../core/social';
 import { albumPages, monthShelf, seasonShelf, type Trophy as T } from '../game/album';
 import { cuboLookFor } from '../mascot/looks';
 import type { RootParams } from '../navigation/types';
 import { today } from '../state/persist';
 import { useGame } from '../state/store';
 import { space } from '../theme/tokens';
+import { useColors } from '../theme/useColors';
+import { Icon } from '../ui/Icon';
 import { Card } from '../ui/Card';
 import { CuboPose } from '../ui/CuboPose';
 import { ListRow } from '../ui/ListRow';
@@ -39,10 +45,21 @@ function Shelf({ title, items }: { title: string; items: T[] }) {
   );
 }
 
+function CommunityBadge() {
+  const colors = useColors();
+  return (
+    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
+      <Icon name="profile" size={24} color={colors.onAccent} />
+    </View>
+  );
+}
+
 export function ProfileScreen() {
   const nav = useNavigation<NavigationProp<RootParams>>();
   const profile = useGame((s) => s.profile);
   const look = useMemo(() => cuboLookFor(profile.equipped.boards, profile.equipped.cubo), [profile.equipped.boards, profile.equipped.cubo]);
+  const signed = useSyncExternalStore(subscribeAccount, accountInfo, accountInfo);
+  const me = useSocial((s) => s.me);
   const day = today();
   const { count, total } = albumPages(profile);
   const season = seasonShelf(profile, day);
@@ -64,6 +81,11 @@ export function ProfileScreen() {
       </View>
       <ListRow big title={tr('Album')} sub={tr`Autocollants · ${count} / ${total}`} onPress={() => nav.navigate('Album')} right="chevron"
         icon={<StickerBadge page="combo" color="#ff8fab" size={44} />} />
+      {available() && (
+        <ListRow big title={tr('Communauté')} right="chevron" onPress={() => nav.navigate('Community')}
+          sub={signed && me ? `${me.name} · ${Soc.showCode(me.code)}` : signed ? tr('Choisis ton pseudo et ajoute des amis') : tr('Connecte-toi pour avoir un pseudo et des amis')}
+          icon={<CommunityBadge />} />
+      )}
       <Card>
         <Shelf title={tr('Trophées du mois')} items={monthShelf(profile, day, monthShort)} />
         {season.length > 0 && <Shelf title={tr('Trophées de saison')} items={season} />}

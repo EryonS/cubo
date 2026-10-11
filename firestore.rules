@@ -1,8 +1,67 @@
 rules_version = '2';
 // Cubo Blocks cloud save: one document per player, readable and writable only by that player.
 // profile, settings and bests are JSON text (see src/platform/cloud-doc.ts).
+// Community (milestones 1-2 of docs/superpowers/specs/2026-10-09-social-design.md): players, codes, friends, inbox.
 service cloud.firestore {
   match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function isUser(uid) { return request.auth != null && request.auth.uid == uid; }
+
+    // A player card. hidden is set from the console only (never created or changed by the client).
+    function validPlayer(d) {
+      return d.keys().hasOnly(['name', 'code', 'look', 'createdAt', 'nameChangedAt', 'hidden'])
+        && d.keys().hasAll(['name', 'code', 'look', 'createdAt', 'nameChangedAt'])
+        && d.name is string && d.name.size() >= 3 && d.name.size() <= 16
+        && d.name.matches('^[A-Za-z0-9\\x{C0}-\\x{D6}\\x{D8}-\\x{F6}\\x{F8}-\\x{FF}\\x{152}\\x{153} _-]+$')
+        && d.code is string && d.code.matches('^[A-HJ-NP-Z2-9]{6}$')
+        && d.look is map && d.look.keys().hasOnly(['cubo', 'hat'])
+        && d.look.cubo is string && d.look.cubo.size() <= 24 && d.look.hat is string && d.look.hat.size() <= 24
+        && d.createdAt is int && d.nameChangedAt is int;
+    }
+
+    match /players/{uid} {
+      allow get: if signedIn();
+      // The code is reserved in codes/ by the same transaction.
+      allow create: if isUser(uid) && validPlayer(request.resource.data)
+        && !('hidden' in request.resource.data)
+        && getAfter(/databases/$(db)/documents/codes/$(request.resource.data.code)).data.uid == uid;
+      // The code and creation date never change, hidden stays as it is, a new pseudo needs a week since the last one.
+      allow update: if isUser(uid) && validPlayer(request.resource.data)
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.get('hidden', false) == resource.data.get('hidden', false)
+        && (request.resource.data.name == resource.data.name
+          ? request.resource.data.nameChangedAt == resource.data.nameChangedAt
+          : (resource.data.nameChangedAt == 0 || request.resource.data.nameChangedAt >= resource.data.nameChangedAt + 604800000 - 3600000)
+            && request.resource.data.nameChangedAt >= request.time.toMillis() - 600000
+            && request.resource.data.nameChangedAt <= request.time.toMillis() + 600000);
+      allow delete: if isUser(uid);
+
+      // My friends. Only I add; either side can delete (removing or blocking also clears the other list).
+      match /friends/{fid} {
+        allow read: if isUser(uid);
+        allow create, update: if isUser(uid) && fid != uid
+          && request.resource.data.keys().hasOnly(['since']) && request.resource.data.since is int;
+        allow delete: if isUser(uid) || isUser(fid);
+      }
+    }
+
+    // Friend codes: readable one by one (no listing), created once for the owner, never updated.
+    match /codes/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn() && code.matches('^[A-HJ-NP-Z2-9]{6}$')
+        && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(db)/documents/players/$(request.auth.uid)).data.code == code;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Friend adds: the sender drops an entry in the other player's inbox, the owner moves it into friends and deletes it.
+    match /inbox/{uid}/adds/{fid} {
+      allow create, update: if isUser(fid) && uid != fid
+        && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at is int;
+      allow read, delete: if isUser(uid);
+    }
+
     match /users/{uid} {
       allow read, delete: if request.auth != null && request.auth.uid == uid;
       allow create, update: if request.auth != null && request.auth.uid == uid

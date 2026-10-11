@@ -16,7 +16,7 @@ Optional. Profil > Paramètres > Sauvegarde en ligne links a Google or Apple acc
 - `src/platform/cloud.ts`: Firebase JS SDK (lazy `import()`, React Native auth persistence on AsyncStorage), `CONFIG` (empty `apiKey` = feature hidden; `webClientId` / `iosClientId` for Google). Apple sign-in through `expo-apple-authentication` (iOS only, the Apple row is hidden on Android), Google through `@react-native-google-signin/google-signin` (native sheet, ID token whose audience is the Web client), then `signInWithCredential`. `src/platform/cloud-doc.ts` (`encodeDoc` / `decodeDoc`, test `cloud-doc.test.ts`).
 - `src/game/account.ts`: sign-in, push / pull, choice, sign-out, deletion (`signInWith`, `signOutCloud`, `deleteCloudAccount`, `syncedLabel`). `startAccount()` runs at launch from `App.tsx`.
 - `src/ui/AccountBlock.tsx`: Compte block at the top of Paramètres (`src/screens/SettingsScreen.tsx`), `src/ui/SyncChoice.tsx`: the choice dialog.
-- `firestore.rules`.
+- `firestore.rules` (also the community rules, see [social.md](social.md)). Account deletion also removes the community data (`deleteSocialData`).
 - Spec: `docs/superpowers/specs/2026-10-04-cloud-save-design.md`.
 
 ## Saved state

@@ -34,22 +34,26 @@ function AppleMark({ color }: { color: string }) {
 // The two marks share one column, so both labels start at the same place.
 const Mark = ({ children }: { children: React.ReactNode }) => <View style={{ width: 20, alignItems: 'center' }}>{children}</View>;
 
+// The two sign-in rows with a line above; also used by the Communauté screen (hint = its own line).
+export function SignInRows({ hint }: { hint: string }) {
+  const colors = useColors();
+  return (
+    <View style={{ gap: space.s }}>
+      <Text variant="muted" style={{ marginHorizontal: space.xs }}>{hint}</Text>
+      {/* expo-apple-authentication is the native iOS sheet: no Apple sign-in on Android. */}
+      <Group>
+        <ListRow title={tr('Continuer avec Google')} icon={<Mark><GoogleMark /></Mark>} onPress={() => { void signInWith('google'); }} />
+        {Platform.OS === 'ios' && <ListRow title={tr('Continuer avec Apple')} icon={<Mark><AppleMark color={colors.text} /></Mark>} onPress={() => { void signInWith('apple'); }} />}
+      </Group>
+    </View>
+  );
+}
+
 export function AccountBlock() {
   const colors = useColors();
   const info = useSyncExternalStore(subscribeAccount, accountInfo, accountInfo);
   if (!available()) return null;
-  if (!info) {
-    return (
-      <View style={{ gap: space.s }}>
-        <Text variant="muted" style={{ marginHorizontal: space.xs }}>{tr('Retrouve ta progression sur tous tes appareils.')}</Text>
-        {/* expo-apple-authentication is the native iOS sheet: no Apple sign-in on Android. */}
-        <Group>
-          <ListRow title={tr('Continuer avec Google')} icon={<Mark><GoogleMark /></Mark>} onPress={() => { void signInWith('google'); }} />
-          {Platform.OS === 'ios' && <ListRow title={tr('Continuer avec Apple')} icon={<Mark><AppleMark color={colors.text} /></Mark>} onPress={() => { void signInWith('apple'); }} />}
-        </Group>
-      </View>
-    );
-  }
+  if (!info) return <SignInRows hint={tr('Retrouve ta progression sur tous tes appareils.')} />;
   const by = info.provider === 'apple' ? tr('Connecté avec Apple') : tr('Connecté avec Google');
   return (
     <Group>
