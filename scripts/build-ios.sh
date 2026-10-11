@@ -100,7 +100,9 @@ cat > "$OPTIONS" <<PLIST
 PLIST
 
 echo "Exporting ($METHOD)..."
-xcodebuild -exportArchive \
+# System tools only: /usr/bin/rsync starts the first rsync on PATH as its server, and Homebrew's
+# rsync 3.x rejects its -E flag ("Copy failed").
+PATH=/usr/bin:/bin:/usr/sbin:/sbin xcodebuild -exportArchive \
   -archivePath "$ARCHIVE" \
   -exportPath "$EXPORT_DIR" \
   -exportOptionsPlist "$OPTIONS" \

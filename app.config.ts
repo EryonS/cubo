@@ -21,7 +21,7 @@ const config: ExpoConfig = {
     supportsTablet: false,
     bundleIdentifier: IDENTITY.bundleId,
     // One per upload to App Store Connect: bump it (and CURRENT_PROJECT_VERSION in the Xcode project) before each archive.
-    buildNumber: '2',
+    buildNumber: '6',
     // Signing team, so a prebuild keeps it in the Xcode project.
     appleTeamId: '853SGV2WKU',
     infoPlist: { ITSAppUsesNonExemptEncryption: false },

@@ -1,9 +1,9 @@
 // Paramètres (legacy #settings): the cloud account (hidden until Firebase is configured), sounds, music,
 // vibrations, color-blind marks, the app icon, language, help and contact, the privacy policy and
-// ad-privacy rows, and the app version at the bottom. Tapping the version 7 times shows Développeur
-// (test mode, game/devmode.ts); a dev build always shows it.
+// ad-privacy rows, and the app version at the bottom. Développeur (test mode, game/devmode.ts, clock,
+// ad checks) shows for the developer's account only (isDeveloper), and always in a dev build.
 import { useRef, useState, useSyncExternalStore } from 'react';
-import { Linking, Platform, View } from 'react-native';
+import { Linking, Platform, Share, View } from 'react-native';
 import * as Application from 'expo-application';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
@@ -14,10 +14,11 @@ import { sfx } from '../audio/engine';
 import { haptic } from '../platform/haptics';
 import { startTutorial } from '../game/tutorial';
 import { appIcon, canChangeAppIcon } from '../platform/app-icon';
-import { privacyRequired, showPrivacyOptions, subscribePrivacy } from '../platform/ads';
+import { adStatus, debugAd, privacyRequired, resetAdConsent, showPrivacyOptions, subscribePrivacy } from '../platform/ads';
 import { available } from '../platform/cloud';
 import { clockDays, setClockDays } from '../platform/clock';
-import { devShown, showDev, testMode } from '../platform/kv';
+import { testMode } from '../platform/kv';
+import { isDeveloper, subscribeAccount } from '../game/account';
 import { resumeSocial } from '../game/social';
 import { addTestCoins, resetTestProfile, switchTestMode } from '../game/devmode';
 import type { Settings } from '../state/persist';
@@ -38,8 +39,6 @@ const LANGS: [LangPref, string][] = [['auto', 'Auto'], ['fr', 'Français'], ['en
 const CONTACT = 'contact@slapps.dev';
 // "1.0.0 (12)": store version and build number, as App Store Connect and Play show them.
 const VERSION = `${Application.nativeApplicationVersion ?? '?'} (${Application.nativeBuildVersion ?? '?'})`;
-
-const DEV_TAPS = 7;
 
 const open = (url: string) => { Linking.openURL(url).catch(() => {}); };
 // The policy opens in the app's language (site/lang.js reads ?lang=).
@@ -66,17 +65,12 @@ export function SettingsScreen() {
   const themeRef = useRef<BottomSheetModal>(null);
   const equipped = useGame((s) => s.profile.equipped.boards);
   const [icon, setIcon] = useState(appIcon);
-  const [dev, setDev] = useState(devShown);
+  const dev = useSyncExternalStore(subscribeAccount, isDeveloper, isDeveloper);
+  const [ads, setAds] = useState<{ line: string; idfa: string | null } | null>(null);
   const [days, setDays] = useState(clockDays);
   // Developer clock: +1 week a tap (weeks and leagues follow it), the second row goes back to the real date.
   const shift = (d: number) => { setClockDays(d); setDays(d); resumeSocial(); };
-  const taps = useRef(0);
-  const tapVersion = () => {
-    if (dev || ++taps.current < DEV_TAPS) return;
-    showDev();
-    setDev(true);
-    haptic('pick');
-  };
+  const refreshAds = () => { void adStatus().then(setAds); };
   return (
     <Screen title={tr('Paramètres')} back>
       {available() && !testMode && (
@@ -133,9 +127,16 @@ export function SettingsScreen() {
             {testMode && <ListRow title={tr('Ajouter des pièces')} sub={tr('Au profil de test')} right="chevron" onPress={addTestCoins} />}
             {testMode && <ListRow title={tr('Réinitialiser le profil de test')} sub={tr('Il repart de zéro, tout ouvert')} right="chevron" onPress={() => { void resetTestProfile(); }} />}
           </Group>
+          <Group>
+            <ListRow title={tr('Pub de test Google')} sub={tr('Une vraie pub récompensée, sans risque pour le compte AdMob')} right="chevron" onPress={() => { void debugAd(false); }} />
+            <ListRow title={tr('Charger la vraie pub')} sub={tr('Sans l’afficher : dit si AdMob diffuse, ou le code d’erreur')} right="chevron" onPress={() => { void debugAd(true); }} />
+            <ListRow title={tr('État des pubs')} sub={ads ? ads.line : tr('Consentement, suivi, identifiant publicitaire')} right="chevron" onPress={refreshAds} />
+            {ads?.idfa && <ListRow title={tr('Partager l’IDFA')} sub={ads.idfa} right="chevron" onPress={() => { void Share.share({ message: ads.idfa! }); }} />}
+            <ListRow title={tr('Réinitialiser le consentement')} sub={tr('La prochaine pub redemande le choix')} right="chevron" onPress={() => { void resetAdConsent().then(refreshAds); }} />
+          </Group>
         </View>
       )}
-      <Text variant="caption" style={{ textAlign: 'center' }} onPress={tapVersion} suppressHighlighting>{tr`Cubo Blocks, version ${VERSION}`}</Text>
+      <Text variant="caption" style={{ textAlign: 'center' }}>{tr`Cubo Blocks, version ${VERSION}`}</Text>
       <ThemeSheet ref={themeRef} onShop={() => nav.dispatch(CommonActions.navigate('Tabs', { screen: 'Shop' }))} />
       {canChangeAppIcon && <AppIconSheet ref={iconRef} onPicked={setIcon} />}
     </Screen>

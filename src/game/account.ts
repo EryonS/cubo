@@ -45,6 +45,9 @@ function readInfo(): SyncInfo | null {
 
 export const signedIn = () => !!syncInfo;
 export const accountInfo = () => syncInfo;
+// Paramètres > Développeur: in a dev build, in test mode (to leave it), or signed in as the developer.
+const DEV_EMAIL = 'lucas.schilling.pro@gmail.com';
+export const isDeveloper = () => __DEV__ || testMode || syncInfo?.email?.toLowerCase() === DEV_EMAIL;
 export const subscribeAccount = (l: () => void) => { listeners.add(l); return () => listeners.delete(l); };
 const publish = () => listeners.forEach((l) => l());
 
