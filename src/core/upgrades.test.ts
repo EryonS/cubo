@@ -101,3 +101,18 @@ test('profile v7: chest Bombes move to the reserve', () => {
   assert.equal(profile.adventure.bombs, undefined);
   assert.equal(M.bonusStock(profile, 'bomb'), 2);
 });
+
+test('a tray piece turns under Toupie, or on its own with `turn`, never once the run is over', () => {
+  const st = L.createGame(1);
+  const piece = st.tray.find(Boolean);
+  const i = st.tray.indexOf(piece);
+  assert.equal(L.canTurnPiece(st, piece), false);
+  assert.equal(L.rotate(st, i), null);
+  const spinning = L.use(withBonus(st, 'rotate'), 'rotate').state;
+  assert.ok(L.canTurnPiece(spinning, spinning.tray[i]));
+  const own = { ...st, tray: st.tray.map((p, k) => (k === i ? { ...p, turn: true } : p)) };
+  assert.ok(L.canTurnPiece(own, own.tray[i]));
+  const turned = L.rotate(own, i);
+  assert.equal(turned.tray[i].turn, true); // still turns after a quarter turn
+  assert.equal(L.rotate({ ...own, over: true }, i), null);
+});

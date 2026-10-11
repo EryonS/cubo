@@ -6,7 +6,7 @@ About 7% of tray pieces carry a bonus icon on one block. Clearing that block sto
 
 | Shown name | Internal id | Effect |
 |---|---|---|
-| Toupie | `rotate` | 30 s: tap a tray piece to rotate it |
+| Toupie | `rotate` | 30 s: tap a tray piece to rotate it (turn badge on the pads) |
 | Étoile | `nitro` | 30 s: points ×2 |
 | Bulle | `shield` | 30 s: combo cannot break |
 | Bombe | `bomb` | drag onto the grid: clears 21 cells (5×5 without corners) |

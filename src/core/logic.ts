@@ -365,11 +365,13 @@ function clockOf(state: RunState): { clockMax: number; perLine: number; clock?: 
 
 // Pieces turn in chill mode or while the rotate bonus runs.
 const canTurn = (state: RunState) => state.mode === 'chill' || state.mode === 'puzzle' || state.effects.rotate > 0;
+// This tray piece turns at a tap: the run lets every piece turn, or the piece itself does (`turn`).
+const canTurnPiece = (state: RunState, piece: Piece) => !state.over && (!!piece.turn || canTurn(state));
 
 // Does this piece have a legal spot, counting rotations when pieces can turn?
 function pieceFits(state: RunState, piece: Piece) {
   let p = piece;
-  const turns = canTurn(state) ? 4 : 1;
+  const turns = canTurn(state) || piece.turn ? 4 : 1;
   for (let i = 0; i < turns; i++) {
     if (fitsAnywhere(state.board, p)) return true;
     p = rotated(p);
@@ -1230,7 +1232,7 @@ function use(prev: RunState, type: BonusType, target?: { r: number; c: number } 
 // Only legal while pieces can turn (chill mode or rotate bonus).
 function rotate(prev: RunState, trayIndex: number) {
   const piece = prev.tray[trayIndex];
-  if (prev.over || !piece || !canTurn(prev)) return null;
+  if (!piece || !canTurnPiece(prev, piece)) return null;
   const tray = prev.tray.slice();
   tray[trayIndex] = rotated(piece);
   return { ...prev, tray };
@@ -1371,6 +1373,7 @@ export {
   bombArea,
   canPlace,
   canTurn,
+  canTurnPiece,
   pieceFits,
   previewClears,
 };

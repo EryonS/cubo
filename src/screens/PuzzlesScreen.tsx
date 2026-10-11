@@ -1,4 +1,4 @@
-// Puzzles (legacy #puzzles): the packs of ten drawings to fill, each with its stars (a solved one shows its
+// Puzzles (legacy #puzzles): a foldable how-to, the packs of ten drawings to fill, each with its stars (a solved one shows its
 // drawing instead of its number), a pack not reached yet as a single locked line, and the Puzzle surprise card.
 import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -24,6 +24,7 @@ import { Screen } from '../ui/Screen';
 import { LStar, StarRow } from '../ui/Stars';
 import { Text } from '../ui/Text';
 import { Coin } from '../ui/Wallet';
+import { HowTo } from './puzzles/HowTo';
 
 const fmt = (n: number) => n.toLocaleString(locale());
 const GAP = 8;
@@ -120,12 +121,15 @@ export function PuzzlesScreen() {
   const colors = useColors();
   const profile = useGame((s) => s.profile);
   const [width, setWidth] = useState(0);
+  // Open until the first puzzle is solved, folded after.
+  const [howTo, setHowTo] = useState(() => M.puzzlesSolved(profile) === 0);
   const cw = (width - 4 * GAP) / 5;
   const packs = packRows(profile);
   return (
     <Screen title={tr('Puzzles')} back={() => { sfx.turn(); nav.goBack(); }}
       right={<Counter icon={<LStar size={18} on />} value={`${fmt(allStars(profile))} / ${PZ.COUNT * 3}`} label={tr`${allStars(profile)} étoiles sur ${PZ.COUNT * 3}`} />}>
       <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ gap: space.l }}>
+        <HowTo open={howTo} onToggle={() => { sfx.turn(); setHowTo((o) => !o); }} />
         {packs.map((p) => (
           <View key={p.index} style={{ gap: space.s }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.s, marginHorizontal: space.xs }}>

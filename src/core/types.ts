@@ -19,6 +19,7 @@ export interface Piece {
   h: number;
   color: number;
   bonus: PieceBonus | null;
+  turn?: boolean; // turns at a tap in any mode (none deal one yet); absent = only when the run lets every piece turn
 }
 
 export interface Shape { cells: Cell[]; weight: number; color: number; w: number; h: number }

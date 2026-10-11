@@ -275,7 +275,8 @@ export function drawTray(g: G, th: Theme, lay: Layout, state: RunState, drag: Dr
     const b = slotBox(lay, i, free);
     drawTrayPad(g, th, b.x + 4, b.y + gap, b.w - 8, b.h - gap * 2);
   }
-  // While Toupie runs (and always in Chill and puzzles), a tap turns the piece: the pads breathe (not in Chill / puzzles).
+  // While Toupie runs (and always in Chill and puzzles), a tap turns the piece: it wears a badge, and under Toupie
+  // the pads breathe too.
   const canTurn = state.effects.rotate > 0 && !state.over;
   for (let i = 0; i < n; i++) {
     const piece = state.tray[i];
@@ -296,7 +297,29 @@ export function drawTray(g: G, th: Theme, lay: Layout, state: RunState, drag: Dr
     g.rotate(-spin * Math.PI / 2);
     drawPiece(g, th, piece, 0, 0, trayCell(lay, free, piece), fits ? 1 : 0.28);
     g.restore();
+    if (L.canTurnPiece(state, piece)) drawTurnBadge(g, th, slotBox(lay, i, free), free ? 3 : 6, spin);
   }
+}
+
+// A piece that turns at a tap: a round badge with a turning arrow in its pad's bottom-right corner (Chill,
+// puzzles, Toupie, a piece dealt with `turn`). It spins along with the piece.
+function drawTurnBadge(g: G, th: Theme, b: { x: number; y: number; w: number; h: number }, gap: number, spin: number) {
+  const r = Math.max(7, Math.min(11, Math.min(b.w, b.h) * 0.11));
+  const x = b.x + b.w - 4 - r - 3;
+  const y = b.y + b.h - gap - r - 3;
+  g.circle(x, y, r, th.tag.fill, { shadow: { color: th.shadow, blur: 4, dy: 1 } });
+  g.save();
+  g.translate(x, y);
+  g.rotate(-spin * Math.PI / 2);
+  const rr = r * 0.52;
+  const a1 = Math.PI * 1.5 - 0.5; // the arrow runs clockwise from just right of the top to just left of it
+  g.path().arc(0, 0, rr, -Math.PI / 2 + 0.5, a1).stroke(th.tag.ink, Math.max(1.6, r * 0.2), { cap: 'round' });
+  const px = rr * Math.cos(a1), py = rr * Math.sin(a1);
+  const tx = -Math.sin(a1), ty = Math.cos(a1); // clockwise tangent
+  const nx = Math.cos(a1), ny = Math.sin(a1);
+  const h = r * 0.42;
+  g.poly([[px + tx * h, py + ty * h], [px + nx * h * 0.8, py + ny * h * 0.8], [px - nx * h * 0.8, py - ny * h * 0.8]], th.tag.ink);
+  g.restore();
 }
 
 // Narrow column right of the tray: the piece that fills the next emptied slot. A dashed preview box

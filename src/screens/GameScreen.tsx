@@ -387,7 +387,7 @@ export function GameScreen() {
     offX.value = 0;
     offY.value = 0;
     if (state.mode !== 'puzzle' && !tutActive()) anim.trash = { over: false, since: 0, armed: false };
-    if (!L.canTurn(state)) sfx.pick();
+    if (!L.canTurnPiece(state, piece)) sfx.pick();
     haptic('pick');
     dragPicture.value = record(lay, typeface, (g) => drawPiece(g, th, piece, 0, 0, lay.cell), null, true);
     lift.value = l;
@@ -446,7 +446,7 @@ export function GameScreen() {
     const isTap = t - d.t0 - (d.fromBoard ? 200 : 0) < 280 && Math.hypot(x - d.sx, y - d.sy) < 12;
     // A tap on a piece just picked up from the board sends it back to the tray.
     if (isTap && d.fromBoard) { back(); return; }
-    if (isTap && released && L.canTurn(state)) { rotateTray(d.idx); return; }
+    if (isTap && released && L.canTurnPiece(state, piece)) { rotateTray(d.idx); return; }
     if (g.valid && released && commit(lay, d.idx, g.row, g.col)) return;
     back();
     if (released) nope();

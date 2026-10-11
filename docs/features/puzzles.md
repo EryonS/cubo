@@ -7,7 +7,8 @@ The Puzzles tile on Jouer (`src/screens/PuzzlesScreen.tsx`, stack route `Puzzles
 - Absolu (pack 8) is the hardest: an empty drawing (36-42 cells, `EMPTY_POOL`), 11 or 12 pieces to place, nothing in place. The list shows "· dessin vide" on its pack line.
 - Ids and play order: ids never move (stars are saved by id). Each pack plays its 10 first (ids pack × 10 + 1..) then the 5 added on 2026-10-09 (ids 81 + pack × 5..). `ORDER` / `packIds` / `prevOf` / `nextOf` give that order and `rankOf` the number shown ("Puzzle 11" is id 81). A puzzle opens when the one before it in `ORDER` is solved; one already solved stays open.
 
-- Free rotation (tap a piece), no line clears, no bonuses, no bin.
+- Free rotation (tap a piece, the tray badge shows it), no line clears, no bonuses, no bin.
+- "Comment jouer" on top of the list (`src/screens/puzzles/HowTo.tsx`): a foldable row, open until the first puzzle is solved, then the goal, turning, moving a placed piece, free undo, hints and stars.
 - Undo is free and goes back as far as wanted.
 - Indice (30 coins): puts one tray piece on a right spot. Stars: 3 without hints, one less per hint, at least 1. Hints taken on a numbered puzzle not solved yet are remembered (`profile.puzzleHints`): Recommencer, leaving and coming back start with that count, so the stars stay capped. Cleared when the puzzle is solved; a puzzle solved before and replayed for more stars starts clean and keeps nothing.
 - Rewards: first solve 15, +5 per new star, 60 for a finished pack.
@@ -23,7 +24,7 @@ Last card of the list, opens once pack Maître (its 15 puzzles) is done. Each ga
 - `src/core/logic.ts`: mode `'puzzle'`, kind `void` (outside the drawing), `setupPuzzle`, `placePuzzle`, `puzzleHint`, `liftPuzzle` (free puzzles), puzzle branches in `refillSlot`, `settle`, `undo`, `canTurn`, `canDiscard`, `undoCost`.
 - `src/core/meta.ts`: `applyPuzzle` (clears `puzzleHints[n]`), `notePuzzleHints` / `puzzleHintsOf`, `puzzleOpen`, `puzzleStarsOf`, `puzzlesSolved`, `PUZZLE_*` constants; `applySurprise`, `surpriseOpen`, `surprisesSolved`, `SURPRISE_*`.
 - `src/game/puzzle.ts` (pure, `puzzle.test.ts`): `freeTray`, `isSurprise`, `isVoid`, `puzzleTitle` / `puzzleLabel`, pack rows, `settlePuzzle`. `src/game/run.ts`: `startPuzzle`, `startSurprise`, `hintPuzzle`, `liftPuzzlePiece`, `endPuzzle`. `src/game/drag.ts`: the `DragState.ox/oy` of a piece lifted from the board.
-- `src/screens/PuzzlesScreen.tsx` (packs, drawing thumbnails, stars, Puzzle surprise card), `src/screens/PuzzleEnd.tsx` (result card), hint button in `src/screens/GameScreen.tsx`.
+- `src/screens/PuzzlesScreen.tsx` (how-to fold from `puzzles/HowTo.tsx`, packs, drawing thumbnails, stars, Puzzle surprise card), `src/screens/PuzzleEnd.tsx` (result card), hint button in `src/screens/GameScreen.tsx`.
 - `src/render/layout.ts` (`slotBox` and friends take a `free` argument: the surprise tray's two rows), `src/render/draw.ts` (void cells, `drawShapedFrame`, puzzle plate in `drawHUD`, count in the Suivant column).
 
 ## Saved state

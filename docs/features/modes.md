@@ -5,6 +5,7 @@ Status: shipped (Classique, Chrono, Chill, Aventure, Mondes). Aventure and Monde
 - **Classique**: play until no piece fits.
 - **Chrono**: a clock runs down; cleared lines add time.
 - **Chill**: free rotation, no bonuses.
+- Turn badge: a tray piece that turns at a tap (Chill, puzzles, Toupie, or a piece dealt with `turn: true`, see `L.canTurnPiece`) wears a small round arrow badge in its pad's corner (`drawTurnBadge` in `src/render/draw.ts`). No mode deals `turn` pieces yet: set it on a piece to make only that one turn, in any mode.
 Each has Facile / Normal / Difficile, and its own record.
 
 **Difficulty obstacles** (2026-10-01, user's request): like Aventure levels, Facile has no obstacle, Normal drops one obstacle kind (every 8 moves), Difficile two (every 7 and 10 moves). The kinds come from the equipped theme's world: its own cell, then its level 11-19 twist (Volcan: braises, lave; Glace: glace, bonshommes de neige...). Jouet and the season themes use Plaine's (caisses, taupes). The run's coins get a bonus at the end: +20 % on Normal, +50 % on Difficile (grid coins, perfects, combos, bombs; missions excluded). The Partie libre sheet shows the obstacles (pictures and names) and the bonus for the picked level.
